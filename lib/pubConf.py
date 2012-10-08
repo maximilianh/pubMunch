@@ -9,7 +9,7 @@ dbBaseDir = '/hive/data/outside/'
 
 # CRAWLER SETTINGS ==================================================
 # the useragent to use for http requests
-httpUserAgent = 'genomeBot/0.1 (max@soe.ucsc.edu, http://text.soe.ucsc.edu, +1 831 295 0653)'
+httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 
 # how long to wait for DNS queries, TCP connects, between retries and TCP reads, in seconds
 httpTimeout = 20
@@ -47,7 +47,7 @@ crawlDelays = {
 }
 
 # SFX server for pubmed entries without an outlink
-crawlSfxServer = "http://ucelinks.cdlib.org:8888"
+crawlSfxServer = "YOURSFXSERVER"
 
 # in some cases, the automatic publisher<->ISSN assignment has errors
 # this is either because the journal has switched publishers or
@@ -74,11 +74,8 @@ crawlSuppExts = set(['gif', 'svg', 'tiff', 'tif', 'jpg', 'xls', 'doc', 'pdf', 'p
 # for Elsevier updates:
 # We need the URL to the Consyn Update RSS feed. 
 # Login to consyn.elsevier.com, click on batches/RSS feed, paste the URL here
-#consynRssUrl = "https://consyn.elsevier.com/batch/atom?key=dGV4dDJnZW5vbWU7NzQwOQ%253d%253d"
-consynRssUrl = "http://consyn.elsevier.com/batch/atom?key=dGV4dDJnZW5vbWU7NzQ2"
-
-# where to keep Consyn update files
-# consynDownloadDir = "/hive/data/outside/pubs/ElsevierConsyn/updates"
+# they look like ttp://consyn.elsevier.com/batch/atom?key=XXXXXXXXXXXXXXXXXXX
+consynRssUrl = "YOURURL"
 
 # GENERAL PUBLICATION FILE CONFIG SETTINGS ============================
 
@@ -117,7 +114,7 @@ scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
 stepHosts = {'default' : 'swarm.cse.ucsc.edu', 'tables' : 'localhost', 'expFasta' : 'localhost' }
 
 # email for ncbi eutil requests and error email by pubCrawl
-email = "max@soe.ucsc.edu"
+email = "YOUREMAIL"
 
 # how much to wait between two eutils requests
 eutilsDelaySecs = 3
@@ -214,7 +211,7 @@ GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 # for which a keyword has been found
 
 speciesNames = {
-'dm3' : ['fruitfly', ' fly ', 'melanogaster', 'Drosophilids'],
+'dm3' : ['fruitfly', ' flies ', 'melanogaster', 'Drosophilids'],
 'mm9' : ['mouse', 'musculus', 'rodent'],
 'hg19' : ['human', 'sapiens', ' homo ', ' Homo ', 'patient', 'cell line','cell culture'],
 'danRer6' : ['zebrafish', 'rerio', 'Danio'],
@@ -328,6 +325,13 @@ mysqlDb = 'publications'
 # ACCESS METHODS (convenience) ============================
 
 import sys, logging, os.path, time, random
+confName = os.path.expanduser("~/.pubConf")
+if os.path.isfile(confName):
+    dummy = {}
+    newVars = {}
+    execfile(confName, dummy, newVars)
+    for key, value in newVars.iteritems():
+        locals()[key] = value
 
 def getConverters():
     return CONVERTERS
