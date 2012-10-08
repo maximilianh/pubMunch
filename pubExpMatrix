@@ -1,0 +1,30 @@
+#!/usr/bin/env python2.7
+
+# load default python packages
+import logging, optparse, sys
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, pubExpMatrix, pubConf
+
+def main(args, options):
+    outDir = args[0]
+    datasets = args[1:]
+    pubGeneric.setupLogging("", options)
+    pubExpMatrix.exportMatrix(outDir, datasets, options.skipMap)
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] outFile dataset1 dataset2 ... - create a matrix for R for each article with a PMID """)
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("", "--skipMap", dest="skipMap", action="store_true", help="skip map step")
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

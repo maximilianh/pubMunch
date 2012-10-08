@@ -1,0 +1,89 @@
+#!/usr/bin/env python2.7
+
+# load default python packages
+import sys, logging, optparse, os, glob, zipfile, types, re, tempfile, shutil, codecs
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, pubStore, pubConf, maxCommon, pubXml, pubConvElsevier
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a Elsevier fulltext from CONSYN XML (zipfiles) format into pubtools format
+
+If in and out are directories:
+    Will create an index of all xml files and write them to 
+    outDir/consyn.index
+    Will split these to outDir/consyn.index.split/<xxxx>.tab
+If in and out are files:
+    Will parse the input file as an index file
+    Writes to outDir/<xxxx>.zip
+
+CONSYN zipfiles have to be uploaded by Elsevier into your own ftp server
+or are shipped on blue ray discs. Updates are downloaded via http (RSS feed)
+
+If a file doi2pmid.tab.gz is found in the input directory, the PMIDs are added for DOIs
+where they are available.
+
+Make sure that you run pubGetElsevier whenever a new batch is ready. Consyn 
+will DELETE all batches once a new one is available. If you missed once, you need
+to prepare them manually ("updated since=xxx"). More info on consyn.elsevier.com
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default", default=2000) 
+parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
+parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
+parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
+#parser.add_option("-u", "--update", dest="update", action="store_true", help="activate automatic update mode: convert only files that are not yet in <outDir>/updates.tab", default=None) 
+parser.add_option("-m", "--maxSubmit", dest="maxSubmit", action="store", type="int", help="do not run more than X jobs in parallel to treat cluster file system with care", default=None) 
+(options, args) = parser.parse_args()
+
+# ----------- MAIN --------------
+# only for debugging
+pubGeneric.setupLogging(progFile, options)
+if options.parse!=None:
+    fname = args[0]
+    logging.info("Parsing file %s, writing to temp.txt" % fname)
+    ofh = codecs.open("temp.txt", "w", encoding="utf8") # etree can only accept normal strings
+    xmlString = open(fname).read()
+    xmlTree   = pubXml.etreeFromXml(xmlString)
+    articleData = pubStore.createEmptyArticleDict()
+    articleData = pubConvElsevier.parseElsevier(xmlTree, articleData)
+    content = pubConvElsevier.treeToAscii_Elsevier(xmlTree)[0]
+    #print repr(content)[:300]
+    #c = content.encode("latin1").decode("utf8")
+    #print c.encode("utf8")[:300]
+    ofh.write("RAW CONTENT with repr()\n")
+    ofh.write(repr(pubStore.replaceSpecialChars(content))+"\n")
+    ofh.write("RAW CONTENT without repr\n")
+    ofh.write(pubStore.replaceSpecialChars(content)+"\n")
+    ofh.write("ARTICLE DATA"+"\n")
+    for key, val in articleData.iteritems():
+        ofh.write("%s\t%s\n" % (key, pubStore.replaceSpecialChars(val)))
+    sys.exit(0)
+    
+if args==[]: 
+    parser.print_help()
+    exit(1)
+
+# normal operation
+inDir, outDir = args
+maxCommon.mustExist(inDir)
+
+minId = options.minId
+chunkCount = options.chunkCount
+#updateMode = options.update
+maxSubmit = options.maxSubmit
+
+if not os.path.isdir(inDir):
+    print "first parameter must be a directory"
+    sys.exit(1)
+
+pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxSubmit)

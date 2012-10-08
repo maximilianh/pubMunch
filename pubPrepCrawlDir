@@ -1,0 +1,693 @@
+#!/usr/bin/env python
+
+# load default python packages
+import logging, optparse, os, sys, collections, gzip, re, codecs, operator, glob, random
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
+
+# load our own libraries
+import pubConf, pubGeneric, tabfile, maxCommon, pubPubmed
+from urllib2 import urlparse
+
+import xml.etree.cElementTree as etree
+
+# ===== FUNCTIONS =======
+
+headers = "source,eIssn,pIssn,title,publisher,urls,uniqueId,linkIssn,medlineTA,majMeshList,author,country"
+Rec = collections.namedtuple("NLMRec", headers)
+
+PUBLISHERTAB = 'publishers.tab'
+ISSNTAB = "issns.tab"
+JOURNALDIR = "_journalData"
+
+def urlStringToServers(urlString):
+    " convert |-sep list of urls to list of hostnames "
+    servers = set()
+    urls = urlString.split("|")
+    for url in urls:
+        parts = urlparse.urlsplit(url)
+        server = parts[1]
+        server = server.replace("www.", "")
+        if server!="":
+            servers.add(server)
+    return servers
+
+def recIter(tree):
+    for rec in tree.findall("NLMCatalogRecord"):
+        #serial = rec.find("Serial")
+        data = {}
+        data["uniqueId"] = rec.find("NlmUniqueID").text
+        data["title"]    = rec.find("TitleMain").find("Title").text
+        medlineTa  = rec.find("MedlineTA")
+        if medlineTa==None:
+            logging.debug("Skipping %s" % data)
+            continue
+
+        data["medlineTA"]= medlineTa.text
+
+        data["author"] = ""
+        authorList = rec.find("AuthorList")
+        if authorList!=None:
+            author = authorList.find("Author")
+            if author!=None:
+                collName = author.find("CollectiveName")
+                if collName!=None:
+                    data["author"] = collName.text.strip(",. ;").replace("[etc.]","").strip(",. ;")
+
+        pubInfo = rec.find("PublicationInfo")
+        data["publisher"] = ""
+        data["country"] = ""
+        if pubInfo != None:
+            publishers = pubInfo.findall("Publisher")
+            if publishers!=None:
+                pubDict = {}
+                for publisher in publishers:
+                    pubStr = publisher.text.strip(",. ;").replace("[etc.]","").strip(",. ;")
+                    pubDict[publisher.attrib.get("ImprintType")] = pubStr
+
+                if "Current" in pubDict:
+                    data["publisher"] = pubDict["Current"]
+                elif "Original" in pubDict:
+                    data["publisher"] = pubDict["Original"]
+                else:
+                    if len(pubDict)!=0:
+                        data["publisher"] = pubDict.values()[0]
+                    else:
+                        data["publisher"] = "unknown"
+
+                if data["publisher"].lower() in ["the association", "the society", "the institute", "the college", "the federation"]:
+                    data["publisher"]=data["author"]
+            country = pubInfo.find("Country")
+            if country !=None:
+                data["country"] = country.text
+
+        eloc = rec.find("ELocationList")
+        urls = []
+        #servers = set()
+        if eloc!=None:
+            elocs = eloc.findall("ELocation")
+            for eloc in elocs:
+                eid = eloc.find("ELocationID")
+                if eid!=None and eid.attrib.get("EIdType", None)=="url":
+                    url = eid.text
+                    if "pubmedcentral" in url or "doi" in url:
+                        logging.debug("url is PMC or DOI")
+                    elif "nlm.nih.gov" in url:
+                        logging.debug("url goes to pubmed")
+                    elif "cdc.gov" in url:
+                        logging.debug("url goes to cdc")
+                    else:
+                        urls.append(eid.text)
+                        #parts = urlparse.urlsplit(url)
+                        #server = parts[1]
+                        #server = server.replace("www.", "")
+                        #if server!="":
+                            #servers.add(server)
+        data["urls"] = "|".join(urls)
+        #data["servers"] = "|".join(servers)
+
+        majMeshes = []
+        meshList = rec.find("MeshHeadingList")
+        if meshList!=None:
+            heads = meshList.findall("MeshHeading")
+            for head in heads:
+                desc = head.find("DescriptorName")
+                if desc.attrib.get("MajorTopicYN", None)=="Y":
+                    majMeshes.append(desc.text)
+        majMesh = "|".join(majMeshes)
+        data["majMeshList"] = majMesh
+                
+        issns = rec.findall("ISSN")
+        data["eIssn"] = ""
+        data["pIssn"] = ""
+        if issns!=None:
+            for issn in issns:
+                if issn.attrib.get("IssnType", None)=="Electronic":
+                    data["eIssn"]=issn.text
+                if issn.attrib.get("IssnType", None)=="Print":
+                    data["pIssn"]=issn.text
+
+        data["linkIssn"] = ""
+        issnLink = rec.find("IssnLinking")
+        if issnLink!=None:
+            data["linkIssn"]=issnLink.text
+        else:
+            #data["linkIssn"]=data["pIssn"]
+            data["linkIssn"]=""
+            
+        data["source"] = "NLM"
+        row = Rec(**data)
+        yield row
+
+def writeJournals(journals, outFname, headers=None, append=False, source=None):
+    """ write list of records to file. If headers is specified, 
+    reformat to fit into tab-sep headers. Optionally set the field source to some value."""
+    logging.info("Exporting to tab-sep file %s" % outFname)
+    openMode = "w"
+    if append:
+        openMode = "a"
+    outFh = open(outFname, openMode)
+    if headers==None:
+        headers = journals[0]._fields
+    if not append:
+        outFh.write("\t".join(headers)+"\n")
+    skipCount = 0
+    Rec = collections.namedtuple("JRec", headers)
+    for rec in journals:
+        #if rec.eIssn=="":
+            #skipCount+=1
+            #continue
+        if headers!=None:
+            recDict = rec._asdict()
+            # create a new dict with all defined fields and 
+            # all required fields set to "", drop all non-reqired fields
+            filtRecDict = {}
+            for d in recDict:
+                if d in headers:
+                    filtRecDict[d] = recDict[d]
+            for h in headers:
+                if h not in filtRecDict:
+                    filtRecDict[h] = ""
+            if source:
+                filtRecDict["source"] = source
+            rec = Rec(**filtRecDict)
+        outFh.write((u"\t".join(rec)).encode("utf8")+"\n")
+
+    return rec._fields
+    #logging.info("Skipped %d journals without eIssn" % skipCount)
+
+def parseNlmCatalog(inFname):
+    " convert NLM's XML format to a tab-sep file and return a dict publisher -> journalCount "
+    if inFname.endswith(".gz"):
+        data = gzip.open(inFname).read()
+    else:
+        data = open(inFname).read()
+        
+    logging.info("Parsing XML file %s into memory" % inFname)
+    data = "<nlm>"+data+"</nlm>"
+    tree = etree.fromstring(data)
+    journals = list(recIter(tree))
+    return journals
+
+def journalToBestWebserver(journals):
+    """ given a list of journal records create a mapping journal -> webserver 
+    We will assign a journal to the biggest webserver, if there are several ones """
+    # count journals per webserver
+    serverCounts = collections.defaultdict(int)
+    for journal in journals:
+        jServers = urlStringToServers(journal.urls)
+        for server in jServers:
+            serverCounts[server]+=1
+
+    # assign journal to most popular server
+    # + some special cases to correct obivous error by the NLM
+
+    replaceServerDict = {
+    "springer" : "springerlink.com",
+    "wiley.com" : "onlinelibrary.wiley.com",
+    ".elsevier" : "sciencedirect.com"
+    }
+
+    journalToServer = {}
+    for journal in journals:
+        servers = urlStringToServers(journal.urls)
+        jServerCounts = []
+        for server in servers:
+            jServerCounts.append((server, serverCounts[server]))
+        jServerCounts.sort(key=operator.itemgetter(1), reverse=True)
+        topServer = jServerCounts[0][0]
+        for replFrom, replTo in replaceServerDict.iteritems():
+            if replFrom in topServer:
+                topServer = replTo
+                break
+        journalToServer[journal.eIssn] = topServer
+    return journalToServer
+
+def groupPublishersByServer(journals):
+    """ given a list of journal records, group similar ones based on webserver name
+    return dict groupName -> (count, list of names)
+
+    """
+    # count journals per webserver
+    serverCounts = collections.defaultdict(int)
+    for journal in journals:
+        jServers = urlStringToServers(journal.urls)
+        for server in jServers:
+            serverCounts[server]+=1
+
+    # assign journal to most popular server
+    # + some special cases to correct obivous error by the NLM
+
+    replaceServerDict = {
+    "springer" : "springerlink.com",
+    "wiley.com" : "onlinelibrary.wiley.com",
+    ".elsevier" : "sciencedirect.com"
+    }
+
+    journalGroups = {}
+    for journal in journals:
+        servers = urlStringToServers(journal.urls)
+
+        jServerCounts = []
+        for server in servers:
+            jServerCounts.append((server, serverCounts[server]))
+        jServerCounts.sort(key=operator.itemgetter(1), reverse=True)
+        topServer = jServerCounts[0][0]
+        for replFrom, replTo in replaceServerDict.iteritems():
+            if replFrom in topServer:
+                topServer = replTo
+                break
+        journalGroups.setdefault(topServer, []).append(journal.publisher)
+
+    # count and return
+    ret = {}
+    for server, pubList in journalGroups.iteritems():
+        count = len(pubList)
+        pubSet = set(pubList)
+        ret[server] = (count, pubSet)
+    return ret
+
+def groupPublishersByName(journals):
+    """ given a list of journal records, group similar ones based on some heuristics,
+    return dict (groupName) -> (list of journal records)
+    """
+    # make dict with publisher -> count
+    pubCountDict = collections.defaultdict(int)
+
+    # remove these words from publishers before grouping
+    removeWords = "Press,Verlag,Services,Inc,Incorporated,AG,Publications,Journals,Editiones,Asia,Ltd,Media,Publishers,International,Group,Publishing,Pub ,Pub.,Periodicals,Pub,Limited,Co".split(",")
+
+    # some manual rules for grouping, to force to a given final publisher if a certain keyword is found 
+    # if KEY is part of publisher name, publisher is grouped into VAL
+    pubReplaceDict = {
+        "Academic Press" : "Elsevier",
+        "Wiley":"Wiley",
+        "Elsevier":"Elsevier", \
+        "Nature":"NPG", \
+        "Thieme":"Thieme", \
+        "Springer":"Springer", \
+        "blackwell":"Wiley",
+        "munksgaard":"Wiley",
+        "humana":"Springer",
+        "hindawi" : "Hindawi",
+        "sage" : "Sage",
+        "Kluwer" : "Kluwer",
+        "Adis" : "ADIS",
+        "ADIS" : "ADIS",
+        "adis" : "ADIS",
+        "de Gruyter" : "Gruyter",
+        "Williams and Wilkins" : "Kluwer",
+        "Chicago" : "University Of Chicago",
+        "Mosby" : "Elsevier",
+        "Masson" : "Elsevier",
+        "Churchill" : "Elsevier",
+        "cambridge" : "Cambridge Univ. Press",
+        "karger" : "Karger",
+        "pergamon" : "Elsevier",
+        "british medical" : "British Med. Assoc.",
+        "lippincott" : "Kluwer",
+        "Royal Society of Medicine" : "Royal Soc of Medicine",
+        "VCH Verlag" : "Wiley",
+        "taylor" : "Taylor & Francis",
+        "american physical society" : "American Physical Soc",
+        "ieee" : "IEEE",
+        "bmj" : "British Med. Assoc.",
+        "oxford university" : "OUP",
+        "oxford journals" : "OUP",
+        "saunders" : "WB Saunders",
+        "American Institute of Physics" : "American Institute of Physics",
+        "Churchill Livingstone" : "Churchill Livingstone",
+        "Portland" : "Portland",
+        "lancet" : "Elsevier",
+        "schattauer" : "FK Schattauer",
+        "Future" : "Future Science",
+        "Expert Reviews" : "Future Science"
+    }
+
+    # group publishers together
+    pubDict = {}
+    for journal in journals:
+        publisher = journal.publisher
+        found = False
+
+        pubGroup = publisher.strip()
+        pubGroup = pubGroup.replace(" &"," and").replace(",","").replace(".","").replace("-", " ")
+        pubGroup = pubGroup.replace("Assn", "Association")
+        pubGroup = pubGroup.replace("Of", "of")
+        pubGroup = pubGroup.replace("Univ ", "University ")
+        pubGroup = pubGroup.replace("Univ. ", "University ")
+        pubGroup = pubGroup.replace('"', "")
+
+        # first try with manual groupings
+        resolved = False
+        for pubShort, pubName in pubReplaceDict.iteritems():
+            if pubShort.lower() in pubGroup.lower():
+                pubGroup = pubName
+                resolved = True
+                break
+
+        # if this doesn't work, remove some words and try manual groupings again
+        if not resolved:
+            for word in removeWords:
+                pubGroup = re.sub("(^| )%s($| )" % word, " ", pubGroup)
+                pubGroup = pubGroup.strip(" ,.;[]()")
+
+            for pubShort, pubName in pubReplaceDict.iteritems():
+                if pubShort.lower() in pubGroup.lower():
+                    pubGroup = pubName
+                    break
+
+        pubDict.setdefault(pubGroup, []).append(journal)
+
+    return pubDict
+
+def writePubGroups(pubGroups, outFname, prefix=None, append=False):
+    " write dict to tab sep file "
+    openMode = "w"
+    if append:
+        openMode = "a"
+    ofh = codecs.open(outFname, openMode, encoding="utf8")
+    logging.info("Writing %s" % outFname)
+    if not append:
+        ofh.write("journalCount\tpubName\tpubSynonyms\twebservers\tjournalEIssns\n")
+    for pubGroup, journals in pubGroups.iteritems():
+        jIds = []
+        syns = set()
+        servers = set()
+        for journal in journals:
+            jIds.append(journal.eIssn)
+            syns.add(journal.publisher)
+            jServers = urlStringToServers(journal.urls)
+            servers.update(jServers)
+            #server = jourToServer.get(journal.eIssn, None)
+        journalCount = len(journals)
+        if prefix:
+            pubGroup=prefix+" "+pubGroup
+        row = [str(journalCount), pubGroup, u"|".join(syns), "|".join(servers), "|".join(jIds)]
+        ofh.write("%s\n" % "\t".join(row))
+
+def findBestGroupForServer(pubGroups):
+    " create mapping server -> best pubGroup (best= most journals)"
+    # mapping server -> set of groups
+    serverToGroups = collections.defaultdict(set)
+    for groupName, journals in pubGroups.iteritems():
+        for journal in journals:
+            if journal.urls=="":
+                continue
+            jServers = urlStringToServers(journal.urls)
+            for server in jServers:
+                serverToGroups[server].add(groupName)
+
+    # for each server, create list of (group, journalCount)
+    # rank groups by group counts
+    serverToBestGroup = {}
+    for server, serverPubGroups in serverToGroups.iteritems():
+        groupCounts = []
+        for group in serverPubGroups:
+            groupCounts.append( (group, len(pubGroups[group])) )
+        groupCounts.sort(key=operator.itemgetter(1), reverse=True)
+        bestGroup = groupCounts[0][0]
+        serverToBestGroup[server] = bestGroup
+    return serverToBestGroup
+        
+def regroupByServer(pubGroups, serverToBestGroup):
+    " if a publisher has only one server, then group it to the biggest group for this server "
+    newGroups = {}
+    for pubGroup, journals in pubGroups.iteritems():
+        # get all servers of all journals
+        servers = set()
+        for j in journals:
+            jServers = urlStringToServers(j.urls)
+            servers.update(jServers)
+
+
+        if len(servers)==1:
+            server = servers.pop()
+            if server!="":
+                bestGroup = serverToBestGroup[server]
+            else:
+                bestGroup = pubGroup
+        else:
+            bestGroup = pubGroup
+        newGroups.setdefault(bestGroup, []).extend(journals)
+    return newGroups
+
+def parseTabPublisherFile(fname):
+    " parse a file with columns eIssn, publisher (optional) and urls into a list of records "
+    logging.info("Parsing %s" % fname)
+    journals = list(maxCommon.iterTsvRows(fname))
+    # modify publisher field
+    datasetName = splitext(basename(fname))[0]
+    headers = list(journals[0]._fields)
+    addPubField = False
+    if "publisher" not in headers:
+        headers.insert(0, "publisher")
+        addPubField =True
+    JRec = collections.namedtuple("Journal", headers)
+    newJournals = []
+    for j in journals:
+        if j.eIssn.lower()=="print only" or j.eIssn.lower()=="unknown":
+            logging.debug("Skipping journal %s, no eIssn" % j.title)
+            continue
+        if addPubField:
+            newJ = [datasetName]
+            newJ.extend(j)
+            newJRec = JRec(*newJ)
+        else:
+            newJRec = j
+        newJournals.append(newJRec)
+    return newJournals
+
+def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
+    """ init outDir by parsing journal list files. generate journal and publisher 
+        tables from it.
+    """
+    journalFname = join(outDir, "journals.tab")
+
+    # process NLM xml file
+    journals = parseNlmCatalog(nlmCatalogFname)
+    headers = writeJournals(journals, journalFname, source="NLM")
+    pubGroups = groupPublishersByName(journals)
+    serverToBestGroup = findBestGroupForServer(pubGroups)
+    #pubGroups = groupPublishersByServer(publishers)
+    pubGroups = regroupByServer(pubGroups, serverToBestGroup)
+    writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), prefix="NLM")
+
+    # integrate tab-sep files received from other publishers
+    for tabSepFname in tabSepFnames:
+        datasetName = splitext(basename(tabSepFname))[0].upper()
+        journals = parseTabPublisherFile(tabSepFname)
+        pubGroups = groupPublishersByName(journals)
+        writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), \
+                prefix=datasetName, append=True)
+        writeJournals(journals, journalFname, headers, append=True, source=datasetName)
+
+def initJournalDir(journalDataDir):
+    " fill the journal data dir _journalData with two tab sep files "
+    if not isdir(journalDataDir):
+        logging.info("Creating %s" % journalDataDir)
+        os.makedirs(journalDataDir)
+
+    listDir = join(dirname(__file__), "journalLists")
+    logging.info("importing journal info from %s" % listDir)
+
+    if not options.nlmCatalog:
+        nlmCatalogFname = join(listDir, "nlmCatalog.currentlyIndexed.xml.gz")
+    else:
+        nlmCatalogFname = options.nlmCatalog
+
+    otherTabFnames = glob.glob(join(listDir, "*.tab"))
+    convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalDataDir)
+    
+def parseIssns(journalDataDir, crawlPubDirs, crawlIssnOverwrite):
+    " parse Issns into dict Issn -> pub "
+    pubFname = join(journalDataDir, PUBLISHERTAB)
+    pubs = maxCommon.iterTsvRows(pubFname)
+    # parse into dict pub -> list of issns
+    pubToIssn = {}
+    for pub in pubs:
+        issns = pub.journalEIssns.split("|")
+        pubToIssn[pub.pubName] = issns
+
+    # check if all configured pubs are actually in this dict
+    # write into dict issn -> pub
+    issnToPub = {}
+    for pubName in crawlPubDirs:
+        if pubName not in pubToIssn:
+            raise Exception("publisher %s defined in pubConf not found in %s" % (pubName, pubFname))
+        issns = pubToIssn[pubName]
+        for issn in issns:
+            issnToPub[issn] = pubName
+
+    for corrIssn in crawlIssnOverwrite:
+        if corrIssn in issnToPub:
+            del issnToPub[corrIssn]
+
+    # now reverse again and make dict pub -> issnList
+    pubToIssn = {}
+    for issn, pub in issnToPub.iteritems():
+        pubToIssn.setdefault(pub, set()).add(issn)
+    return pubToIssn
+
+def writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite):
+    """ write (issn,minYear,maxYear) as issn.tab to all publisher directories, 
+        adding issnOverwrite at the end 
+    """
+    outFhDict = {}
+    for pubName, pubDir in pubDirs.iteritems():
+        # create subdir
+        pubDirPath = join(outDir, pubDir)
+        if not isdir(pubDirPath):
+            logging.info("Creating dir %s" % pubDirPath)
+            os.makedirs(pubDirPath)
+
+        # write default ISSNs
+        issnOutFname = join(outDir, pubDir, ISSNTAB)
+        logging.info("Writing to %s" % issnOutFname)
+        if issnOutFname not in outFhDict:
+            outFh = open(issnOutFname, "w")
+            outFh.write("issn\tstartYear\tendYear\tpublisher\n")
+            outFhDict[issnOutFname] = outFh
+        else:
+            outFh = outFhDict[issnOutFname]
+        issnCount = 0
+        for issn in pubToIssn[pubName]:
+            if issn=="":
+                continue
+            outFh.write(issn+"\t0\t0\t%s\n" % pubName)
+            issnCount+=1
+
+        # add manual ISSNs
+        for issn, startYear, endYear in issnOverwrite.get(pubDir, []):
+            outFh.write("%s\t%d\t%d\t%s\n" % (issn, startYear, endYear, pubName))
+            issnCount+=1
+        logging.info("Wrote %d ISSNs" % issnCount)
+
+def writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite):
+    """ use pubConf.py and the publishers.tab file to get target ISSNs
+    and write them to outDir/<publisherDir>/issns.tab 
+    """
+    pubToIssn = parseIssns(journalDataDir, pubDirs, issnOverwrite)
+    writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite)
+
+def writePmids(pubDir, pmids):
+    " randomize pmids and write as pmids.txt to pubDir "
+    random.shuffle(pmids)
+    pmidFname = join(pubDir, "pmids.txt")
+    logging.info("Writing %d PMIDs to %s" % (len(pmids), pmidFname))
+    pmidFh = open(pmidFname, "w")
+    for pmid in pmids:
+        pmidFh.write(pmid+"\n")
+
+def resolveIssnToPmid_Pubmed(issnRowFnames, minYear):
+    """ use pubmed eutils to get the PMIDs for a dict of 
+    pubDir -> (list of ISSN records) and append to filename """
+    for pubDir, issns in issnRowFnames.iteritems():
+        logging.info("Processing publisher dir %s" % pubDir)
+        pmids = []
+        for issnData in issns:
+            # read pmids from pubmed or filesystem
+            logging.info("Retrieving PMIDs for ISSN %s" % issnData.issn)
+            query = issnData.issn+"[ta]"
+            startYear = int(issnData.startYear)
+            endYear = int(issnData.endYear)
+            if startYear==0:
+                startYear=str(minYear)
+            if endYear==0:
+                endYear="2030"
+            query += " %s:%s[dp]" % (str(startYear), str(endYear))
+            logging.debug("sending query to pubmed: %s" % query)
+            
+            issnPmids = list(pubPubmed.ncbiESearch(query, tool="pubtools_pubPrepCrawlDir", \
+                email=pubConf.email, delaySecs=pubConf.eutilsDelaySecs))
+            if len(issnPmids)==0:
+                logging.warn("No PMIDs for pubmed query %s" % query)
+            else:
+                logging.info("Got %d PMIDs for ISSN %s" % (len(issnPmids), issnData.issn))
+            pmids.extend(issnPmids)
+
+        writePmids(pubDir, pmids)
+
+             
+def getPmidsForIssns(outDir, minYear, onlyDir):
+    " go over all subdirs of outDir, look for issns.lst and download all PMIDs for these ISSNs "
+    #outDirFiles = glob.glob(join(outDir, "*"))
+    outDirFiles = [outDir]
+
+    # parse all issns into a big dict dirPath -> list of issns
+    outDirIssns = {}
+    for outDirPath in outDirFiles:
+        if not isdir(outDirPath) or outDirPath.endswith(JOURNALDIR):
+            logging.info("ignoring directory %s" % outDirPath)
+            continue
+
+        if onlyDir!=None and onlyDir!=basename(outDirPath):
+            logging.info("Ignoring %s, onlyDir option set to %s" % (outDirPath, onlyDir))
+            continue
+
+        issnFname = join(outDirPath, ISSNTAB)
+        if not isfile(issnFname):
+            logging.warn("Could not find %s" % issnFname)
+            continue
+
+        logging.info("Reading %s" % issnFname)
+
+        for row in maxCommon.iterTsvRows(issnFname):
+            outDirIssns.setdefault(outDirPath, []).append(row)
+
+    resolveIssnToPmid_Pubmed(outDirIssns, minYear)
+
+def main(args, options):
+    pubGeneric.setupLoggingOptions(options)
+
+    command, outDir = args
+    minYear = options.minYear
+    onlyDir = options.onlyDir
+
+    pubDirs = pubConf.crawlPubDirs
+    issnOverwrite = pubConf.crawlIssnOverwrite
+
+    journalDataDir = join(outDir, JOURNALDIR)
+
+    command = command.lower()
+
+    if command=="publishers":
+        initJournalDir(journalDataDir)
+    elif command=="issns":
+        writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
+    elif command=="pmids":
+        getPmidsForIssns(outDir, minYear, onlyDir)
+    elif command=="all":
+        initJournalDir(journalDataDir)
+        writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
+        getPmidsForIssns(outDir)
+    else:
+        raise Exception("Unknown command %s" % command)
+
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [publishers|issns|pmids|all] <outDir> - prepare the base directory for the crawler by parsing the NLM Catalog and other journal lists into publishers and ISSNs. 
+
+commands:
+    %prog publishers <outDir> - import journal lists and group into publishers.
+                                Creates the _journalData dir in outDir.
+    %prog issns <outDir>      - create subdirectories under outDir and fill them 
+                                with issn.tab files
+    %prog pmids <outDir>      - retrieve the PMIDs from Pubmed for all ISSNs
+    %prog all <outDir>        - run all three steps on outDir
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("", "--nlmCatalog", dest="nlmCatalog", action="store", help="use a given nlmCatalog.xml instead of the default one")
+parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1990)
+parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
+(options, args) = parser.parse_args()
+
+if len(args)<2:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

@@ -1,0 +1,83 @@
+#!/usr/bin/env python2.7
+
+# first load the standard libraries from python
+#from sys import *
+import sys, time
+import logging, optparse, os, glob, urllib2, tempfile, shutil, csv, re, collections, ftplib
+import subprocess
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+import pubGeneric, pubConf, maxXml, maxCommon, util
+
+# === CONSTANTS ===
+medlineSrv = 'ftp.nlm.nih.gov'
+baselinePath= '/nlmdata/.medleasebaseline/gz'
+updatePath= '/nlmdata/.medlease/gz'
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current Medline copy from Medline ftp server. optionally download full baseline medline with lftp.
+
+Creates a file download.log with information what has been added/deleted.
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
+parser.add_option("-p", "--parallelConnections", dest="connCount", action="store", type="int", help="use lftp for faster, parallel downloads, use X number of connections, default %default", default=8)
+parser.add_option("", "--full", dest="full", action="store_true", help="also download the baseline medline files for the current year")
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+
+def downloadBaseline(outDir, connCount):
+    " download current baseline into outDir "
+    baselineFnames = pubGeneric.getFtpDir(medlineSrv, baselinePath)
+    baselineFnames = [fname for fname in baselineFnames if fname.endswith(".xml.gz")]
+    medlineUrl = "ftp://"+medlineSrv+"/"+baselinePath,
+    #baselinePaths = [baselinePath+fname for fname in baselineFnames]
+    pubGeneric.lftpGet(medlineUrl, outDir, baselineFnames, connCount)
+    
+def ftpBaselineEqLocal(outDir):
+    prefixLen = 9 # medline12.....
+    baselineFnames = pubGeneric.getFtpDir(medlineSrv, baselinePath)
+    ftpVer = baselineFnames[0][:prefixLen]
+    localVer = basename(glob.glob(outDir+"/*.gz")[0])[:prefixLen]
+    logging.debug("%s %s", ftpVer, localVer)
+    return ftpVer==localVer
+
+def downloadUpdates(outDir, connCount):
+    """ Download updates from Medline into outDir """
+    updateFnames = pubGeneric.getFtpDir(medlineSrv, updatePath)
+    updateFnames = [fname for fname in updateFnames if fname.endswith(".xml.gz")]
+    medlineUrl = "ftp://"+medlineSrv+"/"+updatePath,
+    pubGeneric.lftpGet(medlineUrl, outDir, updateFnames, connCount)
+
+# ----------- MAIN --------------
+def main():
+    if args==[]:
+        parser.print_help()
+        exit(1)
+
+    outDir = args[0]
+    maxCommon.mustExist(outDir)
+    pubGeneric.setupLogging(progFile, options)
+
+    outDir = args[0]
+
+    if options.full:
+        maxCommon.mustBeEmptyDir(outDir)
+        downloadBaseline(outDir, options.connCount)
+
+    if not ftpBaselineEqLocal(outDir):
+        raise Exception("Medline baseline version (full year) has changed, \n"
+            "please move %s out of the way and re-run with parameter --full" % outDir)
+
+    downloadUpdates(outDir, options.connCount)
+
+main()

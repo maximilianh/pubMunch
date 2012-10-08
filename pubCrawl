@@ -1,0 +1,44 @@
+#!/usr/bin/env python2.7
+
+# load default python packages
+import logging, optparse, sys, os, traceback
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, pubCrawl, pubConf
+
+def main(args, options):
+    outDir = args[0]
+    logFname = join(outDir, "crawler.log")
+    pubGeneric.setupLogging("", options, logFileName=logFname, fileMode="a")
+
+    try:
+        pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, options.pause, options.tryHard)
+    except:
+        if options.sendEmail:
+            logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)
+            tb = traceback.format_exc().replace("'", "")
+            cmd = "echo pubCrawl %s error: '%s' | mail -s 'pubCrawl %s error' %s" % \
+                (outDir, tb, outDir, pubConf.email)
+            os.system(cmd)
+        raise
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <outDir> - crawl articles with supp files from publishers. Looks for pmids.txt in outDir.""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, default %default", default=10)
+parser.add_option("", "--test", dest="testPmid", action="store", help="test crawling with this PMID")
+parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
+parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")
+parser.add_option("", "--tryHarder", dest="tryHard", action="store_true", help="the default behaviour is to back off when errors occur, i.e. make the delays between requests longer and longer (60secs*number of errors) until the first download was successful again. This is to allow for repairs of servers, e.g. during the night. This option changes the wait time and will always wait for 5 secs, for downloads where we expect many errors. It also increases tolerance for errors, will stop crawling only after 500 consecutive errors")
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

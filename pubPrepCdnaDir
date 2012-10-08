@@ -1,0 +1,153 @@
+#!/usr/bin/env python
+
+# first load the standard libraries from python
+# we require at least python 2.7
+#from sys import *
+import sys
+if sys.version_info[0]==2 and not sys.version_info[1]>=7:
+    print "Sorry, this program requires at least python 2.7"
+    print "You can download a more current python version from python.org and compile it"
+    print "into your homedir (or anywhere else) with 'configure --prefix ~/python27'; make;"
+    print "then run this program again by specifying your own python executable like this: "
+    print "   ~/python27/bin/python <%s>" % sys.argv[0]
+    print "or add ~/python27/bin to your PATH before /usr/bin"
+    exit(1)
+
+# load default python packages
+import logging, optparse, os, glob, shutil
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubConf, pubGeneric, pubAlg, maxCommon, bigBlat 
+from os.path import *
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog : download mrna alignments, sequences and translate them to peptides. The path is taken from pubConf.py. The output is required for the cdna alignments of pubBlat.
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONS =====
+def prepCdnaDir():
+    " config targetdir for blatCdna "
+    tmpDir    = join(pubConf.getTempDir() , "pubBlatCdna")
+    dbList    = pubConf.alignGenomeOrder
+    targetDir = pubConf.cdnaDir
+    pslTable  = pubConf.cdnaTable
+
+    for db in dbList:
+        dbDir = join(targetDir, db)
+        maxCommon.mustBeEmptyDir(dbDir, makeDir=True)
+        logging.info("db is %s" % db)
+
+        logging.info("getting psl from mysql")
+        pslFile    = join(targetDir, db, "cdna.psl")
+        cmd = "hgsql %s -NB -e 'select * from %s' | cut -f2- > %s" % (db, pslTable, pslFile)
+        try:
+            maxCommon.runCommand(cmd)
+        except Exception:
+            logging.warn("Cannot find table %s for db %s, skipping this genome" % (pslTable, db))
+            shutil.rmtree(dbDir)
+            continue
+
+        # setup temp dir
+        dbTmpDir = join(tmpDir, db)
+        if isdir(dbTmpDir):
+            shutil.rmtree(dbTmpDir)
+        maxCommon.makedirs(dbTmpDir)
+
+        logging.info("Writing mrna accession ids to text file")
+        accSet = set()
+        for psl in maxCommon.iterTsvRows(pslFile, format="psl"):
+            accSet.add(psl.qName)
+
+        logging.info("Found %d mRNAs in alignment table" % len(accSet))
+
+        accFile = open(join(dbTmpDir, "mrnaAccessions.lst"), "w")
+        for acc in accSet:
+            accFile.write(acc+"\n")
+        accFile.close()
+
+        logging.info("Getting mrnas with IDs in text file from database")
+        faFileUncomp = join(targetDir, db, "cdna.fa")
+        cmd = "getRna -cdsUpperAll %s %s %s" % (db, accFile.name, faFileUncomp)
+        maxCommon.runCommand(cmd)
+
+        logging.info("translating mrnas to protein")
+        faTransFile = join(targetDir, db, "prot.fa")
+        cmd = "faTrans -cdsUpper %s %s" % (faFileUncomp, faTransFile)
+        maxCommon.runCommand(cmd)
+
+        #logging.info("uncompressing fa file")
+        #ftpDir = "/cluster/data/genbank/data/ftp/%s/bigZips/" % db
+        #faPath = join(ftpDir, faFile)
+        #faFileUncomp = join(dbTmpDir, db+".fa")
+        #tmpFaPath = join(dbTmpDir, faFileUncomp)
+        #cmd = "gunzip -c %s > %s" % (faPath, faFileUncomp)
+        #maxCommon.runCommand(cmd)
+
+        #logging.info("getting sizes of fasta sequences")
+        #sizesFile = join(dbTmpDir, "faSizes.tab")
+        #cmd = "faSize -detailed %s > %s" % (faFileUncomp, sizesFile)
+        #maxCommon.runCommand(cmd)
+
+        logging.info("creating ooc file")
+        oocFile = join(targetDir, db, "11.ooc")
+        cmd = "blat -makeOoc=%s %s dummy dummy" % (oocFile, faFileUncomp)
+        maxCommon.runCommand(cmd)
+
+        logging.info("splitting fasta")
+        splitDir = join(dbTmpDir, "split")
+        os.makedirs(splitDir)
+        splitBase = join(splitDir, basename(faFileUncomp))
+        cmd = "faSplit about %s %d %s" % (faFileUncomp, pubConf.cdnaSplitSize, splitBase)
+        maxCommon.runCommand(cmd)
+
+        logging.info("converting to 2bit")
+        faMask = join(splitDir, "*.fa")
+        faFiles = glob.glob(faMask)
+        for faFile in faFiles:
+            faBase = splitext(basename(faFile))[0]+".2bit"
+            twoBitFile = join(targetDir, db, faBase)
+            cmd = "faToTwoBit -noMask %s %s" % (faFile, twoBitFile) ## ahh! mrnas are LOWER CASE on UCSC!
+            maxCommon.runCommand(cmd)
+
+        #logging.info("filtering psl, removing alignments where tSize doesn't match fasta seq size")
+        #dbPslFile = join(targetDir, db, "%s.psl" % db)
+        #seqSizes = tabfile.slurpdict(sizesFile, asInt=True)
+        #dbPsl = open(dbPslFile, "w")
+        #diffCount = 0
+        #pslCount = 0
+        #for psl in maxCommon.iterTsvRows(tmpPsl, format="psl"):
+            #pslCount+=1
+            #seqSize = seqSizes.get(psl.qName, None)
+            #if seqSize==None:
+                #logging.warn("alignment qName=%s not found in fasta file, skipping" % psl.qName)
+                #continue
+            #if psl.qSize != seqSize:
+                #diffCount+=1
+                #logging.warn("psl target size difference for %s, skipping" % psl.qName)
+                #continue
+            #dbPsl.write("\t".join([str(x) for x in psl])+"\n")
+        #dbPsl.close()
+        #logging.info("Found %d seqs with different target sizes, out of %d" % (diffCount, pslCount))
+
+        # remove tmpDir
+        logging.info("deleting tmp dir")
+        shutil.rmtree(tmpDir)
+
+
+if len(args)!=0:
+    parser.print_help()
+    exit(1)
+
+pubGeneric.setupLogging(progFile, options)
+prepCdnaDir()

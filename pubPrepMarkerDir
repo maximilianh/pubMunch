@@ -1,0 +1,180 @@
+#!/usr/bin/env python2.7
+# load default python packages
+import sys, logging, optparse, os, glob, shutil, gzip, collections
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubConf, pubGeneric, util
+from os.path import *
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog : Download marker info from UCSC database and manualMarkers directory, write to directory specified in pubConf.py
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONS =====
+def mysqlToFile(fname, db, sql):
+    " write mysql cmd output to file "
+    logging.info("Writing %s, mysql query: %s" % (fname, sql))
+    cmd = "mysql %s -NB -e '%s' > %s"  % (db, sql, fname)
+    util.execCmdLine(cmd)
+
+def writeNames(fname, outFname):
+    " write name fields of bed to gz tab file "
+    logging.info("Writing %s" % outFname)
+    ofh = gzip.open(outFname, "w")
+    #ofh.write("#id\n")
+    for line in open(fname):
+        fields = line.strip().split("\t")
+        name = fields[3]
+        chrom = fields[0]
+        ofh.write(name)
+        ofh.write("\n")
+
+def makeUniqueNames(bedIn, bedOut):
+    " write from bedIn to bedOut, skip all lines with a duplicate name field or spaces in name or hap chroms"
+    logging.info("Filtering %s to %s" % (bedIn, bedOut))
+    ofh = open(bedOut, "w")
+    oldNames = set()
+    for line in open(bedIn):
+        fields = line.strip().split("\t")
+        name = fields[3]
+        chrom = fields[0]
+        if name in ["unknown"] or len(name)<=2:
+            continue
+        if " " in name:
+            continue
+        if "hap" in chrom:
+            continue
+        if name not in oldNames:
+            ofh.write(line)
+        oldNames.add(name)
+        
+def addChrom(bedIn, bedOut):
+    " prefix names with chrom, for bands "
+    logging.info("Adding chromosome numbers, filtering %s to %s" % (bedIn, bedOut))
+    ofh = open(bedOut, "w")
+    oldNames = set()
+    for line in open(bedIn):
+        fields = line.strip().split("\t")
+        name = fields[3]
+        chrom = fields[0]
+        newName = chrom.replace("chr","")+name
+        fields[3] = newName
+        ofh.write("\t".join(fields))
+        ofh.write("\n")
+
+def rewriteSnp(bedIn, bedOut):
+    " massage snp coordinates to force them into normal bed format "
+    logging.info("forcing snpbed to bed format, filtering %s to %s" % (bedIn, bedOut))
+    ofh = open(bedOut, "w")
+    oldNames = set()
+    for line in open(bedIn):
+        fields = line.strip().split("\t")
+        start, end = fields[1:3]
+        start, end = int(start), int(end)
+        if end<start:
+            start, end = end, start
+        if end==start:
+            end = end+1
+        row = [fields[0], str(start), str(end), fields[3]]
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+
+
+def addToDict(fname, data):
+    " parse tab-sep file with two fields into dict id -> list of values "
+    lCount = 0
+    oldKeyCount = len(data)
+    for line in open(fname):
+        key, val = line.strip().split("\t")
+        data[key].append(val)
+        lCount += 1
+    logging.info("Read %d lines, %d new keys" % (lCount, len(data)-oldKeyCount))
+    return data
+
+def writeGzDict(data, fname):
+    logging.info("Writing %d keys to %s" % (len(data), fname))
+    ofh = gzip.open(fname, "w")
+    for key, valList in data.iteritems():
+        for val in valList:
+            assert("|" not in val)
+        ofh.write("%s\t%s\n" % (key, "|".join(valList)))
+
+def mysqlAddKeyVal(db, query, dataDict):
+    tempFname = join(pubConf.TEMPDIR, "uniprot.tmp.bed")
+    mysqlToFile(tempFname, db, query)
+    addToDict(tempFname, dataDict)
+    os.remove(tempFname)
+    return dataDict
+
+def makeGeneDict(geneDictFname):
+    " use the UniProt database to create a dictionary uniprotId to all other relevant ids "
+    data = collections.defaultdict(list)
+
+    # uniprot alternative acc numbers 
+    mysqlAddKeyVal("uniProt", 'select acc, val from otherAcc', data)
+    # uniprot names
+    mysqlAddKeyVal("uniProt", 'select acc, val from displayId', data)
+    # pdb accessions
+    mysqlAddKeyVal("uniProt", 'select acc, extAcc1 from extDbRef JOIN extDb ON (id=extDb) WHERE val="PDB"', data)
+    # refseq
+    #mysqlAddKeyVal("uniProt", 'select acc, extAcc2 from extDbRef JOIN extDb ON (id=extDb) WHERE val="RefSeq";', data)
+    # ensembl gene ids
+    #mysqlAddKeyVal("uniProt", 'select acc, extAcc3 from extDbRef JOIN extDb ON (id=extDb) WHERE val="Ensembl";', data)
+    writeGzDict(data, geneDictFname)
+
+def prepMarkerDir(markerDir):
+    " config targetdir for blatCdna "
+
+    if not isdir(markerDir):
+        logging.info("Creating %s" %markerDir)
+        os.mkdir(markerDir)
+
+    tempFile = join(pubConf.TEMPDIR, "filter.tmp.bed")
+
+    # gene symbols
+    symbolBedFname = join(markerDir, "hg19.symbol.bed")
+    symbolDictFname = join(markerDir, "symbol.dict.tab.gz")
+    mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.geneSymbol from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name')
+    makeUniqueNames(tempFile, symbolBedFname)
+    writeNames(symbolBedFname, symbolDictFname)
+
+    geneDictFname = join(markerDir, "geneAcc.dict.tab.gz")
+    makeGeneDict(geneDictFname)
+
+    bandBed = join(markerDir, "hg19.band.bed")
+    bandDict = join(markerDir, "band.dict.tab.gz")
+    mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from cytoBand")
+    addChrom(tempFile, bandBed)
+    writeNames(bandBed, bandDict)
+
+    geneBed = join(markerDir, "hg19.uniprot.bed")
+    # everything is based on uniprot ids
+    mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.spID from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name where spID<>"" and not spId like "%-%"')
+    makeUniqueNames(tempFile, geneBed)
+
+    os.remove(tempFile)
+
+    snpBed = join(markerDir, "hg19.snp.bed")
+    snpDict = join(markerDir, "snp.dict.tab.gz")
+    mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from snp135Common")
+    rewriteSnp(tempFile, snpBed)
+    # no snp dict - we use regular expressions for these
+
+if len(args)!=0:
+    parser.print_help()
+    exit(1)
+
+pubGeneric.setupLogging(progFile, options)
+markerDir = pubConf.markerDbDir
+prepMarkerDir(markerDir)

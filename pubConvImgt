@@ -1,0 +1,270 @@
+#!/usr/bin/env python
+# load default python packages
+import sys, logging, optparse, os, glob, shutil, gzip, subprocess, re
+import collections, marshal
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubConf, pubGeneric, util, maxCommon, pubStore
+
+# ==== FUNCTIONS =====
+
+def indexAnnots(dbDir, pubBlatDirs):
+    " parse annot/prot/*.gz to dbDir as fasta and index for blast "
+    formatDbPath = join(pubConf.blastBinDir, "formatdb")
+    maxCommon.mustBeEmptyDir(dbDir, makeDir=True)
+
+    for pubBlatDir in pubBlatDirs:
+        logging.info("Indexing %s" % pubBlatDir)
+        pubBlatDir = pubBlatDir.rstrip("/")
+        publisher = basename(pubBlatDir)
+        inDir = join(pubBlatDir, "annot/prot")
+        outDir = join(dbDir, publisher)
+        maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+        inFnames = glob.glob(join(inDir, "*.tab.gz"))
+
+        pm = maxCommon.ProgressMeter(len(inFnames))
+        for inFname in inFnames:
+            faFname = join(outDir, basename(inFname).split(".")[0]+".fa")
+            outFh = open(faFname, "w")
+
+            logging.debug("Converting %s to %s" % (inFname, faFname))
+            for row in maxCommon.iterTsvRows(inFname):
+                outFh.write(">%s\n" % row.annotId)
+                outFh.write(row.seq+"\n")
+            outFh.close()
+
+            logging.debug("Indexing %s" % (faFname))
+            cmd = [formatDbPath, "-i", faFname, "-p", "T"]
+            try:
+                ret = subprocess.call(cmd)
+            except OSError:
+                logging.error("Could not call %s" % formatDbPath) 
+                sys.exit(1)
+            if ret!=0:
+                logging.error("Error %d calling %s" % (ret, cmd))
+                sys.exit(1)
+            pm.taskCompleted()
+    
+# RECORDS
+class Reference:
+    def __init__(self):
+        self.authors=[]
+        self.titles=[]
+        self.journals=[]
+        self.keywords=[]
+
+class IMGTRecord:
+    def __init__(self):
+        self.refList=[]
+        self.seqs=[]
+        self.genes={}
+        self.keywords=set()
+
+    def mainRef(self):
+        " guess main ref of record and return with record's keywords added to it "
+        if self.refList==[]:
+            return None
+
+        directs = []
+        nonDirects = []
+        for ref in self.refList:
+            title = " ".join(ref.titles)
+            if title.lower()=="direct submission":
+                directs.append(ref)
+            else:
+                nonDirects.append(ref)
+
+        if len(nonDirects)>0:
+            ref = nonDirects[0]
+        elif len(directs)>0:
+            ref = directs[0]
+        else:
+            assert(False)
+        ref.keywords = self.keywords
+        return ref
+
+
+    def _refString(self, ref):
+        " convert ref to a long string, remove patent seq number "
+        str = " ".join(ref.authors).lower()+" "+" ".join(ref.titles).lower()+" "+" ".join(ref.journals).lower()
+        slashNo = re.compile("/[0-9]+[, ]")
+        str = slashNo.sub("", str)
+
+        return str
+
+def parseImgt(fh):
+    " an iterator, yields each record as an IMGTRecord object "
+    grabGenes = False 
+    grabSeq=False
+
+    for line in fh:
+        tag = line[:5].strip()
+        data = line[5:].strip()
+
+        if tag=="ID":
+            rec = IMGTRecord()
+            rec.id = data.split()[0]
+            grabSeq=False
+        if tag=="OS":
+            rec.species = data
+        if tag=="RN":
+            rec.refList.append(Reference())
+        if tag=="RA":
+            rec.refList[-1].authors.append(data)
+        if tag=="KW":
+            rec.keywords.update(data.split("; "))
+        if tag=="RT":
+            cleanTitle = data.strip(";").strip('"').rstrip(".")
+            rec.refList[-1].titles.append(cleanTitle)
+        if tag=="RL":
+            rec.refList[-1].journals.append(data)
+        if tag=="FT":
+            ftName = data[:16].strip()
+            desc = data[16:].strip()
+
+            if ftName!="":
+                grabGenes=False
+            if ftName=="V_region" or ftName=="J_segment":
+                genes={}
+                geneType = ftName
+                grabGenes=True
+            if desc.startswith("/gene=") and grabGenes:
+                gene = desc.split("=")[1].strip('"')
+                genes[geneType] = gene
+        if tag=="SQ":
+            grabSeq=True
+        if tag=="" and grabSeq:
+            seq = data.strip().strip("0123456789")
+            seq = seq.replace(" ", "")
+            rec.seqs.append(seq)
+                
+        if tag=="//":
+            yield rec
+    yield rec
+
+    
+def mapRefToIds(inFname):
+    """ create:
+    dict reference -> (refObject, list of identifiers of imgt) 
+    dict accesion id -> sequence string
+    """
+    refToIds = {}
+    accToSeq = {}
+    for rec in parseImgt(open(inFname)):
+        mainRef = rec.mainRef()
+        if mainRef==None:
+            logging.debug("Record %s has no ref" % rec.id)
+            continue
+        refString = rec._refString(mainRef)
+        if refString==None:
+            continue
+        #print refString, rec.id
+        if refString not in refToIds:
+            refToIds[refString] = (mainRef, [])
+        refToIds[refString][1].append(rec.id)
+        accToSeq[rec.id]="".join(rec.seqs)
+
+    #if outFname:
+        #marshal.dump(refToIds, open(outFname, "wb"))
+    return refToIds, accToSeq
+
+def writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh, faFh):
+    " write article and files for reference object and idList to writer/accFh and faFh "
+    if len(idList)>1000:
+        logging.info("more than 1000 sequences, skipping article %s" % refString)
+        return
+
+    url = "http://www.ncbi.nlm.nih.gov/nuccore/"+idList[0]
+    abstract = "Genbank accessions: "+", ".join(idList)
+    title = " ".join(ref.titles)+" (%d sequences)" % len(idList)
+    artDict = pubStore.createEmptyArticleDict(origFile="imgt.dat", journal=" ".join(ref.journals), \
+        title = title, authors = " ".join(ref.authors), \
+        fulltextUrl = url, keywords="/".join(ref.keywords), externalId=idList[0], abstract=abstract)
+    writer.writeArticle(articleId, artDict)
+
+    fileId = articleId*1000
+    for acc in idList:
+        seq = accToSeq[acc]
+        faSeq = ">%d %s\n%s\n" % (fileId, acc, seq)
+        url = "http://www.ncbi.nlm.nih.gov/nuccore/"+acc
+        fileDict = pubStore.createEmptyFileDict(content = faSeq, mimeType = "text/fasta", url=url)
+        writer.writeFile(articleId, fileId, fileDict)
+        faFh.write(faSeq)
+        accFh.write("%s\t%d\n" % (acc, articleId))
+        fileId+=1
+
+
+def filterConvertImgt(inFname, species, minId, outDir):
+    """ go over all IMGT records, output ones from selected species with
+    certain keywords in fasta format to stdout """ 
+
+    logging.info("Parsing imgt.dat")
+    #tempFile = "imgt.marshal"
+    #if isfile(tempFile):
+        #logging.info("Loading dict")
+        #refToIds = marshal.load(open(tempFile, "rb"))
+    #else:
+    #logging.info("Creating dict")
+    #for refString, idCount in refToIds.iteritems():
+        #print refString+ "\t"+ str(idCount)
+
+    refToAccList, accToSeq = mapRefToIds(inFname)
+
+    chunkCount = 30
+    refPerChunk = len(refToAccList)/chunkCount
+
+    chunkId = 0
+    outFname = join(outDir, "%.05d" % chunkId)
+    writer = pubStore.PubWriterFile(outFname)
+    faFh = open(outFname+".dna.fa", "w")
+    accFh = open(outFname+".accession2articleId.tab", "w")
+
+    logging.info("outputting references to %s" % outFname)
+    articleId = minId
+    refCount = 0
+    for refString, refIdTuple in refToAccList.iteritems():
+        ref, idList = refIdTuple
+
+        writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh, faFh)
+        articleId += 1
+        refCount +=1
+
+        if refCount % refPerChunk==0:
+            writer.close()
+            chunkId += 1
+            outFname = join(outDir, "%.05d" % chunkId)
+            writer = pubStore.PubWriterFile(outFname)
+            faFh = open(outFname+".dna.fa", "w")
+            accFh = open(outFname+".accession2articleId.tab", "w")
+
+    writer.close()
+
+
+# === MAIN ====
+def main(args, options):
+    inFname, outDir = args
+    firstId = pubConf.identifierStart["imgt"]
+    maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    filterConvertImgt(inFname, "Homo sapiens", firstId, outDir)
+    
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog <imgtFile> <outPubToolsDataDir> - convert IMGT to pubtools format
+example:
+pubConvImgt /hive/groups/immuno/AS/literature/fulltextAnnot/imgt/imgt.dat /hive/data/inside/literature/text/imgt/
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+(options, args) = parser.parse_args()
+if len(args)<=1:
+    parser.print_help()
+    sys.exit(1)
+pubGeneric.setupLoggingOptions(options)
+main(args, options)

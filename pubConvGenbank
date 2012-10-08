@@ -1,0 +1,403 @@
+#!/usr/bin/env python2.7
+
+# first load the standard libraries from python
+# we require at least python 2.5
+#from sys import *
+import sys
+if sys.version_info[0]==2 and not sys.version_info[1]>=7:
+    print "Sorry, this program requires at least python 2.7"
+    print "You can download a more current python version from python.org and compile it"
+    print "into your homedir with 'configure --prefix ~/python'; make;"
+    print "then run this program by specifying your own python executable like this: "
+    print "   ~/python/bin/python ~/pubtools/pubtools"
+    print "or add python/bin to your PATH before /usr/bin, then run pubtools itself"
+    exit(1)
+
+from optparse import OptionParser
+import glob, os.path, re
+from os.path import *
+import gzip
+import collections, logging
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
+from Bio.Alphabet import DNAAlphabet
+
+import pubConf, maxCommon, maxRun, pubGeneric, pubStore
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("""usage: %prog [options] inDir outDir faDir - convert genbank to pubtools format and fasta in UCSC genbank pipeline format. Parses only organisms specified in pubconf.py
+
+example:
+%prog /cluster/genbank/genbank/data/download/genbank.183.0/ /hive/data/inside/literature/text/genbank/ /hive/users/max/genbank/data/processed/genbank.182.0/pub
+""") 
+
+parser.add_option("", "--taxonList", dest="taxonList", action="store", \
+    help="FILTER: read list of organisms from file, process only records if organism is in file", 
+    metavar="FILENAME")
+
+parser.add_option("", "--seqMaxLen", dest="seqMaxLen", action="store", type="int", 
+    help="FILTER: maximum length of sequence in record", \
+    metavar="SIZE", default=100000000000000)
+
+parser.add_option("-f", "--fasta", dest="fasta", action="store", \
+    help="write fasta sequences to this directory, filename: prefix.species.fa", \
+    metavar="DIRECTORY")
+
+parser.add_option("", "--minId", dest="minId", action="store", \
+    help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s from pubConf.py", \
+    default=pubConf.identifierStart["genbank"])
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", \
+    help="activate debug output", metavar="FASTAFILE")
+(options, args) = parser.parse_args()
+
+# ===== STRUCTS
+RecordInfo = collections.namedtuple("RecordInfo", "gi, accession, description, comment, year, markdDate, seqLen, organism, taxonId, seqVersion, keywords, clone, clone_lib, cell_line, cell_type, dev_stage, tissue_type, organelle, mol_type, isolate, sequence")
+RefInfo = collections.namedtuple("ReferenceInfo", "pmid, medlineId, authors, title, journal, comment")
+
+# ===== CONST
+# to convert genbank to markd format
+monthToInt = {
+'JAN':0, 'FEB':1, 'MAR':2, 'APR':3, 'MAY':4,
+'JUN':5, 'JUL':6, 'AUG':7, 'SEP':8, 'OCT':9,
+'NOV':10,
+'DEC':11,
+}
+
+# ==== FUNCTIONs =====
+def genbankToMarkdDate(dateString):
+    """ converts a date from genbank to markd format 
+    returns: tuple of (markdDate, year) """
+    # 28-JAN-2011 --> 2011-00-28
+    day, month, year = dateString.split("-")
+    monthInt  = monthToInt[month]
+    dayInt    = int(day)
+    markdDate = "%s-%02d-%02d" % (year, monthInt, dayInt)
+    return markdDate, year
+
+def getRecordInfo(seq):
+    " return a RecordInfo object given a python sequence object "
+    # parse record itself
+    annot = seq.annotations
+    #accs = annot["accessions"]
+    id = seq.id
+    gi = annot["gi"]
+    seqLen = len(seq.seq)
+    desc = seq.description
+    #xrefs = seq.dbxrefs
+    comment = seq.annotations.get("comment", "")
+    keywords = seq.annotations.get("keywords", [])
+
+    global monthToInt
+    date = annot["date"]
+    markdDate, year = genbankToMarkdDate(date)
+
+    # parse from source feature (the first one)
+    clone, clone_lib, cell_line, cell_type, taxonId, dev_stage, tissue_type = "", "", "", "", "", "", ""
+    seqRec = SeqRecord(Seq(str(seq.seq), DNAAlphabet), id=seq.id, description="")
+
+    if  seq.features[0].type=="source":
+        srcFt = seq.features[0]
+        quals = srcFt.qualifiers
+
+        xrefs = quals.get("db_xref", [])
+        taxonRefs = [x for x in xrefs if x.startswith("taxon:")]
+        if len(taxonRefs)==0:
+            logging.debug("%s: no taxon id" % id)
+            taxonId="noTaxonId:"
+        elif len(taxonRefs)==1:
+            taxonId = taxonRefs[0]
+        else:
+            logging.info("%s: more than one taxonId" % id)
+            taxonId = taxonRefs[0]
+
+        taxonId=taxonId.split(":")[1]
+        organism = annot["organism"]
+
+        clone = quals.get("clone",[""])[0]
+        clone_lib = quals.get("clone_lib",[""])[0]
+        cell_line = quals.get("cell_line",[""])[0]
+        dev_stage = quals.get("dev_stage",[""])[0]
+        tissue_type = quals.get("tissue_type",[""])[0]
+        organelle = quals.get("organelle",[""])[0]
+        mol_type = quals.get("mol_type",[""])[0]
+        isolate = quals.get("isolate",[""])[0]
+
+    recInfo = RecordInfo(str(gi), id, desc, comment, year, markdDate, str(seqLen), organism, taxonId, str(annot["sequence_version"]), keywords, clone, clone_lib, cell_line, cell_type, dev_stage, tissue_type, organelle, mol_type, isolate, seqRec)
+    #print "\t".join(data)
+    return recInfo
+
+def getRefInfo(ref):
+    " create a refInfo object from a biopython ref object "
+    journalRe = re.compile("\([0-9]+-[A-Z]+-[0-9]{4}\)")
+    journal = journalRe.sub("", ref.journal)
+    authorData = RefInfo(ref.pubmed_id, ref.medline_id, ref.authors, ref.title, journal, ref.comment)
+    return authorData
+
+def seqToPubRef(seq):
+    " given a genbank record, extract the submission publication ref info "
+    refs = []
+    for ref in seq.annotations["references"]:
+        refInfo = getRefInfo(ref)
+        refs.append(refInfo)
+    return findSubmitRef(refs)
+
+def findSubmitRef(refs):
+    """ given a list of reference objects,
+    try to identify the submitting reference and return as string: if there
+    are more than one, algorithm is convoluted, because of genbank's mess
+    """
+
+    if len(refs)==0:
+        sys.stderr.write("NoReferenceFound")
+        return None
+    else:
+        # need to distinguish between publication ref and
+        # submission ref
+
+        # search backwards for subRef 
+        # pop until all direct submissions have been removed
+        # see http://www.ncbi.nlm.nih.gov/nuccore/M24665.2
+        subRef = refs[-1]
+        while len(refs)>1 and refs[-1].title.lower()=="direct submission":
+            subRef = refs.pop(-1)
+
+        subFamName = subRef.authors.split(",")[0]
+        # search backwards until we find name of submitter
+        # http://www.ncbi.nlm.nih.gov/nuccore/U01378
+        pubRef = refs[-1]
+        while len(refs)>0 and not subFamName.lower() in refs[-1].authors.lower():
+            pubRef = refs.pop(-1)
+            if len(refs)==0:
+                # example:
+                # http://www.ncbi.nlm.nih.gov/nuccore/1240067
+                logging.debug("Could not find ref with last name of submitter, returning first ref instead")
+                logging.debug("pubRef: %s" % str(pubRef))
+                logging.debug("subRef: %s" % str(subRef))
+        # subRef.journal contains address of submitter, we add it as a comment
+        # see http://www.ncbi.nlm.nih.gov/nuccore/M24665.2
+        # pubRef = pubRef._replace(comment=subRef.journal)
+        
+        return pubRef
+    
+def submitJobs(inDir, outDir, faDir, minId):
+    """ submit one job per genbank file inDir, 
+    give them their starting articleId on the command line """
+    maxCommon.mustBeEmptyDir(faDir, makeDir=True)
+    filenames = glob.glob(os.path.join(inDir, "*.seq"))
+    filenames.extend(glob.glob(os.path.join(inDir, "*.seq.gz")))
+
+    indexFh = open(os.path.join(outDir, "index.tab"), "w")
+    indexFh.write("#chunkId\tgenbankFilename\n")
+
+    gbDivList = pubConf.genbankDivisions
+
+    runner = maxRun.Runner()
+    chunkId = 0
+    articleId = minId
+    for gbFilename in filenames:
+        # skip file if not in the right division
+        skipFile = True
+        for division in gbDivList:
+            if division in gbFilename:
+                skipFile = False
+        if skipFile:
+            logging.debug("Ignoring file %s, not the right division" % gbFilename)
+            continue
+        
+        # submit command line to batch system
+        baseName = splitext(basename(gbFilename))[0]
+        indexFh.write("%05d\t%s\n" % (chunkId, gbFilename))
+
+        outFname = join(outDir, "%05d.articles.gz" % chunkId)
+        outFaName = join(faDir, baseName+".%05d.fa" % chunkId)
+        command = "%s %s {check in exists %s} %s %s --minId=%d" % (sys.executable, progFile, gbFilename, outFname, outFaName, articleId)
+        runner.submit(command)
+        chunkId += 1
+        articleId += 500000
+    runner.finish(wait=True)
+
+def parseGenbankFile(filename, taxonNames):
+    """ parse genbank file and return as a dictionary
+    that maps refernce to a list of recordInfo objects
+    """
+
+    logging.info("Parsing %s\n" % filename)
+    basename = os.path.splitext(os.path.basename(filename))[0]
+    if filename.endswith(".gz"):
+        input_handle = gzip.open(filename)
+    else:
+        input_handle = open(filename)
+
+    try:
+        sequences = SeqIO.parse(input_handle, "genbank")
+    except:
+        sys.stderr.write("Parsing error, file %s" % filename)
+        sys.exit(1)
+
+    # all our data is stored in dictionaries
+    refToRecList = {} # submission reference info
+
+    for seq in sequences:
+        id = seq.id.split(".")[0] 
+        logging.debug("Processing %s" % id)
+
+        # process filters
+        if taxonNames and seq.annotations["organism"] not in taxonNames:
+            logging.debug("skipping %s, taxon not in filter" % id)
+            continue
+
+        # save record info
+        recInfo = getRecordInfo(seq)
+        #recDict[recInfo.accession] = recInfo
+
+        # link accesion to submission reference
+        submitRef = seqToPubRef(seq)
+        refToRecList.setdefault(submitRef, []).append(recInfo)
+
+    return refToRecList
+
+def createArticle(ref, articleId, origFile, recs, year):
+    " create pubTools article from ref object "
+    articleData = pubStore.createEmptyArticleDict()
+    articleData["articleId"] = articleId
+    articleData["source"] = "genbank"
+    articleData["externalId"] = recs[0].accession
+    articleData["title"] = ref.title
+
+    defLines = [rec.description for rec in recs]
+    abstract = ""
+    abstract += "Record Descriptions: "+ "\a".join(defLines) + "\a\a"
+    accList = [ rec.accession for rec in recs ]
+    abstract += "Accession Numbers: "+ ",".join(accList) + "\a\a" + ref.comment
+    if ref.journal.startswith("Patent: EP"):
+        patId = ref.journal.split(" ")[2].split("-")[0]
+        abstract += "This is a sequence from a patent application to the EPA"
+        abstract += 'To find the patent, try this link: <A HREF="http://ip.com/patapp/EP%s">EP%s</A>' % (patId, patId)
+    elif ref.journal.startswith("Patent: WO"):
+        patId = ref.journal.split(" ")[2].split("-")[0]
+        abstract += "This is a sequence from a patent application to the WPO"
+        url = "https://www.google.com/search?tbo=p&tbm=pts&hl=en&q=intitle:%s&num=10" % ref.title
+        abstract += 'To access the patent, try this link: <A HREF="%s">Google Patent Search</A>' % (url)
+    else:
+        if ref.pmid=="":
+            articleData["fulltextUrl"] = "http://www.ncbi.nlm.nih.gov/nucleotide/" + accList[0]
+            abstract += "\aThere is no Pubmed record directly linked to this Genbank Record."
+        else:
+            articleData["fulltextUrl"] = "http://www.ncbi.nlm.nih.gov/pubmed/" + ref.pmid
+
+    keywords = set()
+    for rec in recs:
+        keywords.update(rec.keywords)
+    articleData["keywords"] = ",".join(keywords)
+
+    articleData["authors"] = ref.authors
+    articleData["year"] = year
+    articleData["pmid"] = ref.pmid
+    articleData["journal"] = ref.journal
+    articleData["origFile"] = basename(origFile)
+
+    articleData["abstract"] = abstract
+    return articleData
+
+def areSmallScaleRecords(recList, seqMaxLen):
+    """ return True if a list of genbank records has: 
+    a) not too many items in the list
+    a) short sequences 
+    b) non-HTG seqs 
+    """
+    if len(recList) > pubConf.genbankMaxRefCount:
+        logging.debug("number of accessions: %d, Skipping reference" % (len(recList)))
+        return False
+
+    # skip referenece if any sequence is too long or any sequence is HTG
+    for rec in recList:
+        if len(rec.sequence.seq) > seqMaxLen:
+            logging.debug("%s: one sequence is too long, skipping this ref" % rec.accession)
+            return False
+        if "HTG" in rec.keywords:
+            logging.debug("%s: HTG keyword word, skipping" % rec.accession)
+            return False
+    return True
+
+def openIdxFile(filename):
+    " open idx file in markd format "
+    idxFh = open(filename, "w")
+    # write markd gbidx header 
+    # example file:
+    # #acc    version moddate organism
+    # CD000001        1       2003-04-01      Homo sapiens    mRNA
+    idxFh.write("#acc\tversion\tmoddate\torganism\n")
+    return idxFh
+
+    
+def appendIdxLine(idxFh, rec):
+    " write some rec info to markd's gbindex line "
+    accFull = rec.accession
+    acc, version = accFull.split('.')
+    data = [acc, version, rec.markdDate, rec.organism, "any"]
+    idxFh.write("\t".join(data)+"\n")
+
+
+def convertGbFile(filename, outFilename, faFilename, minId, seqMaxLen, taxonNames):
+    """ convert one genbank file to outfile and fafile 
+        keep only low-throughput records
+    """
+
+    refToRecList = parseGenbankFile(filename, taxonNames)
+
+    # open all files
+    store = pubStore.PubWriterFile(outFilename)
+    fastaFh = None
+
+    # for each reference and its records:
+    articleId = int(minId)
+    for refInfo, recList in refToRecList.iteritems():
+        if areSmallScaleRecords(recList, seqMaxLen):
+            # write index file and fasta file
+            for rec in recList:
+                # lazily open fasta file
+                if fastaFh==None:
+                    fastaFh = open(faFilename, "w")
+                    idxFh = openIdxFile(splitext(faFilename)[0]+".gbidx")
+                appendIdxLine(idxFh, rec)
+                SeqIO.write(rec.sequence, fastaFh, "fasta")
+
+            # write article info to pubStore
+            firstRec = recList[0]
+            articleData = createArticle(refInfo, articleId, filename, recList, firstRec.year)
+            store.writeArticle(articleId, articleData)
+            articleId += 1
+    store.close(keepEmpty=True)
+
+# ----------- MAIN --------------
+def main():
+    if args==[]:
+        parser.print_help()
+        exit(1)
+
+    inDir, outDir, faDir =  args
+    minId = options.minId
+    debug = options.debug
+
+    pubGeneric.setupLogging(progFile, options)
+
+    if os.path.isdir(inDir):
+        maxCommon.mustBeEmptyDir(outDir)
+        submitJobs(inDir, outDir, faDir, minId)
+    else:
+        # parameters inDir and outdir and faDir are filenames
+        seqMaxLen = pubConf.genbankMaxLen
+        taxonNames = pubConf.genbankTaxons
+        convertGbFile(inDir, outDir, faDir, minId, seqMaxLen, taxonNames)
+
+if __name__=="__main__":
+    main()

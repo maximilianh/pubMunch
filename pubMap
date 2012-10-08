@@ -1,0 +1,167 @@
+#!/usr/bin/env python2.7
+
+# first load the standard libraries from python
+# we require at least python 2.7
+import sys
+if sys.version_info[0]==2 and not sys.version_info[1]>=7:
+    print "Sorry, this program requires at least python 2.7"
+    print "You can download a more current python version from python.org and compile it"
+    print "into your homedir (or anywhere else) with 'configure --prefix ~/python27'; make;"
+    print "then run this program again by specifying your own python executable like this: "
+    print "   ~/python27/bin/python <%s>" % sys.argv[0]
+    print "or add ~/python27/bin to your PATH before /usr/bin"
+    exit(1)
+
+# load default python packages
+import logging, optparse, os, atexit, datetime
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubConf, pubGeneric, pubAlg, maxCommon, tabfile, pubBlat
+
+# GLOBAL: filename of lockfile
+lockFname = None
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser(
+"""usage: %prog [options] <publisher> <step> - pipeline to map fulltext files to genome locations and 
+create tracks for genome browser
+
+If target directory already exists, will only process updateIds which have not been processed yet
+
+STEPS FOR SCANNING TEXT FOR SEQUENCES:
+
+"annot": extract DNA seqs from text files (annotator)
+   example:
+     pubBlat pmc seqs
+
+STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
+
+(use pubPrepCdnaDir to build the directory with mRNA sequences)
+
+"filter": remove duplicate and very short DNA/Prot sequences
+   input: <baseDir>/annot, output: <baseDir>/blatGenome/seq and <baseDir>/blatProt/seq
+   example: pubBlat pmc filter 
+
+"blatGenome": submit blat jobs of DNA against genomes, converts to split fasta files
+      separates into short/long sequences
+   input: <baseDir>/blatGenome/seq
+   output: <baseDir>/blatGenome/fasta and <baseDir>/blatGenome/psl/{long,short}
+   example: pubBlat pmc blat
+
+"sortGenome": sort blat output files and add genome to tName
+   input: <baseDir>/psl/{short,long}   ouput: baseDir/psl/sortedPsl
+   example: pubBlat pmc sort
+
+CDNA-steps (like above, writes to <baseDir>/blatCdna/):
+   "blatCdna": pulls out sequences that do not match any genome, then see "blatGenome"
+   "sortCdna": like "sortGenome", but with cdna matches, adding a pslMap step
+
+Protein-steps:
+   "blatProt":  blat proteins
+   "sortProt":  sort proteins, includes pslMap-lifting
+
+"chain": merge cDNA, genome and protein DNA psl from all species into one file, split and
+    chain psls and convert to a raw version of bed (for debugging as custom track)
+    input: <baseDir>/{blatGenome,blatCdna}/sortedPsl/ 
+    output: <baseDir>/blatGenome/bed
+    example:
+    pubBlat pmc chain
+
+STEPS FOR LOADING RESULTS INTO GENOME BROWSER:
+
+"identifiers": run a map/reduce job to retrieve
+    the names of files for all fileIds and write to 
+    <outDir>/files.tab
+
+"tables": create tables for hgLoadxxx
+   - reads in articleIds.lst from <baseDir>/markers
+   - reads sequence info from <outDir>/seqs
+   - uses textDir.conf to find the fulltext files and parse
+     out basic article information
+   - writes article and seq info to tab-files in <outDir>/tables/
+   pubBlat pmc tables
+
+"load": load all tables with hgLoadSql/hgLoadBed into browser
+   example:
+   pubBlat pmc,elsevier load 
+
+   Will process all of <outDir> tables and <outDir>/updates/<i>/tables
+   Note that you need to supply --loadFinal if you really want to
+   write to the real hgwdev tables.
+
+   This command will use the table hgFixed.pubsLoadedFiles to keep
+   track of already loaded files. It will not load files that have already
+   been loaded into mysql before.
+
+OTHER COMMANDS:
+
+"steps:<type>": run a list of the steps described above.
+    <type> can be either "all" or a range, like "annot-load"
+    "steps:all" is the same as "steps:annot-tables"
+
+""")
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true", help="do not convert sequences or convert to fasta or sort/chain, only do the second part of the processing for blat, blatCdna or chain. Used for debugging.") 
+#parser.add_option("-n", "--dontRunNow", dest="dontRunNow", action="store_true", help="if parasol: do not push cluster jobs immediately but let user run para push commands") 
+#parser.add_option("-f", "--forceDbs", dest="forceDbs", action="append", help="force blatting on only this list of dbs (comma-sep), e.g. hg19,mm9", default=None) 
+parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubBlat.<date>.log", default=False) 
+#parser.add_option("", "--finalLoad", dest="finalLoad", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.", default="") 
+###parser.add_option("-r", "--reload", dest="reload", action="store_true", help="by default, the tables step", default=None) 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+def main(args, options):
+
+    publisher, command = args
+
+    allSteps = ["annot", "filter", "blatGenome", "sortGenome", "blatCdna", \
+        "sortCdna", "blatProt", "sortProt", "chain", \
+        "identifiers", "tables", "load"]
+
+    d = pubBlat.initDirs(publisher, allSteps)
+
+    if command.startswith("steps:"):
+        stepFrom, stepTo = pubBlat.parseSteps(command)
+        # this is the list of steps for steps:all
+        pubBlat.runStepRange(d, allSteps, stepFrom, stepTo, args, options)
+    else:
+        pubBlat.runStep(publisher, command, d)
+
+def removeLock():
+    global lockFname
+    logging.debug("Removing lockfile %s" % lockFname)
+    os.remove(lockFname)
+
+def checkCreateLock(outDir):
+    " creates lockfile, squeaks if exists, register exit handler to delete "
+    global lockFname
+    lockFname = join(outDir, "_pubMap.lock")
+    if isfile(lockFname):
+        raise Exception("File %s exists - it seems that pipeline is already running. \
+        If you're sure that this is not the case, remove the lockfile and retry again" % lockFname)
+    logging.debug("Creating lockfile %s" % lockFname)
+    open(lockFname, "w")
+    atexit.register(removeLock) # register handler that is executed on program exit
+
+# ----------- MAIN --------------
+if len(args)<1:
+    parser.print_help()
+    exit(1)
+
+# setup logging
+logFileName = None
+dateStr = datetime.datetime.now().strftime("%d%m%y")
+logFileName = join(pubConf.logDir, 'pubMap.%s.log' % dateStr)
+fileMode = "a"
+
+pubGeneric.setupLogging(__file__, options, logFileName=logFileName, fileMode=fileMode)
+
+main(args, options)

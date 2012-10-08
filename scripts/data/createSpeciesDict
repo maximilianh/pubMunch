@@ -1,0 +1,174 @@
+#!/usr/bin/env python
+
+import logging, sys, optparse, operator, gzip, urllib2, zipfile, os, json, marshal
+import fastFind
+from os.path import *
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("usage: %prog [options] <dir> <outfile> - convert NCBI Taxons names.dmp to our own format <name><tab><taxonId>. Takes care of stopwords, upper/lower case and short forms (Drosophila melanogaster -> D. melanogaster, D.melanogaster) and disambiguation via species-frequency.tsv.gz ")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+#parser.add_option("", "--test", dest="test", action="store_true", help="do something") 
+(options, args) = parser.parse_args()
+
+if options.debug:
+    logging.basicConfig(level=logging.DEBUG)
+else:
+    logging.basicConfig(level=logging.INFO)
+# ==== FUNCTIONs =====
+
+def parseNodes(fh):
+    " parse nodes.dmp, return set of taxIds that are species, not genus "
+    taxIds = []
+    for line in fh.read().split("\t|\n"):
+        if line=="":
+            continue
+        fields = line.split("\t|\t")
+        taxId= fields[0]
+        rank = fields[2]
+        if rank=="species":
+            taxIds.append(taxId)
+    return set(taxIds)
+
+def parseNames(fh, speciesTaxIds):
+    """ parse names.dmp and return dict taxonId -> list of names, ignores any common 
+    names from hard coded stoplist, copied from M. Gerner's LINNAEUS """
+    # from LINNAEUS
+    logging.info("Parsing names.dmp")
+    linnaeusStop = set(["permit", "spot", "name", "ray", "3A", "rape", "flag", "T7", "fisher", "cat", "yu", "ramp", "small white", "mate", "ass", "j1", "nematode"])
+    # my own stop words
+    maxStop = set(["hybrid"])
+    stopList = maxStop.union(linnaeusStop)
+
+    nameTypes = set(["common name", "genbank common name", "genbank synonym", "equivalent name", "genbank name","teleomorph", "misnomer", "genbank anamorph", "unpublished name"])
+
+    taxNames = {}
+    for line in fh.read().split("\t|\n"):
+        if line=="":
+            continue
+        fields = line.split("\t|\t")
+        taxId, name, genus, type = fields
+        if type=="authority" or genus!="":
+            continue
+        if not taxId in speciesTaxIds:
+            continue
+        taxId = int(taxId)
+        taxNames.setdefault(taxId, [])
+        if type=="scientific name" or type=="misspelling":
+            name = name.replace(".","")
+            names = set([name])
+            names.add(name[0].lower()+name[1:])
+            words = name.split()
+            if len(words)==1:
+                names.add(name.lower())
+            if len(words)>2 or (len(words)==2 and words[1]!="sp."):
+                #names.add(words[0][0]+" ".join(words[1:]))
+                shortName = words[0][0]+" "+" ".join(words[1:])
+                if len(shortName)<=4:
+                    continue
+                names.add(shortName)
+            taxNames[taxId].extend(names)
+        elif type in nameTypes:
+            if name in stopList:
+                continue
+            names = set([name])
+            lowName = name[0].lower()+name[1:]
+            upName = name[0].upper()+name[1:]
+            names.add(lowName)
+            names.add(upName)
+            names.add(lowName+"s")
+            names.add(upName+"s")
+            taxNames[taxId].extend(names)
+    return taxNames
+
+def parseWeights(fh):
+    """ parse weights from file with format <taxonId>tab<weight>, return as dict
+    taxonId -> weight
+    """
+    logging.info("Reading weights")
+    weights = {}
+    for line in fh:
+        taxId, weight = line.strip("\n").split("\t")
+        weights[int(taxId)]=int(weight)
+    return weights
+
+def disambNames(names, weights): 
+    """ given dict taxId -> list of names and weights for taxIds,
+    construct a dict name -> taxId, using weights to decide 
+    """
+    logging.info("Disambiguating names")
+    # arrange as name -> taxonIds
+    nameToTax = {}
+    taxCount = len(names)
+    for taxId, names in names.iteritems():
+        for name in names:
+            nameToTax.setdefault(name, set()).add(taxId)
+    del names
+
+    # find best taxonId for name
+    nameToBestTax = {}
+    for name, taxIds in nameToTax.iteritems():
+        if len(taxIds)==1:
+            nameToBestTax[name] = taxIds.pop()
+        # construct list (taxId, weight), reverse sort by weight
+        # and use first taxId
+        else:
+            taxList = []
+            for taxId in taxIds:
+                taxList.append( (taxId, weights.get(taxId,0) ) )
+            taxList.sort(key=operator.itemgetter(1), reverse=True)
+            bestTaxId = taxList[0][0]
+            nameToBestTax[name] = bestTaxId
+    del nameToTax
+
+    # sort again into taxId -> list of names
+    taxToBestNames = {}
+    nameCount = len(nameToBestTax)
+    for name, taxId in nameToBestTax.iteritems():
+        taxToBestNames.setdefault(taxId, []).append(name)
+    logging.info("Wrote %d names for %d taxonIds" % (nameCount, taxCount))
+    return taxToBestNames
+
+def writeDict(taxNames, ascFh):
+    " write taxname dictionary to tab-sep file "
+    logging.info("Writing dictionary")
+    for taxId, names in taxNames.iteritems():
+        ascFh.write("%d\t%s\n" % (taxId, "|".join(names)))
+    ascFh.close()
+    #cPickle.dump(taxNames, pickleFh, 2)
+    #json.dump(taxNames, jsonFh, separators=(',',':'))
+
+# ----------- MAIN --------------
+#if args==[]:
+    #parser.print_help()
+    #exit(1)
+
+# parse names.dmp
+if not isfile("taxdmp.zip"):
+    url = "ftp://ftp.ncbi.nih.gov/pub/taxonomy/taxdmp.zip"
+    logging.info("Downloading %s" % url)
+    os.system("wget %s" % url)
+nodeFile = zipfile.ZipFile("taxdmp.zip").open("nodes.dmp")
+speciesTaxIds = parseNodes(nodeFile)
+nameFile = zipfile.ZipFile("taxdmp.zip").open("names.dmp")
+#nameFile = open("names.dmp")
+names = parseNames(nameFile, speciesTaxIds)
+
+# read species weights
+myDir = dirname(__file__)
+weightFname = join(myDir, "species-frequency.tsv.gz")
+weightFh = gzip.open(weightFname)
+weights = parseWeights(gzip.open(weightFname))
+
+bestTaxNames = disambNames(names, weights)
+
+ascFile = gzip.open("speciesDict.tab.gz", "w")
+writeDict(bestTaxNames, ascFile)
+
+logging.info("preprocessing dict")
+lex = fastFind.constructLex(bestTaxNames.items())
+binFile = gzip.open("speciesDict.marshal.gz", "wb")
+logging.info("writing preprocessed dict")
+str = marshal.dumps(lex)
+binFile.write(str)

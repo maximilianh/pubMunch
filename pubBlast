@@ -1,0 +1,305 @@
+#!/usr/bin/env python2.7
+# load default python packages
+import sys, logging, optparse, os, glob, shutil, subprocess, collections, codecs
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubConf, pubGeneric, util, maxCommon, maxRun, xml, html, pubStore, maxTables
+from Bio.Blast import NCBIXML
+
+BlastMatchFields = "length,identities,positives,eVal,score,tFile,tId,tLen,qFile,qId,qLen,tAln,match,qAln".split(",")
+BlastMatch = collections.namedtuple("blastMatch",BlastMatchFields)
+# ==== FUNCTIONS =====
+
+def parseBlastXmlFile(qFile):
+    " parses qFile and yields BlastMatch objects "
+    for rec in NCBIXML.parse(open(qFile)):
+        qId =  rec.query
+        qLen = rec.query_length
+        tFile = rec.database
+        for alignment in rec.alignments:
+            tLen = alignment.length
+            tId = alignment.hit_def
+
+            for hsp in alignment.hsps:
+                qAln =  hsp.query
+                tAln = hsp.sbjct
+                match =  hsp.match
+                match = BlastMatch(hsp.align_length, hsp.identities, hsp.positives, \
+                    hsp.score, hsp.expect, tFile, tId, tLen, qFile, qId, qLen, tAln, match, qAln)
+                yield match
+
+def pubBlatToFasta(inDir, inMask, outDir):
+    " write pubBlat annotations from inDir to dbDir in fasta format"
+    maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    logging.info("Converting all files from %s to fasta" % inDir)
+    inFnames = glob.glob(join(inDir, inMask+".tab.gz"))
+
+    pm = maxCommon.ProgressMeter(len(inFnames))
+    for inFname in inFnames:
+        faFname = join(outDir, basename(inFname).split(".")[0]+".fa")
+        outFh = open(faFname, "w")
+
+        logging.debug("Converting %s to %s" % (inFname, faFname))
+        for row in maxCommon.iterTsvRows(inFname):
+            outFh.write(">%s\n" % row.annotId)
+            outFh.write(row.seq+"\n")
+        pm.taskCompleted()
+        outFh.close()
+    return True
+    
+def pubToolsToFasta(textDir, inMask, seqType, outDir):
+    " copy over *.fa files to outDir "
+    maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    inFnames = glob.glob(join(textDir, "%s.%s.fa" % (inMask, seqType)))
+    if len(inFnames):
+        logging.info("No files found of type %s" % seqType)
+    logging.info("Copying .fa files from %s to %s" % (textDir, outDir))
+    for inFn in inFnames:
+        outFn = join(outDir, basename(inFn))
+        #inF = gzip.open(inFn)
+        #outF = open(outFn, "wb")
+        #logging.info("Extracting %s to %s" % (inFn, outFn))
+        #shutil.copyfileobj(inF, outF)
+        shutil.copyfile(inFn, outFn)
+    return True
+
+def indexForBlast(inDir, isProt):
+    " formatdb all .fa files in inDir "
+    inFnames = glob.glob(join(inDir, "*.fa"))
+    pm = maxCommon.ProgressMeter(len(inFnames))
+    logging.info("Indexing all fa files in %s" % (inDir))
+
+    if isProt:
+        protFlag = "T"
+    else:
+        protFlag = "F"
+
+    formatDbPath = join(pubConf.blastBinDir, "formatdb")
+    for faFname in inFnames:
+        logging.debug("Indexing %s" % (faFname))
+        cmd = [formatDbPath, "-i", faFname, "-p", protFlag]
+        try:
+            ret = subprocess.call(cmd)
+        except OSError:
+            logging.error("Could not call %s" % formatDbPath) 
+            sys.exit(1)
+        if ret!=0:
+            logging.error("Error %d calling %s" % (ret, cmd))
+            sys.exit(1)
+        pm.taskCompleted()
+
+
+def indexAnnots(dbDir, datasets, isProt=False):
+    " parse annot/prot/*.gz to dbDir as fasta and index for blast "
+    maxCommon.mustExistDir(dbDir, makeDir=True)
+
+    if isProt:
+        seqType = "prot"
+    else:
+        seqType = "dna"
+    dbDir = join(dbDir, seqType)
+    maxCommon.mustExistDir(dbDir, makeDir=True)
+    logging.info("Importing files into %s, seqtype protein %s" % (dbDir, isProt))
+
+    for dataset in datasets:
+        outDir = join(dbDir, dataset)
+        if isdir(outDir):
+            logging.warn("%s already exists" % outDir)
+            continue
+        pubBlatDir = join(pubConf.pubBlatBaseDir, dataset, "annot/"+seqType)
+        if isdir(pubBlatDir):
+            logging.info("Found %s, importing from pubBlat directory" % pubBlatDir)
+            pubBlatToFasta(pubBlatDir, "*", outDir)
+        else:
+            textDir = join(pubConf.textBaseDir, dataset)
+            if not isdir(textDir):
+                logging.warn("Could not find %s" % textDir)
+                continue
+            pubToolsToFasta(textDir, "*", seqType, outDir)
+
+        indexForBlast(outDir, isProt)
+            
+def submitBlastJobs(runner, prog, dbDir, inFaDir, outDir, eVal, dbSize):
+    " submit blast jobs for all inFaFiles against all files in dbDir "
+    if isfile(inFaDir):
+        inFaFiles = [inFaDir]
+    elif isdir(inFaDir):
+        inFaFiles = glob.glob(join(inFaDir, "*.fa"))
+    else:
+        raise Exception("%s is neither a fa file nor a directory" % inFaDir)
+
+    logging.info("Found %d input files" % len(inFaFiles))
+
+    outDir = join(outDir, prog)
+    maxCommon.mustExistDir(outDir, makeDir=True)
+    if prog=="blastn": # nucl against nucl
+        blastDir = join(dbDir, "dna")
+        ext = ".nin"
+    elif prog=="blastp": # prot against prot
+        blastDir = join(dbDir, "prot")
+        ext = ".pin"
+    elif prog=="tblastn": # peptides against trans nucl
+        blastDir = join(dbDir, "dna")
+        ext = ".nin"
+    elif prog=="blastx": # nucl against prot
+        blastDir = join(dbDir, "prot")
+        ext = ".pin"
+
+    logging.info("Scanning %s for %s files" % (blastDir, ext))
+    dbFnames = pubGeneric.findFiles(blastDir, ext)
+    logging.info("Found %d target files" % len(dbFnames))
+
+    logging.info("Preparing %d BLAST jobs" % (len(dbFnames)*len(inFaFiles)))
+
+    for fname in inFaFiles:
+        for relDbDir, dbFname in dbFnames:
+            if getsize(dbFname)==0:
+                logging.warn("Zero filesize: %s" % dbFname)
+                continue
+            dbFname = splitext(dbFname)[0]
+            blastOutDir = join(outDir, relDbDir)
+            if not isdir(blastOutDir):
+                logging.info("making %s" % blastOutDir)
+                os.makedirs(blastOutDir)
+            inBase = splitext(basename(fname))[0]
+            dbBase = splitext(basename(dbFname))[0]
+            outFname = join(blastOutDir, dbBase+"---"+inBase+".xml")
+            blastPath = join(pubConf.blastBinDir, "blastall")
+            cmd = [blastPath, "-p", prog, "-i", "%s" % fname, "-d", \
+                "%s" % dbFname, "-e", eVal, "-z", dbSize, \
+                "-o", "{check out exists %s}" % outFname, "-m", "7"]
+            runner.submit(cmd)
+
+def parseBlastDir(inDir, outFile):
+    " parse all blast xml files and write to outFile in BlastMatch format "
+    ofh = open(outFile, "w")
+    ofh.write("\t".join(BlastMatchFields)+"\n")
+    logging.info("Searching for XML files in %s" % inDir)
+    inFiles = pubGeneric.findFiles(inDir, ".xml")
+    logging.info("Parsing files...")
+    pm = maxCommon.ProgressMeter(len(inFiles), stepCount=100)
+    for relDir, fname in inFiles:
+        logging.debug(fname)
+        if getsize(fname)==0:
+            logging.warn("zero filesize: %s" % fname)
+            continue
+        try:
+            for match in parseBlastXmlFile(fname):
+                match = [str(x) for x in match]
+                ofh.write("\t".join(match))
+                ofh.write("\n")
+        except xml.parsers.expat.ExpatError:
+            logging.warn("Parsing error: %s" % fname)
+        pm.taskCompleted()
+
+def articleHtml(articleId):
+    " get an html version for an article from mysql "
+    tableName = pubStore.articleIdToDataset(articleId)
+    conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
+    sql = "SELECT * from %s where articleId=%s" % (tableName, articleId)
+    rows = maxTables.sqlGetRows(conn,sql) 
+    assert(len(rows)==1)
+    row = rows[0]
+    author = row["authors"].split(";")[0]
+    author = author.split(",")[0]+" et al., "+row["journal"]
+    title = row["title"]
+    title = title.encode("latin1").decode("utf8")
+    text = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, tableName, row["fulltextUrl"], title)
+    return text
+
+def makeHtml(inFile, outFile):
+    " read a tab sep file with BlastMatch records and write out as html table "
+    ofh = codecs.open(outFile, "w", encoding="utf8")
+    h = html.htmlWriter(fh=ofh)
+    h.head("Literature BLAST", styleString=html.getStylesheet("dyndrive"))
+    h.startBody("BLAST matches")
+    colHeaders = ["Query Sequence", "Alignment", "Target Article"]
+    colWidths = [500, 500, 600]
+    h.startTable(colWidths, colHeaders)
+
+    for match in maxCommon.iterTsvRows(inFile):
+        h.startTr()
+        qFile = match.qFile.split("---")[1].split(".")[0]
+        qText = "<b>Input Sample:</b> %s<br><b>Sequence:</b> %s" % (qFile, match.qId)
+        alignText = "<tt>Query: &nbsp;%s<br>Match:&nbsp;  %s<br>Target: %s</tt>" % (match.qAln, match.match, match.tAln)
+        articleId = match.tId[:10]
+        tText = articleHtml(articleId)
+
+        h.td(qText)
+        h.td(alignText)
+        h.td(tText)
+        h.endTr()
+
+    h.endTable()
+
+# === MAIN ====
+def main(args, options):
+    cmd = args[0]
+    dbDir = args[1]
+
+    if cmd == "index":
+        datasets = args[2:]
+        indexAnnots(dbDir, datasets, isProt=True)
+        indexAnnots(dbDir, datasets, isProt=False)
+
+    elif cmd in ["dna", "prot"]:
+        inFaDir = args[2]
+        outDir = args[3]
+        runner = maxRun.Runner()
+        if cmd=="dna":
+            submitBlastJobs(runner, "blastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
+            submitBlastJobs(runner, "blastx", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
+        elif cmd=="prot":
+            submitBlastJobs(runner, "blastp", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
+            submitBlastJobs(runner, "tblastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
+        runner.finish()
+
+    elif cmd=="parse":
+        inDir = args[1]
+        outFile = args[2]
+        parseBlastDir(inDir, outFile)
+        
+    elif cmd=="html":
+        inFile = args[1]
+        outFile = args[2]
+        makeHtml(inFile, outFile)
+
+    else:
+        raise Exception("Illegal command %s" % cmd)
+        
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: 
+%prog index <dbDir> <importNames> - import data from importNames
+        dataset names can be either from pubConf.pubBlatBaseDir (fulltext, like elsevier, pmc)
+        or pubConf.textBaseDir (DBs, like genbank, imgt)
+    
+%prog nucl <dbDir> <inDir> <outDir>  - blastn files from inDir onto dbDir and write results to outDir
+%prog prot <dbDir> <inDir> <outDir>  - blastp files from inDir onto dbDir and write results to outDir
+
+%prog parse <outDir> <outFile>  - parse blast xml files in outDir and subdirs to outFile
+
+examples:
+pubBlast index /hive/data/inside/literature/blastpDb elsevier pmc imgt
+pubBlast prot /hive/data/inside/literature/blastpDb /hive/users/nknguyen/immuno/AS/adaptiveTcr/irepNallAdaptTCR/productiveCdr3 out/
+pubBlast parse out myBlast.tab
+pubBlast html myBlast.tab myBlast.html
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-e", "--eVal", dest="eVal", action="store", help="maximum eVal (careful: set the database size to something reasonable!), default %default", default="10") 
+parser.add_option("-z", "--dbSize", dest="dbSize", action="store", help="effective database size, default %default", default="3000000000") 
+(options, args) = parser.parse_args()
+if len(args)<=1:
+    parser.print_help()
+    sys.exit(1)
+pubGeneric.setupLoggingOptions(options)
+main(args, options)

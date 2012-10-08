@@ -1,0 +1,134 @@
+#!/usr/bin/env python2.7
+
+# first load the standard libraries from python
+#from sys import *
+import sys, time
+import logging, optparse, os, glob, urllib2, tempfile, shutil, csv, re, collections
+import subprocess
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+import pubGeneric, pubConf, maxXml, maxCommon, util
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current PMC copy from PMC ftp server
+
+Creates a file download.log with information what has been added/deleted.
+
+Command to download PMC to some directory using lftp without this script:
+(http://lftp.yar.ru/) : 
+    lftp -e 'set net:socket-buffer 4000000; connect
+    ftp://ftp.ncbi.nlm.nih.gov; mirror --delete-first -c --parallel=8
+    --ignore-time /pub/pmc/; quit'
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
+parser.add_option("-p", "--parallelConnections", dest="parallel", action="store", type="int", help="use lftp for faster, parallel downloads, use X number of connections")
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+
+def parseFileList(path):
+    " parse pmc file_list.csv into dict PMCID -> filename "
+    logging.info("Parsing %s" % path)
+    data = {}
+    ifh = open(path)
+    ifh.readline() # skip header
+    for line in ifh:
+        fields = line.strip('\n').split("\t")
+        fname, cit, pmcId = fields
+        data[pmcId] = fname
+    return data
+
+def downloadFiles(pmcUrl, theirPmc, missingIds, outDir, connCount):
+    if connCount:
+        fileNames = [theirPmc[pmcId] for pmcId in missingIds]
+        lftpGet(pmcUrl, outDir, fileNames, connCount)
+    else:
+        downloadCount = 0
+        for pmcId in missingIds:
+            fname = theirPmc[pmcId]
+            fileUrl = pmcUrl+"/"+fname
+            locPath = join(outDir, fname)
+            locDir = dirname(locPath)
+            if not isdir(locDir):
+                logging.info("Making dir %s" % locDir)
+                os.makedirs(locDir)
+            if isfile(locPath):
+                logging.info("File %s already exists" % locPath)
+            else:
+                downloadCount += 1
+                util.httpDownload(fileUrl, locPath, verbose=False)
+                appendLog(outDir, "add", fname)
+        logging.info("Downloaded %d files (single-threaded)" % downloadCount)
+
+def deleteFiles(ourPmc, staleIds, outDir):
+    """ remove files from outDir with pmcId in staleIds, using ourPmc-dict (pmcid->fname) to
+    find file names 
+    """
+    delCount = 0
+    for pmcId in staleIds:
+        fname = ourPmc[pmcId]
+        path = join(outDir, fname)
+        logging.debug("Deleting %s" % path)
+        try:
+            os.remove(path)
+            delCount +=1
+        except OSError:
+            logging.warn("Cannot delete local file %s" % path)
+            continue
+        pubGeneric.appendLog(outDir, "delete", fname)
+    logging.info("Deleted %d files" % delCount)
+
+def updatePmc(outDir):
+    """ compare remote and local file_list.txt and download new files
+    ignore the last_updated date, replace file_list.txt once finished
+    """
+
+    locListPath = join(outDir, "file_list.txt")
+    newListFname = "file_list.current.txt"
+    newListPath = join(outDir, newListFname)
+    pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
+    listUrl = pmcUrl+"/file_list.txt"
+    #if not isfile(newListPath):
+    util.httpDownload(listUrl, newListPath, verbose=True)
+
+    pmcIdxUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz"
+    pmcIdxPath = join(outDir, "PMC-ids.csv.gz")
+    util.httpDownload(pmcIdxUrl, pmcIdxPath, verbose=True)
+
+    ourPmc = parseFileList(locListPath)
+    theirPmc  = parseFileList(newListPath)
+
+    missingIds = set(theirPmc).difference(ourPmc)
+    staleIds = set(ourPmc).difference(theirPmc)
+
+    logging.info("Missing here: %d" % len(missingIds))
+    logging.info("Stale here: %d" % len(staleIds))
+
+    downloadFiles(pmcUrl, theirPmc, missingIds, outDir, options.parallel)
+    deleteFiles(ourPmc, staleIds, outDir)
+    logging.info("Renaming file list files")
+    locListOld = join(outDir, "file_list.old.txt")
+    os.rename(locListPath, locListOld)
+    os.rename(newListPath, locListPath)
+
+# ----------- MAIN --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+outDir = args[0]
+maxCommon.mustExist(outDir)
+pubGeneric.setupLogging(progFile, options)
+
+outDir = args[0]
+updatePmc(outDir)
+

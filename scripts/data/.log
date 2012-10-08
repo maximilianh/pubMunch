@@ -1,0 +1,1 @@
+less names.dmp | sed -e 's/\t|\t/\t/g' | cut -d'	' -f4 | sort | uniq -c

@@ -1,0 +1,586 @@
+#!/usr/bin/env python2.7
+
+# default python packages
+import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, maxRun, pubStore, pubConf, maxCommon
+from pubXml import *
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local mirror of the Pubmed Central FTP server into pubtools format
+
+Example:
+    pubConvPmc /hive/data/outside/pubs/PubMedCentral/ /hive/data/inside/pubs/text/pmc/
+
+If in and out are directories:
+    The file_list.csv will be split into x chunks, written to
+    file_list.split/xxx.csv and jobs submitted to process all of these 
+    Will create one .zip output file per chunk in the output directory
+If in and out are files:
+    Will parse the input file as a file_list.txt file 
+    Writes to outDir.articleInfo/.fileInfo/.fileArticles
+
+to debug xml parser: just specify one xml file, will output to stdout
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default", default=2000)
+parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pmc"]) 
+parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
+parser.add_option("-c", "--cluster", dest="useCluster", action="store_true", help="use cluster to do conversion")
+#parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+def nxmlHasBody(inData):
+    """ try to find out if a PMC xml file has some text in it or if 
+        it's just scanned pages """
+    #xml  = codecs.open(nxmlName, encoding="utf8").read()
+    try:
+        root = etreeFromXml(inData)
+        body = findChild(root, "body")
+        scans = findChildren(body,"supplementary-material", reqAttrName="content-type", reqAttrValue='scanned-pages')
+        if body!=None and len(scans)==0:
+            logging.debug("Found body tag, no scanned pages within it, seems to contain normal fulltext")
+            return True
+        else:
+            logging.debug("No body tag or only scanned pages: No fulltext")
+            return False
+    except IOError:
+        logging.error("IOError while searching for body tag in xml file")
+        return False
+    
+def metaInfoFromTree(metaInfo, field, etree, path, convertToAscii=False, reqAttrName=None, reqAttrValue=None, squeak=True, isAbstract=False):
+    """ helper function for parsePmcXml: get text of xml tree given path
+    expression, put into metaInfo[field] if path matches several elements,
+    process only the the on where the attribute reqAttrName has the value
+    reqAttrValue
+    
+    strips all newslines and tabs of anything returned
+    """ 
+
+    element = findChild(etree, path, convertToAscii, reqAttrName, reqAttrValue, squeak=squeak)
+
+    if element==None:
+        metaInfo[field] = ""
+        if squeak: 
+            logging.warn("path %s, no element for metaInfo field '%s', tag %s" % (path, field, etree.tag))
+        return
+
+    if convertToAscii==True:
+        metaInfo[field] = treeToAsciiText(element)
+    elif isAbstract==True:
+        metaInfo[field] = pmcAbstractToHtml(element)
+    else:
+        metaInfo[field] = element.text
+
+    if metaInfo[field] != None:
+        metaInfo[field] = metaInfo[field].replace("\n", " ")
+        metaInfo[field] = metaInfo[field].replace("\t", " ")
+
+def extractNames(contribNodeList):
+    """ 
+    helper function for parsePmcXml, get the author names from the contrib
+    section of a pmc xml file
+    """ 
+    surnames = []
+    firstnames = []
+    emails = []
+    affiliations = []
+    if contribNodeList==None or len(contribNodeList)==0:
+        return "", "", ""
+
+    for contrib in contribNodeList:
+        contribType = contrib.attrib.get("contrib-type",None)
+        if contrib.tag=="aff":
+            instEl = contrib.find("institution")
+            addrEl = contrib.find("addr-line")
+            countryEl = contrib.find("country")
+            affParts = []
+            if instEl!=None and instEl.text!=None:
+                affParts.append(instEl.text)
+            if addrEl!=None and addrEl.text!=None:
+                affParts.append(addrEl.text)
+            if countryEl!=None and countryEl.text!=None:
+                affParts.append(countryEl.text)
+            if len(affParts)==0:
+                # try just the raw text of the aff-tag if anyth else fails
+                affText = treeToAsciiText(contrib)
+                if affText!="":
+                    affParts.append(affText)
+            affiliations.append(", ".join(affParts))
+                
+        if contribType=="author":
+            nameEl = contrib.find("name")
+            if nameEl==None:
+                continue
+
+            surnameEl = nameEl.find("surname")
+            if surnameEl!=None:
+                surname = surnameEl.text
+                if surname==None:
+                    surname=""
+                surnames.append(surname)
+
+            firstnameEl = nameEl.find("given-names")
+            if firstnameEl!=None:
+                firstname = firstnameEl.text
+                if firstname==None:
+                    firstname=""
+                firstnames.append(firstname)
+
+            emailEl = contrib.find("email")
+            if emailEl!=None and emailEl.text!=None:
+                emails.append(emailEl.text)
+            emailEl = contrib.find("address/email")
+            if emailEl!=None and emailEl.text!=None:
+                emails.append(emailEl.text)
+    names = []
+    for i in range(0, min(len(surnames), len(firstnames))):
+        names.append(surnames[i]+", "+firstnames[i])
+
+    nameStr = "; ".join(names)
+    emailStr = "; ".join(emails)
+    affStr = "; ".join(affiliations)
+
+    return nameStr, emailStr, affStr
+
+def minimumYear(articleMeta):
+    """ helper for parsePmcXml: extracts the minimum year of all pubdate entries """
+    pubDates = articleMeta.findall("pub-date")
+    years = []
+
+    if pubDates!=None:
+        for date in pubDates:
+            year = date.find("year")
+            if year==None:
+                continue
+            yearString = year.text
+            try:
+                years.append(int(yearString))
+            except:
+                logging.debug("exception when casting the year to int")
+                pass
+        
+    if len(years)==0:
+        logging.debug("no valid years found")
+        return "noValidYear"
+
+    minYear = str(min(years))
+    logging.log(5, "determined minimum year as %s" % minYear)
+    return minYear
+
+def parseSupplMatEl(suppData):
+    " unusual case: one suppl tag, many media tags "
+    suppFileInfo = {}
+    medias = suppData.findall("media")
+    logging.debug("Found %d medias" % len(medias))
+    mediaCount = 0
+    for mediaEl in medias:
+        fname = mediaEl.attrib.get("href","")
+        labelText = mediaEl.findtext("label")
+        descParts = []
+        descParts.append("Supp. File %d" % (mediaCount+1))
+        if labelText!=None:
+            descParts.append(labelText)
+        descParts.append("filename: "+fname)
+        desc = " - ".join(descParts)
+        logging.debug("Found suppl file fname=%s, desc=%s" % (fname, desc))
+        suppFileInfo[fname]=desc
+        mediaCount+=1
+    return suppFileInfo
+
+def parseSupplMatList(suppDataList):
+    " standard case: a list of supplMaterial tags, each with one media tag "
+    suppFileInfo = {}
+    suppCount = 0
+    for suppData in suppDataList:
+        shortDesc = suppData.attrib.get("id","")
+        longDesc = suppData.findtext("caption/title")
+        logging.debug("Found suppl file id=%s, title=%s" % (shortDesc, longDesc))
+
+        suppDescParts=[]
+        if longDesc!=None:
+            suppDescParts.append(longDesc)
+        if shortDesc==None:
+            suppDescParts.append(shortDesc)
+            shortDesc=""
+        if (longDesc!=None and not longDesc.startswith("Additional")) or \
+            longDesc==None:
+            suppDescParts.append("Supp. File %d" % suppCount)
+
+        medias = suppData.findall("media")
+        for media in medias:
+            desc = suppData.findtext("label")
+            fname = media.attrib.get("href","")
+            suppDescParts.append("filename: %s" % fname)
+            suppDesc = " - ".join(suppDescParts)
+            suppFileInfo[fname]=suppDesc
+            suppCount += 1
+            logging.debug("Found media filename, href=%s" % fname)
+    return suppFileInfo
+
+def parsePmcXml(xml, metaInfo):
+    """ return the meta information contained in an pmc xml file as a metaInfo-dictionary """
+
+    logging.debug("Parsing pmc nxml data")
+    articleTree = etreeFromXml(xml) # got inserted automatically by html parser
+
+    if articleTree==None or len(articleTree)==0 or articleTree.tag!="article":
+        if articleTree.tag!="article":
+            logging.info("Not an article: %s tag found" % articleTree.tag)
+        else:
+            logging.warn("No article tag found, empty file?")
+
+        metaInfo["articleType"]="noContent"
+        return xml, metaInfo
+
+    metaInfo["articleType"]=articleTree.attrib["article-type"]
+    journalTree = articleTree.find("front/journal-meta")
+    metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title", squeak=False)
+    if metaInfo["journal"]=="":
+        metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title-group/journal-title", squeak=False)
+    metaInfoFromTree(metaInfo, "printIssn", journalTree, "issn", reqAttrName="pub-type", reqAttrValue='ppub')
+    metaInfoFromTree(metaInfo, "eIssn", journalTree, "issn", reqAttrName="pub-type", reqAttrValue='epub')
+
+    articleMeta = articleTree.find("front/article-meta")
+    metaInfoFromTree(metaInfo, "pmcId", articleMeta, "article-id", reqAttrName="pub-id-type", reqAttrValue='pmc')
+    metaInfo["externalId"]="PMC"+metaInfo["pmcId"]
+    metaInfo["fulltextUrl"]="http://www.ncbi.nlm.nih.gov/pmc/articles/%s" % metaInfo["externalId"]
+    metaInfo["source"]="pmcftp"
+    if metaInfo["journal"]=="":
+        logging.warn("Could not find a journal title for PMC %s" % metaInfo["externalId"])
+    metaInfoFromTree(metaInfo, "pmid", articleMeta, "article-id", reqAttrName="pub-id-type", reqAttrValue="pmid", squeak=False)
+    metaInfoFromTree(metaInfo, "doi", articleMeta, "article-id", reqAttrName="pub-id-type", reqAttrValue="doi", squeak=False)
+    metaInfoFromTree(metaInfo, "title", articleMeta, "title-group/article-title", convertToAscii=True)
+    if metaInfo["title"]==None or metaInfo["title"]=="":
+        metaInfoFromTree(metaInfo, "title", articleMeta, "title-group/article-title", convertToAscii=True)
+
+    minYear = minimumYear(articleMeta)
+    metaInfo["year"]=minYear
+
+    contribs = articleMeta.find("contrib-group")
+    #print toXmlString(articleMeta.find("contrib-group"))
+    nameStr, emailStr, affStr = extractNames(contribs)
+    metaInfo["authors"]=nameStr
+    metaInfo["authorEmails"] = emailStr
+    metaInfo["authorAffiliations"] = affStr
+
+    metaInfoFromTree(metaInfo, "vol", articleMeta, "volume", squeak=False)
+    metaInfoFromTree(metaInfo, "issue", articleMeta, "issue", squeak=False)
+    metaInfoFromTree(metaInfo, "page", articleMeta, "fpage", squeak=False)
+    metaInfoFromTree(metaInfo, "abstract", articleMeta, "abstract", isAbstract=True, squeak=False)
+
+    # supp data files
+    suppCount=0
+    suppFileInfo = {}
+    # there are two different formats for suppl material:
+    # either many <supplementary-material>-tags, each with a media
+    # or one supplementary-material tag, with many media tags
+    suppDataEls = articleTree.findall(".//supplementary-material")
+    logging.debug("Found %d suppl-material tags" % len(suppDataEls))
+    if len(suppDataEls)==1:
+        suppFileInfo = parseSupplMatEl(suppDataEls[0])
+    else:
+        suppFileInfo = parseSupplMatList(suppDataEls)
+
+    logging.log(5, "Complete Meta info:"+str(metaInfo))
+
+    metaInfo     = pubGeneric.dictToUnicode(metaInfo)
+    #suppFileInfo = suppFileInfo)
+    return metaInfo, suppFileInfo
+    
+def createIndexFile( inDir, inFname, pmcToPmid, \
+        outFname, updateId, chunkSize, chunkCount, startId, \
+        donePmcIds, ignoreHeaders=True):
+    """ write filenames from inFname to outFname in format (numId, indir, infile, outdir, outfile)
+    starting id is numId 
+    """
+    inAbsFname = os.path.join(inDir, "file_list.txt")
+    if not os.path.isfile(inAbsFname):
+        logging.info("Could not find %s, check localMirrorDir in pubtools.conf" % inAbsFname)
+        sys.exit(1)
+    else:
+        logging.info("Copying pmc index from %s to %s, assigning identifers and chunk IDs" % (inAbsFname, outFname))
+
+    inList = open(inAbsFname)
+    if ignoreHeaders:
+        inList.readline()
+
+    # first read in all new pmcIds
+    pmcIdsFiles = []
+    logging.info("%d pmcIDs have already been processed" % len(donePmcIds))
+    skippedPmcIds = 0
+    lineCount = 0
+    for line in inList:
+        lineCount +=1 
+        fields = line.strip("\n").split("\t")
+        inRelPath = fields[0]
+        pmcId = fields[2]
+        if pmcId in donePmcIds:
+            skippedPmcIds += 1
+            continue
+        pmcIdsFiles.append((pmcId, inRelPath))
+
+    if len(pmcIdsFiles)==0:
+        logging.warn("No new pmcIds to process")
+        return None, None
+    else:
+        logging.info("%d pmcIDs will be processed now" % len(pmcIdsFiles))
+
+
+    if chunkSize!=None:
+        chunkCount = int(math.ceil(float(len(pmcIdsFiles)) / chunkSize))
+        logging.info("Number of chunks is %d (=%d / %d)" % (chunkCount, len(pmcIdsFiles), chunkSize))
+
+    # then output new index file for unproc pmcIds
+    outList = open(outFname, "w")
+    headers = ["articleId", "chunkId", "pmcId", "pmid", "srcDir", "filePath"]
+    outList.write("#"+"\t".join(headers)+"\n")
+
+    newPmcIds = []
+    for idCount, pmcIdRelPath in enumerate(pmcIdsFiles):
+        pmcId, inRelPath = pmcIdRelPath
+        numId=(startId)+(idCount)
+        pmid = pmcToPmid.get(pmcId, "0")
+        if pmid==None or pmid==0:
+            logging.info("No PMID for article %s" % pmcId)
+        chunkDiv = numId % chunkCount
+        chunkId = "%d_%.5d" % (updateId, chunkDiv)
+        outPath = chunkId+".zip"
+
+        data = [str(numId), chunkId, pmcId, pmid, inDir, inRelPath]
+        outList.write("\t".join(data)+"\n")
+        newPmcIds.append(pmcId)
+
+    outList.close()
+    logging.info("Found %d lines/PMCIDs in index, %d of these had been processed before" % \
+        (lineCount, skippedPmcIds))
+    return numId, newPmcIds
+
+def parsePmcIds(pmcTabFname):
+    " parse PMC-ids.csv.gz and return as dict pmcId (e.g. PMCxxx) => pmid (e.g. 123454) "
+    logging.info("parsing %s" % pmcTabFname)
+    data = {}
+    reader = csv.reader(gzip.open(pmcTabFname, 'rb'))
+    Record = None
+    for row in reader:
+        if Record==None:
+            # first line
+            headers = [h.replace(" ", "") for h in row]
+            Record = collections.namedtuple('pmcRec', headers)
+        else:
+            # all other lines
+            rec = Record(*row)
+            pmid = rec.PMID
+            if pmid=="":
+                pmid = "0"
+            data[rec.PMCID]=pmid
+    return data
+
+def splitIndexAndSubmitConvertJobs(pmcDirectory, outDir, minId, useCluster):
+    " create and split index file and submit jobs to cluster system, one per index chunk "
+    # parse info from last runs
+    updateId, articleId, donePmcIds = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
+
+    # get correct PMIDs (10% of PMIDs are wrong in XML)
+    pmcTabFname = join(pmcDirectory, "PMC-ids.csv.gz")
+    pmcToPmid = parsePmcIds(pmcTabFname)
+
+    # write big index
+    indexFile = join(outDir, "%d_index.tab" % updateId)
+    fileListFname = "file_list.txt" 
+    if int(updateId)==0:
+        logging.info("This is the first run, not setting chunkSize")
+        chunkSize = None
+    else:
+        logging.debug("This is not the first run, need to guess chunk size")
+        chunkSize = pubStore.guessChunkSize(outDir)
+
+    lastArticleId, newPmcIds = createIndexFile(pmcDirectory, fileListFname, pmcToPmid, indexFile, updateId, \
+        chunkSize, chunkCount, articleId, donePmcIds)
+    if lastArticleId == None:
+        return 
+
+    indexDir = join(outDir, "index.tmp.split")
+    chunkIds = pubStore.splitTabFileOnChunkId(indexFile, indexDir)
+
+    if useCluster:
+        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
+    else:
+        runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
+
+    for chunkId in chunkIds:
+        logging.debug("submitting job for chunk %s" % chunkId)
+        outFname = os.path.join(outDir, chunkId+".articles.gz")
+        chunkFname = os.path.join(indexDir, chunkId)
+        maxCommon.mustNotExist(outFname)
+        command = "%s %s {check in line %s} {check out exists+ %s}" % (sys.executable, progFile, chunkFname, outFname)
+        runner.submit(command)
+    pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmcIds)
+    runner.finish(wait=True)
+
+def extractTgz(baseDir, fname):
+    """ extract all files from pmc tarfile, returns dict with 'filename' -> content
+    """
+    tarfname = os.path.join(baseDir, fname)
+    if not os.path.exists(tarfname):
+        logging.warn("Could not find file %s, internal error?\n" % tarfname)
+        return None
+
+    logging.log(5, "Opening tarfile %s" % tarfname)
+    tarObject = tarfile.open(tarfname)
+
+    if tarObject==None:
+        logging.warn("Could not open file %s, data corruption error?\n" % tarfname)
+        return None
+
+    fileData = {}
+    logging.debug("Extracting tarfile %s " % (tarfname))
+    try:
+        members = tarObject.getmembers()
+    except IOError:
+        logging.error("Could not extract %s" % tarfname)
+        return None
+
+    for tarinfo in members:
+        if tarinfo.isfile():
+            fileObj = tarObject.extractfile(tarinfo)
+            fileName = os.path.basename(tarinfo.name)
+            fileData[fileName] = fileObj.read()
+    logging.debug("Filenames in tgz file: %s" % str(fileData.keys()))
+    return fileData
+
+def getNxmlFile(fileDataDict):
+    """ pull out nxml data from filename->data dict """
+    if fileDataDict==None:
+        return None, None
+
+    nxmlData = None
+    for fname, data in fileDataDict.iteritems():
+        if fname.endswith(".nxml"):
+            if nxmlData!=None:
+                logging.error("several nxml files found: %s" % (fname))
+            nxmlData = data
+            nxmlName = fname
+    if nxmlData==None:
+        logging.error("No Nxml file found, among files: %s" % str(fileDataDict.keys()))
+        nxmlData = None
+    nxmlName = os.path.basename(nxmlName)
+    return nxmlName, nxmlData
+            
+def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles):
+    " given file data and meta data, create a fileData dictionary "
+    fileDataList = []
+    urlPrefix = "pmcftp://"+tgzName
+
+    # add xml file data
+    xmlFile = pubStore.createEmptyFileDict(
+        url=urlPrefix+"/"+nxmlName,
+        content=nxmlData,
+        fileType="main",
+        desc = "main text (xml)",
+        mimeType="text/xml")
+    fileDataList.append(xmlFile)
+
+    # try to find pdf files and add pdf file data
+    pdfName = nxmlName.replace(".nxml", ".pdf")
+    if pdfName!=nxmlName and pdfName in extractedFiles:
+        pdfFile = pubStore.createEmptyFileDict(
+            url=urlPrefix+"/"+pdfName,
+            content=extractedFiles[pdfName],
+            desc = "main text (pdf)",
+            fileType="main",
+            mimeType="application/pdf")
+        fileDataList.append(pdfFile)
+        
+    # add all suppl files
+    for suppFname, suppDesc in suppFileDict.iteritems():
+        if suppFname not in extractedFiles:
+            logging.error("File %s referenced in xml, not found in tgz. skipping." % suppFname)
+            continue
+        suppData = extractedFiles[suppFname]
+        mimeType, dummy = mimetypes.guess_type(suppFname)
+        suppFile = pubStore.createEmptyFileDict(
+            url=urlPrefix+"/"+suppFname,
+            content=suppData,
+            desc=suppDesc,
+            fileType="supp",
+            mimeType=mimeType)
+        fileDataList.append(suppFile)
+
+    return fileDataList
+    
+def convertOneChunk(inIndexFile, outFile):
+    """ 
+    get files from inIndexFile, parse Xml, 
+    convert all supplp files to
+    ASCII and write everything to outfile 
+    """ 
+    store = pubStore.PubWriterFile(outFile)
+
+    for row in maxCommon.iterTsvRows(inIndexFile):
+        articleId = row.articleId
+        baseDir = row.srcDir
+        tgzName = row.filePath
+        extractedFiles = extractTgz(baseDir, tgzName)
+        if extractedFiles == None:
+            continue
+        nxmlName, nxmlData = getNxmlFile(extractedFiles)
+        if nxmlData==None:
+            continue
+        articleData = pubStore.createEmptyArticleDict()
+        articleData, suppFileDict = parsePmcXml(nxmlData, articleData)
+        store.writeArticle(articleId, articleData)
+
+        fileDataList = createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles)
+        fileIdx = 0
+        for fileData in fileDataList:
+            fileId   = (1000*int(articleId))+fileIdx
+            fileData = pubGeneric.toAsciiEscape(fileData)
+            fileIdx+=1
+            if fileData!=None:
+                store.writeFile(articleId, fileId, fileData, externalId=articleData["externalId"])
+    store.close()
+
+# ----------- MAIN --------------
+if args==[]: 
+    parser.print_help()
+    exit(1)
+
+if len(args)==1:
+    # debug mode, just specify an xml file
+    pubGeneric.setupLogging(progFile, options)
+    articleData = pubStore.createEmptyArticleDict()
+    articleData, suppFileDict = parsePmcXml(open(args[0]).read(), articleData)
+    for key, val in articleData.iteritems():
+        print key, val
+    print suppFileDict
+    sys.exit(0)
+
+pmcDir, outDir = args
+maxCommon.mustExist(pmcDir)
+
+minId = options.minId
+chunkCount = options.chunkCount
+dryRun = options.dryRun
+useCluster = options.useCluster
+
+pubGeneric.setupLogging(progFile, options)
+
+if os.path.isdir(pmcDir):
+    maxCommon.mustExistDir(outDir)
+    splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, useCluster)
+else:
+    inIndexFile = pmcDir
+    outFile = outDir
+    convertOneChunk(inIndexFile, outFile)

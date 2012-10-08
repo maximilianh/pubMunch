@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+
+# load default python packages
+import logging, optparse, os, shutil, glob, tempfile, sys
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
+
+# load our own libraries
+import pubConf, pubGeneric, maxMysql, pubStore
+from maxCommon import *
+
+# ===== FUNCTIONS =======
+
+def main(args, options):
+    db, tableName, dataDir = args
+    pubGeneric.setupLoggingOptions(options)
+    dataDir = pubConf.resolveTextDir(dataDir)
+    if options.files:
+        sqlSchema = "file.sql"
+        fileType = "files"
+    else:
+        sqlSchema = "article.sql"
+        fileType = "articles"
+
+    # create table
+    sqlFname = join(pubConf.sqlDir, sqlSchema)
+    tempName = join(pubConf.TEMPDIR, "pubLoad.%s.sqlTable.tmp" % tableName)
+    if isfile(tempName):
+        logging.error("Found an already existing file %s" % tempName)
+        logging.error("Please make sure that no concurrent pubLoad is running and remove this file first.")
+        sys.exit(1)
+    else:
+        tempFile = open(tempName, "w")
+        logging.info("Concatting tables to %s" % tempFile.name)
+        for articleData in pubStore.iterArticleDataDir(dataDir, type=fileType):
+            line = "\t".join(articleData)+"\n"
+            line = line.replace("\\", "\\\\") # mysql treats \ as escape char on LOAD DATA
+            line = line.replace("\a", "\\n") # mysql treats \ as escape char on LOAD DATA
+            tempFile.write(line.encode("utf8"))
+        tempName = tempFile.name
+        tempFile.close()
+
+    logging.info("Loading table")
+    maxMysql.hgLoadSqlTab(db, tableName, sqlFname, tempName, optString="-warn")
+    os.remove(tempName)
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-f", "--files", dest="files", action="store_true", help="do not load article but files into db, uses a different schema") 
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

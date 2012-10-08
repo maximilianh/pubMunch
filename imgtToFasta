@@ -1,0 +1,135 @@
+#!/usr/bin/env python
+
+import sys
+from optparse import OptionParser
+import glob, os.path
+
+import collections, logging
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = OptionParser("""usage: %prog [options] DATFILE - convert imgt.dat to fasta format on stdout. Only process human sequences. Annotate with paper info in fasta id line.
+
+to convert fastsa file to db:
+/cluster/bin/blast/x86_64/ncbi-blast-2.2.24+/bin/makeblastdb -in imgt.fa -dbtype nucl
+
+to blast on db:
+/cluster/bin/blast/x86_64/ncbi-blast-2.2.24+/bin/tblastn -query david.fa -db imgt.fa
+""") 
+parser.add_option("-f", "--filter", dest="filterWords", action="append", help="can be specified several times, keyword, output only records that contain one of the keywords in their fasta-id line, not case sensitive (includes the paper's title, authors. Example: -f ankylos -f spondilitis -f rheuma -f arthritis", metavar="WORDLIST_COMMASEP")
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+#def writeList(fname, list):
+    #of = open(fname, "w")
+    #for row in list:
+        #row = [str(d) for d in row]
+        #of.write("\t".join(row))
+        #of.write("\n")
+    #of.close()
+    
+# RECORDS
+class Reference:
+    def __init__(self):
+        self.authors=[]
+        self.titles=[]
+        self.journals=[]
+
+class IMGTRecord:
+    def __init__(self):
+        self.refList=[]
+        self.seqs=[]
+        self.genes={}
+
+    def refString(self):
+        strList = []
+        for ref in self.refList:
+            str = ";".join(ref.authors)+"_"+";".join(ref.titles)+"_"+";".join(ref.journals)
+            strList.append(str)
+        return "___".join(strList)
+
+def parseImgt(fh):
+    " an iterator, yields each record as a IMGTRecord object "
+    grabGenes = False 
+    grabSeq=False
+
+    for line in fh:
+        tag = line[:5].strip()
+        data = line[5:].strip()
+
+        if tag=="ID":
+            rec = IMGTRecord()
+            rec.id = data
+            grabSeq=False
+        if tag=="OS":
+            rec.species = data
+        if tag=="RN":
+            rec.refList.append(Reference())
+        #if tag=="RA":
+            #rec.refList[-1].authors.append(data)
+        if tag=="RT":
+            rec.refList[-1].titles.append(data)
+        #if tag=="RL":
+            #rec.refList[-1].journals.append(data)
+        if tag=="FT":
+            ftName = data[:16].strip()
+            desc = data[16:].strip()
+
+            if ftName!="":
+                grabGenes=False
+            if ftName=="V_region" or ftName=="J_segment":
+                genes={}
+                geneType = ftName
+                grabGenes=True
+            if desc.startswith("/gene=") and grabGenes:
+                gene = desc.split("=")[1].strip('"')
+                self.genes[geneType] = gene
+        if tag=="SQ":
+            grabSeq=True
+        if tag=="" and grabSeq:
+            seq = data.strip().strip("0123456789")
+            seq = seq.replace(" ", "")
+            rec.seqs.append(seq)
+                
+        if tag=="//":
+            yield rec
+    yield rec
+
+    
+def filterConvertImgt(inFname, filterWords, species="Homo sapiens"):
+    """ go over all IMGT records, output ones from selected species with
+    certain keywords in fasta format to stdout """ 
+
+    if filterWords!=None:
+        filterWords = [fw.upper() for fw in filterWords]
+    logging.info("%s" % str(filterWords))
+
+    for rec in parseImgt(open(inFname)):
+        if not rec.species.startswith(species):
+            continue
+        seq = "".join(rec.seqs)
+        refString = rec.refString()
+        if filterWords!=None:
+            refStringUp = refString.upper()
+            found=False
+            for word in filterWords:
+                if word in refStringUp:
+                    found=True
+                    break
+            if not found:
+                continue
+                
+        geneString = "_".join(list(rec.genes.iteritems()))
+        id = rec.id.split()[0]
+        print ">"+(id+"|"+refString+"|"+geneString).replace(" ","_")
+        print seq
+
+
+# ----------- MAIN --------------
+if args==[]: 
+    parser.print_help()
+    exit(1)
+
+inFname = args[0]
+filterWordList = options.filterWords
+
+filterConvertImgt(inFname, filterWordList)

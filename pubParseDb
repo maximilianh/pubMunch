@@ -1,0 +1,308 @@
+#!/usr/bin/env python2.7
+
+# load default python packages
+import logging, optparse, sys, glob, gzip, collections, copy, gzip, os
+from os.path import *
+
+try:
+  from lxml import etree
+except ImportError:
+    # Python 2.5
+    print "py 2.5 fallback etree"
+    import xml.etree.cElementTree as etree
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, pubCrawl, maxCommon, pubConf
+
+pdbHeaders = ["acc", "isMain", "authors", "title", "ref", "issn", "pmid", "doi"]
+pdbToHeader = {'AUTH' : "authors", "TITL" : "title", "REFN": "issn", "PMID":"pmid", "DOI":"doi", "REF":"ref", "isMain":"isMain", "acc": "acc"}
+PdbRefRec  = collections.namedtuple("pdbRef", pdbHeaders)
+
+# /hive/data/outside/pdb/aa/pdb1aa0.ent.gz
+
+def parsePdbRefLine(data, line):
+    " add line to data dict "
+    keyword, entry = line[12:16].strip(), line[19:].strip()
+    if keyword in data:
+        data[keyword] = data[keyword]+" "+entry
+    else:
+        data[keyword] = entry
+
+def parsePdb(pdbDir, outDir):
+    " write pdb.tab to outDir, parsing an ftp mirror from PDB "
+    # get list of infnames
+    if isdir(pdbDir):
+        logging.info("Scanning for input files in %s" % pdbDir)
+        inDirs = [d for d in glob.glob(pdbDir+"/*") if isdir(d)]
+        inFnames = [] 
+        for inDir in inDirs:
+            dirFnames = glob.glob(inDir+"/*.ent.gz")
+            inFnames.extend(dirFnames)
+        logging.info("Found %d input files under %s" % (len(inFnames), pdbDir))
+    elif isfile(pdbDir):
+        inFnames = [pdbDir]
+    else:
+        raise Exception("pdbDir %s does not exist" % pdbDir)
+
+    # write headers and open outfile
+    outFname = join(outDir, "pdb.tab")
+    logging.info("Writing to %s" % outFname)
+    ofh = open(outFname, "w")
+    ofh.write("\t".join(pdbHeaders))
+    ofh.write("\n")
+
+    tp = maxCommon.ProgressMeter(len(inFnames))
+    for inFname in inFnames:
+        logging.debug("Parsing %s" % inFname)
+        ifh = gzip.open(inFname)
+        refs = []
+        refData = {}
+        for line in ifh:
+            if line.startswith("HEADER "):
+                acc = line.split()[-1]
+
+            if line.startswith("JRNL"):
+                refData["isMain"]="1"
+                refData["acc"] = acc
+                parsePdbRefLine(refData, line)
+
+            elif line.startswith("REMARK   1 "):
+                if line[11:].startswith("REFERENCE"):
+                    refs.append(refData)
+                    refData = {}
+                    refData["isMain"] = "0"
+                    refData["acc"] = acc
+                    continue
+                parsePdbRefLine(refData, line)
+        refs.append(refData)
+
+        # translate keys from PDB to our own ones and write to outfile
+        newRefs = []
+        for ref in refs:
+            if '' in ref:
+                del ref['']
+            if 'EDIT' in ref:
+                del ref['EDIT']
+            if 'PUBL' in ref:
+                del ref['PUBL']
+            if 'REFE' in ref: # looks like a typo in /hive/data/outside/pdb/o9/pdb1o91.ent.gz
+                logging.warn("REFE typo ignored")
+                del ref['REFE']
+            newRef = {}
+            for k, v, in ref.iteritems():
+                newRef[pdbToHeader[k]] = v
+            for h in pdbHeaders:
+                if not h in newRef:
+                    newRef[h] = ""
+            newRef["issn"] = newRef["issn"].replace("ISSN ","")
+            row = PdbRefRec(**newRef)
+            ofh.write("\t".join(row))
+            ofh.write("\n")
+
+        tp.taskCompleted()
+        
+
+# UNIPROT PARSING 
+
+def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
+    """ Takes a parsed ET structure and does an in-place removal of all namespaces,
+        or removes a specific namespacem (by its URL).
+        
+        Can make node searches simpler in structures with unpredictable namespaces
+        and in content given to be non-mixed.
+
+        By default does so for node names as well as attribute names.       
+        (doesn't remove the namespace definitions, but apparently
+         ElementTree serialization omits any that are unused)
+
+        Note that for attributes that are unique only because of namespace,
+        this may attributes to be overwritten. 
+        For example: <e p:at="bar" at="quu">   would become: <e at="bar">
+
+        I don't think I've seen any XML where this matters, though.
+    """
+    if namespace==None: # all namespaces                               
+        for elem in etree.getiterator():
+            tagname = elem.tag
+            if not isinstance(elem.tag, basestring):
+                continue
+            if tagname[0]=='{':
+                elem.tag = tagname[ tagname.index('}',1)+1:]
+
+            if remove_from_attr:
+                to_delete=[]
+                to_set={}
+                for attr_name in elem.attrib:
+                    if attr_name[0]=='{':
+                        old_val = elem.attrib[attr_name]
+                        to_delete.append(attr_name)
+                        attr_name = attr_name[attr_name.index('}',1)+1:]
+                        to_set[attr_name] = old_val
+                for key in to_delete:
+                    elem.attrib.pop(key)
+                elem.attrib.update(to_set)
+
+    else: # asked to remove specific namespace.
+        ns = '{%s}' % namespace
+        nsl = len(ns)
+        for elem in etree.getiterator():
+            if elem.tag.startswith(ns):
+                elem.tag = elem.tag[nsl:]
+
+            if remove_from_attr:
+                to_delete=[]
+                to_set={}
+                for attr_name in elem.attrib:
+                    if attr_name.startswith(ns):
+                        old_val = elem.attrib[attr_name]
+                        to_delete.append(attr_name)
+                        attr_name = attr_name[nsl:]
+                        to_set[attr_name] = old_val
+                for key in to_delete:
+                    elem.attrib.pop(key)
+                elem.attrib.update(to_set)
+
+
+def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAttrib=None):
+    " find all text of subelemets matching path with given attrib and save into dataDict with key"
+    l = []
+    for se in el.findall(path):
+        if attribKey!=None and se.attrib.get(attribKey, None)!=attribVal:
+            continue
+        if useAttrib:
+            val = se.attrib[useAttrib]
+        else:
+            val = se.text
+        l.append(val)
+    s = "|".join(l)
+    dataDict[key] = s
+
+def openOutTabFile(outDir, outSubDir, outName, headers):
+    " create outdir and open outfile, write headers "
+    subDir = join(outDir, outSubDir) 
+    if not isdir(subDir):
+        logging.info("Creating dir %s" % subDir)
+        os.makedirs(subDir)
+    outPath = join(subDir, outName)
+    logging.debug("Writing headers to %s" % outPath)
+    ofh = open(outPath, "w")
+    ofh.write("\t".join(headers)+"\n")
+    return ofh
+
+def parseRecInfo(entryEl, entry):
+    "parse uniprot general record info into entry dict"
+    dataset = entryEl.attrib["dataset"]
+    entry["dataset"] = dataset
+
+    findSaveList(entryEl, "name", entry, "name")
+    findSaveList(entryEl, "accession", entry, "accList")
+    findSaveList(entryEl, "protein/recommendedName/fullName", entry, "protFullNames")
+    findSaveList(entryEl, "protein/recommendedName/shortName", entry, "protShortNames")
+    findSaveList(entryEl, "protein/alternativeName/fullName", entry, "protAltNames")
+    findSaveList(entryEl, "gene/name", entry, "geneName", attribKey="type", attribVal="primary")
+    findSaveList(entryEl, "gene/name", entry, "geneSynonyms", attribKey="type", attribVal="synonym")
+    findSaveList(entryEl, "gene/name", entry, "geneOrdLocus", attribKey="type", attribVal="ordered locus")
+    findSaveList(entryEl, "gene/name", entry, "geneOrf", attribKey="type", attribVal="ORF")
+    findSaveList(entryEl, "organism/name", entry, "orgName", attribKey="type", attribVal="scientific")
+    findSaveList(entryEl, "organism/name", entry, "orgCommon", attribKey="type", attribVal="common")
+    findSaveList(entryEl, "organism/dbReference", entry, "orgTaxId", useAttrib="id")
+
+    entryRow = entryRec(**entry)
+    return entryRow
+
+def parseRefInfo(entryEl):
+    for refEl in entryEl.findall("reference"):
+        ref = copy.copy(emptyRef)
+        ref["name"] = recName
+        citEl = refEl.find("citation")
+        ref["citType"] = citEl.attrib["type"]
+        year = citEl.attrib.get("date", "")
+        ref["year"] = year.split("-")[0]
+        ref["journal"] = citEl.attrib.get("name", "")
+        if ref["journal"]=="":
+            ref["journal"] = citEl.attrib.get("db", "") # for submissions
+        ref["vol"] = citEl.attrib.get("volume", "")
+        ref["page"] = citEl.attrib.get("first", "")
+        for titleEl in citEl.findall("title"):
+            ref["title"] = titleEl.text
+        authorList = []
+        for personEl in citEl.findall("authorList/person"):
+            if "name" in personEl.attrib:
+                name = personEl.attrib["name"]
+                name = name.replace(" ", ",", 1)
+                authorList.append(name)
+        ref["authors"]=";".join(authorList)
+        for dbRefEl in citEl.findall("dbReference"):
+            if "type" in dbRefEl.attrib:
+                if dbRefEl.attrib["type"]=="DOI":
+                    ref["doi"] = dbRefEl.attrib["id"]
+                if dbRefEl.attrib["type"]=="PubMed":
+                    ref["pmid"] = dbRefEl.attrib["id"]
+
+        findSaveList(refEl, "scope", ref, "scopeList")
+        refRow = refRec(**ref)
+        yield refRow
+
+def parseUniprot(inDir, outDir):
+    " parse uniprot to records and refs subdirs of outdir "
+
+    xmlFile = gzip.open(join(inDir, "uniprot_sprot.xml.gz"))
+
+    entryHeaders = ["dataset", "name", "accList", "protFullNames", \
+        "protShortNames", "protAltNames", "geneName", "geneSynonyms", \
+        "geneOrdLocus", "geneOrf", "orgName", "orgCommon", "orgTaxId"]
+    entryRec = collections.namedtuple("uprec", entryHeaders)
+    emptyEntry = dict(zip(entryHeaders, len(entryHeaders)*[""]))
+    entryOf = openOutTabFile(outDir, "records", "uniprot.tab", entryHeaders)
+
+    refHeaders = ["name", "citType", "year", "journal", "vol", "page", \
+            "title", "authors", "doi", "pmid", "scopeList"]
+    refRec = collections.namedtuple("refRec", refHeaders)
+    emptyRef = dict(zip(refHeaders, len(refHeaders)*[""]))
+    refOf = openOutTabFile(outDir, "refs", "uniprot.tab", refHeaders)
+
+    for _, entryEl in etree.iterparse(xmlFile, tag='{http://uniprot.org/uniprot}entry'):
+        strip_namespace_inplace(entryEl) # die, die stupid namespaces!!
+        entry = copy.copy(emptyEntry)
+        entryRow = parseRecInfo(entryEl, entry)
+        entryOf.write("\t".join(entryRow)+"\n")
+        recName = entryRow.name
+
+        refRows = list(parseRefInfo(entryEl))
+        for refRow in refRows:
+            refOf.write("\t".join(refRow)+"\n")
+
+        entryEl.clear()
+
+
+def main(args, options):
+    #logFname = join(outDir, "dbParse.log")
+    pubGeneric.setupLogging("", options)
+    db = args[0]
+
+    refDir = pubConf.dbRefDir
+    maxCommon.mustExistDir(refDir, makeDir=True)
+
+    dbDir = join(pubConf.dbBaseDir, db)
+
+    if db=="pdb":
+        #parsePdb("/hive/data/outside/pdb/o9/pdb1o91.ent.gz", refDir)
+        parsePdb(dbDir, refDir)
+    elif db=="uniprot":
+        parseUniprot(dbDir, refDir)
+
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] pdb - parse PMIDs from database and write to Db dir""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)
