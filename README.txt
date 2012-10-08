@@ -6,7 +6,7 @@ publisher. The categories are:
 
 - pubPrepX = prepare directory structures. These are used to download
         taxon names, import gene models from websites like NCBI or
-        UCSC. Not needed for 
+        UCSC. 
 - pubGetX = download files from publisher X (medline, pmc, elsevier)
 - pubConvX = convert downloaded files to a pub format (tab-separated table
              ,fields defined in lib/pubStore.py)
