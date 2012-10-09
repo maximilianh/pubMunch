@@ -1,6 +1,6 @@
 # Routines for reading tables from textfiles or mysql databases
 
-import sys, textwrap, operator, types, logging, re, os, collections, codecs
+import sys, textwrap, operator, types, logging, re, os, collections, codecs, sqlite3, time
 from types import *
 
 import maxCommon
@@ -98,7 +98,7 @@ class TableParser:
     >>> tp = TableParser(fileObj=f)
     >>> print list(tp.lines())
     [tuple(id='1', firstname='max', lastname='haussler')]
-    >>> tp2 = TableParser(headers=['field1', 'field2'])
+    >>> tp2 = TableParser(None, headers=['field1', 'field2'])
     >>> print tp2.parseTuple(['test1', 'test2'])
     tuple(field1='test1', field2='test2')
     """
@@ -177,17 +177,14 @@ class TableParser:
 
     def parseTuple(self, tuple):
         """
-        >>> tp = TableParser(fileType="intmap")
-        >>> rec = tp.parseTuple(["1", "hallo"])
-        >>> print rec.int 
-        1
+        >>> TableParser(None, fileType="intmap").parseTuple(["1", "hallo"])
+        tuple(int=1, string='hallo')
 
         """
         # convert fields to correct data type
         if self.types: 
             tuple = [f(x) for f, x in zip(self.types, tuple)]
         # convert tuple to record with named fields
-        #print tuple, self.Record._fields
         return self.Record(*tuple)    
 
     def parseBlock(self, block):
@@ -248,7 +245,7 @@ def hgSqlConnect(db, **kwargs):
 
 def sqlConnection(connString=None, **kwargs):
     """ connectionString format: hostWithPort,user,password,db 
-    >>> conn = sqlConnection(connString="localhost,max,test,temp")
+    > conn = sqlConnection(connString="localhost,max,test,temp")
     """
     if connString:
         host,user,passwd,db = connString.split(",")
@@ -323,7 +320,7 @@ def writeRow(db, table, columnData, keys=None):
 class SqlTableReaderGeneric:
     def _defineRowType(self):
         colNames = [desc[0] for desc in self.cursor.description]
-        self.RowType = namedtuple.namedtuple("MysqlRow", colNames)
+        self.RowType = collections.namedtuple("MysqlRow", colNames)
 
 class SqlTableReader_BigTable(SqlTableReaderGeneric):
     """ Read rows from mysql table, keep table on server and fetches row-by-row"
@@ -339,6 +336,7 @@ class SqlTableReader_BigTable(SqlTableReaderGeneric):
         self.cursor = conn.cursor(MySQLdb.cursors.SSCursor)
         self.rows = self.cursor.execute(query)
         self._defineRowType()
+        self.kwargs=kwargs
 
     def generateRows(self):
         """ fetch row from mysql server, try to re-establish connection if it times out """
@@ -359,8 +357,8 @@ class SqlTableReader_BigTable(SqlTableReaderGeneric):
                         break
                     else:
                         logging.info("Mysql connection problems, will reconnect in 10 secs")
-                        sleep(10)
-                        self.init(self.query, conn=None, **self.kwargs)
+                        time.sleep(10)
+                        self.__init__(self.query, conn=None, **self.kwargs)
 
 class SqlTableReader(SqlTableReaderGeneric):
     """ Read rows from mysql table, will keep whole table in memory "
@@ -395,7 +393,7 @@ class SqlTableReader(SqlTableReaderGeneric):
         for row in self.generateRows():
             row = [str(d) for d in row]
             tabline = "\t".join(row)+"\n"
-            fileObject.write(tabfile)
+            fileObject.write(tabline)
 
 def concatHeaderTabFiles(filenames, outFilename, keyColumn=None, progressDots=None):
     """ concats files and writes output to outFile, will output headers (marked with #!) only once """
@@ -521,6 +519,67 @@ def openBed(fname, fileType="bed3"):
     "return iterator for bed files "
     fh = openFile(fname)
     return TableParser(fh, fileType=fileType).lines()
+
+def makeSqlLiteCreateStatement(tableName, fields, intFields=[], primKey=None, idxFields=[]):
+    """
+    return a tuple with a create table and the create index statements.
+
+    >>> makeSqlLiteCreateStatement("testTbl", ["test", "hi", "col3"], intFields=["hi"], primKey="test", idxFields=["col3"])
+    ('CREATE TABLE testTbl (test TEXT PRIMARY KEY, hi INTEGER, col3 TEXT); ', 'CREATE INDEX testTbl_col3_idx ON testTbl (col3);')
+    """
+    intFields = set(intFields)
+    idxFields = set(idxFields)
+    parts = []
+    idxSql = []
+    for field in fields:
+        ftype = "TEXT"
+        if field in intFields:
+            ftype = "INTEGER"
+        if field in idxFields:
+            idxSql.append("CREATE INDEX %s_%s_idx ON %s (%s);" % (tableName, field, tableName, field))
+        statement = field+" "+ftype
+        if field == primKey:
+            statement += " PRIMARY KEY"
+        parts.append(statement)
+    tableSql = "CREATE TABLE %s (%s); " % (tableName, ", ".join(parts))
+    idxSql = " ".join(idxSql)
+    return tableSql, idxSql
+
+def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, idxFields=[]):
+    " load tabsep file into sqlLite db table "
+    # if first parameter is string, make it to a list
+    if isinstance(tsvFnames, basestring):
+        tsvFnames = [tsvFnames]
+    con = sqlite3.connect(dbFname)
+    con.isolation_level="EXCLUSIVE"
+    cur = con.cursor()
+    cur.execute("PRAGMA synchronous=OFF") # recommended by
+    cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
+
+    # drop old table 
+    try:
+        logging.debug("dropping old sqlite table")
+        cur.execute('DROP TABLE %s;'% tableName)
+    except:
+        logging.debug("couldn't drop table")
+        raise
+        pass
+    con.commit()
+
+    # create table
+    createSql, idxSql = makeSqlLiteCreateStatement(tableName, headers, \
+        intFields=intFields, idxFields=idxFields, primKey=primKey)
+    logging.debug("creating table with %s" % createSql)
+    cur.execute(createSql)
+    con.commit()
+
+    for tsvName in tsvFnames:
+        logging.debug("Importing %s" % tsvName)
+        rows = list(maxCommon.iterTsvRows(tsvName))
+        sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(headers), ", ".join(["?"]*len(headers)))
+        logging.debug("Running Sql %s against %d rows" % (sql, len(rows)))
+        cur.executemany(sql, rows)
+        con.commit()
 
 if __name__ == "__main__":
     import doctest

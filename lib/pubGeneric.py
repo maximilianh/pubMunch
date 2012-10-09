@@ -383,7 +383,7 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
         existDirs.add(locFileDir)
 
         if isfile(locName):
-            logging.info("Already exists: %s, skipping" % locName)
+            logging.debug("Already exists: %s, skipping" % locName)
         else:
             lFile.write("get %s -o %s\n" % (f, locName))
         pm.taskCompleted()

@@ -71,7 +71,7 @@ def main():
     outDir = args[0]
 
     if options.full:
-        maxCommon.mustBeEmptyDir(outDir)
+        #maxCommon.mustBeEmptyDir(outDir)
         downloadBaseline(outDir, options.connCount)
 
     if not ftpBaselineEqLocal(outDir):

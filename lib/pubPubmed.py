@@ -32,11 +32,17 @@ def parseMedline(xmlParser):
     #data["year-pubmed"]   = medlineData.getTextFirst("DateCreated/Year")
     #data["month-pubmed"]  = medlineData.getTextFirst("DateCreated/Month")
     #data["day-pubmed"]    = medlineData.getTextFirst("DateCreated/Day")
+    otherIds         = medlineData.getTextAll("OtherID", reqAttrDict={"Source":"NLM"})
+    pmcIds = [i for i in otherIds if i.startswith("PMC")]
+    if len(pmcIds) > 0:
+        data["pmcId"] = pmcIds[0].split()[0].replace("PMC","")
 
     artTree               = medlineData.getXmlFirst("Article")
     data["title"]         = artTree.getTextFirst("ArticleTitle", default="")
     data["abstract"]      = artTree.getTextFirst("Abstract/AbstractText", default="")
     data["authorAffiliations"]   = artTree.getTextFirst("Affiliation", default="")
+    data["doi"]           = artTree.getTextFirst("ELocationID", default="", reqAttrDict={"EIdType":"doi"})
+
     data["journalUniqueId"] = medlineData.getTextFirst("MedlineJournalInfo/NlmUniqueID")
     linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking")
     
@@ -101,7 +107,7 @@ def parseMedline(xmlParser):
     meshDescriptors = []
     meshHeadingList       = medlineData.getXmlFirst("MeshHeadingList", default="")
     if meshHeadingList:
-        for meshHeadingDescriptor in meshHeadingList.getTextAll("MeshHeading/DescriptorName"):
+        for meshHeadingDescriptor in meshHeadingList.getTextAll("MeshHeading/DescriptorName", reqAttrDict={"MajorTopicYN":"Y"}):
             meshDescriptors.append(meshHeadingDescriptor.strip())
 
     data["keywords"] = "/".join(meshDescriptors)
@@ -128,17 +134,18 @@ def parsePubmedMedlineIter(xml, fromMedline=False):
         recordTag = "PubmedArticle/MedlineCitation"
         closeTag = "</PubmedArticleSet>"
         openTag = "<PubmedArticleSet>"
+        # NCBI eutils sometimes "forgets" the opening/closing tags
+        if xml.strip()=="":
+            logging.error("Got empty XML file from NCBI")
+            raise PubmedError("Got empty XML from NCBI", "pubmedEmptyXml")
 
-    if xml.strip()=="":
-        logging.error("Got empty XML file from NCBI")
-        raise PubmedError("Got empty XML from NCBI", "pubmedEmptyXml")
-        
-    # NCBI sometimes "forgets" the opening/closing tags
-    if not openTag in xml:
-        xml = openTag + "\n" + xml
+        if not openTag in xml:
+            logging.warn("Addding opening tag")
+            xml = openTag + "\n" + xml
 
-    if not closeTag in xml:
-        xml = xml+"\n"+closeTag
+        if not closeTag in xml:
+            logging.warn("Addding closing tag")
+            xml = xml+"\n"+closeTag
 
     logging.debug("Parsing pubmed file")
     try:

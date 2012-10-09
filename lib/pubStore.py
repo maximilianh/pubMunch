@@ -609,8 +609,11 @@ def getAllBatchIds(outDir):
     return batchIds
 
 def parseUpdatesTab(outDir, minArticleId):
-    """ parse updates.tab and return next available articleIds and 
+    """ parse updates.tab and find next available articleIds and 
     list of files that were processed in all updates
+
+    returns (next free updateId, next free articleId, list of files that have been processed)
+
     """
     inFname = join(outDir, "updates.tab")
 
@@ -653,7 +656,7 @@ def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     " append a line to updates.tab in outDir, create file if necessary "
     outFname = join(outDir, "updates.tab")
     logging.info("Writing progress to %s: updateId %d, %d files" % (outFname, updateId, len(files)))
-    logging.info("You must delete the last line of %s if the cluster job fails" % outFname)
+    #logging.info("You must delete the last line of %s if the cluster job fails" % outFname)
     if not isfile(outFname):
         outFh = open(outFname, "w")
         headers = ["updateId", "lastArticleId", "time", "files"]

@@ -440,7 +440,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxJobs):
 
     pubStore.moveFiles(outDir, finalOutDir)
     shutil.rmtree(outDir)
-    #shutil.rmtree(indexSplitDir)
+    shutil.rmtree(indexSplitDir)
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
 
 # this is a job script, so it is calling itself via parasol/bsub/qsub

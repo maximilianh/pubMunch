@@ -92,23 +92,24 @@ def updatePmc(outDir):
     ignore the last_updated date, replace file_list.txt once finished
     """
 
-    locListPath = join(outDir, "file_list.txt")
+    # download from server to .current.txt
     newListFname = "file_list.current.txt"
     newListPath = join(outDir, newListFname)
     pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
     listUrl = pmcUrl+"/file_list.txt"
-    #if not isfile(newListPath):
     util.httpDownload(listUrl, newListPath, verbose=True)
 
     pmcIdxUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz"
     pmcIdxPath = join(outDir, "PMC-ids.csv.gz")
     util.httpDownload(pmcIdxUrl, pmcIdxPath, verbose=True)
 
+    # compare local txt with current.txt 
+    locListPath = join(outDir, "file_list.txt")
     ourPmc = parseFileList(locListPath)
     theirPmc  = parseFileList(newListPath)
 
     missingIds = set(theirPmc).difference(ourPmc)
-    staleIds = set(ourPmc).difference(theirPmc)
+    staleIds = set(ourPmc).difference(theirPmc) # stale = on our disk but not on ftp
 
     logging.info("Missing here: %d" % len(missingIds))
     logging.info("Stale here: %d" % len(staleIds))

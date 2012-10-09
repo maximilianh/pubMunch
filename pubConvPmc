@@ -426,8 +426,8 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, outDir, minId, useCluster):
         maxCommon.mustNotExist(outFname)
         command = "%s %s {check in line %s} {check out exists+ %s}" % (sys.executable, progFile, chunkFname, outFname)
         runner.submit(command)
-    pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmcIds)
     runner.finish(wait=True)
+    pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmcIds)
 
 def extractTgz(baseDir, fname):
     """ extract all files from pmc tarfile, returns dict with 'filename' -> content

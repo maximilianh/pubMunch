@@ -120,6 +120,7 @@ siteCrawlConfig = { ("www.nature.com") :
         "suppFileUrlREs" : [".*/content/suppl/.*"],
     },
     # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
+    # example spurious suppinfo link 8536951
     # 
     ("onlinelibrary.wiley.com") :
     {
@@ -128,6 +129,7 @@ siteCrawlConfig = { ("www.nature.com") :
         "suppListPageREs" : ["Supporting Information"],
         "suppFileUrlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
         "suppFilesAreOffsite" : True,
+        "ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
         "stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
     # http://www.futuremedicine.com/doi/abs/10.2217/epi.12.21
@@ -397,7 +399,14 @@ def soupToText(soup):
             texts.append(t.string)
     return " ".join(texts)
 
-def parseHtml(page, canBeOffsite=False):
+def anyMatch(regexList, queryStr):
+    for regex in regexList:
+        if regex.match(queryStr):
+            logging.debug("url %s ignored due to regex %s" % (queryStr, regex.pattern))
+            return True
+    return False
+
+def parseHtml(page, canBeOffsite=False, ignoreUrlREs=[]):
     """ return all A-like links andm meta-tag-info from a html string as a dict url => text
     and a second name -> content dict
     
@@ -457,6 +466,9 @@ def parseHtml(page, canBeOffsite=False):
                 continue
             parts.append("")
             fullUrlNoFrag = urlparse.urlunsplit(parts)
+            #logging.debug("Checking link against %s" % ignoreUrlREs)
+            if anyMatch(ignoreUrlREs, fullUrlNoFrag):
+                continue
             linkDict[text] = fullUrlNoFrag
 
         elif l.name=="meta":
@@ -661,7 +673,8 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
     ignSuppTextWords = crawlConfig.get("ignoreSuppFileLinkWords", [])
 
     suppFilesAreOffsite = crawlConfig.get("suppFilesAreOffsite", False)
-    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite)
+    ignoreUrlREs = crawlConfig.get("ignoreUrlREs", [])
+    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite, ignoreUrlREs=ignoreUrlREs)
     suppLinks = suppListPage["links"]
     htmlMetas = suppListPage["metas"]
     suppUrls  = list(findMatchingLinks(suppLinks, suppTextREs, suppUrlREs, suppExts, ignSuppTextWords))
@@ -708,7 +721,8 @@ def replaceUrl(landingUrl, replaceUrlWords):
 def findMainFileUrl(landingPage, crawlConfig):
     " return the url that points to the main pdf file on the landing page "
     pdfUrl = None
-    landingPage = parseHtml(landingPage)
+    ignoreUrls = crawlConfig.get("ignoreUrlREs", [])
+    landingPage = parseHtml(landingPage, ignoreUrlREs=ignoreUrls)
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
 
@@ -889,7 +903,9 @@ def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
 
 def findSuppListUrl(landingPage, crawlConfig):
     " given the landing page, find the link to the list of supp files "
-    landingPage = parseHtml(landingPage)
+    ignoreUrls = crawlConfig.get("ignoreUrlREs", [])
+    landingPage = parseHtml(landingPage, ignoreUrlREs=ignoreUrls)
+
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
 
@@ -901,11 +917,13 @@ def findSuppListUrl(landingPage, crawlConfig):
         if suppListUrlRepl!=None:
             suppListUrl = suppListUrlRepl
 
+    # then try to find URLs in links
     if suppListUrl==None and "suppListUrlREs" in crawlConfig:
         searchLinkRes = crawlConfig.get("suppListUrlREs", [])
         logging.debug("Searching for links to suppl list on page %s using URLs" % landingPage["url"])
         suppListUrl = findLinkMatchingReList(links, searchLinkRes, searchUrls=True)
 
+    # then try text description in links
     if suppListUrl==None and "suppListPageREs" in crawlConfig:
         # if link url replacement not configured, try to search for links
         searchLinkRes = crawlConfig.get("suppListPageREs", [])

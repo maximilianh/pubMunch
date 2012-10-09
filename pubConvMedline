@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # first load the standard libraries from python
 # we require at least python 2.5
@@ -14,7 +14,7 @@ if sys.version_info[0]==2 and not sys.version_info[1]>=7:
     exit(1)
 
 # load default python packages
-import logging, optparse, os, glob, zipfile, types
+import logging, optparse, os, glob, zipfile, types, gzip
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -26,50 +26,62 @@ sys.path.insert(0, pubToolsLibDir)
 # now load our own libraries
 import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 
-# load lxml parser, with fallback to default python parser
-try:
-    from lxml import etree # you can install this. Debian/Redhat package: python-lxml, see also: codespeak.net/lxml/installation.html
-    import lxml
-except ImportError:
-    import xml.etree.cElementTree as etree # this is the slower, python2.5 default package
-
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert medline .gz files to pubTools format
 
 example:
-pubConvMedline /hive/data/outside/literature/medline/ /hive/data/inside/literature/text/medline
+pubConvMedline /hive/data/outside/pubs/medline/ /hive/data/inside/pubs/text/medline
 
-Download from Medline with something like:
+Each file is a separate job, articleIds are assigned to each file such that each chunk starts at +300k articleIds
+after the last chunk, to avoid overlaps
+
+Download medline files from Medline ftp with pubGetMedline.
+
+Or alternatively with something like:
     lftp -e 'set net:socket-buffer 4000000; connect ftp://ftp.nlm.nih.gov/nlmdata/.medleasebaseline/gz; mirror -c --parallel=8 .; quit'
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
-parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="reserver space for x entries in numerical namespace, default %default", default=500000) 
+parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserver space for x entries in numerical namespace, default %default", default=300000) 
 parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
+parser.add_option("-c", "--cluster", dest="cluster", action="store_true", help="use cluster for conversion", default=None) 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
-def submitJobs(inDir, outDir, minId, idStep):
-    chunkFiles = glob.glob(join(inDir, "*.gz"))
-    if len(chunkFiles)==0:
-        chunkFiles = glob.glob(join(inDir, "*.xml"))
-    if len(chunkFiles)==0:
+def submitJobs(inDir, outDir, minId, idStep, useCluster):
+    " create one job per input medline file, process only new files "
+    updateId, firstArticleId, doneFiles = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
+
+    medlineFnames = glob.glob(join(inDir, "*.xml.gz"))
+    if len(medlineFnames)==0:
+        medlineFnames = glob.glob(join(inDir, "*.xml"))
+    if len(medlineFnames)==0:
         logging.error("No gz or xml files found in %s" % inDir)
         sys.exit(1)
 
-    runner = maxRun.Runner()
-    chunkArticleId = minId
+    doneFiles = set(doneFiles)
+    if useCluster:
+        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
+    else:
+        runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
+
+    chunkArticleId = firstArticleId
     chunkId = 0
-    for chunkFname in chunkFiles:
-        outFname = os.path.join(outDir, "%05d.articles.gz" % chunkId)
+    newFiles = set()
+    for medlineFname in medlineFnames:
+        if basename(medlineFname) in doneFiles:
+            continue
+        outFname = os.path.join(outDir, "%d_%05d.articles.gz" % (updateId, chunkId))
         maxCommon.mustNotExist(outFname)
-        command = "%s %s {check in exists %s} {check out exists+ %s} %d" % (sys.executable, progFile, chunkFname, outFname, chunkArticleId)
+        command = "%s %s {check in exists %s} {check out exists+ %s} %d" % (sys.executable, progFile, medlineFname, outFname, chunkArticleId)
         runner.submit(command)
         chunkArticleId += idStep
         chunkId += 1
-    runner.finish()
+        newFiles.add(basename(medlineFname))
+    runner.finish(wait=True)
+    pubStore.appendToUpdatesTxt(outDir, updateId, chunkArticleId, newFiles)
 
 def convertOneChunk(fileMinId, inFile, outFile):
     """ 
@@ -82,13 +94,11 @@ def convertOneChunk(fileMinId, inFile, outFile):
         xmlString = gzip.open(inFile).read()
     else:
         xmlString = open(inFile).read()
-    #logging.debug("Parsing %s" % inFile)
-    #xmlTree   = pubXml.etreeFromXml(xmlString)
 
     logging.debug("Writing to %s" % outFile)
     articleId = int(fileMinId)
     # parse & write to output
-    for articleData in pubPubmed.parsePubmedArticleSet(xmlString, topTag="MedlineCitationSet"):
+    for articleData in pubPubmed.parsePubmedMedlineIter(xmlString, fromMedline=True):
         logging.debug("Writing article %s" % str(articleId))
         articleData["source"]="medline"
         articleData["origFile"]=inFile
@@ -100,9 +110,8 @@ def convertOneChunk(fileMinId, inFile, outFile):
 # only for debugging
 if options.parse!=None:
     fname = options.parse
-    xmlString = open(fname).read()
-    xmlTree   = pubXml.etreeFromXml(xmlString)
-    for articleData in pubPubmed.parsePubmedArticleSet(xmlString, topTag="PubmedArticle"):
+    xmlString = gzip.open(fname).read()
+    for articleData in pubPubmed.parsePubmedMedlineIter(xmlString, fromMedline=True):
         for key, val in articleData.iteritems():
             print key, val.encode("utf8")
     sys.exit(0)
@@ -122,10 +131,12 @@ pubGeneric.setupLogging(progFile, options)
 
 if os.path.isdir(inDir):
     maxCommon.mustExistDir(outDir)
-    maxCommon.mustBeEmptyDir(outDir)
-    submitJobs(inDir, outDir, minId, maxIdPerFile)
+    #maxCommon.mustBeEmptyDir(outDir)
+    submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
 else:
     inFile = inDir
     outFile = outDir
     chunkMinId = args[2]
     convertOneChunk(int(chunkMinId), inFile, outFile)
+
+
