@@ -1,0 +1,46 @@
+#!/usr/bin/env python2.7
+
+# load default python packages
+import logging, optparse, os, shutil, glob, tempfile, sys, sqlite3
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
+
+# load our own libraries
+import pubConf, pubGeneric, pubStore, maxTables
+from maxCommon import *
+
+# ===== FUNCTIONS =======
+
+def main(args, options):
+    dbFname, tableName, dataDir = args
+    pubGeneric.setupLoggingOptions(options)
+    dataDir = pubConf.resolveTextDir(dataDir)
+
+    if isdir(dataDir):
+        logging.debug("Reading dir %s" % dataDir)
+        tsvFnames = glob.glob(dataDir+"/*.articles.gz")
+    elif isfile(dataDir):
+        tsvFnames = [dataDir]
+    else:
+        assert(False)
+
+    firstFname = tsvFnames[0]
+    headers = gzip.open(firstFname).readline().strip("\n#").split("\t")
+    maxTables.loadTsvSqlite(dbFname, tableName, tsvFnames, headers=headers, primKey="articleId", intFields=["pmid", "pmcId"], idxFields=["pmid", "pmcId"])
+
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-f", "--files", dest="files", action="store_true", help="do not load article but files into db, uses a different schema") 
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)
