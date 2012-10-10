@@ -36,7 +36,10 @@ class XmlParser:
         return self.root.attrib.get(name, None)
 
     def getText(self):
-        return self.root.text
+        if self.root.text==None:
+            return ""
+        else:
+            return self.root.text
 
     def fromString(self, string, removeNamespaces=False):
         root = etree.fromstring(string)

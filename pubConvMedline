@@ -28,7 +28,7 @@ import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert medline .gz files to pubTools format
+parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert medline .gz files to pubTools format and optionally write to a sqlite db
 
 example:
 pubConvMedline /hive/data/outside/pubs/medline/ /hive/data/inside/pubs/text/medline
@@ -47,6 +47,7 @@ parser.add_option("", "--minId", dest="minId", action="store", help="numerical I
 parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserver space for x entries in numerical namespace, default %default", default=300000) 
 parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("-c", "--cluster", dest="cluster", action="store_true", help="use cluster for conversion", default=None) 
+parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -139,4 +140,6 @@ else:
     chunkMinId = args[2]
     convertOneChunk(int(chunkMinId), inFile, outFile)
 
-
+if options.updateDb:
+    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+    pubStore.loadNewTsvFilesSqlite(join(outDir, "articles.db"), "articles", tsvFnames)

@@ -20,16 +20,16 @@ def main(args, options):
 
     if isdir(dataDir):
         logging.debug("Reading dir %s" % dataDir)
-        tsvFnames = glob.glob(dataDir+"/*.articles.gz")
+        tsvFnames = glob.glob(join(dataDir,"*.articles.gz"))
     elif isfile(dataDir):
         tsvFnames = [dataDir]
     else:
         assert(False)
 
-    firstFname = tsvFnames[0]
-    headers = gzip.open(firstFname).readline().strip("\n#").split("\t")
-    maxTables.loadTsvSqlite(dbFname, tableName, tsvFnames, headers=headers, primKey="articleId", intFields=["pmid", "pmcId"], idxFields=["pmid", "pmcId"])
+    if len(tsvFnames)==0:
+        raise Exception("No input files found in %s" % dataDir)
 
+    pubStore.loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")

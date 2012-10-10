@@ -39,7 +39,22 @@ def parseMedline(xmlParser):
 
     artTree               = medlineData.getXmlFirst("Article")
     data["title"]         = artTree.getTextFirst("ArticleTitle", default="")
-    data["abstract"]      = artTree.getTextFirst("Abstract/AbstractText", default="")
+
+    # handle structured abstracts
+    abstractParts = []
+    abstractTrees         = artTree.getXmlAll("Abstract/AbstractText")
+    for aEl in abstractTrees:
+        label = aEl.getAttr("NlmCategory")
+        abstract = ""
+        if label!=None:
+            abstract = "<p>%s</p> " % label
+        abstract += aEl.getText()
+        abstractParts.append(abstract)
+    data["abstract"]      = "".join(abstractParts)
+
+    if data["abstract"]=="":
+        data["abstract"]      = artTree.getTextFirst("OtherAbstract/AbstractText", default="")
+
     data["authorAffiliations"]   = artTree.getTextFirst("Affiliation", default="")
     data["doi"]           = artTree.getTextFirst("ELocationID", default="", reqAttrDict={"EIdType":"doi"})
 
@@ -107,7 +122,8 @@ def parseMedline(xmlParser):
     meshDescriptors = []
     meshHeadingList       = medlineData.getXmlFirst("MeshHeadingList", default="")
     if meshHeadingList:
-        for meshHeadingDescriptor in meshHeadingList.getTextAll("MeshHeading/DescriptorName", reqAttrDict={"MajorTopicYN":"Y"}):
+        #for meshHeadingDescriptor in meshHeadingList.getTextAll("MeshHeading/DescriptorName", reqAttrDict={"MajorTopicYN":"Y"}):
+        for meshHeadingDescriptor in meshHeadingList.getTextAll("MeshHeading/DescriptorName"):
             meshDescriptors.append(meshHeadingDescriptor.strip())
 
     data["keywords"] = "/".join(meshDescriptors)
@@ -194,11 +210,11 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
                 for pubmedData in parsePubmedMedlineIter(xml):
                     downloadCount+=1
                     yield pubmedData
-            except urllib2.URLError:
-                logging.info("HTTP Error on eutils, pausing for 120 secs")
-                time.sleep(120)
-            except urllib2.HTTPError:
-                #I sometimes see "HTTP Error 502: Bad Gateway"
+            #except urllib2.HTTPError:
+                ##I sometimes see "HTTP Error 502: Bad Gateway"
+                #logging.info("HTTP Error on eutils, pausing for 120 secs")
+                #time.sleep(120)
+            except urllib2.URLError: # this should handle HTTPError, too
                 logging.info("HTTP Error on eutils, pausing for 120 secs")
                 time.sleep(120)
             except httplib.BadStatusLine:

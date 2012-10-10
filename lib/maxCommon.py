@@ -237,7 +237,7 @@ def appendTsvOrderedDict(filename, orderedDict):
     outFh.write(u"\t".join(values)+"\n")
 
 class ProgressMeter:
-    """ prints a message "x% done" every stepCount calls
+    """ prints a message "x%" every stepCount/taskCount calls of taskCompleted()
     """
     def __init__(self, taskCount, stepCount=20, quiet=False):
         self.taskCount=taskCount
@@ -248,7 +248,7 @@ class ProgressMeter:
         #print "".join(9*["."])
 
     def taskCompleted(self):
-        if self.quiet:
+        if self.quiet and self.taskCount<=5:
             return
         logging.debug("task completed called, i=%d, tasksPerMsg=%d" % (self.i, self.tasksPerMsg))
         if self.tasksPerMsg!=0 and self.i % self.tasksPerMsg == 0:

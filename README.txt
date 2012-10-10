@@ -2,17 +2,18 @@ These are the tools that I use for the UCSC Genocoding project, see
 http://text.soe.ucsc.edu
 
 Most start with the prefix "pub", the category and then the concrete
-publisher. The categories are:
+publisher. The tool categories are:
+
+- pubGetX = download files from publisher X (medline, pmc, elsevier)
+- pubConvX = convert downloaded files to a pub format (tab-separated table
+             with fields defined in lib/pubStore.py)
+- pubLoadX = load pub format data into a database system (mysql or sqlite)
+
+More general tools are:
 
 - pubPrepX = prepare directory structures. These are used to download
         taxon names, import gene models from websites like NCBI or
         UCSC. 
-- pubGetX = download files from publisher X (medline, pmc, elsevier)
-- pubConvX = convert downloaded files to a pub format (tab-separated table
-             ,fields defined in lib/pubStore.py)
-
-More general tools are:
-
 - pubRunAnnot = run an annotator from the scripts directory on text data in
              pub format
 - pubRunMapReduce = run a map/reduce style job from "scripts" onto fulltext.
@@ -28,6 +29,7 @@ Most commands need some settings in the config file adapted to your particular
 server / cluster system. E.g. pubCrawl needs your email address, pubConvX 
 need the cluster system and various input/output directories.
 
+Maximilian Haeussler, maximilianh@gmail.com
 
 
 BUGS to fix:

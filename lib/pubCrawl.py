@@ -1,12 +1,12 @@
 # library to crawl pdf and supplemental file from pubmed
 
 # load our own libraries
-import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, re
+import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables
 import chardet # library for guessing encodings
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
-import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, \
+import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
     traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal
 from os.path import *
 
@@ -572,10 +572,36 @@ def iterateNewPmids(pmids, ignorePmids):
     if ignorePmidCount!=0:
         logging.debug("Skipped %d PMIDs" % ignorePmidCount)
 
+def readLocalMedline(pmid):
+    " returns a dict with info we have locally about PMID, None if not found "
+    medlineDir = pubConf.resolveTextDir("medline")
+    medlineDb = join(medlineDir, "articles.db")
+    if not isfile(medlineDb):
+        logging.warn("%s does not exist, no local medline lookups, need to use eutils" % medlineDb)
+        return None
+
+    con, cur = maxTables.openSqliteRo(medlineDb)
+    rows = cur.execute("SELECT * from articles where pmid=?", (pmid,))
+    if len(rows)==0:
+        logging.info("No info in local medline for PMID %s" % pmid)
+        return None
+    # the last entry should be the newest one
+    print rows[-1]
+        
+
+def getMedlineInfo(pmid):
+    """ try to get information about pmid first from local medline+crossref, then 
+    from pubmed directly with eutils """
+    
+    ret = readLocalMedline(pmid)
+    if ret!=None:
+        ret = downloadPubmedMeta(pmid)
+    return ret
+
 def downloadPubmedMeta(pmid):
-    " wrapper that raises exception"
-    wait(3, "eutils.ncbi.nlm.nih.gov")
+    """ wrapper around pubPubmed that converts exceptions"""
     try:
+        wait(3, "eutils.ncbi.nlm.nih.gov")
         ret = pubPubmed.getOnePmid(pmid)
     except urllib2.HTTPError, e:
         raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError%s" % str(e.code))
@@ -1067,7 +1093,8 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
 
         try:
             wgetCache = {}
-            pubmedMeta = downloadPubmedMeta(pmid)
+            #pubmedMeta = downloadPubmedMeta(pmid)
+            pubmedMeta = getMedlineInfo(pmid)
 
             issnYear = (pubmedMeta["eIssn"], pubmedMeta["year"])
             issnYearErrorCount = issnErrorCount[issnYear]

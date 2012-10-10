@@ -1,3 +1,9 @@
+from os.path import *
+
+# GENERAL SETTINGS   ================================================
+# baseDir for internal data, accessible from cluster (if there is one)
+pubsDataDir = '/hive/data/inside/pubs'
+
 # DB PARSER SETTINGS ================================================
 # directory for files with pubs references for each DB, e.g. uniprot or pdb
 dbRefDir = '/hive/data/inside/pubs/dbRef'
@@ -6,6 +12,11 @@ dbRefDir = '/hive/data/inside/pubs/dbRef'
 # pubParseDb expects subdirectories called
 # "pdb" and "uniprot" in here
 dbBaseDir = '/hive/data/outside/'
+
+# CONVERTER SETTINGS ================================================
+# for pubConvMedline:
+# an sqlite db with the content of medline, kept up-to-date
+medlineDbPath = join(pubsDataDir, "text", "medline", "medline.db")
 
 # CRAWLER SETTINGS ==================================================
 # the useragent to use for http requests
@@ -106,7 +117,7 @@ clusterHeadNode = "swarm.cse.ucsc.edu"
 # type of cluster, either parasol or sge
 clusterType = "parasol"
 
-# base directory for algorithm code, like regex annotation, dna annotation, etc
+# base directory for searcher algorithm code, like regex annotation, dna annotation, etc
 scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
 
 # assignment of pubMap pipeline steps to cluster machines

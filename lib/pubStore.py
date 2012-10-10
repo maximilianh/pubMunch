@@ -11,7 +11,7 @@
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
 import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator
-import zipfile, gzip, re
+import zipfile, gzip, re, sqlite3
 import pubGeneric, pubConf, maxCommon, pubStore, unicodeConvert, maxTables
 
 from os.path import *
@@ -50,13 +50,13 @@ articleFields=[
 ]
 
 fileDataFields = [
-"fileId", # numerical ID, the article (ID * 1000)+some count
+"fileId", # numerical ID of the file: its article (ID * 1000)+some count (for suppl files)
 "externalId", # copy of external ID, for quick greps and mallet
 "articleId", # numerical ID of the article
 "url", # the url where the file is located, can also be elsevier://, pmcftp:// etc
 "desc", # a description of the file, e.g. main text, html title or supp file description
 "fileType", # can be either "main" or "supp"
-"time", # download or processing time
+"time", # time/day of conversion from PDF/html/etc
 "mimeType", # mimetype of original file before to-text-conversion
 "content" # the data from this file (newline => \a, tab => space, cr => space, \m ==> \a)
 ]
@@ -630,6 +630,7 @@ def parseUpdatesTab(outDir, minArticleId):
     if row==None:
         logging.warn("empty file %s, this seems to be the first run in this dir" % inFname)
         return 0, minArticleId, []
+    logging.debug("Parsed updates.tab, files already done are %s" % doneFiles)
     return int(row.updateId)+1, int(row.lastArticleId)+1, doneFiles
 
 def listAllUpdateIds(textDir):
@@ -655,6 +656,10 @@ def guessChunkSize(outDir):
 def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     " append a line to updates.tab in outDir, create file if necessary "
     outFname = join(outDir, "updates.tab")
+    if len(files)==0:
+        logging.info("Not writing any progress update, no new files")
+        return
+
     logging.info("Writing progress to %s: updateId %d, %d files" % (outFname, updateId, len(files)))
     #logging.info("You must delete the last line of %s if the cluster job fails" % outFname)
     if not isfile(outFname):
@@ -713,6 +718,58 @@ def iterChunks(datasets):
             dirName = join(pubConf.textBaseDir, dataset)
             for fname in glob.glob(dirName+"/*.articles.gz"):
                 yield fname
+
+def addLoadedFiles(dbFname, fileNames):
+    " given a sqlite db, create a table loadedFiles and add fileNames to it "
+    fileNames = [(basename(x), ) for x in fileNames] # sqlite only accepts tuples, strip path
+    con, cur = maxTables.openSqliteRw(dbFname)
+    cur.execute("CREATE TABLE IF NOT EXISTS loadedFiles (fname TEXT PRIMARY KEY);")
+    con.commit()
+    sql = "INSERT INTO loadedFiles (fname) VALUES (?)"
+    cur.executemany(sql, list(fileNames))
+    con.commit()
+    
+def getUnloadedFnames(dbFname, newFnames):
+    """ given a sqlite db and a list of filenames, return those that have not been loaded yet into the db 
+    comparison looks only at basename of files 
+    """
+    con, cur = maxTables.openSqliteRo(dbFname)
+    loadedFnames = []
+    try:
+        for row in cur.execute("SELECT fname from loadedFiles"):
+            loadedFnames.append(row[0])
+    except sqlite3.OperationalError:
+        logging.debug("No loadedFiles table yet in %s" % dbFname)
+        return newFnames
+    #logging.debug("Files that have been loaded already: %s" % loadedFnames)
+
+    # keep only filenames that haven't been loaded yet
+    loadedFnames = set(loadedFnames)
+    toLoadFnames = []
+    for newFname in newFnames:
+        if basename(newFname) not in loadedFnames:
+            toLoadFnames.append(newFname)
+            
+    #logging.debug("Files that have not been loaded yet: %s" % toLoadFnames)
+    return toLoadFnames
+
+def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
+    " load pubDoc files into sqlite db table, keep track of loaded file names "
+    firstFname = tsvFnames[0]
+    if firstFname.endswith(".gz"):
+        firstFh = gzip.open(firstFname)
+    else:
+        firstFh = open(firstFname)
+    headers = firstFh.readline().strip("\n#").split("\t")
+    toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
+    toLoadFnames.sort()
+
+    if len(toLoadFnames)==0:
+        logging.debug("No files to load")
+    else:
+        maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
+            primKey="articleId", intFields=["pmid", "pmcId"], idxFields=["pmid", "pmcId"], dropTable=False)
+        addLoadedFiles(dbFname, toLoadFnames)
 
 if __name__=="__main__":
     import doctest

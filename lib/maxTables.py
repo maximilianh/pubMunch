@@ -1,4 +1,4 @@
-# Routines for reading tables from textfiles or mysql databases
+# Routines for reading/writing tables from/to textfiles or databases
 
 import sys, textwrap, operator, types, logging, re, os, collections, codecs, sqlite3, time
 from types import *
@@ -522,32 +522,36 @@ def openBed(fname, fileType="bed3"):
 
 def makeSqlLiteCreateStatement(tableName, fields, intFields=[], primKey=None, idxFields=[]):
     """
-    return a tuple with a create table and the create index statements.
+    return a tuple with a create table statement and a list of create index statements.
 
     >>> makeSqlLiteCreateStatement("testTbl", ["test", "hi", "col3"], intFields=["hi"], primKey="test", idxFields=["col3"])
-    ('CREATE TABLE testTbl (test TEXT PRIMARY KEY, hi INTEGER, col3 TEXT); ', 'CREATE INDEX testTbl_col3_idx ON testTbl (col3);')
+    ('CREATE TABLE IF NOT EXISTS testTbl (test TEXT PRIMARY KEY, hi INTEGER, col3 TEXT); ', 'CREATE INDEX testTbl_col3_idx ON testTbl (col3);')
     """
     intFields = set(intFields)
     idxFields = set(idxFields)
     parts = []
-    idxSql = []
+    idxSqls = []
     for field in fields:
         ftype = "TEXT"
         if field in intFields:
             ftype = "INTEGER"
         if field in idxFields:
-            idxSql.append("CREATE INDEX %s_%s_idx ON %s (%s);" % (tableName, field, tableName, field))
+            idxSqls.append("CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s);" % \
+                (tableName, field, tableName, field))
         statement = field+" "+ftype
         if field == primKey:
             statement += " PRIMARY KEY"
         parts.append(statement)
-    tableSql = "CREATE TABLE %s (%s); " % (tableName, ", ".join(parts))
-    idxSql = " ".join(idxSql)
-    return tableSql, idxSql
+    tableSql = "CREATE TABLE IF NOT EXISTS %s (%s); " % (tableName, ", ".join(parts))
+    return tableSql, idxSqls
 
-def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, idxFields=[]):
+def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, \
+        idxFields=[], dropTable=True):
     " load tabsep file into sqlLite db table "
     # if first parameter is string, make it to a list
+    if len(tsvFnames)==0:
+        logging.debug("No filenames to load")
+        return
     if isinstance(tsvFnames, basestring):
         tsvFnames = [tsvFnames]
     con = sqlite3.connect(dbFname)
@@ -555,31 +559,50 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     cur = con.cursor()
     cur.execute("PRAGMA synchronous=OFF") # recommended by
     cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
+    cur.execute("PRAGMA cache_size=50000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+    cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
 
     # drop old table 
-    try:
+    if dropTable:
         logging.debug("dropping old sqlite table")
-        cur.execute('DROP TABLE %s;'% tableName)
-    except:
-        logging.debug("couldn't drop table")
-        raise
-        pass
-    con.commit()
+        cur.execute('DROP TABLE IF EXISTS %s;'% tableName)
+        con.commit()
 
     # create table
-    createSql, idxSql = makeSqlLiteCreateStatement(tableName, headers, \
+    createSql, idxSqls = makeSqlLiteCreateStatement(tableName, headers, \
         intFields=intFields, idxFields=idxFields, primKey=primKey)
     logging.debug("creating table with %s" % createSql)
     cur.execute(createSql)
     con.commit()
 
+    logging.info("Loading data into table")
+    tp = maxCommon.ProgressMeter(len(tsvFnames))
+    sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(headers), ", ".join(["?"]*len(headers)))
     for tsvName in tsvFnames:
+        #cur.execute("BEGIN TRANSACTION;")
         logging.debug("Importing %s" % tsvName)
         rows = list(maxCommon.iterTsvRows(tsvName))
-        sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(headers), ", ".join(["?"]*len(headers)))
-        logging.debug("Running Sql %s against %d rows" % (sql, len(rows)))
+        logging.log(5, "Running Sql %s against %d rows" % (sql, len(rows)))
         cur.executemany(sql, rows)
         con.commit()
+        tp.taskCompleted()
+
+    logging.info("Adding indexes to table")
+    for idxSql in idxSqls:
+        cur.execute(idxSql)
+        con.commit()
+
+def openSqliteRw(db):
+    " opens sqlite for normal read and writing "
+    con = sqlite3.connect(db)
+    cur = con.cursor()
+    return con, cur
+
+def openSqliteRo(db):
+    " opens sqlite con and cursor for quick reading "
+    con = sqlite3.connect(db)
+    cur = con.cursor()
+    return con, cur
 
 if __name__ == "__main__":
     import doctest

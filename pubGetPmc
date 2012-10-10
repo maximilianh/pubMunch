@@ -66,7 +66,7 @@ def downloadFiles(pmcUrl, theirPmc, missingIds, outDir, connCount):
             else:
                 downloadCount += 1
                 util.httpDownload(fileUrl, locPath, verbose=False)
-                appendLog(outDir, "add", fname)
+                pubGeneric.appendLog(outDir, "add", fname)
         logging.info("Downloaded %d files (single-threaded)" % downloadCount)
 
 def deleteFiles(ourPmc, staleIds, outDir):
