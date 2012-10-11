@@ -252,7 +252,7 @@ def main(args, options):
     elif cmd in ["dna", "prot"]:
         inFaDir = args[2]
         outDir = args[3]
-        runner = maxRun.Runner()
+        runner = maxRun.Runner(maxRam="2g")
         if cmd=="dna":
             submitBlastJobs(runner, "blastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
             submitBlastJobs(runner, "blastx", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
@@ -281,7 +281,7 @@ parser = optparse.OptionParser("""usage:
         dataset names can be either from pubConf.pubBlatBaseDir (fulltext, like elsevier, pmc)
         or pubConf.textBaseDir (DBs, like genbank, imgt)
     
-%prog nucl <dbDir> <inDir> <outDir>  - blastn files from inDir onto dbDir and write results to outDir
+%prog dna <dbDir> <inDir> <outDir>  - blastn files from inDir onto dbDir and write results to outDir
 %prog prot <dbDir> <inDir> <outDir>  - blastp files from inDir onto dbDir and write results to outDir
 
 %prog parse <outDir> <outFile>  - parse blast xml files in outDir and subdirs to outFile

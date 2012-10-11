@@ -12,7 +12,7 @@ class Runner:
     """
 
     def __init__(self, clusterType="auto", headNode=None, queue=None, dryRun=False, \
-        logDir=None, delayTime=None, maxPush=700000, maxJob=None, batchDir=".", runNow=False):
+        logDir=None, delayTime=None, maxPush=700000, maxJob=None, batchDir=".", runNow=False, maxRam=None):
         """ create joblist on parasol, do nothing on SGE 
             clusterType can be "local", "sge" or "parasol"
 
@@ -34,6 +34,7 @@ class Runner:
         self.maxJob = maxJob
         self.batchDir = batchDir
         self.runNow = runNow 
+        self.maxRam = maxRam
         if not os.path.isdir(batchDir):
             logging.debug("creating dir %s" % batchDir)
             os.makedirs(batchDir)
@@ -155,6 +156,8 @@ class Runner:
                 cmd = cmd+" -maxJob="+str(self.maxJob)
             if self.maxPush:
                 cmd = cmd+" -maxPush="+str(self.maxPush)
+            if self.maxRam:
+                cmd = cmd+" -ram="+str(self.maxRam)
 
             # add ssh command if headNode is set
             if self.headNode:
