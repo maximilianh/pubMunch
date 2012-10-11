@@ -32,11 +32,11 @@ articleFields=[
 "journalUniqueId", # medline only: NLM unique ID for journal
 "year",         # first year of publication (electronic or print or advanced access)
 "articleType", # research-article, review or other
-"articleSection",  # the section of the book/journal, e.g. "methods", "chapter 5" or "Comments"
-"authors",  # list of author names, often separated by semicolon, but not always
+"articleSection",  # elsevier: the section of the book/journal, e.g. "methods", "chapter 5" or "Comments" 
+"authors",  # list of author names, usually separated by semicolon
 "authorEmails",  # email addresses of authors
 "authorAffiliations",  # authors' affiliations
-"keywords", # medline only: mesh terms or similar, separated by / (medline is using , internally)
+"keywords", # medline: mesh terms or similar, separated by / (medline is using , internally)
 "title",    # title of article
 "abstract", # abstract if available
 "vol",      # volume
@@ -770,6 +770,12 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
         maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
             primKey="articleId", intFields=["pmid", "pmcId"], idxFields=["pmid", "pmcId"], dropTable=False)
         addLoadedFiles(dbFname, toLoadFnames)
+
+def getArtDbPath(datasetName):
+    " return the sqlite database name with meta info of a dataset "
+    dataDir = pubConf.resolveTextDir(datasetName)
+    dbPath = join(dataDir, "articles.db")
+    return dbPath
 
 if __name__=="__main__":
     import doctest

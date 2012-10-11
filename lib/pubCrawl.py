@@ -1,13 +1,15 @@
 # library to crawl pdf and supplemental file from pubmed
 
 # load our own libraries
-import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables
+import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables,\
+    pubCrossRef
 import chardet # library for guessing encodings
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
 import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
-    traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal
+    traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
+    sqlite3
 from os.path import *
 
 # ===== GLOBALS ======
@@ -197,7 +199,7 @@ def findLandingUrl(articleData):
     except urllib2.HTTPError:
         logging.info("pubmed http error, waiting for 120 secs")
         time.sleep(120)
-        raise PubGetError("pubmed outlinks http error", "PubmedOutlinkHttpError")
+        raise pubGetError("pubmed outlinks http error", "PubmedOutlinkHttpError")
 
     fulltextUrl = None
 
@@ -581,22 +583,35 @@ def readLocalMedline(pmid):
         return None
 
     con, cur = maxTables.openSqliteRo(medlineDb)
-    rows = cur.execute("SELECT * from articles where pmid=?", (pmid,))
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+
+    rows = list(cur.execute("SELECT * from articles where pmid=?", (pmid,)))
     if len(rows)==0:
         logging.info("No info in local medline for PMID %s" % pmid)
         return None
     # the last entry should be the newest one
-    print rows[-1]
+    lastRow = rows[-1]
+    result = {}
+    for key, val in zip(lastRow.keys(), lastRow):
+        result[key] = val
+    return result
         
 
 def getMedlineInfo(pmid):
-    """ try to get information about pmid first from local medline+crossref, then 
-    from pubmed directly with eutils """
+    """ try to get information about pmid first from local medline+crossref, 
+    of if this doesn't work from eutils and add the DOI from CrossRef 
+    """
     
-    ret = readLocalMedline(pmid)
-    if ret!=None:
-        ret = downloadPubmedMeta(pmid)
-    return ret
+    metaDict = readLocalMedline(pmid)
+    if metaDict==None:
+        metaDict = downloadPubmedMeta(pmid)
+    else:
+        if metaDict["doi"]=="":
+            xrDoi = pubCrossRef.lookupDoi(metaDict)
+            if xrDoi != None:
+                metaDict["doi"] = xrDoi
+    return metaDict
 
 def downloadPubmedMeta(pmid):
     """ wrapper around pubPubmed that converts exceptions"""
@@ -1093,7 +1108,6 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
 
         try:
             wgetCache = {}
-            #pubmedMeta = downloadPubmedMeta(pmid)
             pubmedMeta = getMedlineInfo(pmid)
 
             issnYear = (pubmedMeta["eIssn"], pubmedMeta["year"])

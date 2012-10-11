@@ -19,8 +19,9 @@ def parseMedline(xmlParser):
     fill article data dict with pubmed xml data
 
     >>> xml = PubmedTestDoc()
-    >>> list(parseMedline(maxXml.XmlParser(string=xml)))
-    [{'pii': 'awq087', 'doi': '10.1093/brain/awq087', 'day-pubmed': '31', 'month-pubmed': '05', 'title': 'Tyrosine hydroxylase deficiency: a treatable disorder of brain catecholamine biosynthesis.', 'vol': '133', 'meshHeadings': 'Age of Onset,Useless Research', 'abstract': 'An infantile onset, progressive, hypokinetic-rigid syndrome with dystonia (type A), and a complex encephalopathy with neonatal onset (type B). Decreased cerebrospinal fluid concentrations of homovanillic acid and c.698G>A and c.707T>C mutations. Carriership of at least one promotor mutation, however, apparently predicts type A tyrosine hydroxylase deficiency. Most patients with tyrosine hydroxylase deficiency can be successfully treated with l-dopa.', 'authors': 'Willemsen MA, Verbeek MM', 'pmcId': '', 'affiliation': 'Radboud University Nijmegen Medical Centre, Donders Institute for Brain, Cognition and Behaviour, Department of Paediatric Neurology (820 IKNC), PO Box 9101, 6500 HB Nijmegen, The Netherlands. m.willemsen@cukz.umcn.nl', 'year-pubmed': '2010', 'articleType': 'research-article', 'pubmedArticleTypes': "Journal Article,Research Support, Non-U.S. Gov't", 'year': '2010', 'pmid': '20430833', 'eIssn': '1460-2156', 'issue': 'Pt 6', 'journal': 'Brain : a journal of neurology', 'fulltextUrl': 'http://www.ncbi.nlm.nih.gov/pmc/articles/PMC/', 'printIssn': '1460-1234'}]
+    >>> repr(parseMedline(maxXml.XmlParser(string=xml)))
+     "OrderedDict([('articleId', ''), ('externalId', 'PMID20430833'), ('source', ''), ('origFile', ''), ('journal', 'Brain : a journal of neurology'), ('printIssn', '0006-8950'), ('eIssn', '0006-8950'), ('journalUniqueId', '0372537'), ('year', '2010'), ('articleType', 'research-article'), ('articleSection', ''), ('authors', u'Willemsen, Mich\\\\xe9l A; Verbeek, Marcel M'), ('authorEmails', ''), ('authorAffiliations', 'Radboud University Nijmegen Medical Centre, Donders Institute for Brain, Cognition and Behaviour, Department of Paediatric Neurology (820 IKNC), PO Box 9101, 6500 HB Nijmegen, The Netherlands. m.willemsen@cukz.umcn.nl'), ('keywords', 'Age of Onset/Useless Research'), ('title', 'Tyrosine hydroxylase deficiency: a treatable disorder of brain catecholamine biosynthesis.'), ('abstract', 'An infantile onset, progressive, hypokinetic-rigid syndrome with dystonia (type A), and a complex encephalopathy with neonatal onset (type B). Decreased cerebrospinal fluid concentrations of homovanillic acid and c.698G>A and c.707T>C mutations. Carriership of at least one promotor mutation, however, apparently predicts type A tyrosine hydroxylase deficiency. Most patients with tyrosine hydroxylase deficiency can be successfully treated with l-dopa.'), ('vol', '133'), ('issue', 'Pt 6'), ('page', '1810-22'), ('pmid', '20430833'), ('pmcId', ''), ('doi', ''), ('fulltextUrl', 'http://www.ncbi.nlm.nih.gov/pubmed/20430833'), ('time', 'Wed Oct 10 16:17:01 2012')])"
+
     """
     data = pubStore.createEmptyArticleDict()
     #medlineData           = xmlParser.getXmlFirst("MedlineCitation")
@@ -72,6 +73,7 @@ def parseMedline(xmlParser):
     data["issue"]       = journalTree.getTextFirst("JournalIssue/Issue", default="")
     data["year"]        = journalTree.getTextFirst("JournalIssue/PubDate/Year", default="")
     data["journal"]     = journalTree.getTextFirst("Title", default="")
+    data["page"]        = artTree.getTextFirst("Pagination/MedlinePgn", default="")
 
     authorList  = artTree.getXmlFirst("AuthorList")
     lastNames   = []
@@ -265,7 +267,6 @@ def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", 
 
 def PubmedTestDoc():
     return '''
-        <PubmedArticle> 
         <MedlineCitation Owner="NLM" Status="MEDLINE">  
         <PMID>20430833</PMID>
         <DateCreated>
@@ -347,36 +348,7 @@ def PubmedTestDoc():
             </MeshHeading>
         </MeshHeadingList>
         </MedlineCitation>  
-        <PubmedData>
-           <History>
-            <PubMedPubDate PubStatus="aheadofprint">
-                <Year>2010</Year>
-                <Month>4</Month>
-                <Day>29</Day>
-            </PubMedPubDate>
-            <PubMedPubDate PubStatus="pubmed">
-                <Year>2010</Year>
-                <Month>5</Month>
-                <Day>1</Day>
-                <Hour>6</Hour>
-                <Minute>0</Minute>
-            </PubMedPubDate>
-            <PubMedPubDate PubStatus="medline">
-                <Year>2010</Year>
-                <Month>6</Month>
-                <Day>23</Day>
-                <Hour>6</Hour>
-                <Minute>0</Minute>
-            </PubMedPubDate>
-        </History>
-        <PublicationStatus>ppublish</PublicationStatus>
-        <ArticleIdList>
-            <ArticleId IdType="pii">awq087</ArticleId>
-            <ArticleId IdType="doi">10.1093/brain/awq087</ArticleId>
-            <ArticleId IdType="pubmed">20430833</ArticleId>
-        </ArticleIdList>
-        </PubmedData>
-        </PubmedArticle>'''
+        '''
 
 def getOnePmid(pmid):
     " fill out article data dict via eutils service for one single pmid "

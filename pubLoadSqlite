@@ -32,11 +32,10 @@ def main(args, options):
     pubStore.loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")
+parser = optparse.OptionParser("""usage: %prog [options] <db> <tableName> <directoryOrFile> - create sqllite db and load pubTools *.article files into database and tableName. """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-f", "--files", dest="files", action="store_true", help="do not load article but files into db, uses a different schema") 
 (options, args) = parser.parse_args()
 
 if args==[]:

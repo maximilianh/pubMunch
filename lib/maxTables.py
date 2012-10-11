@@ -559,8 +559,9 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     cur = con.cursor()
     cur.execute("PRAGMA synchronous=OFF") # recommended by
     cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
-    cur.execute("PRAGMA cache_size=50000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+    cur.execute("PRAGMA cache_size=500000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
     cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
+    cur.execute("PRAGMA temp_store=memory") 
 
     # drop old table 
     if dropTable:
