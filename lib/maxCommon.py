@@ -1,4 +1,4 @@
-import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, os.path, re, glob
+import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, os.path, re, glob, time, urllib2
 from types import *
 
 def errAbort(text):
@@ -112,7 +112,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
 
     if noHeaderCount:
         numbers = range(0, noHeaderCount)
-        headers = ["col" + str(x) for x in numbers]
+        headers = ["col" + unicode(x) for x in numbers]
 
     if format=="psl":
         headers =      ["score", "misMatches", "repMatches", "nCount", "qNumInsert", "qBaseInsert", "tNumInsert", "tBaseInsert", "strand",    "qName",    "qSize", "qStart", "qEnd", "tName",    "tSize", "tStart", "tEnd", "blockCount", "blockSizes", "qStarts", "tStarts"]
@@ -226,8 +226,8 @@ def appendTsvOrderedDict(filename, orderedDict):
     headers = []
     values = []
     for key, val in orderedDict.iteritems():
-        headers.append(key)
-        values.append(val)
+        headers.append(unicode(key))
+        values.append(unicode(val))
 
     if not os.path.isfile(filename):
        outFh = codecs.open(filename, "w", encoding="utf8") 
@@ -280,5 +280,21 @@ def parseConfig(f):
             result[key]=val
     return result
 
+def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
+    " wrap urlopen in try...except clause and repeat "
+    count = repeatCount
+    while count>0:
+        try:
+            ret = urllib2.urlopen(url, params)
+            return ret
+        except urllib2.HTTPError, ex:
+            logging.debug("Got HTTPError %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
+                (ex.code, url, params, delaySecs))
+            time.sleep(delaySecs)
+            count = count - 1
+            pass
+    logging.debug("Got HTTPError on urlopen, returning None after retry")
+    return None
+    
 if __name__=="__main__":
     test()

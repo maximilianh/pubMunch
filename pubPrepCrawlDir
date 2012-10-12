@@ -611,8 +611,8 @@ def resolveIssnToPmid_Pubmed(issnRowFnames, minYear):
         writePmids(pubDir, pmids)
 
              
-def getPmidsForIssns(outDir, minYear, onlyDir):
-    " go over all subdirs of outDir, look for issns.lst and download all PMIDs for these ISSNs "
+def getPmidsForIssns(outDir, minYear):
+    " look for issns.lst in outdir, download all PMIDs for these ISSNs and write to pmids.txt "
     #outDirFiles = glob.glob(join(outDir, "*"))
     outDirFiles = [outDir]
 
@@ -623,9 +623,9 @@ def getPmidsForIssns(outDir, minYear, onlyDir):
             logging.info("ignoring directory %s" % outDirPath)
             continue
 
-        if onlyDir!=None and onlyDir!=basename(outDirPath):
-            logging.info("Ignoring %s, onlyDir option set to %s" % (outDirPath, onlyDir))
-            continue
+        #if onlyDir!=None and onlyDir!=basename(outDirPath):
+            #logging.info("Ignoring %s, onlyDir option set to %s" % (outDirPath, onlyDir))
+            #continue
 
         issnFname = join(outDirPath, ISSNTAB)
         if not isfile(issnFname):
@@ -644,7 +644,7 @@ def main(args, options):
 
     command, outDir = args
     minYear = options.minYear
-    onlyDir = options.onlyDir
+    #onlyDir = options.onlyDir
 
     pubDirs = pubConf.crawlPubDirs
     issnOverwrite = pubConf.crawlIssnOverwrite
@@ -658,11 +658,11 @@ def main(args, options):
     elif command=="issns":
         writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
     elif command=="pmids":
-        getPmidsForIssns(outDir, minYear, onlyDir)
+        getPmidsForIssns(outDir, minYear)
     elif command=="all":
         initJournalDir(journalDataDir)
         writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
-        getPmidsForIssns(outDir)
+        getPmidsForIssns(outDir, minYear)
     else:
         raise Exception("Unknown command %s" % command)
 
@@ -675,7 +675,7 @@ commands:
                                 Creates the _journalData dir in outDir.
     %prog issns <outDir>      - create subdirectories under outDir and fill them 
                                 with issn.tab files
-    %prog pmids <outDir>      - retrieve the PMIDs from Pubmed for all ISSNs
+    %prog pmids <outDir>      - retrieve the PMIDs from Pubmed for all ISSNs in outDir
     %prog all <outDir>        - run all three steps on outDir
 """)
 
@@ -683,7 +683,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--nlmCatalog", dest="nlmCatalog", action="store", help="use a given nlmCatalog.xml instead of the default one")
 parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1990)
-parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
+#parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
 (options, args) = parser.parse_args()
 
 if len(args)<2:

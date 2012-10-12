@@ -1,6 +1,7 @@
 # a few convenience functions to query the new crossref API
 
-import urllib, urllib2, json
+import urllib, urllib2, json, doctest, logging
+import maxCommon
 
 #def dois(issn):
 #    queryStr = ", ".join(queryFields)
@@ -15,22 +16,30 @@ import urllib, urllib2, json
 #        logging.debug("Empty cross reply")
 #        return None
 
-def links(metaInfoDict):
-    " take author, vol, journal etc from metaInfoDict, query crossref and return DOI if found "
+def lookupDoi(metaInfoDict):
+    """ take author, vol, journal etc from metaInfoDict, query crossref 'links' and return DOI if found 
+
+    >>> lookupDoi({"authors":"M. Henrion, D. J. Mortlock, D. J. Hand, and A. Gandy", "title":"A Bayesian approach to star-galaxy classification", "journal":"Monthly Notices of the Royal Astronomical Society", "vol":"414", "issue":"4", "page":"2286", "year":"2011", "printIssn" : ""})
+    u'10.1111/j.1365-2966.2010.18055.x'
+    """
 
     # construct url
     mid = metaInfoDict
-    freeFormCit = [mid["authors"], '"%s"' % mid["title"], mid["journal"],mid["year"], "vol. "+mid["vol"], "no. "+ mid["issue"], "pp. "+mid["page"],  mid["printIssn"]]
-    queryStr = ", ".join(queryFields)
-    queryData = {"q" : queryStr, "pages" : "1", "rows" : 1}
-    #urlParams = urllib.urlencode(queryData)
-    #url = "http://search.labs.crossref.org/dois?" 
+    logging.debug("Looking up DOI for article %s, %s with crossref links api" % (mid["authors"], mid["title"]))
+    freeFormCitFields = [mid["authors"], '"%s"' % mid["title"], mid["journal"],mid["year"], "vol. "+mid["vol"], "no. "+ mid["issue"], "pp. "+mid["page"],  mid["printIssn"]]
+    freeFormCitStr = ", ".join(freeFormCitFields)
+    queryData = {"q" : freeFormCitStr}
     url = "http://search.labs.crossref.org/links?" 
-    jsonParam = json.dumps([freeFormCit])
+    jsonParam = json.dumps([freeFormCitStr])
     queryParam = {"q" : jsonParam}
 
     # send request
-    jsonStr = urllib2.urlopen(url, jsonParam).read()
+    httpResp = maxCommon.retryHttpRequest(url, jsonParam, delaySecs=60, repeatCount=3)
+    if httpResp==None:
+        logging.debug("HTTPError while sending crossref request")
+        return None
+
+    jsonStr = httpResp.read()
     xrdata = json.loads(jsonStr)
 
     # parse result
@@ -42,7 +51,7 @@ def links(metaInfoDict):
         logging.debug("Query error from crossref")
         return None
     elif "results" not in xrdata or len(xrdata["results"])<1:
-        logging.debug("missing results in crossref reply")
+        logging.debug("no results in crossref reply")
         return None
 
     firstRes = xrdata["results"][0]
@@ -54,3 +63,7 @@ def links(metaInfoDict):
     doi = firstRes["doi"]
     logging.debug("Got DOI: %s" % doi)
     return doi
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

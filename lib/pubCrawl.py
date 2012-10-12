@@ -2,7 +2,7 @@
 
 # load our own libraries
 import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables,\
-    pubCrossRef
+    pubCrossRef, html
 import chardet # library for guessing encodings
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
@@ -366,6 +366,7 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
         zipBase = "%s.zip" % metaData["eIssn"]
         zipName = join(outDir, zipBase)
         logging.debug("Writing %d bytes to %s as %s" % (len(fileData), zipName, filename))
+        #logging.debug("Opening zip")
         dataZipFile = zipfile.ZipFile(zipName, "a")
         try:
             dataZipFile.writestr(filename, fileData)
@@ -382,6 +383,8 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
             shutil.move(zipName, zipName2)
             dataZipFile = zipfile.ZipFile(zipName, "w")
             dataZipFile.writestr(filename, fileData)
+        #logging.debug("Closing zip")
+        dataZipFile.close()
 
     metaData["suppFiles"] = ",".join(suppFnames)
     metaData["suppUrls"] = ",".join(suppUrls)
@@ -576,8 +579,8 @@ def iterateNewPmids(pmids, ignorePmids):
 
 def readLocalMedline(pmid):
     " returns a dict with info we have locally about PMID, None if not found "
-    medlineDir = pubConf.resolveTextDir("medline")
-    medlineDb = join(medlineDir, "articles.db")
+    logging.debug("Trying PMID lookup with local medline copy")
+    medlineDb = pubStore.getArtDbPath("medline")
     if not isfile(medlineDb):
         logging.warn("%s does not exist, no local medline lookups, need to use eutils" % medlineDb)
         return None
@@ -592,25 +595,28 @@ def readLocalMedline(pmid):
         return None
     # the last entry should be the newest one
     lastRow = rows[-1]
+
+    # convert sqlite results to dict
     result = {}
     for key, val in zip(lastRow.keys(), lastRow):
-        result[key] = val
+        result[key] = unicode(val)
     return result
         
 
 def getMedlineInfo(pmid):
-    """ try to get information about pmid first from local medline+crossref, 
-    of if this doesn't work from eutils and add the DOI from CrossRef 
+    """ try to get information about pmid first from local medline with NCBI eutils as fallback, 
+    add the DOI to fulltext from CrossRef 
     """
     
     metaDict = readLocalMedline(pmid)
     if metaDict==None:
         metaDict = downloadPubmedMeta(pmid)
-    else:
-        if metaDict["doi"]=="":
-            xrDoi = pubCrossRef.lookupDoi(metaDict)
-            if xrDoi != None:
-                metaDict["doi"] = xrDoi
+
+    if metaDict["doi"]=="":
+        xrDoi = pubCrossRef.lookupDoi(metaDict)
+        if xrDoi != None:
+            metaDict["doi"] = xrDoi
+
     return metaDict
 
 def downloadPubmedMeta(pmid):
@@ -1076,6 +1082,61 @@ def writePaperData(pmid, pubmedMeta, fulltextData, outDir):
     writePmidStatus(outDir, pmid, pmidStatus)
     signal.signal(signal.SIGINT, oldHandler) # react ctrl c handler
 
+def parseIdStatus(fname):
+    " parse crawling status file, return as dict status -> count "
+    res = {}
+    for line in open(fname):
+        pmid, status = line.strip().split()[:2]
+        status = status.split("\\")[0]
+        status = status.strip('"')
+        status = status.strip("'")
+        res.setdefault(status, 0)
+        res[status]+=1
+    return res
+
+def writeReport(baseDir, htmlFname):
+    " parse pmids.txt and pmidStatus.tab and write a html report to htmlFname "
+    h = html.htmlWriter(htmlFname)
+    h.head("Genocoding crawler status", stylesheet="bootstrap/css/bootstrap.css")
+    h.startBody("Crawler status as of %s" % time.asctime())
+
+    publDesc = {}
+    for key, value in pubConf.crawlPubDirs.iteritems():
+        publDesc[value] = key
+
+    totalPmidCount = 0
+    totalOkCount = 0
+
+    for name in os.listdir(baseDir):
+        dirName = join(baseDir, name)
+        if not isdir(dirName) or name.startswith("_"):
+            continue
+        print dirName
+        print "pmidCount"
+        pmidCount = len(open(join(dirName, "pmids.txt")).readlines())
+        print "status"
+        statusCounts = parseIdStatus(join(dirName, "pmidStatus.tab"))
+        publisher = basename(dirName)
+        isActive = isfile(join(dirName, "_pubCrawl.lock"))
+        totalPmidCount += pmidCount
+        totalOkCount  += statusCounts["OK"]
+
+        h.h4("Publisher: %s (%s)" % (publDesc[publisher], publisher))
+        h.startUl()
+        h.li("Crawler is running: %s" % isActive)
+        h.li("Total PMIDs scheduled: %d" % pmidCount)
+        h.li("Crawl success rate: %0.2f %%" % (100*statusCounts["OK"]/float(pmidCount)))
+        h.startUl()
+        for status, count in statusCounts.iteritems():
+            h.li("Status %s: %d" % (status, count))
+        h.endUl()
+        h.endUl()
+
+    h.h4("Total PMIDs scheduled to download: %d" % totalPmidCount)
+    h.h4("Overall PMIDs downloaded so far: %d" % totalOkCount)
+    h.endHtml()
+
+
 def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
     " download all files for pmids in outDir/pmids.txt to zipfiles in outDir "
     checkCreateLock(outDir)
@@ -1148,4 +1209,5 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
                 raise
             if pause:
                 raw_input("Press Enter...")
+
 

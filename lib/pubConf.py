@@ -35,12 +35,12 @@ httpTransferTimeout = 30
 # format: publisher name -> directory name
 crawlPubDirs = {
 # all ISSNs that wiley gave us go into the subdir wiley
-"WILEY Wiley" : "wiley", 
+"WILEY Wiley" : "wiley",
 # we don't have ISSNs for NPG from them, so we use grouped data from NLM
 "NLM NPG" : "npg",
 # rockefeller university press
-"HIGHWIRE The Rockefeller University" : "highwire",
-"HIGHWIRE American Society for Microbiology" : "highwire",
+"HIGHWIRE The Rockefeller University" : "rupress",
+"HIGHWIRE American Society for Microbiology" : "asm",
 "NLM Future Science" : "future",
 "NLM National Academy of Sciences" : "pnas"
 }

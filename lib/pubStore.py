@@ -753,6 +753,25 @@ def getUnloadedFnames(dbFname, newFnames):
     #logging.debug("Files that have not been loaded yet: %s" % toLoadFnames)
     return toLoadFnames
 
+def sortPubFnames(fnames):
+    """ 
+    sort names like 0_00000, 11_1111.articles.gz in the right order from 0_00000 to 1111_11111 
+    >>> sortPubFnames(["11_0000.articles.gz", "1_0000.articles.gz"])
+    ['1_0000.articles.gz', '11_0000.articles.gz']
+    """
+    newList = []
+    for fname in fnames:
+        base = fname.split(".")[0]
+        update, chunk = base.split("_")
+        update, chunk = int(update), int(chunk)
+        sortKey = update*10000 + chunk
+        newList.append((sortKey, fname))
+
+    newList.sort(key=operator.itemgetter(0))
+    newFnames = [el[1] for el in newList]
+    return newFnames
+        
+
 def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     " load pubDoc files into sqlite db table, keep track of loaded file names "
     firstFname = tsvFnames[0]
@@ -762,7 +781,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
         firstFh = open(firstFname)
     headers = firstFh.readline().strip("\n#").split("\t")
     toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
-    toLoadFnames.sort()
+    toLoadFnames = sortPubFnames(toLoadFnames)
 
     if len(toLoadFnames)==0:
         logging.debug("No files to load")

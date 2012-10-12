@@ -564,7 +564,7 @@ class htmlWriter:
         if menu:
             self.insertMenu(menu)
         if title:
-            self.f.write("""<h2>"""+title+"""</h2>""")
+            self.f.write("""<h2>"""+title+"""</h2>\n""")
 
     def img(self, url, alt, width=None, height=None):
         if width:
