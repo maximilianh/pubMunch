@@ -756,12 +756,12 @@ def getUnloadedFnames(dbFname, newFnames):
 def sortPubFnames(fnames):
     """ 
     sort names like 0_00000, 11_1111.articles.gz in the right order from 0_00000 to 1111_11111 
-    >>> sortPubFnames(["11_0000.articles.gz", "1_0000.articles.gz"])
-    ['1_0000.articles.gz', '11_0000.articles.gz']
+    >>> sortPubFnames(["/hive/data/test/11_0000.articles.gz", "1_0000.articles.gz"])
+    ['1_0000.articles.gz', '/hive/data/test/11_0000.articles.gz']
     """
     newList = []
     for fname in fnames:
-        base = fname.split(".")[0]
+        base = basename(fname).split(".")[0]
         update, chunk = base.split("_")
         update, chunk = int(update), int(chunk)
         sortKey = update*10000 + chunk

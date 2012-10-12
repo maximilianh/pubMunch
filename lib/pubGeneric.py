@@ -400,6 +400,7 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
     logging.info("Updating downloads.log file in %s" % locDir)
     for f in fileNames:
         appendLog(locDir, "add", f)
+    logging.info("Downloaded %d files" % len(fileNames))
 
 def appendLog(outDir, change, fname):
     logPath = join(outDir, "downloads.log")
