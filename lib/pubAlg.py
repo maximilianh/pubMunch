@@ -10,7 +10,7 @@ import logging, sys, os, shutil, glob, cPickle, optparse, copy, types, string, p
 from os.path import *
 from maxCommon import *
 
-import orgDetect, protDetect, unifyAuthors, pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
+import protDetect, unifyAuthors, pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
 
 # extension of map output files
 MAPREDUCEEXT = ".pickle.gz"
@@ -101,10 +101,6 @@ def getAlg(algName, defClass=None):
 
 def writeParamDict(paramDict, paramDictName):
     " pickle parameter to current dir "
-    #paramStrings = ["=".join(pair) for pair in paramDict.items()]
-    #paramStrings = [pipes.quote(str) for str in paramStrings]
-    #paramString = " ".join(paramStrings)
-    #return paramString
     outFh = open(paramDictName, "w")
     cPickle.dump(paramDict, outFh)
     return paramDictName
@@ -172,6 +168,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDir, outDirs, outExt, paramDict, 
 
     if runner==None:
         runner = maxRun.Runner(batchDir=batchDir)
+
     algCount = 0
     for algName, outDir in zip(algNames, outDirs):
         algShortName = basename(algName).split(".")[0]
@@ -556,6 +553,7 @@ def annotate(algNames, textDir, paramDict, outDirs, cleanUp=False, runNow=False,
         alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
         if "startup" in dir(alg):
             alg.startup(paramDict) # to check if startup works
+
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDir, outDirs, \
         ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
     return baseNames

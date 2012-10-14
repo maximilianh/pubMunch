@@ -25,7 +25,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import maxRun, pubStore, pubConf, pubGeneric, orgDetect, protDetect, pubAlg
+import maxRun, pubStore, pubConf, pubGeneric, protDetect, pubAlg
 from maxCommon import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -56,11 +56,11 @@ algName, inName, outName = args[:3]
 runNow = options.runNow
 paramStrings = args[3:]
 
+paramDict = {}
 paramDict = pubGeneric.stringListToDict(paramStrings)
 
 alg = pubAlg.getAlg(algName) # makes sure that algName exists
 
-paramDict = {}
 paramDict["startAnnotId"] = 0
 
 if options.test:

@@ -19,6 +19,9 @@ dbBaseDir = '/hive/data/outside/'
 medlineDbPath = join(pubsDataDir, "text", "medline", "medline.db")
 
 # CRAWLER SETTINGS ==================================================
+# directory to store publisher <-> ISSN assignment
+journalDataDir = join(pubsDataDir, "publishers")
+
 # the useragent to use for http requests
 httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 
@@ -28,12 +31,13 @@ httpTimeout = 20
 # how to long wait for the downloading of files, in seconds
 httpTransferTimeout = 30
 
-# the tool pubPrepCrawlDir parses journal data and groups journals by publishers.
+# catalog full publisher name to internal publisher ID
+# pubPrepCrawlDir parses journal data and groups journals by publishers.
 # In most cases, to download all journal from a publisher, all you have to do
 # is to copy the publisher field from <crawlDir>/_journalData/publisher.tab
 # here and define a directory name for it
 # format: publisher name -> directory name
-crawlPubDirs = {
+crawlPubIds = {
 # all ISSNs that wiley gave us go into the subdir wiley
 "WILEY Wiley" : "wiley",
 # we don't have ISSNs for NPG from them, so we use grouped data from NLM
@@ -41,8 +45,9 @@ crawlPubDirs = {
 # rockefeller university press
 "HIGHWIRE The Rockefeller University" : "rupress",
 "HIGHWIRE American Society for Microbiology" : "asm",
-"NLM Future Science" : "future",
-"NLM National Academy of Sciences" : "pnas"
+"NLM Future Science" : "futureScience",
+"NLM National Academy of Sciences" : "pnas",
+"NLM American Association of Immunologists" : "aai"
 }
 
 # crawler delay config, values in seconds

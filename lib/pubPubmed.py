@@ -1,7 +1,7 @@
 # package to download and parse xml files from pubmed/medline
 # + some functions to query eutils
 
-import logging, urllib2, pubConf, maxXml, pubStore, re, time, urllib, traceback, httplib
+import logging, urllib2, pubConf, maxXml, pubStore, re, time, urllib, traceback, httplib, maxCommon
 from xml.etree.ElementTree import ParseError
 from xml.etree.cElementTree import ParseError as ParseError2
 
@@ -378,7 +378,13 @@ def getOutlinks(pmid):
     #logging.info("Exception when downloading")
     #return None
     req.add_header('User-Agent', 'User-Agent: Mozilla (max@soe.ucsc.edu, http://text.soe.ucsc.edu)')
-    html = urllib2.urlopen(req)
+
+    #html = urllib2.urlopen(req)
+    html = maxCommon.retryHttpRequest(req)
+
+    if html==None:
+        return None
+
     outlinks = {}
     provider = False
     fullText = False

@@ -485,7 +485,7 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
         writeJournals(journals, journalFname, headers, append=True, source=datasetName)
 
 def initJournalDir(journalDataDir):
-    " fill the journal data dir _journalData with two tab sep files "
+    " fill the journal data dir pubConf.journalData with two tab sep files "
     if not isdir(journalDataDir):
         logging.info("Creating %s" % journalDataDir)
         os.makedirs(journalDataDir)
@@ -531,20 +531,27 @@ def parseIssns(journalDataDir, crawlPubDirs, crawlIssnOverwrite):
         pubToIssn.setdefault(pub, set()).add(issn)
     return pubToIssn
 
-def writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite):
+def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite, limitToPubId=None):
     """ write (issn,minYear,maxYear) as issn.tab to all publisher directories, 
         adding issnOverwrite at the end 
     """
     outFhDict = {}
-    for pubName, pubDir in pubDirs.iteritems():
+    for pubName, pubId in pubIds.iteritems():
         # create subdir
-        pubDirPath = join(outDir, pubDir)
-        if not isdir(pubDirPath):
-            logging.info("Creating dir %s" % pubDirPath)
-            os.makedirs(pubDirPath)
+        if limitToPubId and pubId!=limitToPubId:
+            continue
+        if limitToPubId==None:
+            pubIdPath = join(outDir, pubId)
+            issnOutFname = join(outDir, pubId, ISSNTAB)
+        else:
+            pubIdPath = outDir
+            issnOutFname = join(outDir, ISSNTAB)
+
+        if not isdir(pubIdPath):
+            logging.info("Creating dir %s" % pubIdPath)
+            os.makedirs(pubIdPath)
 
         # write default ISSNs
-        issnOutFname = join(outDir, pubDir, ISSNTAB)
         logging.info("Writing to %s" % issnOutFname)
         if issnOutFname not in outFhDict:
             outFh = open(issnOutFname, "w")
@@ -560,17 +567,17 @@ def writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite):
             issnCount+=1
 
         # add manual ISSNs
-        for issn, startYear, endYear in issnOverwrite.get(pubDir, []):
+        for issn, startYear, endYear in issnOverwrite.get(pubId, []):
             outFh.write("%s\t%d\t%d\t%s\n" % (issn, startYear, endYear, pubName))
             issnCount+=1
         logging.info("Wrote %d ISSNs" % issnCount)
 
 def writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite):
     """ use pubConf.py and the publishers.tab file to get target ISSNs
-    and write them to outDir/<publisherDir>/issns.tab 
+    and write them to outDir/issns.tab 
     """
     pubToIssn = parseIssns(journalDataDir, pubDirs, issnOverwrite)
-    writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite)
+    writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite, limitToPubId=basename(outDir))
 
 def writePmids(pubDir, pmids):
     " randomize pmids and write as pmids.txt to pubDir "
@@ -642,14 +649,18 @@ def getPmidsForIssns(outDir, minYear):
 def main(args, options):
     pubGeneric.setupLoggingOptions(options)
 
-    command, outDir = args
+    command = args[0]
+    if len(args)>1:
+        outDir = args[1]
     minYear = options.minYear
     #onlyDir = options.onlyDir
 
-    pubDirs = pubConf.crawlPubDirs
+    pubDirs = pubConf.crawlPubIds
     issnOverwrite = pubConf.crawlIssnOverwrite
 
-    journalDataDir = join(outDir, JOURNALDIR)
+    #journalDataDir = join(outDir, JOURNALDIR)
+    journalDataDir = pubConf.journalDataDir
+    maxCommon.mustExistDir(journalDataDir, makeDir=True)
 
     command = command.lower()
 
@@ -686,7 +697,7 @@ parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int",
 #parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
 (options, args) = parser.parse_args()
 
-if len(args)<2:
+if len(args)<1:
     parser.print_help()
     exit(1)
 

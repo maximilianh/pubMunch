@@ -1,15 +1,15 @@
 # library to crawl pdf and supplemental file from pubmed
 
 # load our own libraries
-import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables,\
-    pubCrossRef, html
+import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
+    pubCrossRef, html, maxCommon
 import chardet # library for guessing encodings
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
 import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
     traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3
+    sqlite3, doctest
 from os.path import *
 
 # ===== GLOBALS ======
@@ -46,22 +46,23 @@ ERRWAIT_TRYHARD = 3
 lockFname = None
 
 # list of highwire sites, for some reason ip resolution fails too often
-highwireHosts = ["asm.org", "rupress.org"] # too many DNS queries fail, so we hardcode some of the work
+highwireHosts = ["asm.org", "rupress.org", "jcb.org"] # too many DNS queries fail, so we hardcode some of the work
 
 # if any of these is found in a landing page Url, wait for 15 minutes and retry
-# has to be independent of siteCrawlConfig, NPG at least redirects to a separate server
+# has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
 errorPageUrls = ["http://status.nature.com"]
 
 # crawl configuration: for each website, define how to crawl the pages
-siteCrawlConfig = { ("www.nature.com") :
+pubsCrawlCfg = { "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
     # 
     {
+        "hostnames" : ["www.nature.com"],
         "stopPhrases": ["make a payment", "purchase this article"],
-        "replaceUrlWords" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
         "landingPageIsArticleUrlKeyword" : "full",
+        "fullUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
         "mainPdfLinkREs" : ["Download PDF"],
-        "replaceUrlWords_suppList" : {"full" : "suppinfo", "abs" : "suppinfo"},
+        "suppListUrl_replace" : {"full" : "suppinfo", "abs" : "suppinfo"},
         "suppListPageREs" : ["Supplementary information index", "[Ss]upplementary [iI]nfo", "[sS]upplementary [iI]nformation"],
         "suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]ethods.*", "Supplementary [mM]aterials.*", "Review Process File"]
     # Review process file for EMBO, see http://www.nature.com/emboj/journal/v30/n13/suppinfo/emboj2011171as1.html
@@ -69,65 +70,80 @@ siteCrawlConfig = { ("www.nature.com") :
 
     # https://www.jstage.jst.go.jp/article/circj/75/4/75_CJ-10-0798/_article
     # suppl file download does NOT work: strange javascript links
-    ("www.jstage.jst.go.jp") :
+    "jstage" :
     {
-        "replaceUrlWords" : {"_article" : "_pdf" },
+        "hostnames" : ["www.jstage.jst.go.jp"],
+        "fullUrl_replace" : {"_article" : "_pdf" },
         "mainPdfLinkREs" : ["Full Text PDF.*"],
         "suppListPageREs" : ["Supplementary materials.*"]
     },
-    # ruppress tests:
+    # rupress tests:
     # PMID 12515824 - with integrated suppl files into main PDF
     # PMID 15824131 - with separate suppl files
     # PMID 8636223  - landing page is full (via Pubmed), abstract via DOI
     # cannot do suppl zip files like this one http://jcb.rupress.org/content/169/1/35/suppl/DC1
     # 
-    #("rupress.org") :
-    ("rupress.org") :
+    "rupress" :
     {
+        "hostnames" : ["rupress.org", "jcb.org"],
+        "doiUrl_rewriteRules" : {"$" : ".abstract"},
         "landingPageIsArticleUrlKeyword" : ".long",
-        #"appendStringForPdfUrl" : ".full.pdf?with-ds=yes",
-        "ignoreLandingPageWords" : ["From The Jcb"],
+        "landingPage_ignorePageWords" : ["From The Jcb"],
         "ignoreMetaTag" : True,
-        "replaceUrlWords" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
+        "fullUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes"},
         "addSuppFileTypes" : ["html", "htm"], # pubConf does not include htm/html
         "mainPdfLinkREs" : ["Full Text (PDF)"],
         #"suppListPageREs" : ["Supplemental [Mm]aterial [Iindex]", "Supplemental [Mm]aterial"],
-        "replaceUrlWords_suppList" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
+        "suppListUrl_replace" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
         "suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
         "ignoreSuppFileLinkWords" : ["Video"],
         "suppFileUrlREs" : [".*/content/suppl/.*"],
         "ignoreSuppFileContentText" : ["Reprint (PDF) Version"]
     },
     # http://jb.asm.org/content/194/16/4161.abstract = PMID 22636775
-    ("asm.org") :
+    "asm" :
     {
+        "hostnames" : ["asm.org"],
         "landingPageIsArticleUrlKeyword" : ".long",
         "ignoreMetaTag" : True,
         "errorPageText" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
-        "replaceUrlWords" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        #"replaceUrlWords" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
-        #"replaceUrlWords_suppList" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        #"fullUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
+        #"suppListUrl_replace" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
         "suppListUrlREs" : [".*suppl/DCSupplemental"],
         "suppFileUrlREs" : [".*/content/suppl/.*"],
     },
     # 1995 PMID 7816814 
     # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
-    ("pnas.org") :
+    "pnas" :
     {
+        "hostnames" : ["pnas.org"],
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".abstract"},
         "landingPageIsArticleUrlKeyword" : ".long",
         "ignoreMetaTag" : True,
-        "errorPageText" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
-        "replaceUrlWords" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*suppl/DCSupplemental"],
+        "suppFileUrlREs" : [".*/content/suppl/.*"],
+    },
+    "aai" :
+    {
+        "hostnames" : ["jimmunol.org"],
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".abstract"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "suppListUrlREs" : [".*suppl/DCSupplemental"],
         "suppFileUrlREs" : [".*/content/suppl/.*"],
     },
     # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
     # example spurious suppinfo link 8536951
     # 
-    ("onlinelibrary.wiley.com") :
+    "wiley" :
     {
-        "replaceUrlWords" : {"abstract" : "pdf"},
-        #"replaceUrlWords_suppList" : {"abstract" : "suppinfo"},
+        "hostnames" : ["onlinelibrary.wiley.com"],
+        "fullUrl_replace" : {"abstract" : "pdf"},
         "suppListPageREs" : ["Supporting Information"],
         "suppFileUrlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
         "suppFilesAreOffsite" : True,
@@ -135,10 +151,11 @@ siteCrawlConfig = { ("www.nature.com") :
         "stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
     # http://www.futuremedicine.com/doi/abs/10.2217/epi.12.21
-    ("futuremedicine.com", "future-science.com", "expert-reviews.com", "future-drugs.com") :
+    "futureScience" :
     {
-        "replaceUrlWords" : {"abs" : "pdfplus"},
-        "replaceUrlWords_suppList" : {"abs" : "suppl"},
+        "hostnames" : ["futuremedicine.com", "future-science.com", "expert-reviews.com", "future-drugs.com"],
+        "fullUrl_replace" : {"abs" : "pdfplus"},
+        "suppListUrl_replace" : {"abs" : "suppl"},
         "suppFileUrlREs" : [".*suppl_file.*"],
         "stopPhrases" : ["single article purchase is required", "The page you have requested is unfortunately unavailable"]
     },
@@ -177,7 +194,6 @@ def resolvePmidWithSfx(sfxServer, pmid):
     xmlResult = sfxResult["data"]
     soup = BeautifulStoneSoup(xmlResult, convertEntities=BeautifulSoup.HTML_ENTITIES, smartQuotesTo=None)
     urlEls = soup.findAll("url")
-    print urlEls, type(urlEls), repr(urlEls)
     if len(urlEls)==0 or urlEls==None:
         return None
     urls = [x.string for x in urlEls]
@@ -187,36 +203,68 @@ def resolvePmidWithSfx(sfxServer, pmid):
     url = urls[0].encode("utf8")
     return url
 
-def findLandingUrl(articleData):
-    " try to find landing URL either via DOI or via Pubmed Outlink "
+def findLandingUrl(articleData, crawlConfig):
+    """ try to find landing URL either by constructing it, try in this order:
+    - inferred from medline data via landingUrl_template
+    - medlina's DOI
+    - a Crossref search with medline data
+    - Pubmed Outlink 
+    - an SFX search
+    >>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084"})
+    """
     logging.log(5, "Looking for landing page")
 
-    # first try pubmed outlink, then DOI
-    # because they sometimes differ e.g. 12515824 directs to a different page via DOI
-    # than via Pubmed
-    try:
+    landingUrl = None
+
+    # sometimes, if know the publisher upfront, we can derive the landing page from the medline data
+    # e.g. via pmid or doi
+    if crawlConfig!=None:
+        articleData["firstPage"] = articleData["page"].split("-")[0]
+        urlTemplate = crawlConfig.get("landingUrl_template", None)
+        if urlTemplate!=None:
+            landingUrl = urlTemplate % articleData
+            assert(landingUrl != urlTemplate)
+            # check if url is OK
+            try:
+                landingPage  = delayedWget(landingUrl)
+                landingUrl = landingPage["url"]
+            except pubGetError:
+                logging.debug("Constructed URL %s is not valid, trying other options" % landingUrl)
+                landingUrl = None
+
+    # try medline's DOI
+    # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
+    # than via Pubmed outlink, so we need sometimes to rewrite the doi urls
+    if landingUrl==None and articleData["doi"]!="":
+        landingUrl = resolveDoiRewrite(articleData["doi"], crawlConfig)
+
+    # try crossref's search API to find the DOI
+    if landingUrl==None and articleData["doi"]=="":
+        xrDoi = pubCrossRef.lookupDoi(articleData)
+        if xrDoi != None:
+            articleData["doi"] = xrDoi
+            landingUrl = resolveDoiRewrite(xrDoi, crawlConfig)
+
+    # try pubmed's outlink
+    if landingUrl==None:
         outlinks = pubPubmed.getOutlinks(articleData["pmid"])
-    except urllib2.HTTPError:
-        logging.info("pubmed http error, waiting for 120 secs")
-        time.sleep(120)
-        raise pubGetError("pubmed outlinks http error", "PubmedOutlinkHttpError")
+        if outlinks==None:
+            logging.info("pubmed error, waiting for 120 secs")
+            time.sleep(120)
+            raise pubGetError("pubmed outlinks http error", "PubmedOutlinkHttpError")
 
-    fulltextUrl = None
+        if len(outlinks)!=0:
+            landingUrl =  outlinks.values()[0]
+            logging.debug("landing page based on first outlink of Pubmed, URL %s" % landingUrl)
 
-    if len(outlinks)!=0:
-        fulltextUrl =  outlinks.values()[0]
-        logging.debug("landing page based on first outlink of Pubmed, URL %s" % fulltextUrl)
-    elif articleData["doi"]!=None and articleData["doi"]!="":
-            doi = articleData["doi"]
-            doiUrl = "http://dx.doi.org/"+doi
-            fulltextUrl =  doiUrl
-            logging.debug("landing page based on DOI, URL %s" % fulltextUrl)
-    else:
-        fulltextUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData["pmid"])
-        if fulltextUrl==None:
-            raise pubGetError("No fulltext for this article", "noOutlinkOrDoi") 
+    # try SFX
+    if landingUrl==None:
+        landingUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData["pmid"])
 
-    return fulltextUrl
+    if landingUrl==None:
+        raise pubGetError("No fulltext for this article", "noOutlinkOrDoi") 
+
+    return landingUrl
 
 def parseWgetLog(logFile, origUrl):
     " parse a wget logfile and return final URL (after redirects) and mimetype as tuple"
@@ -351,6 +399,8 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
     suppFnames = []
     suppUrls = []
     for suffix, pageDict in fulltextData.iteritems():
+        if suffix=="status":
+            continue
         filename = pmid+"."+suffix
         if suffix=="main.html":
             metaData["mainHtmlFile"] = filename
@@ -602,23 +652,6 @@ def readLocalMedline(pmid):
         result[key] = unicode(val)
     return result
         
-
-def getMedlineInfo(pmid):
-    """ try to get information about pmid first from local medline with NCBI eutils as fallback, 
-    add the DOI to fulltext from CrossRef 
-    """
-    
-    metaDict = readLocalMedline(pmid)
-    if metaDict==None:
-        metaDict = downloadPubmedMeta(pmid)
-
-    if metaDict["doi"]=="":
-        xrDoi = pubCrossRef.lookupDoi(metaDict)
-        if xrDoi != None:
-            metaDict["doi"] = xrDoi
-
-    return metaDict
-
 def downloadPubmedMeta(pmid):
     """ wrapper around pubPubmed that converts exceptions"""
     try:
@@ -699,7 +732,7 @@ def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTex
 
     for linkText, linkUrl in links.iteritems():
         if containsAnyWord(linkText, ignTextWords):
-            logging.debug("Ignoring link text %s, url %s" % (linkText, linkUrl))
+            logging.debug("Ignoring link text %s, url %s" % (repr(linkText), repr(linkUrl)))
             continue
 
         for searchRe in searchTextRes:
@@ -744,11 +777,12 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
                 raise pubGetError("max suppl count reached", "tooManySupplFiles")
     return fulltextData
 
-def replaceUrl(landingUrl, replaceUrlWords):
+def replaceUrl(landingUrl, fullUrl_replace):
     " try to find link to PDF/suppInfo based on just the landing URL alone "
     replaceCount = 0
     newUrl = landingUrl
-    for word, replacement in replaceUrlWords.iteritems():
+    for word, replacement in fullUrl_replace.iteritems():
+        print word, newUrl
         if word in newUrl:
             replaceCount+=1
             newUrl = newUrl.replace(word, replacement)
@@ -783,8 +817,8 @@ def findMainFileUrl(landingPage, crawlConfig):
         logging.debug("Appending string to URL yields new URL %s" % (pdfUrl))
         return pdfUrl
 
-    if "replaceUrlWords" in crawlConfig:
-        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["replaceUrlWords"])
+    if "fullUrl_replace" in crawlConfig:
+        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["fullUrl_replace"])
         return pdfUrl
 
     if pdfUrl != None:
@@ -812,16 +846,13 @@ def isErrorPage(landingPage, crawlConfig):
         return False
 
     
-def crawlForFulltext(landingPage):
+def crawlForFulltext(landingPage, crawlConfig):
     """ 
     given a landingPage-dict (with url, data, mimeType), return a dict with the
     keys main.html, main.pdf and S<X>.<ext> that contains all (url, data,
     mimeType) pages for an article 
     """
     
-    checkForOngoingMaintenanceUrl(landingPage["url"])
-    crawlConfig  = getConfig(siteCrawlConfig, landingPage["url"])
-
     if noLicensePage(landingPage, crawlConfig):
         raise pubGetError("no license for this article", "noLicense")
     if isErrorPage(landingPage, crawlConfig):
@@ -832,51 +863,52 @@ def crawlForFulltext(landingPage):
 
     fulltextData = {}
 
+    # some landing pages ARE the article PDF
     if landingPage["mimeType"] == "application/pdf":
         logging.debug("Landing page is the PDF, no suppl file downloading possible")
         fulltextData["main.pdf"] = landingPage
-    else:
-        # some landing pages contain the full article
-        if crawlConfig.get("landingPageIsArticleUrlKeyword", False) and \
+        fulltextData["status"] = "LandingOnPdf_NoSuppl"
+        return fulltextData
+    # other landing pages contain the full article directly as html
+    elif crawlConfig.get("landingPageIsArticleUrlKeyword", False) and \
            crawlConfig["landingPageIsArticleUrlKeyword"] in landUrl:
                 logging.debug("URL suggests that landing page is same as article html")
                 fulltextData["main.html"] = landingPage
 
-        if "ignoreLandingPageWords" in crawlConfig and \
-            containsAnyWord(landingPage["data"], crawlConfig["ignoreLandingPageWords"]):
-            logging.debug("Found blacklist word, ignoring article")
-            raise pubGetError("blacklist word on landing page", "blackListWord")
+    if "landingPage_ignorePageWords" in crawlConfig and \
+        containsAnyWord(landingPage["data"], crawlConfig["landingPage_ignorePageWords"]):
+        logging.debug("Found blacklist word, ignoring article")
+        raise pubGetError("blacklist word on landing page", "blackListWord")
 
-            
-        # search for main PDF on landing page
-        pdfUrl = findMainFileUrl(landingPage, crawlConfig)
-        if pdfUrl==None:
-            logging.debug("Could not find PDF on landing page")
-            raise pubGetError("Could not find main PDF", "notFoundMainPdf")
+    # search for main PDF on landing page
+    pdfUrl = findMainFileUrl(landingPage, crawlConfig)
+    if pdfUrl==None:
+        logging.debug("Could not find PDF on landing page")
+        raise pubGetError("Could not find main PDF", "notFoundMainPdf")
 
-        pdfPage = delayedWget(pdfUrl)
-        if pdfPage["mimeType"] != "application/pdf":
-            pdfPage = parseHtml(pdfPage)
-            if "pdfDocument" in pdfPage["iframes"]:
-                logging.debug("found framed PDF, requesting inline pdf")
-                pdfPage2  = delayedWget(pdfPage["iframes"]["pdfDocument"])
-                if pdfPage2!=None and pdfPage2["mimeType"]=="application/pdf":
-                    pdfPage = pdfPage2
-                else:
-                    raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
+    pdfPage = delayedWget(pdfUrl)
+    if pdfPage["mimeType"] != "application/pdf":
+        pdfPage = parseHtml(pdfPage)
+        if "pdfDocument" in pdfPage["iframes"]:
+            logging.debug("found framed PDF, requesting inline pdf")
+            pdfPage2  = delayedWget(pdfPage["iframes"]["pdfDocument"])
+            if pdfPage2!=None and pdfPage2["mimeType"]=="application/pdf":
+                pdfPage = pdfPage2
             else:
-                raise pubGetError("putative PDF link has not PDF mimetype", "MainPdfWrongMime_InlineNotFound")
-        if noLicensePage(pdfPage, crawlConfig):
-            raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
-        fulltextData["main.pdf"] = pdfPage
+                raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
+        else:
+            raise pubGetError("putative PDF link has not PDF mimetype", "MainPdfWrongMime_InlineNotFound")
+    if noLicensePage(pdfPage, crawlConfig):
+        raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
+    fulltextData["main.pdf"] = pdfPage
 
-        # find suppl list and then get suppl files of specified types
-        suppListUrl  = findSuppListUrl(landingPage, crawlConfig)
-        if suppListUrl!=None:
-            suppListPage = delayedWget(suppListUrl)
-            suppExts = pubConf.crawlSuppExts
-            suppExts.update(crawlConfig.get("addSuppFileTypes", []))
-            fulltextData = getSuppData(fulltextData, suppListPage, crawlConfig, suppExts)
+    # find suppl list and then get suppl files of specified types
+    suppListUrl  = findSuppListUrl(landingPage, crawlConfig)
+    if suppListUrl!=None:
+        suppListPage = delayedWget(suppListUrl)
+        suppExts = pubConf.crawlSuppExts
+        suppExts.update(crawlConfig.get("addSuppFileTypes", []))
+        fulltextData = getSuppData(fulltextData, suppListPage, crawlConfig, suppExts)
 
     return fulltextData
 
@@ -958,9 +990,9 @@ def findSuppListUrl(landingPage, crawlConfig):
 
     suppListUrl = None
     # first try if we can derive suppListUrl from main URL
-    if "replaceUrlWords_suppList" in crawlConfig:
+    if "suppListUrl_replace" in crawlConfig:
         landUrl = landingPage["url"]
-        suppListUrlRepl = replaceUrl(landUrl, crawlConfig["replaceUrlWords_suppList"])
+        suppListUrlRepl = replaceUrl(landUrl, crawlConfig["suppListUrl_replace"])
         if suppListUrlRepl!=None:
             suppListUrl = suppListUrlRepl
 
@@ -989,35 +1021,42 @@ def checkForOngoingMaintenanceUrl(url):
         time.sleep(60*15)
         raise pubGetError("Landing page is error page", "errorPage", url)
 
-def getConfig(siteCrawlConfig, url):
+def getConfig(hostToConfig, url):
     " based on the url or IP of the landing page, return a crawl configuration dict "
     hostname = urlparse.urlparse(url)[1]
     thisConfig = None
-    for configHosts, config in siteCrawlConfig.iteritems():
-        if type(configHosts)==types.StringType: # tuples with one element get converted by python
-            configHosts = [configHosts]
+    for cfgHost, config in hostToConfig.iteritems():
+        #if type(configHosts)==types.StringType: # tuples with one element get converted by python to a string
+            #configHosts = [configHosts]
         #logging.debug("cfhosts %s", configHosts)
-        for configHost in configHosts:
-            #logging.debug("cfhost %s", configHost)
-            if hostname.endswith(configHost):
-                logging.debug("Found config for host %s: %s" % (hostname, configHost))
-                thisConfig = config
-                break
+        if hostname.endswith(cfgHost):
+            logging.debug("Found config for host %s: %s" % (hostname, cfgHost))
+            thisConfig = config
+            break
 
     # not found -> try default HIGHWIRE config, if highwire host
     if thisConfig==None and isHighwire(hostname):
-        thisConfig = getConfig(siteCrawlConfig, "HIGHWIRE")
+        thisConfig = getConfig(hostToConfig, "HIGHWIRE")
 
     if thisConfig==None:
         raise pubGetError("No config for hostname %s" % hostname, "noConfig", hostname)
     else:
         return thisConfig
 
-def prepConfig(siteCrawlConfig):
-    " compile regexes in siteCrawlConfig "
+def prepConfigIndexByHost(pubsCrawlCfg):
+    " return dict hostname -> config "
+    res = {}
+    for pubId, crawlConfig in pubsCrawlCfg.iteritems():
+        for host in crawlConfig["hostnames"]:
+            res[host] = crawlConfig
+    return res
+
+
+def prepConfigCompileRes(pubsCrawlCfg):
+    " compile regexes in pubsCrawlCfg "
     ret = {}
-    for site, crawlConfig in siteCrawlConfig.iteritems():
-        ret[site] = {}
+    for pubId, crawlConfig in pubsCrawlCfg.iteritems():
+        ret[pubId] = {}
         for key, values in crawlConfig.iteritems():
             if key.endswith("REs"):
                 newValues = []
@@ -1025,7 +1064,7 @@ def prepConfig(siteCrawlConfig):
                     newValues.append(re.compile(regex))
             else:
                 newValues = values
-            ret[site][key] = newValues
+            ret[pubId][key] = newValues
     return ret
 
 hostCache = {}
@@ -1077,8 +1116,11 @@ def writePaperData(pmid, pubmedMeta, fulltextData, outDir):
     oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c
     pubmedMeta = storeFiles(pmid, pubmedMeta, fulltextData, outDir)
     storeMeta(outDir, pubmedMeta, fulltextData)
-    pmidStatus = "OK\t%s %s, %d files" % (pubmedMeta["journal"], pubmedMeta["year"],
-        len(fulltextData))
+    addStatus=""
+    if "status" in fulltextData:
+        addStatus = fulltextData["status"]
+    pmidStatus = "OK\t%s %s, %d files\t%s" % \
+        (pubmedMeta["journal"], pubmedMeta["year"], len(fulltextData), addStatus)
     writePmidStatus(outDir, pmid, pmidStatus)
     signal.signal(signal.SIGINT, oldHandler) # react ctrl c handler
 
@@ -1101,7 +1143,7 @@ def writeReport(baseDir, htmlFname):
     h.startBody("Crawler status as of %s" % time.asctime())
 
     publDesc = {}
-    for key, value in pubConf.crawlPubDirs.iteritems():
+    for key, value in pubConf.crawlPubIds.iteritems():
         publDesc[value] = key
 
     totalPmidCount = 0
@@ -1137,7 +1179,63 @@ def writeReport(baseDir, htmlFname):
     h.endHtml()
 
 
-def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
+def checkIssnErrorCounts(pubmedMeta, issnErrorCount, ignoreIssns, outDir):
+    issnYear = (pubmedMeta["eIssn"], pubmedMeta["year"])
+    issnYearErrorCount = issnErrorCount[issnYear]
+    if issnYearErrorCount > MAXISSNERRORCOUNT:
+        writeIssnStatus(outDir, issnYear)
+        raise pubGetError("too many errors for ISSN %s and year %s" % issnYear,
+                "issnYearErrorExceed\t%s %s" % issnYear)
+    if issnYear in ignoreIssns:
+        raise pubGetError("issn+year blacklisted", "issnErrorExceed", "%s %s" % issnYear)
+
+def noMatches(landingUrl, hostnames):
+    " check if landing url contains none of the hostnames "
+    for hostname in hostnames:
+        if hostname in landingUrl:
+            return False
+    return True
+
+def stringRewrite(origString, crawlConfig, configKey):
+    " lookup a dict with pat, repl combinations and run them over origString through re.sub "
+    if crawlConfig==None or configKey not in crawlConfig:
+        return origString
+
+    string = origString
+    for pat, repl in crawlConfig[configKey].iteritems():
+        string = re.sub(pat, repl, string)
+
+    logging.debug("string %s was rewritten to %s" % (origString, string))
+    return string
+
+
+
+def resolveDoi(doi):
+    """ resolve a DOI to the final target url or None on error
+    >>> resolveDoi("10.1073/pnas.1121051109")
+    """
+    doiUrl = "http://dx.doi.org/"+doi
+    resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4)
+    if resp==None:
+        return None
+    trgUrl = resp.geturl()
+    logging.debug("DOI %s redirects to %s" % (doi, trgUrl))
+    return trgUrl
+
+def resolveDoiRewrite(doi, crawlConfig):
+    """ resolve a DOI to the final target url and rewrite according to crawlConfig rules
+        Returns None on error
+    >>> resolveDoiRewrite("10.1073/pnas.1121051109")
+    """
+    url = resolveDoi(doi)
+    if url==None or crawlConfig==None or "doiUrl_rewriteRules" not in crawlConfig:
+        return url
+    newUrl = stringRewrite(url, crawlConfig, "doiUrl_rewriteRules")
+    return newUrl
+        
+        
+
+def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher):
     " download all files for pmids in outDir/pmids.txt to zipfiles in outDir "
     checkCreateLock(outDir)
     if testPmid!=None:
@@ -1152,8 +1250,15 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
     global defaultDelay
     defaultDelay = waitSec
 
-    global siteCrawlConfig
-    siteCrawlConfig = prepConfig(siteCrawlConfig)
+    global pubsCrawlCfg
+    pubsCrawlCfg = prepConfigCompileRes(pubsCrawlCfg)
+    hostToConfig = prepConfigIndexByHost(pubsCrawlCfg)
+
+    pubId = basename(outDir)
+    crawlConfig = None
+    if restrictPublisher:
+        assert(pubId in pubsCrawlCfg)
+        crawlConfig  = pubsCrawlCfg[pubId]
 
     consecErrorCount = 0
 
@@ -1169,21 +1274,26 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
 
         try:
             wgetCache = {}
-            pubmedMeta = getMedlineInfo(pmid)
+            pubmedMeta = readLocalMedline(pmid)
+            if pubmedMeta==None:
+                pubmedMeta = downloadPubmedMeta(pmid)
 
-            issnYear = (pubmedMeta["eIssn"], pubmedMeta["year"])
-            issnYearErrorCount = issnErrorCount[issnYear]
-            if issnYearErrorCount > MAXISSNERRORCOUNT:
-                writeIssnStatus(outDir, issnYear)
-                raise pubGetError("too many errors for ISSN %s and year %s" % issnYear,
-                        "issnYearErrorExceed\t%s %s" % issnYear)
-            if issnYear in ignoreIssns:
-                raise pubGetError("issn+year blacklisted", "issnErrorExceed", "%s %s" % issnYear)
+            checkIssnErrorCounts(pubmedMeta, issnErrorCount, ignoreIssns, outDir)
 
-            landingUrl   = findLandingUrl(pubmedMeta)
+            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig)
+
+            # first resolve the url (e.g. doi) to something on a webserver
             landingPage  = delayedWget(landingUrl)
-            
-            fulltextData = crawlForFulltext(landingPage)
+
+            if crawlConfig==None:
+                crawlConfig  = getConfig(hostToConfig, landingPage["url"])
+            else:
+                if noMatches(landingPage["url"], crawlConfig["hostnames"]):
+                    raise pubGetError("Landing page is on an unknown server", "unknownHost\t%s" % landingPage["url"])
+
+            checkForOngoingMaintenanceUrl(landingPage["url"])
+
+            fulltextData = crawlForFulltext(landingPage, crawlConfig)
 
             # write results to output files
             if not testPmid:
@@ -1211,3 +1321,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder):
                 raw_input("Press Enter...")
 
 
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

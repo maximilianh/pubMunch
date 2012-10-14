@@ -37,14 +37,15 @@ $PYTHON $BIN/pubGetElsevier $ELSDOWNLOADDIR
 echo __DOWNLOADING PUBMEDCENTRAL
 $PYTHON $BIN/pubGetPmc $PMCDOWNLOADDIR
 
+pubCrawl $CRAWLDIR --report /cluster/home/max/public_html/mining/crawlerStatus.html
+
 echo __CONVERT MEDLINE and update DB__ 
-cd $JOBDIR; $PYTHON $BIN/pubConvMedline $MEDLINEDOWNLOADDIR $MEDLINECONVDIR --updateDb
+cd $JOBDIR; time $PYTHON $BIN/pubConvMedline $MEDLINEDOWNLOADDIR $MEDLINECONVDIR --updateDb
 echo __CONVERT ELSEVIER___
 cd $JOBDIR; $PYTHON $BIN/pubConvElsevier $ELSDOWNLOADDIR $ELSCONVDIR
 echo __CONVERT PMC___
-cd $JOBDIR; $PYTHON $BIN/pubConvPmc $PMCDOWNLOADDIR $PMCCONVDIR
+cd $JOBDIR; time $PYTHON $BIN/pubConvPmc $PMCDOWNLOADDIR $PMCCONVDIR --updateDb
 
-pubCrawl $CRAWLDIR --report /cluster/home/max/public_html/mining/crawlerStatus.html
 
 #echo BLAT AND LOAD INTO MYSQL
 #ssh $CLUSTER "cd $JOBDIR; $PYTHON $BIN/pubBlat steps:all $BLATDIR -u notProcessed" && \

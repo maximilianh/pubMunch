@@ -172,7 +172,7 @@ class MatrixMaker:
             return
 
         results.setdefault(article.articleId, set())
-        pmid = article.articleId
+        pmid = article.pmid
         for term in iterWords(text):
             if term in self.termSet:
                 results[pmid].add(term)

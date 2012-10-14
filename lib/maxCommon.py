@@ -1,4 +1,5 @@
-import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, os.path, re, glob, time, urllib2
+import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
+    os.path, re, glob, time, urllib2, doctest, httplib
 from types import *
 
 def errAbort(text):
@@ -281,20 +282,42 @@ def parseConfig(f):
     return result
 
 def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
-    " wrap urlopen in try...except clause and repeat "
+    """ wrap urlopen in try...except clause and repeat
+    >>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
+    """
+    
+    def handleEx(ex, count):
+        logging.debug("Got Exception %s, %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
+            (type(ex), str(ex), url, params, delaySecs))
+        time.sleep(delaySecs)
+        count = count - 1
+        return count
+        
     count = repeatCount
     while count>0:
         try:
             ret = urllib2.urlopen(url, params)
+        except urllib2.HTTPError as ex:
+            count = handleEx(ex, count)
+        except httplib.HTTPException as ex:
+            count = handleEx(ex, count)
+        except urllib2.URLError as ex:
+            count = handleEx(ex, count)
+        else:
             return ret
-        except urllib2.HTTPError, ex:
-            logging.debug("Got HTTPError %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
-                (ex.code, url, params, delaySecs))
-            time.sleep(delaySecs)
-            count = count - 1
-            pass
-    logging.debug("Got HTTPError on urlopen, returning None after retry")
+
+    logging.debug("Got repeatedexceptions on urlopen, returning None")
     return None
+    
+def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120):
+    class HeadRequest(urllib2.Request):
+        def get_method(self):
+            return "HEAD"
+
+    response = retryHttpRequest(HeadRequest(url), repeatCount=repeatCount, delaySecs=delaySecs)
+    return response
     
 if __name__=="__main__":
     test()
+    import doctest
+    doctest.testmod()

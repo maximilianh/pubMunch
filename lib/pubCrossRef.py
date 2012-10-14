@@ -16,7 +16,7 @@ import maxCommon
 #        logging.debug("Empty cross reply")
 #        return None
 
-def lookupDoi(metaInfoDict):
+def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     """ take author, vol, journal etc from metaInfoDict, query crossref 'links' and return DOI if found 
 
     >>> lookupDoi({"authors":"M. Henrion, D. J. Mortlock, D. J. Hand, and A. Gandy", "title":"A Bayesian approach to star-galaxy classification", "journal":"Monthly Notices of the Royal Astronomical Society", "vol":"414", "issue":"4", "page":"2286", "year":"2011", "printIssn" : ""})
@@ -31,10 +31,11 @@ def lookupDoi(metaInfoDict):
     queryData = {"q" : freeFormCitStr}
     url = "http://search.labs.crossref.org/links?" 
     jsonParam = json.dumps([freeFormCitStr])
+    logging.debug("JSON string %s" % jsonParam)
     queryParam = {"q" : jsonParam}
 
     # send request
-    httpResp = maxCommon.retryHttpRequest(url, jsonParam, delaySecs=60, repeatCount=3)
+    httpResp = maxCommon.retryHttpRequest(url, jsonParam, delaySecs=delaySecs, repeatCount=repeatCount)
     if httpResp==None:
         logging.debug("HTTPError while sending crossref request")
         return None

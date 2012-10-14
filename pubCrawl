@@ -19,7 +19,7 @@ def main(args, options):
         sys.exit(0)
 
     try:
-        pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, options.pause, options.tryHard)
+        pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, options.pause, options.tryHard, options.restrictPublisher)
     except:
         if options.sendEmail:
             logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)
@@ -30,8 +30,9 @@ def main(args, options):
         raise
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <outDir> - crawl articles with supp files from publishers. Looks for pmids.txt in outDir.""")
+parser = optparse.OptionParser("""usage: %prog [options] <outDir> - crawl articles with supp files from websites. Looks for pmids.txt in outDir.""")
 
+parser.add_option("-r", "--restrictPublisher", dest="restrictPublisher", action="store_true", help="uses the name of the output directory to find webservers for this publisher and limits downloads to the webservers defined in pubConf.py")
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, default %default", default=10)
