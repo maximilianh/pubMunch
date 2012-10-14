@@ -37,7 +37,7 @@ $PYTHON $BIN/pubGetElsevier $ELSDOWNLOADDIR
 echo __DOWNLOADING PUBMEDCENTRAL
 $PYTHON $BIN/pubGetPmc $PMCDOWNLOADDIR
 
-pubCrawl $CRAWLDIR --report /cluster/home/max/public_html/mining/crawlerStatus.html
+$PYTHON $BIN/pubCrawl $CRAWLDIR --report /cluster/home/max/public_html/mining/crawlerStatus.html
 
 echo __CONVERT MEDLINE and update DB__ 
 cd $JOBDIR; time $PYTHON $BIN/pubConvMedline $MEDLINEDOWNLOADDIR $MEDLINECONVDIR --updateDb

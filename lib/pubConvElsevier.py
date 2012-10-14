@@ -440,7 +440,9 @@ def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxJobs):
 
     pubStore.moveFiles(outDir, finalOutDir)
     shutil.rmtree(outDir)
-    shutil.rmtree(indexSplitDir)
+    if isdir(indexSplitDir): # how could it not be there? 
+        logging.info("Deleting directory %s" % indexSplitDir)
+        shutil.rmtree(indexSplitDir) # got sometimes exception here...
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
 
 # this is a job script, so it is calling itself via parasol/bsub/qsub
