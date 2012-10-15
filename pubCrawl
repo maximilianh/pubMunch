@@ -24,10 +24,13 @@ def main(args, options):
         if options.sendEmail:
             logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)
             tb = traceback.format_exc().replace("'", "")
-            cmd = "echo pubCrawl %s error: '%s' | mail -s 'pubCrawl %s error' %s" % \
-                (outDir, tb, outDir, pubConf.email)
-            os.system(cmd)
-        raise
+            subject = 'pubCrawl %s error' % outDir
+            text = tb
+            maxCommon.sendEmail(pubConf.email, subject, text)
+            raise
+
+    if options.sendEmail:
+        maxCommon.sendEmail(pubConf.email, outDir+" finished", "crawling finished")
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - crawl articles with supp files from websites. Looks for pmids.txt in outDir.""")

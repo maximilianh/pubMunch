@@ -317,6 +317,10 @@ def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120):
     response = retryHttpRequest(HeadRequest(url), repeatCount=repeatCount, delaySecs=delaySecs)
     return response
     
+def sendEmail(address, subject, text):
+    cmd = "echo %s | mail -s '%s' %s" % (text, subject, address)
+    os.system(cmd)
+
 if __name__=="__main__":
     test()
     import doctest
