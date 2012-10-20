@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 # default python packages
-import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math
+import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math, glob
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -588,5 +588,5 @@ else:
 
 if options.updateDb:
     tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-    dbPath = join(outDir, "articles.new.db")
+    dbPath = join(outDir, "articles.db")
     pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

@@ -222,20 +222,26 @@ def appendTsvNamedtuple(filename, row):
        outFh = open(filename, "a")
     outFh.write("\t".join(row)+"\n")
 
-def appendTsvOrderedDict(filename, orderedDict):
-    " append a namedtuple to a file. Write headers if file does not exist "
-    headers = []
+def appendTsvDict(filename, inDict, headers):
+    " append a dict to a file in the order of headers"
     values = []
-    for key, val in orderedDict.iteritems():
-        headers.append(unicode(key))
-        values.append(unicode(val))
+    if headers==None:
+        headers = inDict.keys()
+
+    for head in headers:
+        values.append(inDict[head])
+
+    logging.debug("order of headers is: %s" % headers)
 
     if not os.path.isfile(filename):
        outFh = codecs.open(filename, "w", encoding="utf8") 
        outFh.write("\t".join(headers)+"\n")
     else:
-       outFh = codecs.open(filename, "a", encoding="utf8") 
+       outFh = codecs.open(filename, "a", encoding="utf8")
     outFh.write(u"\t".join(values)+"\n")
+
+def appendTsvOrderedDict(filename, orderedDict):
+    appendTsvDict(filename, orderedDict, None)
 
 class ProgressMeter:
     """ prints a message "x%" every stepCount/taskCount calls of taskCompleted()

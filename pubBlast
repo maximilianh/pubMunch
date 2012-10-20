@@ -296,7 +296,7 @@ pubBlast html myBlast.tab myBlast.html
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("-e", "--eVal", dest="eVal", action="store", help="maximum eVal (careful: set the database size to something reasonable!), default %default", default="10") 
-parser.add_option("-z", "--dbSize", dest="dbSize", action="store", help="effective database size, default %default", default="3000000000") 
+parser.add_option("-z", "--dbSize", dest="dbSize", action="store", help="effective database size, default %default", default="30000000") 
 (options, args) = parser.parse_args()
 if len(args)<=1:
     parser.print_help()

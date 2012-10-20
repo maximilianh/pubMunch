@@ -540,6 +540,14 @@ def test_sectioning():
     sec = sectionRanges(text)
     print sec
 
+def resolveDatasetDesc(descs):
+    " resolve a comma-sep list of dataset identifiers like pmc or elsevier to a list of directories "
+    dirs = []
+    for desc in descs.split(','):
+        descDir = pubConf.resolveTextDir(desc)
+        dirs.append(descDir)
+    return dirs
+
 if __name__=="__main__":
     setupLoggingOptions(None)
     #doctest.testmod()

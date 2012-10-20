@@ -404,16 +404,16 @@ class PubReaderFile:
             #logging.debug("Skipped %d files
         
         for fileData in self.fileRows:
-           logging.debug("Read file data %s for article %s" % \
+           logging.log(5, "Read file data %s for article %s" % \
                (str(fileData.fileId), fileData.articleId))
            text = pubGeneric.forceToUnicode(fileData.content)
            fileData = fileData._replace(content=text)
            if articleId==fileData.articleId:
-               logging.debug("adding file data")
+               logging.log(5, "adding file data")
                fileDataList.append(fileData)
            else:
                fileIds = list(set([str(x.fileId)[:pubConf.ARTICLEDIGITS] for x in fileDataList]))
-               logging.debug("article change. yielding: articleId %s, %d files with ids %s" % \
+               logging.log(5, "article change. yielding: articleId %s, %d files with ids %s" % \
                    (articleId, len(fileDataList), fileIds))
                assert(len(fileIds)==1)
                assert(fileIds[0]==str(articleId))
@@ -421,7 +421,7 @@ class PubReaderFile:
         return fileDataList, None
 
     def _keepBestMain(self, files):
-        " if there is a PDF and XML version for the main text, remove the PDF. keep all suppl files "
+        " if there is a PDF and XML or HTML version for the main text, remove the PDF. keep all suppl files "
         mainFiles = {}
         newFiles = []
         for fileData in files:
@@ -431,14 +431,14 @@ class PubReaderFile:
             else:
                 newFiles.append(fileData)
 
-        if "application/pdf" in mainFiles and "text/xml" in mainFiles:
+        if "application/pdf" in mainFiles and "text/xml" in mainFiles or "text/html" in mainFiles:
             del mainFiles["application/pdf"]
 
         assert(len(mainFiles)==1)
         newFiles.insert(0, mainFiles.values()[0])
         return newFiles
 
-    def iterArticlesFileList(self, onlyMeta, onlyBestMain):
+    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False):
         """ iterate over articles AND files, as far as possible
 
         for input files with article and file data:
@@ -446,7 +446,7 @@ class PubReaderFile:
         for input files with no article data, yield a tuple (None, [fileData])
         for input files with no file data, generate pseudo-file from abstract (title+abstract+authors)
         if onlyMeta is True, do not read .files.gz and yield (articleData, pseudoFile) 
-        if onlyBestMain is True, ignore the PDF file if there are PDF and XML main files
+        if onlyBestMain is True, ignore the PDF file if there are PDF and XML/Html main files
         """
         fileDataList = []
         lastFileData = None
@@ -455,7 +455,7 @@ class PubReaderFile:
                 logging.warn("skipping %s, seems that articleId is out of sync with files" %
                     articleData.articleId)
                 continue
-            logging.debug("Read article meta info for %s" % str(articleData.articleId))
+            logging.log(5, "Read article meta info for %s" % str(articleData.articleId))
 
             if self.fileRows!=None and not onlyMeta==True:
                 # if file data is there and we want it, read as much as we can
@@ -470,13 +470,8 @@ class PubReaderFile:
                 yield articleData, [fileTuple]
 
         if len(fileDataList)!=0 and lastFileData!=None:
-            logging.debug("last line: yielding last article + rest of fileDataList")
+            logging.log(5, "last line: yielding last article + rest of fileDataList")
             yield articleData, fileDataList
-        #if self.articleRows!=None:
-        #else:
-        #for fileData in self.fileRows:
-        #logging.debug("no article data, yielding only file data for id %s" % fileData.fileId)
-        #yield None, [fileData]
 
     def iterFileArticles(self):
         """ iterate over files and also give the articleData for each file """
@@ -511,6 +506,19 @@ class PubReaderFile:
         if self.fileRows:
             self.fileRows.close()
 
+def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False):
+    " iterate over all files with article/fileData in textDir "
+    fileNames = glob.glob(os.path.join(textDir, "*.articles.gz"))
+    logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))
+    pm = maxCommon.ProgressMeter(len(fileNames))
+    for textCount, textFname in enumerate(fileNames):
+        reader = PubReaderFile(textFname)
+        logging.debug("Reading %s, %d files left" % (textFname, len(fileNames)-textCount))
+        pr = pubStore.PubReaderFile(textFname)
+        for article, fileList in pr.iterArticlesFileList(onlyBestMain=preferPdf, onlyMeta=onlyMeta):
+            yield article, fileList
+        pm.taskCompleted()
+
 def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=None):
     """ yields all articleData from all files in textDir 
         Can filter to yield only a set of filenames or files for a 
@@ -540,7 +548,7 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
 
         logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))
 
-    pm = maxCommon.ProgressMeter(len(fileNames))
+    pm = maxCommon.ProgressMeter(len(fileNames), stepCount=100)
     for textFname in fileNames:
         if filterFname!=None and not filterFname in textFname:
             logging.warn("Skipping %s, because file filter is set" % textFname)

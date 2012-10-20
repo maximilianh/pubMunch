@@ -7,16 +7,16 @@ from os.path import *
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, pubCrawl, pubConf
+import pubGeneric, pubCrawl, pubConf, maxCommon
 
 def main(args, options):
     outDir = args[0]
-    logFname = join(outDir, "crawler.log")
-    pubGeneric.setupLogging("", options, logFileName=logFname, fileMode="a")
-
     if options.report:
         pubCrawl.writeReport(outDir, options.report)
         sys.exit(0)
+
+    logFname = join(outDir, "crawler.log")
+    pubGeneric.setupLogging("", options, logFileName=logFname, fileMode="a")
 
     try:
         pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, options.pause, options.tryHard, options.restrictPublisher)

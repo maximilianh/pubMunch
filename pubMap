@@ -23,7 +23,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, pubAlg, maxCommon, tabfile, pubBlat
+import pubConf, pubGeneric, pubAlg, maxCommon, tabfile, pubMap
 
 # GLOBAL: filename of lockfile
 lockFname = None
@@ -39,7 +39,7 @@ STEPS FOR SCANNING TEXT FOR SEQUENCES:
 
 "annot": extract DNA seqs from text files (annotator)
    example:
-     pubBlat pmc seqs
+     pubMap pmc seqs
 
 STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
 
@@ -47,17 +47,17 @@ STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
 
 "filter": remove duplicate and very short DNA/Prot sequences
    input: <baseDir>/annot, output: <baseDir>/blatGenome/seq and <baseDir>/blatProt/seq
-   example: pubBlat pmc filter 
+   example: pubMap pmc filter 
 
 "blatGenome": submit blat jobs of DNA against genomes, converts to split fasta files
       separates into short/long sequences
    input: <baseDir>/blatGenome/seq
    output: <baseDir>/blatGenome/fasta and <baseDir>/blatGenome/psl/{long,short}
-   example: pubBlat pmc blat
+   example: pubMap pmc blat
 
 "sortGenome": sort blat output files and add genome to tName
    input: <baseDir>/psl/{short,long}   ouput: baseDir/psl/sortedPsl
-   example: pubBlat pmc sort
+   example: pubMap pmc sort
 
 CDNA-steps (like above, writes to <baseDir>/blatCdna/):
    "blatCdna": pulls out sequences that do not match any genome, then see "blatGenome"
@@ -72,7 +72,7 @@ Protein-steps:
     input: <baseDir>/{blatGenome,blatCdna}/sortedPsl/ 
     output: <baseDir>/blatGenome/bed
     example:
-    pubBlat pmc chain
+    pubMap pmc chain
 
 STEPS FOR LOADING RESULTS INTO GENOME BROWSER:
 
@@ -86,11 +86,11 @@ STEPS FOR LOADING RESULTS INTO GENOME BROWSER:
    - uses textDir.conf to find the fulltext files and parse
      out basic article information
    - writes article and seq info to tab-files in <outDir>/tables/
-   pubBlat pmc tables
+   pubMap pmc tables
 
 "load": load all tables with hgLoadSql/hgLoadBed into browser
    example:
-   pubBlat pmc,elsevier load 
+   pubMap pmc,elsevier load 
 
    Will process all of <outDir> tables and <outDir>/updates/<i>/tables
    Note that you need to supply --loadFinal if you really want to
@@ -112,7 +112,7 @@ parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="
 parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true", help="do not convert sequences or convert to fasta or sort/chain, only do the second part of the processing for blat, blatCdna or chain. Used for debugging.") 
 #parser.add_option("-n", "--dontRunNow", dest="dontRunNow", action="store_true", help="if parasol: do not push cluster jobs immediately but let user run para push commands") 
 #parser.add_option("-f", "--forceDbs", dest="forceDbs", action="append", help="force blatting on only this list of dbs (comma-sep), e.g. hg19,mm9", default=None) 
-parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubBlat.<date>.log", default=False) 
+parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubMap.<date>.log", default=False) 
 #parser.add_option("", "--finalLoad", dest="finalLoad", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.", default="") 
 ###parser.add_option("-r", "--reload", dest="reload", action="store_true", help="by default, the tables step", default=None) 
 (options, args) = parser.parse_args()
@@ -126,14 +126,14 @@ def main(args, options):
         "sortCdna", "blatProt", "sortProt", "chain", \
         "identifiers", "tables", "load"]
 
-    d = pubBlat.initDirs(publisher, allSteps)
+    d = pubMap.initDirs(publisher, allSteps)
 
     if command.startswith("steps:"):
-        stepFrom, stepTo = pubBlat.parseSteps(command)
+        stepFrom, stepTo = pubMap.parseSteps(command)
         # this is the list of steps for steps:all
-        pubBlat.runStepRange(d, allSteps, stepFrom, stepTo, args, options)
+        pubMap.runStepRange(d, allSteps, stepFrom, stepTo, args, options)
     else:
-        pubBlat.runStep(publisher, command, d)
+        pubMap.runStep(publisher, command, d)
 
 def removeLock():
     global lockFname

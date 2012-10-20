@@ -10,17 +10,19 @@ sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 import pubGeneric, pubExpMatrix, pubConf
 
 def main(args, options):
-    outDir = args[0]
-    datasets = args[1:]
+    datasetStr, pmidListFname, outBase = args
+    dirNames = pubGeneric.resolveDatasetDesc(datasetStr)
     pubGeneric.setupLogging("", options)
-    pubExpMatrix.exportMatrix(outDir, datasets, options.skipMap)
+    wordListFname = options.wordList
+    pubExpMatrix.exportMatrix(dirNames, pmidListFname, outBase, wordListFname, options.skipMap)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] outFile dataset1 dataset2 ... - create a matrix for R for each article with a PMID """)
+parser = optparse.OptionParser("""usage: %prog [options] datasets pmidFile outBasename - create a matrix for mallet""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--skipMap", dest="skipMap", action="store_true", help="skip map step")
+parser.add_option("-s", "--wordList", dest="wordList", action="store", help="optional list of words to use, one per line")
 (options, args) = parser.parse_args()
 
 if args==[]:

@@ -1,10 +1,10 @@
 # library to create a term-document matrix for R from documents
 
-import re, os, logging, gzip, sys
+import re, os, logging, gzip, sys, codecs
 from os.path import *
 
 # load our own libraries
-import pubConf, pubGeneric, pubStore, maxCommon, maxRun, pubAlg
+import pubConf, pubGeneric, pubStore, maxCommon, maxRun, pubAlg, tabfile
 #import nltk.stem.porter
 import nltk.stem.snowball
 
@@ -13,24 +13,55 @@ def chunkMatrix(inChunk, outName):
     print inChunk, outName
 
 # ===== FUNCTIONS ====
-def runMatrixJobs(datasets, wordListFname, skipMap):
-    outFname = "./matrix.tab"
-    batchDir = join(pubConf.clusterBatchDir, "pubExpMatrix-matrix")
-    clusterRun = maxRun.Runner(batchDir=batchDir, headNode="swarm.cse.ucsc.edu", clusterType="parasol")
-    pubAlg.mapReduce(__file__+":MatrixMaker", datasets, {"wordFile": wordListFname}, outFname, skipMap=skipMap, \
-        deleteDir=False, runTest=True, runner=clusterRun)
+def runMatrixJobs(outFname, datasets, wordListFname, pmidListFname, skipMap):
+    for dataset in datasets:
+        batchDir = join(pubConf.clusterBatchDir, "pubExpMatrix-matrix")
+        clusterRun = maxRun.Runner(batchDir=batchDir, headNode="swarm.cse.ucsc.edu", clusterType="parasol")
+        pmidOutFname = splitext(outFname)[0]+".svmlight.pmids"
+        paramDict = {"wordFile": wordListFname, "pmidFile" : pmidListFname, "pmidOutFile" : pmidOutFname}
+        pubAlg.mapReduce(__file__+":MatrixMaker", dataset, paramDict, \
+            outFname, skipMap=skipMap, deleteDir=False, runTest=True, runner=clusterRun)
 
-def exportMatrix(outFname, datasets, skipMap):
-    wordListFname = os.getcwd()+"/wordList.txt.gz"
-    if not isfile(wordListFname):
-        logging.info("%s not found" % wordListFname)
-        buildWordList(datasets, skipMap)
-        logging.info("raw word list created, use your own command now to reduce it to something smaller")
-        logging.info("e.g. cat wordFreq.tab | gawk '($2<50000) && ($2>100)' | cut -f1 | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/google-ngrams/fiction/top100k.tab  | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/bnc/bnc.txt > wordList.txt")
+def expData(inDirs, pmidListFname, outBase):
+    logging.info("Reading %s" % pmidListFname)
+    pmids = set([int(x) for x in tabfile.slurplist(pmidListFname)])
+    logging.info("Read %d pmids" % len(pmids))
+    posFname = outBase+".pos.tab"
+    negFname = outBase+".neg.tab"
+    posFh = codecs.open(posFname, "w", encoding="utf8")
+    negFh = codecs.open(negFname, "w", encoding="utf8")
+    
+    for dataDir in inDirs:
+        logging.debug(dataDir)
+        for article, fileList in pubStore.iterArticleDirList(dataDir):
+            if article.pmid=="":
+                continue
+            if int(article.pmid) in pmids:
+                ofh = posFh
+                txtClass = "pos"
+            else:
+                ofh = negFh
+                txtClass = "neg"
 
-    else:
-        logging.info("Word file found, creating matrix")
-        runMatrixJobs(datasets, wordListFname, skipMap)
+            for fileData in fileList:
+                if fileData.fileType=="main":
+                    text = fileData.content
+                    text = text.replace("\a", " ")
+                    ofh.write("%s\t%s\t%s\n" % (article.pmid, txtClass, text))
+
+def exportMatrix(inDirs, pmidListFname, outBase, wordListFname, skipMap):
+    if wordListFname:
+        wordListFname = join(os.getcwd(),wordListFname)
+        if not isfile(wordListFname):
+            logging.info("%s not found" % wordListFname)
+            buildWordList(inDirs, skipMap)
+            logging.info("raw word list created, use your own command now to reduce it to something smaller")
+            logging.info("e.g. cat wordFreq.tab | gawk '($2<50000) && ($2>100)' | cut -f1 | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/google-ngrams/fiction/top100k.tab  | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/bnc/bnc.txt > wordList.txt")
+
+    pmidListFname = join(os.getcwd(), pmidListFname)
+    logging.info("creating matrix")
+    runMatrixJobs(outBase, inDirs, wordListFname, pmidListFname, skipMap)
+    #expData(inDirs, pmidListFname, outBase)
 
 def buildWordList(datasets, skipMap):
     #outFname = join(outDir, "matrix.tab")
@@ -141,42 +172,67 @@ class WordCounter:
         else:
             yield [word, str(articleCount)]
 
+class AnnotMaker:
+    """ 
+    annotation algorithm to reformat text
+    """
+    def __init__(self):
+        self.headers = ["class", "text"]
+
+    def annotateFile(self, articleData, fileData):
+        if articleData.pmid!="":
+            yield articleData.pmid, fileData.content
+
 class MatrixMaker:
     """ 
-    map-reduce algorithm to output term-document-matrix given a wordlist
+    map-reduce algorithm to output term-document-matrix given a wordlist and an optional list of PMIDs
     """
     def __init__(self):
         self.wordCounts = {}
-        self.headers = ["pmid"]
+        self.headers = ["pmid", "class"]
 
     def startup(self, paramDict, results):
-        """ called when job starts on node, parse dictioary of keyterms """
-        terms = gzip.open(paramDict["wordFile"]).readlines()
-        terms = [w.strip() for w in terms]
-        self.termList = terms # keep both: list for order, set for speed
-        self.termSet = set(terms)
+        """ called when job starts on node, read terms """
+        if "wordFile" in paramDict:
+            terms = gzip.open(paramDict["wordFile"]).readlines()
+            terms = [w.strip() for w in terms]
+            self.termList = terms # keep both: list for order, set for speed
+            self.termSet = set(terms)
+            self.termToId = {}
+            for termId, term in enumerate(self.termList):
+                self.termToId[term] = termId # svmlight doesn't like 0
+        else:
+            self.termSet = None
+            self.termList = None
+            self.termToId = None
 
-        self.termToPos = {}
-        for pos, term in enumerate(self.termList):
-            self.termToPos[term] = pos
-
-    def reduceStartup(self, paramDict):
-        " called before reducer starts "
-        self.headers.extend(self.termList)
+        if "pmidFile" in paramDict:
+            pmidFname = paramDict["pmidFile"]
+            assert(pmidFname.endswith(".gz"))
+            pmids = gzip.open(pmidFname).readlines()
+            pmids = [int(i.strip()) for i in pmids]
+            self.pmidSet = set(pmids)
+        else:
+            self.pmidSet = None
 
     def map(self, article, file, text, results):
         " called once for each input file. create dict pmid -> set of words "
-        logging.info(" ".join([article.articleId, article.externalId, file.fileType, file.mimeType]))
+
         if article.pmid=="":
             logging.info("no PMID")
             return
 
-        results.setdefault(article.articleId, set())
-        pmid = article.pmid
+        results.setdefault(article.pmid, set())
+        pmid = int(article.pmid)
+        #if self.pmidSet!=None and pmid not in self.pmidSet:
+            #continue
+            
+        results.setdefault(pmid, set())
         for term in iterWords(text):
-            if term in self.termSet:
+            if (self.termSet==None) or term in self.termSet:
                 results[pmid].add(term)
 
+        logging.info(" ".join([article.articleId, article.externalId, file.fileType, file.mimeType]))
     #def end(self, results):
         #" called once per cluster node after job has ended. convert dict to pmid -> list of termVec "
         #newResults = {}
@@ -188,11 +244,43 @@ class MatrixMaker:
             #newResults.setdefault(pmid, []).append(termVec)
         #return newResults
 
-    def reduce(self, pmid, terms):
+    def reduceStartup(self, resultDict, paramDict):
+        " called before reducer starts "
+        #self.headers.extend(self.termList)
+        self.headers = ["#noHeader"]
+        print paramDict
+        self.pmidOfh = open(paramDict["pmidOutFile"], "w")
+
+    def _termsToSvmLight(self, pmid, isPos, termSet):
+        " return as a string in svmlight format "
+        if isPos:
+            target = "+1"
+        else:
+            target = "-1"
+
+        termIds = []
+        termSet = set(termSet)
+        for term in termSet:
+            termId = self.termToId[term]+1
+            termIds.append(termId)
+        termIds.sort()
+        ftStrings = [str(termId)+":1" for termId in termIds]
+        line = "%s %s" % (target, " ".join(ftStrings))
+        return line
+
+    def reduce(self, pmid, termSet):
         " called once per cluster run after all nodes are finished. output vectors "
         #if len(termVecs)>1:
             #logging.warn("duplicate PMID %s" % str(pmid))
         #termVec = termVecs[0]
-        row = [pmid, "PMID"+str(pmid)]
-        row.extend(terms)
-        yield row
+        isPos = int(pmid) in self.pmidSet
+
+        # make sure that we don't output more negatives than positives
+        #if (classStr=="neg" and self.negCount < len(self.pmidSet)) or (classStr=="pos"):
+        #row = [pmid, classStr]
+        #row.extend(terms)
+        #yield row
+        if len(termSet)!=0:
+            lineStr = self._termsToSvmLight(pmid, isPos, termSet)
+            self.pmidOfh.write(str(pmid)+"\n")
+            yield [lineStr]

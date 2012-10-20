@@ -94,7 +94,7 @@ class UnifyAuthors:
                 nextLetter = chr(ord(lastLetter)+1)
                 return self._checkAgainstOld(uniqueId[:-1]+nextLetter)
             
-    def reduceStartup(self, resultDict):
+    def reduceStartup(self, resultDict, paramDict):
         " this is called once before the reduce step "
         self._readOldIdentifiers()
 

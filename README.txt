@@ -49,4 +49,5 @@ http://www.nature.com/nrclinonc/journal/v7/n11/full/nrclinonc.2010.119.html
 - in wget, it triggers a 401 error
 
 
-
+cat /cluster/home/max/projects/pubs/crawlDir/rupress/articleMeta.tab | head
+-n13658 | tail -n2 > problem.txt

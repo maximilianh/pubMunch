@@ -58,6 +58,7 @@ def downloadConsyn(rssUrl, outDir):
         else:
             tmpFile = tempfile.NamedTemporaryFile(dir=pubConf.getTempDir(), prefix="tempDownload.pubGetElsevier", suffix=".zip")
             tmpName = tmpFile.name
+            logging.info("Downloading %s" % (fileUrl))
             logging.debug("Downloading %s to %s" % (fileUrl, tmpName))
             subprocess.call(["wget", fileUrl, "-O", tmpName, "-q"])
 

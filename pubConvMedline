@@ -142,5 +142,5 @@ else:
 
 if options.updateDb:
     tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-    dbPath = join(outDir, "articles.new.db")
+    dbPath = join(outDir, "articles.db")
     pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

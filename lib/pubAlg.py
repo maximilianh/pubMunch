@@ -101,6 +101,7 @@ def getAlg(algName, defClass=None):
 
 def writeParamDict(paramDict, paramDictName):
     " pickle parameter to current dir "
+    logging.debug("Writing parameters to %s" % paramDictName)
     outFh = open(paramDictName, "w")
     cPickle.dump(paramDict, outFh)
     return paramDictName
@@ -513,7 +514,7 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
 
     if "reduceStartup" in dir(alg):
         logging.info("Running reduceStartup")
-        alg.reduceStartup(data)
+        alg.reduceStartup(data, paramDict)
 
     logging.info("Writing to %s" % outFilename)
     if outFilename=="stdout":

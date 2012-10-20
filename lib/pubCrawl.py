@@ -86,11 +86,11 @@ pubsCrawlCfg = { "npg" :
     "rupress" :
     {
         "hostnames" : ["rupress.org", "jcb.org"],
-        "doiUrl_rewriteRules" : {"$" : ".abstract"},
+        "doiUrl_rewriteRules" : {"$" : ".long"},
         "landingPageIsArticleUrlKeyword" : ".long",
         "landingPage_ignorePageWords" : ["From The Jcb"],
         "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes"},
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf"},
         "addSuppFileTypes" : ["html", "htm"], # pubConf does not include htm/html
         "mainPdfLinkREs" : ["Full Text (PDF)"],
         #"suppListPageREs" : ["Supplemental [Mm]aterial [Iindex]", "Supplemental [Mm]aterial"],
@@ -685,11 +685,11 @@ def storeMeta(outDir, metaData, fulltextData):
             suppUrls.append(page.get("url",""))
     metaData["suppUrls"] = ",".join(suppUrls)
             
+    headers = pubStore.articleFields
     if not isfile(filename):
-        headers = pubStore.articleFields
         headers.extend(addHeaders)
         codecs.open(filename, "w", encoding="utf8").write(u"\t".join(headers)+"\n")
-    maxCommon.appendTsvOrderedDict(filename, metaData)
+    maxCommon.appendTsvDict(filename, metaData, headers)
 
 def detFileExt(page):
     " determine file extension based on either mimetype or url file extension "
@@ -1132,8 +1132,9 @@ def parseIdStatus(fname):
         status = status.split("\\")[0]
         status = status.strip('"')
         status = status.strip("'")
-        res.setdefault(status, 0)
-        res[status]+=1
+        res.setdefault(status, [])
+        pmid = int(pmid)
+        res[status].append(pmid)
     return res
 
 def writeReport(baseDir, htmlFname):
@@ -1157,20 +1158,25 @@ def writeReport(baseDir, htmlFname):
         print "pmidCount"
         pmidCount = len(open(join(dirName, "pmids.txt")).readlines())
         print "status"
-        statusCounts = parseIdStatus(join(dirName, "pmidStatus.tab"))
+        statusPmids = parseIdStatus(join(dirName, "pmidStatus.tab"))
         publisher = basename(dirName)
         isActive = isfile(join(dirName, "_pubCrawl.lock"))
         totalPmidCount += pmidCount
-        totalOkCount  += statusCounts["OK"]
+        totalOkCount  += len(statusPmids["OK"])
 
         h.h4("Publisher: %s (%s)" % (publDesc[publisher], publisher))
         h.startUl()
         h.li("Crawler is running: %s" % isActive)
         h.li("Total PMIDs scheduled: %d" % pmidCount)
-        h.li("Crawl success rate: %0.2f %%" % (100*statusCounts["OK"]/float(pmidCount)))
+        h.li("Crawl success rate: %0.2f %%" % (100*len(statusPmids["OK"])/float(pmidCount)))
         h.startUl()
-        for status, count in statusCounts.iteritems():
-            h.li("Status %s: %d" % (status, count))
+        for status, pmidList in statusPmids.iteritems():
+            exampleLinks = [html.pubmedLink(pmid) for pmid in pmidList[:10]]
+            #if status=="OK":
+                #exampleLinkStr = ""
+            #else:
+            exampleLinkStr = "&nbsp;&nbsp; (examples: %s, ...)" % ",".join(exampleLinks)
+            h.li("Status %s: %d %s" % (status, len(pmidList), exampleLinkStr))
         h.endUl()
         h.endUl()
 
@@ -1319,8 +1325,6 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
                 raise
             if pause:
                 raw_input("Press Enter...")
-
-
 
 if __name__=="__main__":
     import doctest

@@ -1868,8 +1868,8 @@ def defineBatchDirectories(d, pubBlatBase, publisher, textDir, newBatchId=None):
 
     # cdna blat directories
     cdnaBlatDir    = "blatCdna"
-    d.cdnaSeqDir       = join(batchDir, cdnaBlatDir, "seq") # unique sequences per article, dups removed
-    d.cdnaFastaDir     = join(batchDir, cdnaBlatDir, "fasta") # like seq, but in fa format
+    #d.cdnaSeqDir       = join(batchDir, cdnaBlatDir, "seq") # unique sequences per article, dups removed
+    #d.cdnaFastaDir     = join(batchDir, cdnaBlatDir, "fasta") # like seq, but in fa format
     d.cdnaPslDir       = join(batchDir, cdnaBlatDir, "psl") # blat output
     d.cdnaPslSortedDir = join(batchDir, cdnaBlatDir, "cdnaSortedPsl") # sorted blat output
 
@@ -1966,7 +1966,7 @@ def runStep(publisher, command, d):
             "startAnnotId.SeqScraper":0, "startAnnotId.ProteinDetect":15000, \
             "startAnnotId.MarkerAnnotate" : 30000 }
         chunkNames = pubAlg.annotate(
-            "markerSearch.py:MarkerAnnotate,t2gDnaDetect.py:Annotate,ProteinDetect", 
+            "markerSearch.py:MarkerAnnotate,t2gDnaDetect.py:Annotate,protDetect.py",
             d.textDir, options, outDirs, updateIds=d.updateIds, cleanUp=True, runNow=True)
 
         writeChunkNames(chunkNames, d.chunkListFname)
@@ -1986,9 +1986,9 @@ def runStep(publisher, command, d):
 
     # ==== CDNA COMMANDS, similar to above
     elif command=="blatCdna":
-        maxCommon.mustBeEmptyDir([d.cdnaPslDir, d.cdnaFastaDir], makeDir=True)
-        if not options.skipConvert:
-            maxCommon.mustBeEmptyDir([d.cdnaSeqDir], makeDir=True)
+        maxCommon.mustBeEmptyDir([d.cdnaPslDir], makeDir=True)
+        #if not options.skipConvert:
+            #maxCommon.mustBeEmptyDir([d.cdnaSeqDir], makeDir=True)
             #logging.info("Searching for sequences that match genome directly")
             #mappedIds = parseAnnotationIds(d.pslSortedDir)
             #writeUnmappedSeqs(mappedIds, d.seqDir, d.cdnaSeqDir)
