@@ -102,44 +102,36 @@ def getAlg(algName, defClass=None):
 def writeParamDict(paramDict, paramDictName):
     " pickle parameter to current dir "
     logging.debug("Writing parameters to %s" % paramDictName)
-    outFh = open(paramDictName, "w")
-    cPickle.dump(paramDict, outFh)
+    outFh = gzip.open(paramDictName, "wb")
+    #cPickle.dump(paramDict, outFh)
+    binData = marshal.dumps(paramDict)
+    outFh.write(binData)
+    outFh.close()
     return paramDictName
 
-def findFiles(inDir):
-    """ return all basenames for .gz files in inDir. 
+def findFiles(dataset):
+    """ return all basenames for .gz files in datasets. 
     inDir can be a list of datasetnames, a file or a directory with datasetnames """
-    if type(inDir)==types.ListType:
-        datasets = inDir
-        zipNames = []
-        for dataset in datasets:
-            dataDir = resolveTextDir(dataset)
-            zipNames.extend(glob.glob(join(dataDir, "*.gz")))
-    elif isfile(inDir):
-        zipNames = [inDir]
-    elif not isdir(inDir):
-        inDir = resolveTextDir(inDir)
-        zipNames = glob.glob(join(inDir, "*.gz"))
-    elif isdir(inDir):
-        zipNames = glob.glob(join(inDir, "*.gz"))
-    else:
-        assert(False)
 
-    if len(zipNames)==0:
-        raise Exception("Could not find any gz files in %s"% inDir)
+    #assert(type(datasets)==types.ListType)
+    fnames = []
+    dataDir = pubConf.resolveTextDir(dataset)
+    fnames.extend(glob.glob(join(dataDir, "*.articles.gz")))
+    if len(fnames)==0:
+        raise Exception("Could not find any *.articles.gz files in %s"% dataDir)
 
-    return zipNames
+    return fnames
 
-def findArticleBasenames(inDir, updateIds=None):
+def findArticleBasenames(dataset, updateIds=None):
     """ given a fulltext directory, return all basenames of *.{article,files}.gz files 
         Basename means the part before the first "."
         Optionally filters on updateId
     
     """
-    zipNames = findFiles(inDir)
-    logging.debug("Found zipfiles: %d files" % len(zipNames))
+    zipNames = findFiles(dataset)
+    logging.debug("Found article files: %d files" % len(zipNames))
     baseNames = set([join(dirname(fn), basename(fn).split(".")[0]) for fn in zipNames])
-    logging.debug("Found filenames: %d files" % len(baseNames))
+    logging.debug("Found basenames: %d files" % len(baseNames))
     if updateIds!=None:
         filteredNames = []
         for updateId in updateIds:
@@ -147,10 +139,10 @@ def findArticleBasenames(inDir, updateIds=None):
             logging.debug("Removing all filenames that don't start with updateId %s" % updateId)
             filteredNames.extend([fn for fn in baseNames if basename(fn).startswith("%s_" % updateId)])
         baseNames = filteredNames
-    logging.debug("Found %s basenames in %s: " % (len(baseNames), inDir))
+    logging.debug("Found %s basenames for %s: " % (len(baseNames), dataset))
     return baseNames
 
-def findFilesSubmitJobs(algNames, algMethod, inDir, outDirs, outExt, paramDict, runNow=False, cleanUp=False, updateIds=None, batchDir=".", runner=None):
+def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict, runNow=False, cleanUp=False, updateIds=None, batchDir=".", runner=None, prefixDataset = False):
     """ find data zip files and submit one map job per zip file
         Jobs call pubAlg.pyc and then run the algMethod-method of algName
 
@@ -163,7 +155,9 @@ def findFilesSubmitJobs(algNames, algMethod, inDir, outDirs, outExt, paramDict, 
     assert(algMethod in ["map", "annotate"]) 
     assert(algNames.count(",")==outDirs.count(",")) # need several output dirs if multiple algs specified
 
-    baseNames = findArticleBasenames(inDir, updateIds)
+    if isinstance(inDirs, basestring):
+        inDirs = [inDirs]
+
     algNames = algNames.split(",")
     outDirs = outDirs.split(",")
 
@@ -172,23 +166,29 @@ def findFilesSubmitJobs(algNames, algMethod, inDir, outDirs, outExt, paramDict, 
 
     algCount = 0
     for algName, outDir in zip(algNames, outDirs):
-        algShortName = basename(algName).split(".")[0]
-        outDir = abspath(outDir)
-        paramFname = join(outDir, algShortName+".mapReduceParam.conf")
-        # if multiple algs specified: try to make annotIds non-overlapping
-        paramKey = "startAnnotId."+algShortName
-        if paramKey not in paramDict and len(algNames)>1:
-            paramDict[paramKey] = str(algCount*(10**pubConf.ANNOTDIGITS/len(algNames)))
+        for inDir in inDirs:
+            logging.debug("input directory %s" % inDir)
+            baseNames = findArticleBasenames(inDir, updateIds)
+            algShortName = basename(algName).split(".")[0]
+            outDir = abspath(outDir)
+            paramFname = join(outDir, algShortName+".mapReduceParam.conf.gz")
+            # if multiple algs specified: try to make annotIds non-overlapping
+            paramKey = "startAnnotId."+algShortName
+            if paramKey not in paramDict and len(algNames)>1:
+                paramDict[paramKey] = str(algCount*(10**pubConf.ANNOTDIGITS/len(algNames)))
 
-        writeParamDict(paramDict, paramFname)
-        for inFile in baseNames:
-            inBase = splitext(basename(inFile))[0]
-            outFullname = join(outDir, inBase)+outExt
-            mustNotExist(outFullname)
-            command = "%s %s %s %s %s {check out exists %s} %s" % \
-                (sys.executable, __file__ , algName, algMethod, inFile, outFullname, paramFname)
-            runner.submit(command)
-        algCount += 1
+            writeParamDict(paramDict, paramFname)
+            for inFile in baseNames:
+                inBase = splitext(basename(inFile))[0]
+                # "map" can read from several datasets so need to make filenames unique
+                if algMethod=="map":
+                    inBase = basename(inDir)+"_"+inBase
+                outFullname = join(outDir, inBase)+outExt
+                mustNotExist(outFullname)
+                command = "%s %s %s %s %s {check out exists %s} %s" % \
+                    (sys.executable, __file__ , algName, algMethod, inFile, outFullname, paramFname)
+                runner.submit(command)
+            algCount += 1
 
     runner.finish(wait=runNow, cleanUp=cleanUp)
     if cleanUp:
@@ -512,17 +512,19 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
         logging.debug("Reading "+fileName)
         meter.taskCompleted()
 
-    if "reduceStartup" in dir(alg):
-        logging.info("Running reduceStartup")
-        alg.reduceStartup(data, paramDict)
-
     logging.info("Writing to %s" % outFilename)
     if outFilename=="stdout":
         ofh = sys.stdout
     else:
         ofh = open(outFilename, "w")
-    ofh.write("\t".join(alg.headers))
-    ofh.write("\n")
+
+    if "headers" in dir(alg):
+        ofh.write("\t".join(alg.headers))
+        ofh.write("\n")
+
+    if "reduceStartup" in dir(alg):
+        logging.info("Running reduceStartup")
+        alg.reduceStartup(data, paramDict, ofh)
 
     logging.info("Running data through reducer")
     meter = maxCommon.ProgressMeter(len(data))
@@ -559,21 +561,21 @@ def annotate(algNames, textDir, paramDict, outDirs, cleanUp=False, runNow=False,
         ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
     return baseNames
 
-def mapReduceTestRun(textDir, alg, paramDict, tmpDir, updateIds=None, skipMap=False):
+def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False):
     " do a map reduce run only on one random file, no cluster submission, for testing "
     if updateIds!=None:
         updateId = updateIds[0]
     else:
         updateId = None
-    baseNames = findArticleBasenames(textDir, updateId)
+    baseNames = findArticleBasenames(datasets[0], updateId)
     firstBasename = baseNames.pop()
     oneInputFile = firstBasename+".articles.gz"
     if not isfile(oneInputFile):
         oneInputFile = firstBasename+".files.gz"
     logging.info("Testing algorithm on file %s" % oneInputFile)
     reader = pubStore.PubReaderFile(oneInputFile)
-    tmpAlgOut = join(tmpDir, "pubMapReduceMap.tmp")
-    tmpRedOut = join(tmpDir, "pubMapReduceReduce.tmp")
+    tmpAlgOut = join(tmpDir, "pubMapReduceTest.temp.tab.gz")
+    tmpRedOut = "pubRunMapReduce_TestOutput.tmp"
     if skipMap==False or not isfile(tmpAlgOut):
         runMap(reader, alg, paramDict, tmpAlgOut)
     runReduce(alg, paramDict, tmpAlgOut, tmpRedOut, quiet=True)
@@ -584,19 +586,10 @@ def mapReduceTestRun(textDir, alg, paramDict, tmpDir, updateIds=None, skipMap=Fa
         line = line.strip()
         logging.info(line)
     #os.remove(tmpAlgOut)
-    os.remove(tmpRedOut)
+    #os.remove(tmpRedOut)
+    logging.info("test output written to file %s, file not deleted" % tmpRedOut)
 
-def resolveTextDir(textDir):
-    " make sure textDir exists and try the default locations to resolve it to full path "
-    logging.debug("Resolveing %s to directory" % textDir)
-    if not isdir(textDir) and not isfile(textDir):
-        textDir = join(pubConf.textBaseDir, textDir)
-        if not isdir(textDir):
-            logging.error("Cannot find dir %s" % textDir)
-            sys.exit(1)
-    return textDir
-
-def mapReduce(algName, textDir, paramDict, outFilename, skipMap=False, cleanUp=False, tmpDir=None, deleteDir=True, updateIds=None, runTest=True, batchDir=".", headNode=None, runner=None):
+def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=False, tmpDir=None, deleteDir=True, updateIds=None, runTest=True, batchDir=".", headNode=None, runner=None, onlyTest=False):
     """ 
     submit jobs to batch system to:
     create tempDir, map textDir into this directory with alg,
@@ -607,6 +600,9 @@ def mapReduce(algName, textDir, paramDict, outFilename, skipMap=False, cleanUp=F
     """
 
     alg = getAlg(algName, defClass="Map") # just to check if algName is valid
+
+    if isinstance(textDirs, basestring):
+        textDirs = [textDirs]
 
     if tmpDir==None:
         tmpDir = join(pubConf.mapReduceTmpDir, os.path.basename(algName).split(".")[0])
@@ -621,13 +617,14 @@ def mapReduce(algName, textDir, paramDict, outFilename, skipMap=False, cleanUp=F
 
     # before we let this loose on the cluster, make sure that it actually works
     if runTest:
-        mapReduceTestRun(textDir, alg, paramDict, tmpDir, updateIds=updateIds, skipMap=skipMap)
+        mapReduceTestRun(textDirs, alg, paramDict, tmpDir, updateIds=updateIds, skipMap=skipMap)
 
-    logging.info("Now submitting to cluster/running on all files")
-    if not skipMap:
-        findFilesSubmitJobs(algName, "map", textDir, tmpDir, MAPREDUCEEXT, paramDict,\
-            runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
-    runReduce(algName, paramDict, tmpDir, outFilename)
+    if not onlyTest:
+        logging.info("Now submitting to cluster/running on all files")
+        if not skipMap:
+            findFilesSubmitJobs(algName, "map", textDirs, tmpDir, MAPREDUCEEXT, paramDict,\
+                runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner, prefixDataset=True)
+        runReduce(algName, paramDict, tmpDir, outFilename)
 
     if deleteDir and not skipMap:
         logging.info("Deleting directory %s" % tmpDir)
@@ -647,9 +644,10 @@ if __name__ == '__main__':
         sys.exit(0)
 
     algName, algMethod, inName, outName, paramFile = args
-    paramDict = cPickle.load(open(paramFile))
 
-    #mustExist(inName)
+    #paramDict = cPickle.load(open(paramFile))
+    binData = gzip.open(paramFile, "rb").read()
+    paramDict = marshal.loads(binData)
 
     alg = pubAlg.getAlg(algName, defClass=string.capitalize(algMethod))
     #alg = pubAlg.getAlg(algName, defClass=algMethod)

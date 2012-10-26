@@ -531,53 +531,56 @@ def parseIssns(journalDataDir, crawlPubDirs, crawlIssnOverwrite):
         pubToIssn.setdefault(pub, set()).add(issn)
     return pubToIssn
 
-def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite, limitToPubId=None):
+def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite):
     """ write (issn,minYear,maxYear) as issn.tab to all publisher directories, 
         adding issnOverwrite at the end 
     """
     outFhDict = {}
-    for pubName, pubId in pubIds.iteritems():
-        # create subdir
-        if limitToPubId and pubId!=limitToPubId:
-            continue
-        if limitToPubId==None:
-            pubIdPath = join(outDir, pubId)
-            issnOutFname = join(outDir, pubId, ISSNTAB)
-        else:
-            pubIdPath = outDir
-            issnOutFname = join(outDir, ISSNTAB)
 
-        if not isdir(pubIdPath):
-            logging.info("Creating dir %s" % pubIdPath)
-            os.makedirs(pubIdPath)
+    # prep the lookup table
+    pubIdToDescs = {}
+    for pubDesc, pubId in pubIds.iteritems():
+        pubIdToDescs.setdefault(pubId, []).append(pubDesc)
 
-        # write default ISSNs
-        logging.info("Writing to %s" % issnOutFname)
-        if issnOutFname not in outFhDict:
-            outFh = open(issnOutFname, "w")
-            outFh.write("issn\tstartYear\tendYear\tpublisher\n")
-            outFhDict[issnOutFname] = outFh
-        else:
-            outFh = outFhDict[issnOutFname]
-        issnCount = 0
-        for issn in pubToIssn[pubName]:
+    # outDir has to be identical to the pubId from pubConf
+    pubId = basename(outDir)
+
+    issnOutFname = join(outDir, ISSNTAB)
+
+    if not isdir(outDir):
+        logging.info("Creating dir %s" % outDir)
+        os.makedirs(outDir)
+
+    # lookup Issns for publisher description
+    # write default ISSNs
+    logging.info("Writing to %s" % issnOutFname)
+    if issnOutFname not in outFhDict:
+        outFh = open(issnOutFname, "w")
+        outFh.write("issn\tstartYear\tendYear\tpublisher\n")
+        outFhDict[issnOutFname] = outFh
+    else:
+        outFh = outFhDict[issnOutFname]
+    issnCount = 0
+    for pubDesc in pubIdToDescs[pubId]:
+        for issn in pubToIssn[pubDesc]:
             if issn=="":
                 continue
-            outFh.write(issn+"\t0\t0\t%s\n" % pubName)
+            outFh.write(issn+"\t0\t0\t%s\n" % pubDesc)
             issnCount+=1
 
-        # add manual ISSNs
-        for issn, startYear, endYear in issnOverwrite.get(pubId, []):
-            outFh.write("%s\t%d\t%d\t%s\n" % (issn, startYear, endYear, pubName))
-            issnCount+=1
-        logging.info("Wrote %d ISSNs" % issnCount)
+    # add manual ISSNs
+    for issn, startYear, endYear in issnOverwrite.get(pubId, []):
+        outFh.write("%s\t%d\t%d\t%s\n" % (issn, startYear, endYear, pubName))
+        issnCount+=1
+    logging.info("Wrote %d ISSNs" % issnCount)
 
 def writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite):
     """ use pubConf.py and the publishers.tab file to get target ISSNs
     and write them to outDir/issns.tab 
     """
     pubToIssn = parseIssns(journalDataDir, pubDirs, issnOverwrite)
-    writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite, limitToPubId=basename(outDir))
+    writeIssnTables(outDir, pubDirs, pubToIssn, issnOverwrite)
+        
 
 def writePmids(pubDir, pmids):
     " randomize pmids and write as pmids.txt to pubDir "

@@ -23,11 +23,12 @@ def main(args, options):
     except:
         if options.sendEmail:
             logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)
-            tb = traceback.format_exc().replace("'", "")
             subject = 'pubCrawl %s error' % outDir
+            tb = traceback.format_exc()
             text = tb
             maxCommon.sendEmail(pubConf.email, subject, text)
-            raise
+        print "Unexpected error:", sys.exc_info()[0]
+        raise
 
     if options.sendEmail:
         maxCommon.sendEmail(pubConf.email, outDir+" finished", "crawling finished")

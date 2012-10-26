@@ -125,7 +125,7 @@ def slurpdictset(fname, reverse=False, keyType=None, valType=None):
             dict.setdefault(key, set()).add(val)
     return dict
 
-def slurplist(fname, check=True, field=None, filterComments=False, valType=None, headers=False):
+def slurplist(fname, check=False, field=None, filterComments=False, valType=None, headers=False):
     """ parse a file with one string per line and return as list"""
     if fname==None:
         return []
@@ -134,6 +134,7 @@ def slurplist(fname, check=True, field=None, filterComments=False, valType=None,
     else:
         fh = open(fname, "r")
     list = []
+    listSet = set() # for dupl checks
     if headers:
         fh.readline()
     for l in fh:
@@ -143,9 +144,12 @@ def slurplist(fname, check=True, field=None, filterComments=False, valType=None,
         if len(l)==0:
             continue
 
-        if check and l in list:
-            sys.stderr.write("tabfile.py/slurplist: file=%s, duplicate key = %s, exiting\n" % (fname, l))
-            sys.exit(1)
+        if check:
+            if l in listSet:
+                sys.stderr.write("tabfile.py/slurplist: file=%s, duplicate key = %s, exiting\n" % (fname, l))
+                sys.exit(1)
+            else:
+                listSet.add(l)
 
         if field==None:
             value = l

@@ -229,7 +229,7 @@ def appendTsvDict(filename, inDict, headers):
         headers = inDict.keys()
 
     for head in headers:
-        values.append(inDict[head])
+        values.append(inDict.get(head, ""))
 
     logging.debug("order of headers is: %s" % headers)
 
@@ -238,6 +238,7 @@ def appendTsvDict(filename, inDict, headers):
        outFh.write("\t".join(headers)+"\n")
     else:
        outFh = codecs.open(filename, "a", encoding="utf8")
+    logging.debug("values are: %s" % values)
     outFh.write(u"\t".join(values)+"\n")
 
 def appendTsvOrderedDict(filename, orderedDict):
@@ -318,13 +319,16 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
 def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120):
     class HeadRequest(urllib2.Request):
         def get_method(self):
-            return "HEAD"
+            return u'HEAD'
 
     response = retryHttpRequest(HeadRequest(url), repeatCount=repeatCount, delaySecs=delaySecs)
     return response
     
 def sendEmail(address, subject, text):
-    cmd = "echo %s | mail -s '%s' %s" % (text, subject, address)
+    text = text.replace("'","")
+    subject = subject.replace("'","")
+    cmd = "echo '%s' | mail -s '%s' %s" % (text, subject, address)
+    logging.info("Email command %s" % cmd)
     os.system(cmd)
 
 if __name__=="__main__":

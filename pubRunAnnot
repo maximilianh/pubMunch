@@ -15,7 +15,7 @@ if sys.version_info[0]==2 and not sys.version_info[1]>=7:
 
 # load default python packages
 import logging, optparse, os, collections, tarfile, mimetypes, tempfile, \
-    copy, shutil, glob
+    copy, shutil, glob, time
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -40,11 +40,23 @@ parser = optparse.OptionParser("""usage: %prog [options] <algorithmName> <in> <o
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("-r", "--runNow", dest="runNow", action="store_true", help="wait until jobs are all finished") 
-parser.add_option("-t", "--test", dest="test", action="store_true", help="only run on one single chunk, output to stdout") 
-parser.add_option("", "--realTest", dest="realTest", action="store_true", help="do everything like on the cluster, but run processes on local machine") 
+parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout") 
+parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
+def checkCleanDir(outDir):
+    mustExistDir(outDir)
+    oldGzFiles = os.listdir(outDir)
+    if len(oldGzFiles)>0:
+        logging.info("Directory %s contains %d .gz files" % (outDir, len(oldGzFiles))
+        logging.info("Waiting for 3 secs, then deleting them")
+        time.sleep(3)
+        pm = maxCommon.ProgressMeter(len(oldGzFiles))
+        for oldGzFname in oldGzFiles:
+            os.remove(join(outDir, oldGzFname))
+            pm.taskCompleted()
+
 # ----------- MAIN --------------
 if args==[]: 
     parser.print_help()
@@ -76,7 +88,8 @@ if options.test:
         reader = pubStore.PubReaderFile(inFname)
         pubAlg.runAnnotate(reader, alg, paramDict, outName)
 else:
-    mustBeEmptyDir(outName)
+    checkCleanDir(outName)
+
     if options.realTest:
         runner = None
     else:

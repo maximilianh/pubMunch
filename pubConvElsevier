@@ -41,7 +41,6 @@ parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="i
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
 parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
-#parser.add_option("-u", "--update", dest="update", action="store_true", help="activate automatic update mode: convert only files that are not yet in <outDir>/updates.tab", default=None) 
 parser.add_option("-m", "--maxSubmit", dest="maxSubmit", action="store", type="int", help="do not run more than X jobs in parallel to treat cluster file system with care", default=None) 
 (options, args) = parser.parse_args()
 
@@ -57,9 +56,6 @@ if options.parse!=None:
     articleData = pubStore.createEmptyArticleDict()
     articleData = pubConvElsevier.parseElsevier(xmlTree, articleData)
     content = pubConvElsevier.treeToAscii_Elsevier(xmlTree)[0]
-    #print repr(content)[:300]
-    #c = content.encode("latin1").decode("utf8")
-    #print c.encode("utf8")[:300]
     ofh.write("RAW CONTENT with repr()\n")
     ofh.write(repr(pubStore.replaceSpecialChars(content))+"\n")
     ofh.write("RAW CONTENT without repr\n")
@@ -79,7 +75,6 @@ maxCommon.mustExist(inDir)
 
 minId = options.minId
 chunkCount = options.chunkCount
-#updateMode = options.update
 maxSubmit = options.maxSubmit
 
 if not os.path.isdir(inDir):
@@ -87,3 +82,7 @@ if not os.path.isdir(inDir):
     sys.exit(1)
 
 pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxSubmit)
+
+tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+dbPath = join(outDir, "articles.db")
+pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

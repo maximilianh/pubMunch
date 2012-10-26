@@ -791,11 +791,18 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
     toLoadFnames = sortPubFnames(toLoadFnames)
 
+    if not isfile(dbFname):
+        lockDb = True
+    else:
+        lockDb = False
+
     if len(toLoadFnames)==0:
         logging.debug("No files to load")
     else:
+        indexedFields = ["pmid", "pmcId","printIssn", "eIssn", "year"]
+        intFields = ["pmid", "pmcId","year"]
         maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
-            primKey="articleId", intFields=["pmid", "pmcId"], idxFields=["pmid", "pmcId"], dropTable=False)
+            primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False, lockDb=lockDb)
         addLoadedFiles(dbFname, toLoadFnames)
 
 def getArtDbPath(datasetName):

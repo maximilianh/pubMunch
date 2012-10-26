@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 # load default python packages
-import logging, optparse, sys
+import logging, optparse, sys, os
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -10,19 +10,35 @@ sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 import pubGeneric, pubExpMatrix, pubConf
 
 def main(args, options):
-    datasetStr, pmidListFname, outBase = args
+    datasetStr, wordListFname, outBase = args
     dirNames = pubGeneric.resolveDatasetDesc(datasetStr)
     pubGeneric.setupLogging("", options)
-    wordListFname = options.wordList
-    pubExpMatrix.exportMatrix(dirNames, pmidListFname, outBase, wordListFname, options.skipMap)
+    wordListFname = join(os.getcwd(),wordListFname)
+    posPmidFname = options.posPmids
+    negPmidFname = options.negPmids
+    assert(posPmidFname or negPmidFname) # need at least -p or -n
+        
+    if not isfile(wordListFname):
+        logging.info("%s not found" % wordListFname)
+        buildWordList(inDirs, skipMap)
+        logging.info("raw word list created, use your own command now to reduce it to something smaller")
+        logging.info("e.g. cat wordFreq.tab | gawk '($2<50000) && ($2>100)' | cut -f1 | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/google-ngrams/fiction/top100k.tab  | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/bnc/bnc.txt > wordList.txt")
+    else:
+        pubExpMatrix.runMatrixJobs(outBase, dirNames, wordListFname, posPmidFname, negPmidFname, \
+            options.skipMap, options.format, options.test)
+
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] datasets pmidFile outBasename - create a matrix for mallet""")
+parser = optparse.OptionParser("""usage: %prog [options] datasets wordListFname outBasename - create an input file for svm light, mallet or weka. If wordListFname does not exist, it will be created. Need to specify at least -p or -n""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--skipMap", dest="skipMap", action="store_true", help="skip map step")
-parser.add_option("-s", "--wordList", dest="wordList", action="store", help="optional list of words to use, one per line")
+#parser.add_option("-s", "--wordList", dest="wordList", action="store", help="optional list of words to use")
+parser.add_option("-f", "--format", dest="format", action="store", help="output format, either svml or arff, default %default", default="arff")
+parser.add_option("-p", "--posPmids", dest="posPmids", action="store", help="file with list of positive PMIDs")
+parser.add_option("-n", "--negPmids", dest="negPmids", action="store", help="file with list of negative PMIDs")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="only run the test, nothing else")
 (options, args) = parser.parse_args()
 
 if args==[]:

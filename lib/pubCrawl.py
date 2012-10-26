@@ -9,7 +9,7 @@ from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # pars
 
 import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
     traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest
+    sqlite3, doctest, urllib, copy
 from os.path import *
 
 # ===== GLOBALS ======
@@ -46,7 +46,7 @@ ERRWAIT_TRYHARD = 3
 lockFname = None
 
 # list of highwire sites, for some reason ip resolution fails too often
-highwireHosts = ["asm.org", "rupress.org", "jcb.org"] # too many DNS queries fail, so we hardcode some of the work
+highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org"] # too many DNS queries fail, so we hardcode some of the work
 
 # if any of these is found in a landing page Url, wait for 15 minutes and retry
 # has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
@@ -115,11 +115,24 @@ pubsCrawlCfg = { "npg" :
     },
     # 1995 PMID 7816814 
     # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
+    "cshlp" :
+    {
+        "hostnames" : ["cshlp.org"],
+        "landingUrl_templates" : {"1355-8382" : "http://rnajournal.cshlp.org/content/%(vol)s/%(issue)s/%(firstPage)s.full"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+        "stopPhrases" : ["Purchase Short-Term Access"]
+    },
     "pnas" :
     {
         "hostnames" : ["pnas.org"],
         "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".abstract"},
+        "doiUrl_rewriteRules" : {"$" : ".long"},
         "landingPageIsArticleUrlKeyword" : ".long",
         "ignoreMetaTag" : True,
         "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
@@ -130,7 +143,7 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["jimmunol.org"],
         "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".abstract"},
+        "doiUrl_rewriteRules" : {"$" : ".long"},
         "landingPageIsArticleUrlKeyword" : ".long",
         "ignoreMetaTag" : True,
         "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
@@ -171,7 +184,8 @@ addHeaders = [ # additional headers for fulltext download metaData
 "suppUrls", # a comma-sep list of supplemental file URLs
 "mainHtmlFile", # the main text file on local disk, relative to the metaData file
 "mainPdfFile", # the main text pdf file on local disk, relative to the metaData file
-"suppFiles" # comma-sep list of supplemental files on local disk
+"suppFiles", # comma-sep list of supplemental files on local disk
+"landingUrl" # can be different from mainHtml
 ]
 
 # ===== EXCEPTIONS ======
@@ -203,14 +217,14 @@ def resolvePmidWithSfx(sfxServer, pmid):
     url = urls[0].encode("utf8")
     return url
 
-def findLandingUrl(articleData, crawlConfig):
+def findLandingUrl(articleData, crawlConfig, hostToConfig):
     """ try to find landing URL either by constructing it, try in this order:
-    - inferred from medline data via landingUrl_template
+    - inferred from medline data via landingUrl_templates
     - medlina's DOI
     - a Crossref search with medline data
     - Pubmed Outlink 
     - an SFX search
-    >>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084"})
+    >>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084"}, {}, {})
     """
     logging.log(5, "Looking for landing page")
 
@@ -218,16 +232,27 @@ def findLandingUrl(articleData, crawlConfig):
 
     # sometimes, if know the publisher upfront, we can derive the landing page from the medline data
     # e.g. via pmid or doi
-    if crawlConfig!=None:
+    if crawlConfig==None:
+        logging.debug("no config, cannot use URL templates")
+    else:
+        issn = articleData["printIssn"]
+        # need to use print issn as older articles in pubmed don't have any eIssn
+        logging.debug("Trying URL template to find landing page for *PRINT* issn %s", issn)
+        print articleData
         articleData["firstPage"] = articleData["page"].split("-")[0]
-        urlTemplate = crawlConfig.get("landingUrl_template", None)
-        if urlTemplate!=None:
+        logging.debug("firstPage %s" % articleData["firstPage"])
+        urlTemplates = crawlConfig.get("landingUrl_templates", {})
+        urlTemplate = urlTemplates.get(issn, None)
+        if urlTemplate==None:
+            logging.debug("No template found for issn %s" % issn)
+        else:
             landingUrl = urlTemplate % articleData
             assert(landingUrl != urlTemplate)
             # check if url is OK
             try:
                 landingPage  = delayedWget(landingUrl)
                 landingUrl = landingPage["url"]
+                logging.debug("found landing url %s" % landingUrl)
             except pubGetError:
                 logging.debug("Constructed URL %s is not valid, trying other options" % landingUrl)
                 landingUrl = None
@@ -236,14 +261,14 @@ def findLandingUrl(articleData, crawlConfig):
     # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
     # than via Pubmed outlink, so we need sometimes to rewrite the doi urls
     if landingUrl==None and articleData["doi"]!="":
-        landingUrl = resolveDoiRewrite(articleData["doi"], crawlConfig)
+        landingUrl, crawlConfig = resolveDoiRewrite(articleData["doi"], crawlConfig, hostToConfig)
 
     # try crossref's search API to find the DOI
     if landingUrl==None and articleData["doi"]=="":
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
             articleData["doi"] = xrDoi
-            landingUrl = resolveDoiRewrite(xrDoi, crawlConfig)
+            landingUrl, crawlConfig = resolveDoiRewrite(xrDoi, crawlConfig, hostToConfig)
 
     # try pubmed's outlink
     if landingUrl==None:
@@ -392,8 +417,7 @@ def runWget(url):
 
 def storeFiles(pmid, metaData, fulltextData, outDir):
     """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
-    to target zip file 
-    saves all binary data to <issn>.zip in outDir with filename pmid.<key>
+    to target zip file saves all binary data to <issn>.zip in outDir with filename pmid.<key>
     """
     #global dataZipFile
     suppFnames = []
@@ -401,7 +425,12 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
     for suffix, pageDict in fulltextData.iteritems():
         if suffix=="status":
             continue
+        if suffix=="landingPage":
+            metaData["landingUrl"] = pageDict["url"]
+            continue
+
         filename = pmid+"."+suffix
+
         if suffix=="main.html":
             metaData["mainHtmlFile"] = filename
             metaData["mainHtmlUrl"] = pageDict["url"]
@@ -639,7 +668,20 @@ def readLocalMedline(pmid):
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
-    rows = list(cur.execute("SELECT * from articles where pmid=?", (pmid,)))
+    rows = None
+    tryCount = 30
+
+    while rows==None and tryCount>0:
+        try:
+            rows = list(cur.execute("SELECT * from articles where pmid=?", (pmid,)))
+        except sqlite3.OperationalError:
+            logging.info("Database is locked, waiting for 60 secs")
+            time.sleep(60)
+            tryCount -= 1
+
+    if rows==None:
+        raise Exception("Medline database was locked for more than 30 minutes")
+        
     if len(rows)==0:
         logging.info("No info in local medline for PMID %s" % pmid)
         return None
@@ -650,6 +692,9 @@ def readLocalMedline(pmid):
     result = {}
     for key, val in zip(lastRow.keys(), lastRow):
         result[key] = unicode(val)
+
+    result["source"] = ""
+    result["origFile"] = ""
     return result
         
 def downloadPubmedMeta(pmid):
@@ -685,9 +730,9 @@ def storeMeta(outDir, metaData, fulltextData):
             suppUrls.append(page.get("url",""))
     metaData["suppUrls"] = ",".join(suppUrls)
             
-    headers = pubStore.articleFields
+    headers = copy.copy(pubStore.articleFields)
+    headers.extend(addHeaders)
     if not isfile(filename):
-        headers.extend(addHeaders)
         codecs.open(filename, "w", encoding="utf8").write(u"\t".join(headers)+"\n")
     maxCommon.appendTsvDict(filename, metaData, headers)
 
@@ -862,6 +907,8 @@ def crawlForFulltext(landingPage, crawlConfig):
     logging.debug("Final landing page after redirects is %s" % landingPage["url"])
 
     fulltextData = {}
+
+    fulltextData["landingPage"] = landingPage # in case we need the landing url later
 
     # some landing pages ARE the article PDF
     if landingPage["mimeType"] == "application/pdf":
@@ -1111,12 +1158,13 @@ def highwireDelay():
 def ignoreCtrlc(signum, frame):
     print 'Signal handler called with signal', signum
 
-def writePaperData(pmid, pubmedMeta, fulltextData, outDir):
+def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig):
     " write all paper data to status and fulltext output files in outDir "
     oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c
     pubmedMeta = storeFiles(pmid, pubmedMeta, fulltextData, outDir)
     storeMeta(outDir, pubmedMeta, fulltextData)
     addStatus=""
+        
     if "status" in fulltextData:
         addStatus = fulltextData["status"]
     pmidStatus = "OK\t%s %s, %d files\t%s" % \
@@ -1157,6 +1205,8 @@ def writeReport(baseDir, htmlFname):
         print dirName
         print "pmidCount"
         pmidCount = len(open(join(dirName, "pmids.txt")).readlines())
+        print "issnCount"
+        issnCount = len(open(join(dirName, "issns.tab")).readlines())
         print "status"
         statusPmids = parseIdStatus(join(dirName, "pmidStatus.tab"))
         publisher = basename(dirName)
@@ -1166,9 +1216,10 @@ def writeReport(baseDir, htmlFname):
 
         h.h4("Publisher: %s (%s)" % (publDesc[publisher], publisher))
         h.startUl()
-        h.li("Crawler is running: %s" % isActive)
+        h.li("Crawler is currently running: %s" % isActive)
+        h.li("Number of journals: %d" % issnCount)
         h.li("Total PMIDs scheduled: %d" % pmidCount)
-        h.li("Crawl success rate: %0.2f %%" % (100*len(statusPmids["OK"])/float(pmidCount)))
+        h.li("Crawler progress rate: %0.2f %%" % (100*len(statusPmids["OK"])/float(pmidCount)))
         h.startUl()
         for status, pmidList in statusPmids.iteritems():
             exampleLinks = [html.pubmedLink(pmid) for pmid in pmidList[:10]]
@@ -1220,7 +1271,7 @@ def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
     >>> resolveDoi("10.1073/pnas.1121051109")
     """
-    doiUrl = "http://dx.doi.org/"+doi
+    doiUrl = "http://dx.doi.org/"+urllib.quote(doi.encode("utf8"))
     resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4)
     if resp==None:
         return None
@@ -1228,18 +1279,22 @@ def resolveDoi(doi):
     logging.debug("DOI %s redirects to %s" % (doi, trgUrl))
     return trgUrl
 
-def resolveDoiRewrite(doi, crawlConfig):
+def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     """ resolve a DOI to the final target url and rewrite according to crawlConfig rules
         Returns None on error
     >>> resolveDoiRewrite("10.1073/pnas.1121051109")
     """
+    logging.debug("Resolving DOI and rewriting")
     url = resolveDoi(doi)
+    if url==None:
+        return None, crawlConfig
+    if crawlConfig==None:
+        crawlConfig  = getConfig(hostToConfig, url)
     if url==None or crawlConfig==None or "doiUrl_rewriteRules" not in crawlConfig:
-        return url
+        logging.debug("Nothing to rewrite")
+        return url, crawlConfig
     newUrl = stringRewrite(url, crawlConfig, "doiUrl_rewriteRules")
-    return newUrl
-        
-        
+    return newUrl, crawlConfig
 
 def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher):
     " download all files for pmids in outDir/pmids.txt to zipfiles in outDir "
@@ -1286,7 +1341,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
 
             checkIssnErrorCounts(pubmedMeta, issnErrorCount, ignoreIssns, outDir)
 
-            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig)
+            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig, hostToConfig)
 
             # first resolve the url (e.g. doi) to something on a webserver
             landingPage  = delayedWget(landingUrl)
@@ -1303,7 +1358,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
 
             # write results to output files
             if not testPmid:
-                writePaperData(pmid, pubmedMeta, fulltextData, outDir)
+                writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig)
             else:
                 logging.info("Test-mode, not saving anything")
 
@@ -1325,6 +1380,8 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
                 raise
             if pause:
                 raw_input("Press Enter...")
+        except:
+            raise
 
 if __name__=="__main__":
     import doctest

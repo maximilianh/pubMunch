@@ -47,7 +47,8 @@ crawlPubIds = {
 "HIGHWIRE American Society for Microbiology" : "asm",
 "NLM Future Science" : "futureScience",
 "NLM National Academy of Sciences" : "pnas",
-"NLM American Association of Immunologists" : "aai"
+"NLM American Association of Immunologists" : "aai",
+"HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp"
 }
 
 # crawler delay config, values in seconds

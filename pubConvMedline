@@ -111,7 +111,7 @@ def convertOneChunk(fileMinId, inFile, outFile):
 # only for debugging
 if options.parse!=None:
     fname = options.parse
-    xmlString = gzip.open(fname).read()
+    xmlString = open(fname).read()
     for articleData in pubPubmed.parsePubmedMedlineIter(xmlString, fromMedline=True):
         for key, val in articleData.iteritems():
             print key, val.encode("utf8")

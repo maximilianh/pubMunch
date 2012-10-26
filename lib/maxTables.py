@@ -546,7 +546,7 @@ def makeSqlLiteCreateStatement(tableName, fields, intFields=[], primKey=None, id
     return tableSql, idxSqls
 
 def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, \
-        idxFields=[], dropTable=True):
+        idxFields=[], dropTable=True, lockDb=False):
     " load tabsep file into sqlLite db table "
     # if first parameter is string, make it to a list
     if len(tsvFnames)==0:
@@ -555,11 +555,13 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     if isinstance(tsvFnames, basestring):
         tsvFnames = [tsvFnames]
     con = sqlite3.connect(dbFname)
-    con.isolation_level="EXCLUSIVE"
+    if lockDb:
+        logging.debug("Locking DB in exclusive mode")
+        con.isolation_level="EXCLUSIVE"
     cur = con.cursor()
     cur.execute("PRAGMA synchronous=OFF") # recommended by
     cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
-    cur.execute("PRAGMA cache_size=500000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+    cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
     cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
     cur.execute("PRAGMA temp_store=memory") 
 
@@ -603,6 +605,8 @@ def openSqliteRo(db):
     " opens sqlite con and cursor for quick reading "
     con = sqlite3.connect(db)
     cur = con.cursor()
+    cur.execute("PRAGMA read_uncommited=true;")
+    con.commit()
     return con, cur
 
 if __name__ == "__main__":

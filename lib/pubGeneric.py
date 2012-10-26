@@ -357,7 +357,7 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True):
     clusterType = pubConf.clusterType
     headNode = pubConf.clusterHeadNode
     logging.info("Preparing cluster run, batchDir %(batchDir)s, type %(clusterType)s, headNode %(headNode)s" % locals())
-    runner = maxRun.Runner(maxJob=pubConf.convertMaxJob, clusterType=clusterType, \
+    runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
         headNode=headNode, batchDir = batchDir, runNow=runNow)
     return runner
 
@@ -382,8 +382,9 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
             os.makedirs(locFileDir)
         existDirs.add(locFileDir)
 
+        logging.info("filename %s" % locName)
         if isfile(locName):
-            logging.debug("Already exists: %s, skipping" % locName)
+            logging.info("Already exists: %s, skipping" % locName)
         else:
             lFile.write("get %s -o %s\n" % (f, locName))
         pm.taskCompleted()
@@ -545,6 +546,8 @@ def resolveDatasetDesc(descs):
     dirs = []
     for desc in descs.split(','):
         descDir = pubConf.resolveTextDir(desc)
+        if descDir==None:
+            raise Exception("Unknown dataset: %s" % desc)
         dirs.append(descDir)
     return dirs
 
