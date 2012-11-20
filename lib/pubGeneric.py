@@ -100,12 +100,17 @@ def findFiles(dir, extensions):
 def setupLoggingOptions(options):
     setupLogging("", options)
     
+def verboseFunc(message):
+    " we add this to logging "
+    logging.log(5, message)
+
 def setupLogging(PROGNAME, options, logFileName=False, debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
     if options==None:
         stdoutLevel=logging.DEBUG
     elif "verbose" in options.__dict__ and options.verbose:
         stdoutLevel=5
+        logging.addLevelName(5,"VERBOSE")
     elif options.debug or debug:
         stdoutLevel=logging.DEBUG
     elif minimumLog:
@@ -117,6 +122,8 @@ def setupLogging(PROGNAME, options, logFileName=False, debug=False, fileLevel=lo
     rootLog.setLevel(fileLevel)
 
     logging.root.handlers = []
+
+    logging.verbose = verboseFunc
     if logFileName:
         logging.basicConfig(level=fileLevel,
                             format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -130,6 +137,8 @@ def setupLogging(PROGNAME, options, logFileName=False, debug=False, fileLevel=lo
     # tell the handler to use this format
     console.setFormatter(formatter)
     console.setLevel(stdoutLevel)
+    # make sure that the root logger gets verbose messages 
+    logging.getLogger('').setLevel(min(stdoutLevel, fileLevel))
     # add the handler to the root logger
     logging.getLogger('').addHandler(console)
 
@@ -201,7 +210,9 @@ def removeBadChars(string):
     """ replace bad chars with spaces """
     return control_char_re.sub(" ", string)
 
-def toAscii(fileData, mimeType=None, maxBinFileSize=pubConf.MAXBINFILESIZE, maxTxtFileSize=pubConf.MAXTXTFILESIZE):
+def toAscii(fileData, mimeType=None, \
+        maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxTxtFileSize, \
+        minTxtFileSize=pubConf.minTxtFileSize):
     """ pick out the content from the fileData dictionary, 
     write it to a local file in tempDir and convert it to 
     ASCII format. Put output back into the content field 
@@ -224,6 +235,9 @@ def toAscii(fileData, mimeType=None, maxBinFileSize=pubConf.MAXBINFILESIZE, maxT
     url = fileData["url"]
 
     fileExt=None
+    if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
+        mimeType = fileData["mimeType"]
+
     if mimeType:
         fileExt = pubConf.MIMEMAP.get(mimeType, None)
         logging.debug("File extension determined as %s" % fileExt)
@@ -251,7 +265,9 @@ def toAscii(fileData, mimeType=None, maxBinFileSize=pubConf.MAXBINFILESIZE, maxT
             return None
         fileData["content"]=asciiData
     else:
+        #logging.verbose("data before conversion is %s" % fileContent)
         asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
+        #logging.verbose("Ascii data after conversion is %s" % asciiData)
         if fileExt=="pdf" and (asciiData==None or countBadChars(asciiData)>=10):
             logging.debug("No data or too many non printable characters in PDF, trying alternative program")
             cmdLine = converters["pdf2"]
@@ -268,13 +284,23 @@ def toAscii(fileData, mimeType=None, maxBinFileSize=pubConf.MAXBINFILESIZE, maxT
         logging.warn("ascii file size after conversion too big, ignoring file")
         return None
 
+    if len(fileData["content"]) < minTxtFileSize:
+        logging.warn("ascii file size after conversion too small, ignoring file")
+        return None
+
+    #charSet = set(fileData["content"])
+    #if len(charSet) < 10:
+        #logging.warn("too few characters in ASCII output: %s" % charSet)
+        #return None
+
     return fileData
 
-def toAsciiEscape(fileData, hint=None, mimeType=None, maxBinFileSize=pubConf.MAXBINFILESIZE, maxTxtFileSize=pubConf.MAXTXTFILESIZE ):
+def toAsciiEscape(fileData, hint=None, mimeType=None, maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxBinFileSize, minTxtFileSize=pubConf.minTxtFileSize ):
     """ convert to ascii, escape special characters 
         returns a fileData dict
     """
-    fileData = toAscii(fileData, mimeType=mimeType, maxBinFileSize=maxBinFileSize, maxTxtFileSize=maxTxtFileSize)
+    fileData = toAscii(fileData, mimeType=mimeType, \
+            maxBinFileSize=maxBinFileSize, maxTxtFileSize=maxTxtFileSize, minTxtFileSize=minTxtFileSize)
     if fileData==None:
         return None
     fileData = pubStore.dictToUtf8Escape(fileData)
@@ -314,6 +340,8 @@ def readArticleChunkAssignment(inDir, updateIds):
 
 def forceToUnicode(text):
     " force to unicode string: try utf8 first, then latin1 "
+    if text==None:
+        return None
     if type(text)==types.UnicodeType:
         #logging.debug("text is unicode")
         return text
@@ -373,6 +401,7 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
     lFile.write("lcd %s\n" % locDir)
     pm = maxCommon.ProgressMeter(len(fileNames))
     existDirs = set()
+    locNames = []
     for f in fileNames:
         locName = join(locDir, f)
         # make sure that target dir exists
@@ -382,11 +411,12 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
             os.makedirs(locFileDir)
         existDirs.add(locFileDir)
 
-        logging.info("filename %s" % locName)
+        logging.debug("filename %s" % locName)
         if isfile(locName):
-            logging.info("Already exists: %s, skipping" % locName)
+            logging.debug("Already exists: %s, skipping" % locName)
         else:
             lFile.write("get %s -o %s\n" % (f, locName))
+            locNames.append(locName)
         pm.taskCompleted()
     lFile.close()
 
@@ -401,7 +431,7 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
     logging.info("Updating downloads.log file in %s" % locDir)
     for f in fileNames:
         appendLog(locDir, "add", f)
-    logging.info("Downloaded %d files" % len(fileNames))
+    logging.info("Downloaded %d files: %s" % (len(locNames), str(locNames)))
 
 def appendLog(outDir, change, fname):
     logPath = join(outDir, "downloads.log")

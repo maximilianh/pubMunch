@@ -31,7 +31,7 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     queryData = {"q" : freeFormCitStr}
     url = "http://search.labs.crossref.org/links?" 
     jsonParam = json.dumps([freeFormCitStr])
-    logging.debug("JSON string %s" % jsonParam)
+    #logging.debug("JSON string %s" % jsonParam)
     queryParam = {"q" : jsonParam}
 
     # send request

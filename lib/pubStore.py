@@ -11,7 +11,7 @@
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
 import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator
-import zipfile, gzip, re, sqlite3
+import zipfile, gzip, re, sqlite3, random
 import pubGeneric, pubConf, maxCommon, pubStore, unicodeConvert, maxTables
 
 from os.path import *
@@ -67,7 +67,8 @@ emptyArticle = ArticleRec(*len(articleFields)*[""])
 FileDataRec = collections.namedtuple("FileRecord", fileDataFields)
 emptyFileData = FileDataRec(*len(fileDataFields)*[""])
 
-def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=None, fileType=None, desc=None):
+def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=None, \
+    fileType=None, desc=None, externalId=None):
     fileData = emptyFileData._asdict()
     if time!=None:
         fileData["time"]=time
@@ -75,13 +76,15 @@ def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=No
         fileData["url"]=url
     if mimeType!=None:
         fileData["mimeType"]=mimeType
+    if externalId!=None:
+        fileData["externalId"]=externalId
     if content!=None:
         fileData["content"]=content
     if fileType!=None:
         fileData["fileType"]=fileType
     if desc!=None:
         fileData["desc"]=desc
-    logging.log(5, "Create new file record, url=%s, fileType=%s, desc=%s" % (url, fileType, desc))
+    logging.log(5, "Creating new file record, url=%s, fileType=%s, desc=%s" % (url, fileType, desc))
     return fileData
 
 def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=None, id=None, origFile=None, authors=None, fulltextUrl=None, keywords=None, title=None, abstract=None):
@@ -110,9 +113,11 @@ def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=Non
         metaInfo["abstract"]=abstract
     return metaInfo
 
-def splitTabFileOnChunkId(filename, outDir):
+def splitTabFileOnChunkId(filename, outDir, chunkSize=None):
     """ 
-    use the chunkId field of a tab-sep file as the output filename 
+    use the chunkId field of a tab-sep file as the output filename.
+    if chunkSize is specified, ignore the chunkId field and make sure that each piece
+    has chunkSize lines.
     """
     if isdir(outDir):
         logging.info("Deleting %s" % outDir)
@@ -127,9 +132,14 @@ def splitTabFileOnChunkId(filename, outDir):
     headerLine = open(filename).readline()
     logging.info("Reading %s, splitting into pieces" % filename)
     data = {}
+    i = 0
     for row in maxCommon.iterTsvRows(filename):
-        chunkId = row.chunkId
+        if chunkSize==None:
+            chunkId = row.chunkId
+        else:
+            chunkId = i % chunkSize
         data.setdefault(chunkId, []).append("\t".join(row)+"\n")
+        i += 1
 
     # write to outDir
     logging.info("Splitting file data, Writing to %d files in %s/xxxx.tgz" % (len(data), outDir))
@@ -212,9 +222,11 @@ class PubWriterFile:
 
     all writes will first go to tempDir, and will only be copied over 
     to outDir on .close()
+    We only copy files over if any files data was actually written 
+    We only copy articles over if any articles data was actually written 
 
     """
-    def __init__(self, fileDataFilename, compress=True):
+    def __init__(self, fileDataFilename):
         self.articlesWritten = 0
         self.filesWritten = 0
         tempDir = pubConf.getTempDir()
@@ -229,22 +241,16 @@ class PubWriterFile:
 
         self.finalArticleName = join(outDir, articleBaseName+".gz")
         self.finalFileDataName    = join(outDir, fileBaseName+".gz")
+
         fileFname = os.path.join(tempDir, fileBaseName)
-        #self.fileFh = writeUtf8Gz(fileFname)# DOES NOT WORK ... ?
-        #self.articleFh = writeUtf8Gz(articleFname) # DOES NOT WORK ... ?
         self.fileFh = codecs.open(fileFname, "w", encoding="utf8")
+        self.fileFh.write("#"+"\t".join(fileDataFields)+"\n")
+
         articleFname = os.path.join(tempDir, articleBaseName)
         self.articleFh = codecs.open(articleFname, "w", encoding="utf8") 
-
-        self._writeHeaders()
+        self.articleFh.write("#"+"\t".join(articleFields)+"\n")
 
         self.outFilename = os.path.join(outDir, fileDataBasename)
-
-    def _writeHeaders(self):
-        """ write headers to output files """
-        logging.debug("Writing headers to output files, %s and %s" % (self.fileFh.name, self.articleFh.name))
-        self.articleFh.write("#"+"\t".join(articleFields)+"\n")
-        self.fileFh.write("#"+"\t".join(fileDataFields)+"\n")
 
     def _removeSpecChar(self, lineDict):
         " remove tab and NL chars from values of dict "
@@ -252,7 +258,7 @@ class PubWriterFile:
         # RAHHH! CRAZY UNICODE LINEBREAKS:
         newDict = {}
         for key, val in lineDict.iteritems():
-            newDict[key] = " ".join(unicode(val).splitlines())
+            newDict[key] = "\n".join(unicode(val).splitlines())
         return newDict
         
     def writeFile(self, articleId, fileId, fileDict, externalId=""):
@@ -263,9 +269,10 @@ class PubWriterFile:
             logging.warn("file %s, object or content is None" % fileId)
             fileDict["content"] = ""
 
-        if len(fileDict["content"]) > pubConf.MAXTXTFILESIZE:
-            logging.info("truncating file %s, too big" % fileId)
-            fileDict["content"] = fileDict["content"][:pubConf.MAXTXTFILESIZE]
+        # checked in toAscii() now
+        #if len(fileDict["content"]) > pubConf.MAXTXTFILESIZE:
+            #logging.info("truncating file %s, too big" % fileId)
+            #fileDict["content"] = fileDict["content"][:pubConf.MAXTXTFILESIZE]
 
         if len(fileDict)!=len(fileDataFields):
             logging.error("column counts between file dict and file objects don't match")
@@ -275,17 +282,19 @@ class PubWriterFile:
             expFields = fileDataFields
             expFields.sort()
             logging.error("expected columns are %s" % str(expFields))
-            sys.exit(1)
+            raise Exception()
 
-        fileDict["externalId"] = externalId
+        if "externalId" not in fileDict:
+            fileDict["externalId"] = externalId
         fileDict["fileId"]=str(fileId)
         fileDict["articleId"]=str(articleId)
         # convert dict to line and write to xxxx.file 
         fileTuple = FileDataRec(**fileDict)
         fileTuple = listToUtf8Escape(fileTuple)
         line = "\t".join(fileTuple)
+
+        #logging.log(5, "Writing line to file table, dict is %s" % fileDict)
         self.filesWritten += 1
-        logging.log(5, "Writing line to file table")
         self.fileFh.write(line+"\n")
         
     def writeArticle(self, articleId, articleDict):
@@ -318,6 +327,7 @@ class PubWriterFile:
         if isfile(gzName):
             os.remove(gzName)
         maxCommon.runCommand("gzip %s" % fname)
+        logging.debug("compressing and copying files table to %s" % finalName)
         shutil.copyfile(gzName, finalName)
         os.remove(gzName)
 
@@ -326,32 +336,16 @@ class PubWriterFile:
         close the 3 files, copy them over to final targets and  delete the
         temps 
         """ 
-        self.fileFh.close()
-        self.articleFh.close()
-
-        #if self.compress:
-            #assert(self.outFilename.endswith(".zip"))
-
-            # only copy a file if it contains data
-            #filenames = []
-            #if self.articlesWritten > 0:
-                #filenames.append(self.articleFh.name)
-            #if self.filesWritten > 0:
-                #filenames.append(self.fileFh.name)
-
-            #logging.debug("Compressing files %s to %s" % (filenames, self.outFilename))
-            #zipFile = zipfile.ZipFile(self.outFilename, mode='w', compression=zipfile.ZIP_DEFLATED)
-            #for fn in filenames:
-                #zipFile.write(fn, arcname=os.path.basename(fn))
-            #zipFile.close()
-        #else:
         logging.debug("Copying local tempfiles over to files on server")
         assert(self.fileFh.name.endswith(".files"))
+
+        self.fileFh.close()
+        if self.filesWritten > 0 or keepEmpty:
+            self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
+
+        self.articleFh.close()
         if self.articlesWritten > 0 or keepEmpty:
             self._gzipAndMove(self.articleFh.name, self.finalArticleName)
-        if self.filesWritten > 0 or keepEmpty:
-            logging.debug("compressing and copying files table")
-            self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
 
 def createPseudoFile(articleData):
     """ create a file from the abstract and title of an article,
@@ -383,7 +377,7 @@ class PubReaderFile:
             self.articleRows = maxCommon.iterTsvRows(articleFn, encoding="utf8")
                 
         self.fileRows = None
-        if isfile(fileFn)!=None:
+        if isfile(fileFn):
             self.fileRows  = maxCommon.iterTsvRows(fileFn, encoding="utf8")
 
         assert(self.articleRows!=None or self.fileRows!=None)
@@ -420,6 +414,15 @@ class PubReaderFile:
                return fileDataList, fileData
         return fileDataList, None
 
+    def _keepOnlyMain(self, files):
+        " remove all suppl files "
+        mainFiles = {}
+        newFiles = []
+        for fileData in files:
+            if fileData.fileType=="main":
+                newFiles.append(fileData)
+        return newFiles
+
     def _keepBestMain(self, files):
         " if there is a PDF and XML or HTML version for the main text, remove the PDF. keep all suppl files "
         mainFiles = {}
@@ -438,7 +441,7 @@ class PubReaderFile:
         newFiles.insert(0, mainFiles.values()[0])
         return newFiles
 
-    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False):
+    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False, onlyMain=False):
         """ iterate over articles AND files, as far as possible
 
         for input files with article and file data:
@@ -462,6 +465,8 @@ class PubReaderFile:
                 fileDataList, lastFileData = self._readFilesForArticle(articleData.articleId, fileDataList)
                 if onlyBestMain:
                     fileDataList = self._keepBestMain(fileDataList)
+                if onlyMain:
+                    fileDataList = self._keepOnlyMain(fileDataList)
                 yield articleData, fileDataList
                 fileDataList = [lastFileData]
             else:
@@ -505,6 +510,27 @@ class PubReaderFile:
             self.articleRows.close()
         if self.fileRows:
             self.fileRows.close()
+
+class PubReaderTest:
+    """ reads only a single text file """
+    def __init__(self, fname):
+        self.text = open(fname).read()
+
+    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False):
+        class C:
+            def _replace(self, content=None):
+                return self
+
+        art = C()
+        art.articleId = "1000000000"
+        art.pmid = "10"
+        art.externalId = "extId000"
+
+        fileObj = C()
+        fileObj.fileId = "1001"
+        fileObj.content = self.text
+        
+        yield art, [fileObj]
 
 def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False):
     " iterate over all files with article/fileData in textDir "
@@ -575,7 +601,8 @@ control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 def replaceSpecialChars(string):
     " replace all special characters with space and linebreaks to \a = ASCII 7 = BELL"
-    string = "\n".join(string.splitlines()) # get rid of crazy unicode linebreaks
+    string = string.replace(u'\u2028', '\n') # one of the crazy unicode linebreaks
+    string = "\n".join(string.splitlines()) # get rid of other crazy unicode linebreaks
     string = string.replace("\m", "\a") # old mac text files
     string = string.replace("\n", "\a")
     string = control_char_re.sub(' ', string)
@@ -730,7 +757,7 @@ def iterChunks(datasets):
 def addLoadedFiles(dbFname, fileNames):
     " given a sqlite db, create a table loadedFiles and add fileNames to it "
     fileNames = [(basename(x), ) for x in fileNames] # sqlite only accepts tuples, strip path
-    con, cur = maxTables.openSqliteRw(dbFname)
+    con, cur = maxTables.openSqlite(dbFname, lockDb=True)
     cur.execute("CREATE TABLE IF NOT EXISTS loadedFiles (fname TEXT PRIMARY KEY);")
     con.commit()
     sql = "INSERT INTO loadedFiles (fname) VALUES (?)"
@@ -741,7 +768,7 @@ def getUnloadedFnames(dbFname, newFnames):
     """ given a sqlite db and a list of filenames, return those that have not been loaded yet into the db 
     comparison looks only at basename of files 
     """
-    con, cur = maxTables.openSqliteRo(dbFname)
+    con, cur = maxTables.openSqlite(dbFname)
     loadedFnames = []
     try:
         for row in cur.execute("SELECT fname from loadedFiles"):
@@ -791,10 +818,10 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
     toLoadFnames = sortPubFnames(toLoadFnames)
 
-    if not isfile(dbFname):
-        lockDb = True
-    else:
-        lockDb = False
+    #if not isfile(dbFname):
+        #lockDb = True
+    #else:
+        #lockDb = False
 
     if len(toLoadFnames)==0:
         logging.debug("No files to load")
@@ -802,7 +829,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
         indexedFields = ["pmid", "pmcId","printIssn", "eIssn", "year"]
         intFields = ["pmid", "pmcId","year"]
         maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
-            primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False, lockDb=lockDb)
+            primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False)
         addLoadedFiles(dbFname, toLoadFnames)
 
 def getArtDbPath(datasetName):

@@ -1,0 +1,123 @@
+#!/usr/bin/env python2.7
+import maxCommon, glob, collections, os, sys, optparse, logging, operator, types
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+import html
+
+import pubGeneric
+
+# ==== FUNCTIONs =====
+
+def parseGeneList(inFname):
+    " parse a file with gene/gene/desc fields and return as dict sortedPair -> desc "
+    logging.info("Parsing %s" % inFname)
+    pairToRows = collections.defaultdict(int)
+    for line in open(inFname):
+        fields = line.strip().split()
+        sym1, sym2 = fields[:2]
+        genePair = [sym1, sym2]
+        genePair.sort()
+        genePair = tuple(genePair)
+        pairToRows[genePair]=(sym1, sym2)
+    return pairToRows
+
+def annotateFusionGenes(inFname):
+    FusRow = collections.namedtuple("fusRec", ["gene1", "gene2", "annot", "dbAnnots", "count"])
+
+    dataFname = "elsPmcMl.fusCounts.tab"
+    logging.info("Parsing %s" % dataFname)
+    pairToRows = collections.defaultdict(int)
+    for row in maxCommon.iterTsvRows(dataFname):
+        genePair = [row.sym1, row.sym2]
+        genePair.sort()
+        genePair = tuple(genePair)
+        pairToRows[genePair]=int(row.count)
+
+    dbList = [('cosmic',"cosmicFusions.tab"), \
+            ('OMIM', 'chimerDb.omim.tsv'), \
+            ('ChimerDb', 'chimerDb.pubmed.tsv'), \
+            ('Mitelman', 'chimerDb.mitelman.tsv')]
+
+    dbPairs = {}
+    for dbName, fname in dbList:
+        dbPairs[dbName] = parseGeneList(fname)
+
+    logging.info("Annotating file %s" % inFname)
+    #for inFname in ["lungCancerFusions.tab", "amlFusionsDz.tab"]:
+    fusAnnots = []
+    cancerPairs = set()
+    for lineCount, line in enumerate(open(inFname)):
+        fields = line.strip().split()
+        gene1, gene2 = fields[:2]
+        annot = ""
+        if len(fields)>2:
+            annot = fields[2]
+
+        if gene1==gene2:
+            continue
+        genePair = [gene1, gene2]
+        genePair.sort()
+        genePair = tuple(genePair)
+        count = pairToRows.get(genePair, 0)
+        dbAnnots = []
+        for dbName in dbPairs:
+            if genePair in dbPairs[dbName]:
+                dbAnnots.append(dbName)
+
+        fusAnnots.append(FusRow(gene1, gene2, annot, dbAnnots, count))
+
+    fusAnnots.sort(key=operator.itemgetter(-1), reverse=True)
+
+    return fusAnnots
+
+def printFusAnnots_text(fusAnnots):
+    for fusData in fusAnnots:
+        print inFname+"\t"+ "\t".join([str(x) for x in fusData])
+
+def printFusAnnots_html(fusAnnots):
+    h = html.htmlWriter("stdout")
+    h.head("FusionFinder", styleString=html.getStylesheet("dyndrive"))
+    h.startBody("TCGA AML - Leukemia (%d gene pairs)" % len(fusAnnots))
+    h.startTable([100,100,100,100,100,100], "gene1,gene2,patient count,databases,publications".split(","))
+
+    for fusData in fusAnnots:
+        if len(fusData.dbAnnots)==0 and fusData.count==0:
+            continue
+        h.startTr()
+        for val in fusData:
+            if type(val)==types.ListType:
+                val = ",".join(val)
+            elif type(val)==types.IntType:
+                val = str(val)
+            h.td(val)
+        h.endTr()
+
+    h.endTable()
+    h.endHtml()
+
+
+def main():
+    parser = optparse.OptionParser("""usage: %prog [options] infile - annotate fusion gene file, two genes per line""")
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+    parser.add_option("", "--html", dest="html", action="store_true", help="output as html")
+    (options, args) = parser.parse_args()
+    pubGeneric.setupLogging(progFile, options)
+
+    if args==[]:
+        parser.print_help()
+        exit(1)
+
+    inFname = args[0]
+    fusData = annotateFusionGenes(inFname)
+    if options.html:
+        printFusAnnots_html(fusData)
+    else:
+        printFusAnnots_text(fusData)
+
+main()

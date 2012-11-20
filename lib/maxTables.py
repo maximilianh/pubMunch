@@ -546,7 +546,7 @@ def makeSqlLiteCreateStatement(tableName, fields, intFields=[], primKey=None, id
     return tableSql, idxSqls
 
 def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, \
-        idxFields=[], dropTable=True, lockDb=False):
+        idxFields=[], dropTable=True):
     " load tabsep file into sqlLite db table "
     # if first parameter is string, make it to a list
     if len(tsvFnames)==0:
@@ -554,16 +554,11 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
         return
     if isinstance(tsvFnames, basestring):
         tsvFnames = [tsvFnames]
-    con = sqlite3.connect(dbFname)
-    if lockDb:
-        logging.debug("Locking DB in exclusive mode")
-        con.isolation_level="EXCLUSIVE"
-    cur = con.cursor()
-    cur.execute("PRAGMA synchronous=OFF") # recommended by
-    cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
-    cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
-    cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
-    cur.execute("PRAGMA temp_store=memory") 
+    if os.path.isfile(dbFname):
+        lockDb = False
+    else:
+        lockDb = True
+    con, cur = openSqlite(dbFname, lockDb=lockDb)
 
     # drop old table 
     if dropTable:
@@ -574,7 +569,7 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     # create table
     createSql, idxSqls = makeSqlLiteCreateStatement(tableName, headers, \
         intFields=intFields, idxFields=idxFields, primKey=primKey)
-    logging.debug("creating table with %s" % createSql)
+    logging.log(5, "creating table with %s" % createSql)
     cur.execute(createSql)
     con.commit()
 
@@ -595,19 +590,74 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
         cur.execute(idxSql)
         con.commit()
 
-def openSqliteRw(db):
-    " opens sqlite for normal read and writing "
-    con = sqlite3.connect(db)
-    cur = con.cursor()
-    return con, cur
+def insertSqliteRow(cur, con, tableName, headers, row):
+    " append a row to an sqlite cursor "
+    sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(headers), ", ".join(["?"]*len(headers)))
+    logging.log(5, "SQL: %s" % sql)
+    cur.execute(sql, row)
+    con.commit()
 
-def openSqliteRo(db):
-    " opens sqlite con and cursor for quick reading "
-    con = sqlite3.connect(db)
-    cur = con.cursor()
-    cur.execute("PRAGMA read_uncommited=true;")
+def openSqliteCreateTable(db, tableName, fields, intFields=None, idxFields=None, primKey=None, retries=1):
+    " create the sqlite db and create a table if necessary "
+    con, cur = openSqlite(db, retries=retries)
+    if primKey==None:
+        primKey = fields[0]
+    createSql, idxSqls = makeSqlLiteCreateStatement(tableName, fields, \
+        intFields=intFields, idxFields=idxFields, primKey=primKey)
+    logging.debug("creating table with %s" % createSql)
+    cur.execute(createSql)
+    con.commit()
+    for idxSql in idxSqls:
+        cur.execute(idxSql)
     con.commit()
     return con, cur
+
+def namedtuple_factory(cursor, row):
+    """
+    Usage:
+    con.row_factory = namedtuple_factory
+    """
+    fields = [col[0] for col in cursor.description]
+    Row = collections.namedtuple("Row", fields)
+    return Row(*row)
+
+def openSqlite(dbName, asNamedTuples=False, lockDb=False, timeOut=10, retries=1):
+    " opens sqlite con and cursor for quick reading "
+    tryCount = retries
+    con = None
+    while tryCount>0 and con==None:
+        try:
+            con = sqlite3.connect(dbName, timeout=timeOut)
+        except sqlite3.OperationalError:
+            logging.info("Database is locked, waiting for 60 secs")
+            time.sleep(60)
+            tryCount -= 1
+
+    if asNamedTuples:
+        con.row_factory = namedtuple_factory
+    cur = con.cursor()
+    #cur.execute("PRAGMA read_uncommited=true;") # has only effect in shared-cache mode
+    con.commit()
+    if lockDb:
+        cur.execute("PRAGMA synchronous=OFF") # recommended by
+        cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
+        cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+        cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
+        cur.execute("PRAGMA temp_store=memory") 
+        con.commit()
+    return con, cur
+
+def iterSqliteRows(db, tableName):
+    """
+    yield rows from sqlite db
+    """
+    con, cur = openSqlite(db, asNamedTuples=True)
+    for row in cur.execute("SELECT * FROM %s" % tableName):
+        yield row
+
+def iterSqliteRowNames(cur, tableName):
+    for row in cur.execute("PRAGMA table_info(%s);" % tableName):
+        yield row[1]
 
 if __name__ == "__main__":
     import doctest

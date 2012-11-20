@@ -20,6 +20,9 @@ def main(args, options):
 
     try:
         pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, options.pause, options.tryHard, options.restrictPublisher)
+    except KeyboardInterrupt:
+        logging.info("stopped with ctrl-c, no email sent")
+        raise
     except:
         if options.sendEmail:
             logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)

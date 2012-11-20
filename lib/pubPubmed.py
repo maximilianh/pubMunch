@@ -132,7 +132,11 @@ def parseMedline(xmlParser):
 
     data["keywords"] = "/".join(meshDescriptors)
 
-    return data
+    # remove these annoying linebreaks!
+    filtData = {}
+    for key, val in data.iteritems():
+        filtData[key] = val.replace(u'\u2028', ' ')
+    return filtData
 
 def parsePubmedFields(xmlEl, dataDict):
     """ parse special pubmed (not medline) fields, like doi, pmc, etc """

@@ -1,0 +1,318 @@
+#!/usr/bin/env python2.7
+
+# first load the standard libraries from python
+# we require at least python 2.5
+#from sys import *
+import sys
+
+# load default python packages
+import logging, optparse, os, glob, zipfile, types, gzip, shutil, codecs, collections, copy
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed, pubCrawl, maxTables
+
+# === CONSTANTS ===================================
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert the output from crawler runs to pubTools format.
+
+articleIds are simply minId (defined in pubConf) + PMID
+
+example:
+pubConvCrawler /hive/inside/pubs/crawlDir /hive/inside/pubs/text/crawler/
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-c", "--cluster", dest="cluster", action="store_true", help="use cluster for conversion", default=None)
+parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="also export meta data to sqlite db 'articles.db' in outDir") 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+def unicodeList(list):
+    " convert ints to unicode in list and return new list "
+    newL = []
+    for e in list:
+        if type(e)!=types.UnicodeType:
+            newL.append(unicode(e))
+        else:
+            newL.append(e)
+    return newL
+            
+#def unicodeDict(dict):
+    #" convert ints to unicode in dict and return new dict "
+    #newD = {}
+    #for key, e in dict.iteritems():
+        #if type(e)!=types.UnicodeType:
+            #newD[key]=unicode(e)
+        #else:
+            #newD[key]=e
+    #return newD
+            
+def iterArticleSubdirRows(inDir):
+    " search all subdirs of inDir for articles.db files and yield their rows "
+    if isfile(join(inDir, "articles.db")):
+        subDirs = [inDir]
+    else:
+        subDirs = [join(inDir, s) for s in os.listdir(inDir)]
+
+    procCount = 0
+    for subPath in subDirs:
+        dbName = join(subPath, "articles.db")
+        if not isfile(dbName):
+            continue
+        logging.info("Found %s" % dbName)
+        for row in maxTables.iterSqliteRows(dbName, "articles"):
+            procCount += 1
+            yield subPath, row
+    #assert(procCount>0)
+
+def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, tabExt):
+    """ 
+    split crawler meta file into pieces of chunkSize lines, return filenames and PMIDs
+    Ignore articles with duplicte PMIDs
+    """
+    if isdir(jobDir):
+        logging.info("Deleting temporary dir %s" % jobDir)
+        shutil.rmtree(jobDir)
+
+    if not os.path.isdir(jobDir):
+        logging.info("Creating directory %s" % jobDir)
+        os.makedirs(jobDir)
+    maxCommon.mustBeEmptyDir(jobDir)
+
+    # split and add a field "fileDir" so that converter can find PDFs
+    i = 0
+    usedArticleIds = set()
+    pmids = set()
+    chunkCount = 0
+    chunkNames = []
+    headerLine = None
+    for subPath, row in iterArticleSubdirRows(crawlDir):
+        if headerLine==None:
+            headerLine = "\t".join(row._fields)+"\tfileDir\n"
+            #newFields = copy.copy(row._fields)
+            #newFields.append("fileDir")
+        # create unique article Id based on pmid
+        newArticleId = minId+int(row.pmid)
+        if newArticleId in usedArticleIds:
+            logging.warn("Skipping article %s, pmid seen before" % row.externalId)
+            continue
+        usedArticleIds.add(newArticleId)
+        pmids.add(row.pmid)
+        row = row._replace(articleId=str(newArticleId))
+
+        # start new chunk if needed
+        if (i==0) or (i / chunkSize) > chunkCount:
+            chunkId = str(updateId)+"_%05d" % (chunkCount)
+            chunkFname = chunkId+tabExt
+            artFname = os.path.join(jobDir, chunkFname)
+            artFh = codecs.open(artFname, "w", encoding="utf8")
+            artFh.write(headerLine)
+            logging.debug("Writing to %s" % (artFname))
+            chunkCount+=1
+            chunkNames.append(chunkId)
+
+        # write data to files
+        assert(len(row)==len(pubStore.articleFields)+len(pubCrawl.addHeaders))
+        row = unicodeList(row)
+        fileDir = join(os.path.abspath(subPath), "files")
+        artFh.write(u"\t".join(row)+"\t%s\n" % fileDir)
+        i += 1
+
+    # write to outDir
+    return chunkNames, pmids
+
+def toUnicode(var):
+    " force variable to unicode, somehow "
+    if type(var)==type(1):
+        var = unicode(var)
+    if var==None:
+        var = "NotSpecified"
+    elif type(var)==type(unicode()):
+        pass
+    else:
+        try:
+            var = var.decode("utf8")
+        except UnicodeDecodeError, msg:
+            logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
+            var = var.decode("latin1")
+    return var
+
+def submitJobs(inDir, outDir, useCluster):
+    " split crawler article info (article info + additional fields) into chunks"
+    # get already done PMIDs if we're not running for the first time
+    minId = pubConf.identifierStart["crawler"]
+    updateId, firstArticleId, pmids = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
+    donePmids = set([int(x) for x in pmids])
+
+    if useCluster:
+        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
+    else:
+        runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
+
+    tmpIndexDir = join(outDir, "jobfiles.tmp")
+    tabExt = ".crawlArticles.tab"
+    chunkIds, newPmids = splitCrawlerMeta(inDir, tmpIndexDir, minId, \
+        updateId, pubConf.chunkArticleCount, donePmids, tabExt)
+
+    for chunkId in chunkIds:
+        # create .article.gz
+        inChunkFname = join (tmpIndexDir, chunkId+tabExt)
+        outFname = join(outDir, "%s.files.gz" % (chunkId))
+        outArtFname = join(outDir, "%s.articles.gz" % (chunkId))
+        maxCommon.mustNotExist(outFname)
+        maxCommon.mustNotExist(outArtFname)
+        command = "%s %s convertJob {check in exists %s} {check out exists+ %s} {check out exists+ %s}" % \
+            (sys.executable, progFile, inChunkFname, outFname, outArtFname)
+        runner.submit(command)
+    runner.finish(wait=True)
+    newPmidsStr = [str(x) for x in newPmids]
+    pubStore.appendToUpdatesTxt(outDir, updateId, "0", newPmidsStr)
+
+def findFiles(zipDir, eIssn, pmid):
+    """ find files for pmid and sort into main and supp. Return dict main/supp -> list of paths """
+    zipGlob = join(zipDir, "files", pmid+".*")
+    logging.debug("Looking for files %s" % zipGlob)
+    fnames = glob.glob(zipGlob)
+    paths = collections.defaultdict(list)
+    for fname in fnames:
+        if ".S" in fname:
+            paths["suppl"].append(fname)
+        elif fname.endswith("html"):
+            paths["main.html"] = fname
+        elif fname.endswith("pdf"):
+            paths["main.pdf"] = fname
+        else:
+            assert(False)
+    return paths
+
+def convSaveFile(writer, externalId, fileType, url, mimeType, fname, fileId, articleId):
+    " try to convert fname to ascii and write to writer, report success as boolean "
+    logging.debug("Converting file %s, articleId %s" % (fname, articleId))
+    if isfile(fname):
+        fileDict = pubStore.createEmptyFileDict()
+        fileDict["externalId"] = externalId
+        fileDict["fileType"] = fileType
+        fileDict["url"] = url
+        fileDict["mimeType"] = mimeType
+        fileDict["content"] = open(fname).read()
+        fileDict = pubGeneric.toAsciiEscape(fileDict)
+        if fileDict==None:
+            logging.warn("Cannot convert %s, skipping" % fname)
+            res = False
+        else:
+            writer.writeFile(articleId, fileId, fileDict)
+            res = True
+
+        return res
+    else:
+        #raise Exception("File %s was not found" % fname)
+        logging.error("corrupt crawler output: File %s was not found" % fname)
+
+def convertOneChunk(inFname, outFname, outArtFname):
+    """ 
+    convert one crawler meta file and pdf files to two pubtools files, 
+    files and articles
+    """ 
+    # input fields:
+    # articleId  externalId   mainHtmlUrl mainPdfUrl suppUrls
+    # mainHtmlFile mainPdfFile suppFiles  landingUrl
+    # output fields:
+    # "fileId", # numerical ID of the file: its article (ID * 1000)+some count (for suppl files)
+    # "externalId", # copy of external ID, for quick greps and mallet
+    # "articleId", # numerical ID of the article
+    # "url", # the url where the file is located, can also be elsevier://, pmcftp:// etc
+    # "desc", # a description of the file, e.g. main text, html title or supp file description
+    # "fileType", # can be either "main" or "supp"
+    # "time", # time/day of conversion from PDF/html/etc
+    # "mimeType", # mimetype of original file before to-text-conversion
+    # "content" # the data from this file (newline => \a, tab => space, cr => space, \m ==> \a)
+
+    # get headers
+    artHeaders = pubStore.articleFields
+    logging.info("Reading %s and writing to %s and %s" % (inFname, outFname, outArtFname))
+    writer = pubStore.PubWriterFile(outFname)
+
+    logging.debug("Reading %s" % inFname)
+    logging.debug("Writing to %s" % outFname)
+
+    # parse & write to output
+    for row in maxCommon.iterTsvRows(inFname):
+        crawlDict = row._asdict()
+        articleId = row.articleId
+        logging.debug("Converting all files for article %s" % crawlDict)
+        fileId = int(articleId)*1000
+        pmid = row.externalId.replace("PMID", "")
+        wasWrittenHtml, wasWrittenPdf = False, False
+        # conver the main text
+        if row.mainHtmlFile!="":
+            fname = join(row.fileDir, pmid+".main.html")
+            wasWrittenHtml = convSaveFile(writer, row.externalId, "main", row.mainHtmlUrl, \
+                "text/html", fname, fileId, articleId)
+        if row.mainPdfFile!="":
+            fname = join(row.fileDir, pmid+".main.pdf")
+            wasWrittenPdf = convSaveFile(writer, row.externalId, "main", row.mainPdfUrl, \
+                "application/pdf", fname, fileId+1, articleId)
+
+        if not wasWrittenPdf and not wasWrittenHtml:
+            logging.warn("Neither PDF nor HTML main text found, skipping article %s" % articleId)
+            continue
+
+        # convert supplemental files
+        if row.suppFiles!="":
+            suppUrls = row.suppUrls.split(",")
+            suppFnames = row.suppFiles.split(",")
+            if len(suppUrls)==len(suppFnames):
+                logging.info("error: %s not good, %s neither" % \
+                    (suppUrls, suppFnames))
+                assert(False)
+
+            for suppIdx, suppFile in enumerate(suppFnames):
+                fname = join(row.fileDir, suppFnames[suppIdx])
+                logging.debug("Converting supp file %s" % (suppFile))
+                suppUrl = suppUrls.get(suppIdx, None)
+                if suppUrl==None:
+                    logging.error("No URL for suppFile %s" % suppFile)
+                    suppUrl = ""
+                convSaveFile(writer, row.externalId, "supp", suppUrl, None, \
+                    fname, fileId+2+suppIdx, articleId)
+
+        # save meta info
+        artDict = pubStore.createEmptyArticleDict()
+        for key, val in artDict.iteritems():
+            artDict[key] = unicode(crawlDict[key])
+        #artDict = unicodeDict(row[:len(pubStore.articleFields)])
+        writer.writeArticle(articleId, artDict)
+
+    writer.close()
+
+def convCrawlDir(args):
+    pubGeneric.setupLogging(progFile, options)
+
+    cmd = args[0]
+    if cmd!="convertJob":
+        inDir, outDir = args
+        maxCommon.mustExistDir(outDir)
+        submitJobs(inDir, outDir, options.cluster)
+        if options.updateDb:
+            tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+            dbPath    = join(outDir, "articles.db")
+            pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+    else:
+        cmd, inFile, outFile, outArtFname = args
+        convertOneChunk(inFile, outFile, outArtFname)
+
+# ----------- MAIN --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+convCrawlDir(args)

@@ -116,6 +116,8 @@ def findFiles(dataset):
     #assert(type(datasets)==types.ListType)
     fnames = []
     dataDir = pubConf.resolveTextDir(dataset)
+    if dataDir==None:
+        raise Exception("error in input data spec")
     fnames.extend(glob.glob(join(dataDir, "*.articles.gz")))
     if len(fnames)==0:
         raise Exception("Could not find any *.articles.gz files in %s"% dataDir)
@@ -142,7 +144,7 @@ def findArticleBasenames(dataset, updateIds=None):
     logging.debug("Found %s basenames for %s: " % (len(baseNames), dataset))
     return baseNames
 
-def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict, runNow=False, cleanUp=False, updateIds=None, batchDir=".", runner=None, prefixDataset = False):
+def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict, runNow=False, cleanUp=False, updateIds=None, batchDir=".", runner=None, prefixDataset = False, addFields=None):
     """ find data zip files and submit one map job per zip file
         Jobs call pubAlg.pyc and then run the algMethod-method of algName
 
@@ -176,13 +178,12 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
             paramKey = "startAnnotId."+algShortName
             if paramKey not in paramDict and len(algNames)>1:
                 paramDict[paramKey] = str(algCount*(10**pubConf.ANNOTDIGITS/len(algNames)))
+            paramDict["addFields"] = addFields
 
             writeParamDict(paramDict, paramFname)
             for inFile in baseNames:
                 inBase = splitext(basename(inFile))[0]
-                # "map" can read from several datasets so need to make filenames unique
-                if algMethod=="map":
-                    inBase = basename(inDir)+"_"+inBase
+                inBase = basename(inDir)+"_"+inBase
                 outFullname = join(outDir, inBase)+outExt
                 mustNotExist(outFullname)
                 command = "%s %s %s %s %s {check out exists %s} %s" % \
@@ -282,7 +283,7 @@ def getSnippet(text, start, end, minContext=0, maxContext=250):
     snippet = snippet.replace("\t", " ")
     return snippet
 
-def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning):
+def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields):
     """ use alg to annotate fileData, write to outFh, adding annotIdAdd to all annotations 
     return next free annotation id.
     """
@@ -322,6 +323,10 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             else:
                 extId = "0"
             fields.append(extId)
+            # add addFields
+            artDict = articleData._asdict()
+            for addField in addFields:
+                fields.append(artDict.get(addField, ""))
             # add other fields
             fields.extend(row)
 
@@ -345,8 +350,11 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             assert(annotCount<10**annotDigits)
     return annotCount
 
-def writeHeaders(alg, outFh, doSectioning):
-    " write headers from algorithm to outFh "
+def writeHeaders(alg, outFh, doSectioning, addFields):
+    """ write headers from algorithm to outFh, 
+    add a section field if doSectioning is true
+    add fields from addFields list after the external id
+    """
     if "headers" not in dir(alg) and not "headers" in alg.__dict__:
         logging.error("headers variable not found.")
         logging.error("You need to define a variable 'headers' in your python file or class")
@@ -355,6 +363,9 @@ def writeHeaders(alg, outFh, doSectioning):
     headers = copy.copy(alg.headers)
     headers.insert(0, "annotId")
     headers.insert(1, "externalId")
+    for i, addField in enumerate(addFields):
+        headers.insert(2+i, addField)
+
     if doSectioning:
         headers.append("section")
     headers.append("snippet")
@@ -408,7 +419,10 @@ def runAnnotate(reader, alg, paramDict, outName):
     """
     tmpOutFname = makeLocalTempFile()
 
-    outFh = pubStore.utf8GzWriter(tmpOutFname)
+    if outName=="stdout":
+        outFh = sys.stdout
+    else:
+        outFh = pubStore.utf8GzWriter(tmpOutFname)
 
     doSectioning = attributeTrue(alg, "sectioning")
     logging.debug("Sectioning activated: %s" % doSectioning)
@@ -417,21 +431,30 @@ def runAnnotate(reader, alg, paramDict, outName):
         logging.debug("Running startup")
         alg.startup(paramDict)
 
-    writeHeaders(alg, outFh, doSectioning)
+    addFields = paramDict.get("addFields", [])
+    writeHeaders(alg, outFh, doSectioning, addFields)
 
     annotIdAdd = getAnnotId(alg, paramDict)
 
-    onlyMeta = attributeTrue(alg, "onlyMeta")
-    bestMain = attributeTrue(alg, "bestMain")
+    onlyMain = paramDict.get("onlyMain", False).lower()=="true"
+    logging.info("Only main files: %s" % onlyMain)
 
-    for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain):
+    onlyMeta = attributeTrue(alg, "onlyMeta")
+    logging.info("Only meta files: %s" % onlyMeta)
+
+    bestMain = attributeTrue(alg, "bestMain")
+    logging.info("Only best main files: %s" % bestMain)
+
+    for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
         logging.debug("Annotating article %s with %d files, %s" % \
             (articleData.articleId, len(fileDataList), [x.fileId for x in fileDataList]))
         for fileData in fileDataList:
-            writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning)
+            writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields)
 
     outFh.close()
-    moveTempToFinal(tmpOutFname, outName)
+
+    if outName!="stdout":
+        moveTempToFinal(tmpOutFname, outName)
 
 def runMap(reader, alg, paramDict, outFname):
     """ run map part of alg over all files that reader has.
@@ -543,7 +566,7 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
         meter.taskCompleted()
     ofh.close()
 
-def annotate(algNames, textDir, paramDict, outDirs, cleanUp=False, runNow=False, updateIds=None, batchDir=".", runner=None):
+def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, updateIds=None, batchDir=".", runner=None, addFields=[]):
     """ 
     submit jobs to batch system to run algorithm over text in textDir, write
     annotations to outDir 
@@ -557,8 +580,8 @@ def annotate(algNames, textDir, paramDict, outDirs, cleanUp=False, runNow=False,
         if "startup" in dir(alg):
             alg.startup(paramDict) # to check if startup works
 
-    baseNames = findFilesSubmitJobs(algNames, "annotate", textDir, outDirs, \
-        ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
+    baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \
+        ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner, addFields=[])
     return baseNames
 
 def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False):

@@ -1,5 +1,5 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib
+    os.path, re, glob, time, urllib2, doctest, httplib, socket
 from types import *
 
 def errAbort(text):
@@ -138,8 +138,6 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
     Record = collections.namedtuple('tsvRec', headers)
     for line in fh:
         fields = line.strip("\n").split(fieldSep)
-        if fields[0]=='2003253450001':
-            print repr(fields)
         #fields = [x.decode(encoding) for x in fields]
         if fieldTypes:
             fields = [f(x) for f, x in zip(fieldTypes, fields)]
@@ -300,10 +298,11 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
         count = count - 1
         return count
         
+    socket.setdefaulttimeout(20)
     count = repeatCount
     while count>0:
         try:
-            ret = urllib2.urlopen(url, params)
+            ret = urllib2.urlopen(url, params, 20)
         except urllib2.HTTPError as ex:
             count = handleEx(ex, count)
         except httplib.HTTPException as ex:

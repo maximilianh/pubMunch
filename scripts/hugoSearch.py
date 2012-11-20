@@ -3,7 +3,7 @@
 
 # we need the regular expressions module to split text into words
 # (unicode-awareness) and gzip
-import re, gzip
+import re, gzip, os
 
 # global variable
 upCaseWord = re.compile("\w[A-Z0-9]+\w")
@@ -13,7 +13,7 @@ upCaseWord = re.compile("\w[A-Z0-9]+\w")
 headers = ["start", "end", "HgncId", "symbol"]
 
 # the path to hugo.tab, list of hugo symbols
-dataFname = join(dirname(__fname__), "data", "hugo.tab.gz")
+dataFname = os.path.join(dirname(__file__), "data", "hugo.tab.gz")
 
 # global variable, holds the mapping KEYWORD => hugo-Id
 hugoDict = {}

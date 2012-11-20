@@ -46,7 +46,7 @@ ERRWAIT_TRYHARD = 3
 lockFname = None
 
 # list of highwire sites, for some reason ip resolution fails too often
-highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org"] # too many DNS queries fail, so we hardcode some of the work
+highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", "aspetjournals.org", "fasebj.org", "jleukbio.org"] # too many DNS queries fail, so we hardcode some of the work
 
 # if any of these is found in a landing page Url, wait for 15 minutes and retry
 # has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
@@ -105,6 +105,7 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["asm.org"],
         "landingPageIsArticleUrlKeyword" : ".long",
+        "doiUrl_rewriteRules" : {"$" : ".long"},
         "ignoreMetaTag" : True,
         "errorPageText" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
         "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
@@ -131,6 +132,7 @@ pubsCrawlCfg = { "npg" :
     "pnas" :
     {
         "hostnames" : ["pnas.org"],
+        "landingUrl_templates" : {"0027-8424" : "http://pnas.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
         "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
         "doiUrl_rewriteRules" : {"$" : ".long"},
         "landingPageIsArticleUrlKeyword" : ".long",
@@ -139,9 +141,45 @@ pubsCrawlCfg = { "npg" :
         "suppListUrlREs" : [".*suppl/DCSupplemental"],
         "suppFileUrlREs" : [".*/content/suppl/.*"],
     },
+    "aspet" :
+    {
+        "hostnames" : ["aspetjournals.org"],
+        "landingUrl_templates" : {"0022-3565" : "http://jpet.aspetjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+    },
+    "faseb" :
+    {
+        "hostnames" : ["fasebj.org"],
+        "landingUrl_templates" : {"0892-6638" : "http://www.fasebj.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+    },
+    "slb" :
+    {
+        "hostnames" : ["jleukbio.org"],
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+    },
     "aai" :
     {
         "hostnames" : ["jimmunol.org"],
+        "landingUrl_templates" : {"0022-1767" : "http://www.jimmunol.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
         "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
         "doiUrl_rewriteRules" : {"$" : ".long"},
         "landingPageIsArticleUrlKeyword" : ".long",
@@ -156,7 +194,10 @@ pubsCrawlCfg = { "npg" :
     "wiley" :
     {
         "hostnames" : ["onlinelibrary.wiley.com"],
-        "fullUrl_replace" : {"abstract" : "pdf"},
+        #"landingUrl_templates" : {None: "http://onlinelibrary.wiley.com/doi/%(doi)s/full"},
+        "doiUrl_rewriteRules" : {"abstract" : "full"},
+        "landingPageIsArticleUrlKeyword" : "full",
+        "fullUrl_replace" : {"full" : "pdf", "abstract" : "pdf"},
         "suppListPageREs" : ["Supporting Information"],
         "suppFileUrlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
         "suppFilesAreOffsite" : True,
@@ -187,6 +228,9 @@ addHeaders = [ # additional headers for fulltext download metaData
 "suppFiles", # comma-sep list of supplemental files on local disk
 "landingUrl" # can be different from mainHtml
 ]
+
+metaHeaders = copy.copy(pubStore.articleFields)
+metaHeaders.extend(addHeaders)
 
 # ===== EXCEPTIONS ======
 
@@ -238,8 +282,7 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
         issn = articleData["printIssn"]
         # need to use print issn as older articles in pubmed don't have any eIssn
         logging.debug("Trying URL template to find landing page for *PRINT* issn %s", issn)
-        print articleData
-        articleData["firstPage"] = articleData["page"].split("-")[0]
+        articleData["firstPage"] = articleData["page"].split(".")[0].split("-")[0]
         logging.debug("firstPage %s" % articleData["firstPage"])
         urlTemplates = crawlConfig.get("landingUrl_templates", {})
         urlTemplate = urlTemplates.get(issn, None)
@@ -383,12 +426,12 @@ def runWget(url):
     if ret!=0:
         #logging.debug("non-null return code from wget, sleeping 120 seconds")
         #time.sleep(120)
-        raise pubGetError("non-null return code from wget", "wgetRetNonNull\t"+url.decode("utf8"))
+        raise pubGetError("non-null return code from wget", "wgetRetNonNull", url.decode("utf8"))
 
     # parse wget log
     mimeType, redirectUrl, charset = parseWgetLog(logFile, url)
     if mimeType==None:
-        raise pubGetError("No mimetype found in http reply", "noMimeType\t"+url)
+        raise pubGetError("No mimetype found in http reply", "noMimeType", url)
 
     if redirectUrl!=None:
         finalUrl = redirectUrl
@@ -398,7 +441,7 @@ def runWget(url):
     data = tmpFile.read()
     logging.log(5, "Download OK, size %d bytes" % len(data))
     if len(data)==0:
-        raise pubGetError("empty http reply from %s" % url, "emptyHttp\t"+url)
+        raise pubGetError("empty http reply from %s" % url, "emptyHttp",url)
 
     if mimeType in ["text/plain", "application/xml", "text/csv"]:
         logging.log(5, "Trying to guess encoding of text file with type %s" % mimeType)
@@ -414,6 +457,47 @@ def runWget(url):
     wgetCache[url] = ret
 
     return ret
+
+def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
+    """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
+    to directory <outDir>/files
+    """
+    fileDir = join(outDir, "files")
+    if not isdir(fileDir):
+        os.makedirs(fileDir)
+
+    suppFnames = []
+    suppUrls = []
+    for suffix, pageDict in fulltextData.iteritems():
+        if suffix=="status":
+            continue
+        if suffix=="landingPage":
+            metaData["landingUrl"] = pageDict["url"]
+            continue
+
+        filename = pmid+"."+suffix
+
+        if suffix=="main.html":
+            metaData["mainHtmlFile"] = filename
+            metaData["mainHtmlUrl"] = pageDict["url"]
+        elif suffix=="main.pdf":
+            metaData["mainPdfFile"] = filename
+            metaData["mainPdfUrl"] = pageDict["url"]
+        elif suffix.startswith("S"):
+            suppFnames.append(filename)
+            suppUrls.append(pageDict["url"])
+            
+        fileData = pageDict["data"]
+        
+        filePath = join(fileDir, filename)
+        logging.debug("Writing file %s" % filePath)
+        fh = open(filePath, "wb")
+        fh.write(fileData)
+        fh.close()
+
+    metaData["suppFiles"] = ",".join(suppFnames)
+    metaData["suppUrls"] = ",".join(suppUrls)
+    return metaData
 
 def storeFiles(pmid, metaData, fulltextData, outDir):
     """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
@@ -450,6 +534,7 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
         try:
             dataZipFile.writestr(filename, fileData)
         except zipfile.LargeZipFile:
+            dataZipFile.close()
             i = 0
             while True:
                 # append _X to zipname to make unique
@@ -585,6 +670,9 @@ def recodeToUtf8(data):
     except UnicodeDecodeError:
         encoding = chardet.detect(data)['encoding']
         logging.log(5, "encoding should be %s" % encoding)
+        if encoding==None:
+            encoding = "latin1"
+
         try:
             data = data.decode(encoding).encode("utf8")
         except UnicodeDecodeError:
@@ -596,16 +684,24 @@ def recodeToUtf8(data):
         return data
 
 def parsePmidStatus(outDir):
-    " parse outDir/pmidStatus.tab and return a set with pmids that should be ignored "
+    " parse sqlite db AND status file and return a set with pmids that should not be crawled "
+    donePmids = set()
     statusFname = join(outDir, PMIDSTATNAME)
     logging.debug("Parsing %s" % statusFname)
-    donePmids = set()
     if isfile(statusFname):
         for l in open(statusFname):
             pmid = l.strip().split("\t")[0]
             pmid = int(pmid)
             donePmids.add(pmid)
-    logging.debug("Found %d PMIDs with status" % len(donePmids))
+    logging.info("Found %d PMIDs that have some status" % len(donePmids))
+
+    dbFname = join(outDir, "articles.db")
+    logging.info("Reading done PMIDs from db %s" % dbFname)
+    con, cur = maxTables.openSqlite(dbFname)
+    dbPmids = set([x for (x,) in cur.execute("SELECT pmid from articles")])
+    donePmids.update(dbPmids)
+    logging.info("Found %d PMIDs that are already done or have status" % len(donePmids))
+    logging.log(5, "PMIDs are: %s" % donePmids)
     return donePmids
 
 def parseIssnStatus(outDir):
@@ -664,7 +760,7 @@ def readLocalMedline(pmid):
         logging.warn("%s does not exist, no local medline lookups, need to use eutils" % medlineDb)
         return None
 
-    con, cur = maxTables.openSqliteRo(medlineDb)
+    con, cur = maxTables.openSqlite(medlineDb)
     con.row_factory = sqlite3.Row
     cur = con.cursor()
 
@@ -703,7 +799,7 @@ def downloadPubmedMeta(pmid):
         wait(3, "eutils.ncbi.nlm.nih.gov")
         ret = pubPubmed.getOnePmid(pmid)
     except urllib2.HTTPError, e:
-        raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError%s" % str(e.code))
+        raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError" , str(e.code))
     except pubPubmed.PubmedError, e:
         raise pubGetError(e.longMsg, e.logMsg)
         
@@ -714,27 +810,51 @@ def downloadPubmedMeta(pmid):
         ret[h] = ""
     return ret
 
-def storeMeta(outDir, metaData, fulltextData):
-    " append one metadata dict as a tab-sep row to outDir/articleMeta.tab "
-    filename = join(outDir, "articleMeta.tab")
+def writeMeta(outDir, metaData, fulltextData):
+    " append one metadata dict as a tab-sep row to outDir/articleMeta.tab and articls.db "
+    filename = join(outDir, "articleMeta.sqlbak.tab")
     #if testMode!=None:
         #filenames = join(outDir, "testMeta.tab")
     logging.debug("Appending metadata to %s" % filename)
 
+    # overwrite fields with identifers and URLs
+    minId = pubConf.identifierStart["crawler"]
+    metaData["articleId"] = str(minId+int(metaData["pmid"]))
+    metaData["fulltextUrl"] = metaData["landingUrl"]
+
     # save all URLs to metadata object, nice for debugging
-    metaData["mainHtmlUrl"] = fulltextData.get("main.htm",{}).get("url", "")
-    metaData["mainPdfUrl"] = fulltextData.get("main.pdf",{}).get("url", "")
-    suppUrls = []
-    for key, page in metaData.iteritems():
-        if key.startswith("S"):
-            suppUrls.append(page.get("url",""))
-    metaData["suppUrls"] = ",".join(suppUrls)
+    #metaData["mainHtmlUrl"] = fulltextData.get("main.html",{}).get("url", "")
+    #metaData["mainPdfUrl"] = fulltextData.get("main.pdf",{}).get("url", "")
             
-    headers = copy.copy(pubStore.articleFields)
-    headers.extend(addHeaders)
+    # write to tab file
     if not isfile(filename):
-        codecs.open(filename, "w", encoding="utf8").write(u"\t".join(headers)+"\n")
-    maxCommon.appendTsvDict(filename, metaData, headers)
+        codecs.open(filename, "w", encoding="utf8").write(u"\t".join(metaHeaders)+"\n")
+    maxCommon.appendTsvDict(filename, metaData, metaHeaders)
+
+    # write to sqlite db
+    row = []
+    for h in metaHeaders:
+        row.append(metaData.get(h, ""))
+
+    dbFname = join(outDir, "articles.db")
+    con, cur = maxTables.openSqliteCreateTable (dbFname, "articles", metaHeaders, \
+        idxFields=["pmid","pmcId", "doi"], \
+        intFields=["pmid", "articleId", "pmcId"], primKey="pmid", retries=100)
+
+    # keep retrying if sqlite db is locked
+    writeOk = False
+    tryCount = 100
+    logging.log(5, "%s" % row)
+    while not writeOk and tryCount > 0:
+        try:
+            maxTables.insertSqliteRow(cur, con, "articles", metaHeaders, row)
+            writeOk = True
+        except sqlite3.OperationalError:
+            logging.info("sqlite db is locked, waiting for 60 secs")
+            time.sleep(60)
+            tryCount -= 1
+    if not writeOk:
+        raise Exception("Could not write to sqlite db")
 
 def detFileExt(page):
     " determine file extension based on either mimetype or url file extension "
@@ -819,7 +939,7 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
             fulltextData["S"+str(suppIdx)+"."+fileExt] = suppFile
             suppIdx += 1
             if suppIdx > SUPPFILEMAX:
-                raise pubGetError("max suppl count reached", "tooManySupplFiles")
+                raise pubGetError("max suppl count reached", "tooManySupplFiles", str(len(suppUrls)))
     return fulltextData
 
 def replaceUrl(landingUrl, fullUrl_replace):
@@ -827,7 +947,6 @@ def replaceUrl(landingUrl, fullUrl_replace):
     replaceCount = 0
     newUrl = landingUrl
     for word, replacement in fullUrl_replace.iteritems():
-        print word, newUrl
         if word in newUrl:
             replaceCount+=1
             newUrl = newUrl.replace(word, replacement)
@@ -1156,13 +1275,14 @@ def highwireDelay():
     return delay
 
 def ignoreCtrlc(signum, frame):
-    print 'Signal handler called with signal', signum
+    logging.info('Signal handler called with signal %s' % str (signum))
 
 def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig):
     " write all paper data to status and fulltext output files in outDir "
     oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c
-    pubmedMeta = storeFiles(pmid, pubmedMeta, fulltextData, outDir)
-    storeMeta(outDir, pubmedMeta, fulltextData)
+    #pubmedMeta = storeFiles(pmid, pubmedMeta, fulltextData, outDir)
+    pubmedMeta = storeFilesNoZip(pmid, pubmedMeta, fulltextData, outDir)
+    writeMeta(outDir, pubmedMeta, fulltextData)
     addStatus=""
         
     if "status" in fulltextData:
@@ -1202,12 +1322,12 @@ def writeReport(baseDir, htmlFname):
         dirName = join(baseDir, name)
         if not isdir(dirName) or name.startswith("_"):
             continue
-        print dirName
-        print "pmidCount"
-        pmidCount = len(open(join(dirName, "pmids.txt")).readlines())
-        print "issnCount"
+        logging.info("processing dir %s" % name)
+        pmidFile = join(dirName, "pmids.txt")
+        if not isfile(pmidFile):
+            continue
+        pmidCount = len(open(pmidFile).readlines())
         issnCount = len(open(join(dirName, "issns.tab")).readlines())
-        print "status"
         statusPmids = parseIdStatus(join(dirName, "pmidStatus.tab"))
         publisher = basename(dirName)
         isActive = isfile(join(dirName, "_pubCrawl.lock"))
@@ -1318,6 +1438,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     pubId = basename(outDir)
     crawlConfig = None
     if restrictPublisher:
+        logging.error("pubId is %s" % pubId)
         assert(pubId in pubsCrawlCfg)
         crawlConfig  = pubsCrawlCfg[pubId]
 
@@ -1350,7 +1471,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
                 crawlConfig  = getConfig(hostToConfig, landingPage["url"])
             else:
                 if noMatches(landingPage["url"], crawlConfig["hostnames"]):
-                    raise pubGetError("Landing page is on an unknown server", "unknownHost\t%s" % landingPage["url"])
+                    raise pubGetError("Landing page is on an unknown server", "unknownHost", landingPage["url"])
 
             checkForOngoingMaintenanceUrl(landingPage["url"])
 
@@ -1367,11 +1488,12 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
             consecErrorCount = 0
 
         except pubGetError, e:
-            consecErrorCount += 1
+            if e.logMsg!="issnErrorExceed":
+                consecErrorCount += 1
             logging.error("PMID %s, error: %s, code: %s, details: %s" % (pmid, e.longMsg, e.logMsg, e.detailMsg))
             writePmidStatus(outDir, pmid, e.logMsg, e.detailMsg)
             issnErrorCount[issnYear] += 1
-            if e.logMsg not in ["issnErrorExceed"]:
+            if e.logMsg not in ["issnErrorExceed","noOutlinkOrDoi", "unknownHost", "noLicense"]:
                 logging.debug("Sleeping for %d secs after error" % errorWaitSecs)
                 time.sleep(errorWaitSecs)
 

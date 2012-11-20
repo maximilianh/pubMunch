@@ -25,7 +25,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import maxRun, pubStore, pubConf, pubGeneric, protDetect, pubAlg
+import maxRun, pubStore, pubConf, pubGeneric, protDetect, pubAlg, maxCommon
 from maxCommon import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -42,6 +42,8 @@ parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="
 parser.add_option("-r", "--runNow", dest="runNow", action="store_true", help="wait until jobs are all finished") 
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout") 
 parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
+parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test, but input file is just a single text file")
+parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. pmid or doi. can be used several times")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -49,7 +51,7 @@ def checkCleanDir(outDir):
     mustExistDir(outDir)
     oldGzFiles = os.listdir(outDir)
     if len(oldGzFiles)>0:
-        logging.info("Directory %s contains %d .gz files" % (outDir, len(oldGzFiles))
+        logging.info("Directory %s contains %d .gz files" % (outDir, len(oldGzFiles)))
         logging.info("Waiting for 3 secs, then deleting them")
         time.sleep(3)
         pm = maxCommon.ProgressMeter(len(oldGzFiles))
@@ -65,6 +67,10 @@ if args==[]:
 pubGeneric.setupLogging(progFile, options)
 
 algName, inName, outName = args[:3]
+
+assert("=" not in outName)
+assert("=" not in inName)
+
 runNow = options.runNow
 paramStrings = args[3:]
 
@@ -74,18 +80,25 @@ paramDict = pubGeneric.stringListToDict(paramStrings)
 alg = pubAlg.getAlg(algName) # makes sure that algName exists
 
 paramDict["startAnnotId"] = 0
+paramDict["addFields"] = options.addFields
 
-if options.test:
+if options.test or options.oneText:
     reload(sys)
     sys.setdefaultencoding('utf-8')
     outName = "stdout"
-    inDir = pubAlg.resolveTextDir(inName)
-    inFiles = glob.glob(join(inDir, "*.articles.gz"))
-    #inFiles = [inFiles[0]]
+    if options.oneText:
+        inFiles = [inName]
+    else:
+        inDir = pubConf.resolveTextDir(inName.split(",")[0])
+        inFiles = glob.glob(join(inDir, "*.articles.gz"))
 
     for inFname in inFiles:
         logging.info("Running on %s" % inFname)
-        reader = pubStore.PubReaderFile(inFname)
+        if options.oneText:
+            logging.info("Running only on file %s" % options.oneText)
+            reader = pubStore.PubReaderTest(inFname)
+        else:
+            reader = pubStore.PubReaderFile(inFname)
         pubAlg.runAnnotate(reader, alg, paramDict, outName)
 else:
     checkCleanDir(outName)
@@ -94,4 +107,6 @@ else:
         runner = None
     else:
         runner = pubGeneric.makeClusterRunner(algName)
-    pubAlg.annotate(algName, inName, paramDict, outName, runner=runner)
+
+    inNames = inName.split(",")
+    pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields)

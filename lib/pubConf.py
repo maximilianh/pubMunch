@@ -40,7 +40,7 @@ httpTransferTimeout = 30
 crawlPubIds = {
 # all ISSNs that wiley gave us go into the subdir wiley
 "WILEY Wiley" : "wiley",
-# we don't have ISSNs for NPG from them, so we use grouped data from NLM
+# we don't have ISSNs for NPG directly, so we use grouped data from NLM
 "NLM NPG" : "npg",
 # rockefeller university press
 "HIGHWIRE The Rockefeller University" : "rupress",
@@ -48,7 +48,10 @@ crawlPubIds = {
 "NLM Future Science" : "futureScience",
 "NLM National Academy of Sciences" : "pnas",
 "NLM American Association of Immunologists" : "aai",
-"HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp"
+"HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp",
+"HIGHWIRE The American Society for Pharmacology and Experimental Therapeutics" : "aspet",
+"HIGHWIRE Federation of American Societies for Experimental Biology" : "faseb",
+"HIGHWIRE Society for Leukocyte Biology" : "slb"
 }
 
 # crawler delay config, values in seconds
@@ -103,8 +106,10 @@ _pubsDir = "/hive/data/inside/pubs"
 loadPublishers = ["elsevier", "pmc"]
 
 TEMPDIR = "/scratch/tmp/pubTools" # local filesystem on cluster nodes
-MAXBINFILESIZE = 20000000 # maximum filesize of any file before conversion to ASCII
-MAXTXTFILESIZE = 10000000 # maximum filesize of any file after conversion to ASCII
+
+maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
+maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
+minTxtFileSize = 500 # minimum filesize of any file after conversion to ASCII
 mapReduceTmpDir = _pubsDir + "/mapReduceTemp" # cluster-wide directory to collect results
 
 # parasol batches dir
@@ -155,7 +160,8 @@ identifierStart = {
     "medline"  : 3000000000,
     "genbank"  : 4000000000,
     "imgt"     : 4300000000,
-    "pdfDir"   : 5000000000
+    "pdfDir"   : 4400000000,
+    "crawler"  : 5000000000
 }
 # commands to convert various filetypes to ascii text 
 # $in and $out will be replaced with temp filenames
@@ -173,7 +179,7 @@ CONVERTERS = {
     "nxml":"NXMLTEXT",
     "html":"html2text -nobs $in > $out",
     "pdf":"pdftotext -q -nopgbrk -enc UTF-8 -eol unix $in $out",
-    "pdf2":"java -jar /scratch/pdfbox/pdfbox-app-1.6.0.jar ExtractText $in $out"
+    "pdf2":"java -Xmx512m -jar /scratch/pdfbox/pdfbox-app-1.6.0.jar ExtractText $in $out -encoding utf8"
 }
 
 # sometimes (e.g. if downloaded from the web) we don't have a file extension, but only 
@@ -193,6 +199,9 @@ MIMEMAP = {
 # when splitting text files for cluster jobs,
 # how many "chunks" should be created?
 # chunkCount = 2000 # XXX  not used 
+# when creating chunks, how many files should go into one chunk?
+# used by pubConvCrawl
+chunkArticleCount = 200
 
 # for conversion jobs: how many cluster jobs should we run in parallel ?
 # can be used to limit I/O and be nice to other cluster users
@@ -219,16 +228,18 @@ pubBlatBaseDir = "/hive/data/inside/pubs/blat/"
 
 # this is the genbank mapping config file by Mark Diekhans' pipeline
 # it is required for genome partitioning 
+# current one can be downloaded from:
+# http://genome-source.cse.ucsc.edu/gitweb/?p=kent.git;a=blob_plain;f=src/hg/makeDb/genbank/etc/genbank.conf;hb=HEAD
 GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 
-# these variables assignes genome to keywords in text files
+# these variables assign genome to keywords in text files
 # the orgDetect.py plugin will create annotations on the text files
 # for all of these keywords
 # pubBlat will then blat sequences from a textfile only on genomes
 # for which a keyword has been found
 
 speciesNames = {
-'dm3' : ['fruitfly', ' flies ', 'melanogaster', 'Drosophilids'],
+'dm3' : [' fruitfly ', ' flies ', 'melanogaster', 'Drosophilids', ' fruitflies '],
 'mm9' : ['mouse', 'musculus', 'rodent'],
 'hg19' : ['human', 'sapiens', ' homo ', ' Homo ', 'patient', 'cell line','cell culture'],
 'danRer6' : ['zebrafish', 'rerio', 'Danio'],
