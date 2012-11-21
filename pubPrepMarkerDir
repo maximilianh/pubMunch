@@ -128,7 +128,7 @@ def makeGeneDict(geneDictFname):
     # pdb accessions
     mysqlAddKeyVal("uniProt", 'select acc, extAcc1 from extDbRef JOIN extDb ON (id=extDb) WHERE val="PDB"', data)
     # refseq
-    #mysqlAddKeyVal("uniProt", 'select acc, extAcc2 from extDbRef JOIN extDb ON (id=extDb) WHERE val="RefSeq";', data)
+    mysqlAddKeyVal("uniProt", 'select acc, extAcc2 from extDbRef JOIN extDb ON (id=extDb) WHERE val="RefSeq";', data)
     # ensembl gene ids
     #mysqlAddKeyVal("uniProt", 'select acc, extAcc3 from extDbRef JOIN extDb ON (id=extDb) WHERE val="Ensembl";', data)
     writeGzDict(data, geneDictFname)

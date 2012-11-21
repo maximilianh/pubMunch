@@ -102,6 +102,13 @@ def getAlg(algName, defClass=None):
 def writeParamDict(paramDict, paramDictName):
     " pickle parameter to current dir "
     logging.debug("Writing parameters to %s" % paramDictName)
+    for key, val in paramDict.iteritems():
+        if val==None:
+            logging.debug("parameter %s: None" % (key))
+        elif type(val)!=types.IntType:
+            logging.debug("parameter %s: %d values" % (key, len(val)))
+        else:
+            logging.debug("parameter %s: value %d" % (key, val))
     outFh = gzip.open(paramDictName, "wb")
     #cPickle.dump(paramDict, outFh)
     binData = marshal.dumps(paramDict)
@@ -163,6 +170,8 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
     algNames = algNames.split(",")
     outDirs = outDirs.split(",")
 
+    paramDict["addFields"] = addFields
+
     if runner==None:
         runner = maxRun.Runner(batchDir=batchDir)
 
@@ -173,12 +182,11 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
             baseNames = findArticleBasenames(inDir, updateIds)
             algShortName = basename(algName).split(".")[0]
             outDir = abspath(outDir)
-            paramFname = join(outDir, algShortName+".mapReduceParam.conf.gz")
+            paramFname = join(outDir, algShortName+".mapReduceParam.marshal.gz")
             # if multiple algs specified: try to make annotIds non-overlapping
             paramKey = "startAnnotId."+algShortName
             if paramKey not in paramDict and len(algNames)>1:
                 paramDict[paramKey] = str(algCount*(10**pubConf.ANNOTDIGITS/len(algNames)))
-            paramDict["addFields"] = addFields
 
             writeParamDict(paramDict, paramFname)
             for inFile in baseNames:
@@ -581,7 +589,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
             alg.startup(paramDict) # to check if startup works
 
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \
-        ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner, addFields=[])
+        ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner, addFields=addFields)
     return baseNames
 
 def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False):
@@ -668,12 +676,12 @@ if __name__ == '__main__':
 
     algName, algMethod, inName, outName, paramFile = args
 
-    #paramDict = cPickle.load(open(paramFile))
     binData = gzip.open(paramFile, "rb").read()
     paramDict = marshal.loads(binData)
+    for key, val in paramDict.iteritems():
+        logging.log(5, "parameter %s = %s" % (key, str(val)))
 
     alg = pubAlg.getAlg(algName, defClass=string.capitalize(algMethod))
-    #alg = pubAlg.getAlg(algName, defClass=algMethod)
     reader = pubStore.PubReaderFile(inName)
 
     if algMethod=="map":

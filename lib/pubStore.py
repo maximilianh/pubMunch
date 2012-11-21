@@ -419,8 +419,9 @@ class PubReaderFile:
         mainFiles = {}
         newFiles = []
         for fileData in files:
-            if fileData.fileType=="main":
+            if fileData.fileType=="main" or fileData.fileType=="":
                 newFiles.append(fileData)
+        logging.log(5, "Main-text filter: got %d files, returned %d files" % (len(files), len(newFiles)))
         return newFiles
 
     def _keepBestMain(self, files):

@@ -48,7 +48,9 @@ parser.add_option("-a", "--addFields", dest="addFields", action="append", help="
 
 # ==== FUNCTIONs =====
 def checkCleanDir(outDir):
-    mustExistDir(outDir)
+    if not isdir(outDir):
+        logging.info("Creating dir %s" % outDir)
+        os.makedirs(outDir)
     oldGzFiles = os.listdir(outDir)
     if len(oldGzFiles)>0:
         logging.info("Directory %s contains %d .gz files" % (outDir, len(oldGzFiles)))
@@ -101,11 +103,10 @@ if options.test or options.oneText:
             reader = pubStore.PubReaderFile(inFname)
         pubAlg.runAnnotate(reader, alg, paramDict, outName)
 else:
-    checkCleanDir(outName)
-
     if options.realTest:
         runner = None
     else:
+        checkCleanDir(outName)
         runner = pubGeneric.makeClusterRunner(algName)
 
     inNames = inName.split(",")

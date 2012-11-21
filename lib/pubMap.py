@@ -98,6 +98,7 @@ def findUnprocUpdateIds(stepProgressFname, textDir, baseDir):
 def findProcessedBatches(mainBaseDir, step, currentBatchId=None):
     " get batchIds of batches that have completed a given step, removing current batchId "
     stepProgressFname = join(mainBaseDir, "steps.tab")
+    logging.debug("Parsing %s" % stepProgressFname)
     oldBatchIds = set()
     for row in maxCommon.iterTsvRows(stepProgressFname):
         if step==None or row.step==step:
@@ -185,11 +186,13 @@ def lastBatchUpdateIds(stepProgressFname, textDir, baseDir):
     if isfile(stepProgressFname):
         for row in maxCommon.iterTsvRows(stepProgressFname):
             lastRow = row
-        logging.debug("stepProgressFile %s found, batchId %s, updateIds %s" % (stepProgressFname, lastRow.batchId, lastRow.updateIds))
+        logging.debug("stepProgressFile %s found, batchId %s, updateIds %s" % \
+            (stepProgressFname, lastRow.batchId, lastRow.updateIds))
         return lastRow.batchId, lastRow.updateIds.split(",")
     else:
         updateIds = findUnprocUpdateIds(stepProgressFname, textDir, baseDir)
-        logging.debug("stepProgressFile %s not found, batchId -1, updateIds %s" % (stepProgressFname, updateIds))
+        logging.debug("stepProgressFile %s not found, batchId 0, updateIds %s" % \
+            (stepProgressFname, updateIds))
         return "-1", updateIds
 
 def initDirs(publisher, pipelineSteps):
@@ -212,7 +215,6 @@ def initDirs(publisher, pipelineSteps):
     d = defineBatchDirectories(d, pubConf.pubBlatBaseDir, publisher, textDir)
     d.pipelineSteps = pipelineSteps
     d.textDir = textDir
-    # get last used batchId and updatedIds or init them 
     return d
 
 def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None):
@@ -1814,6 +1816,7 @@ def defineBatchDirectories(d, pubBlatBase, publisher, textDir, newBatchId=None):
 
     " DEFINE DIRECTORIES "
 
+    logging.debug("Defining batch directories for %s" % pubBlatBase)
     # base dir for publisher
     d.baseDir = join(pubBlatBase, publisher)
     global baseDir
@@ -1909,6 +1912,41 @@ def switchOver():
     maxMysql.renameTables("hg19", prodTables, bakTables, checkExists=True)
     maxMysql.renameTables("hg19", devTables, prodTables)
 
+def annotToFasta(publisher, annotDir, useExtArtId=False):
+    pubList = publisher.split(",")
+    annotDir = pubConf.annotDir
+    artMainIds = {}
+    
+    if useExtArtId:
+        for pub in pubList:
+            logging.info("Processing %s" % pub)
+            textDir = join(pubConf.textBaseDir, pub) 
+            logging.info("Reading article identifiers, titles, citation info")
+            for article in pubStore.iterArticleDataDir(textDir):
+                if article.pmid!="":
+                    mainId = article.pmid
+                elif article.doi!="":
+                    mainId = article.doi
+                elif article.externalId!="":
+                    mainId = article.externalId
+
+                mainId += " "+article.title+" "+article.journal+" "+article.year
+                artMainIds[int(article.articleId)] = mainId
+        
+    annotDir = pubConf.annotDir
+    annotTypes = ["dna", "prot"]
+    for annotType in annotTypes:
+        maxCommon.mustExistDir(pubConf.faDir, makeDir=True)
+        outFname = join(pubConf.faDir, annotType+".fa")
+        outFh = codecs.open(outFname, "w", encoding="utf8")
+        logging.info("Reformatting %s sequences to fasta %s" % (annotType, outFname))
+        tabDir = join(annotDir, annotType, pub)
+        for row in maxCommon.iterTsvDir(tabDir):
+            articleId = int(row.annotId[:pubConf.ARTICLEDIGITS])
+            seqId = artMainIds[articleId]
+            outFh.write(">"+row.annotId+"|"+seqId+"\n")
+            outFh.write(row.seq+"\n")
+
 def runStepSsh(host, publisher, step):
     " run one step of pubMap on a different machine "
     opts = " ".join(sys.argv[3:])
@@ -1941,8 +1979,10 @@ def runStep(publisher, command, d):
         if incompBatchId!=None:
             raise Exception("There is a batch in %s that is not at the tables step yet. Cannot continue" 
                 % d.stepProgressFname)
+
         d.batchId = str(int(d.batchId)+1)
-        d = defineBatchDirectories(d, d.baseDir, publisher, d.textDir, newBatchId=d.batchId)
+        d = defineBatchDirectories(d, pubConf.pubBlatBaseDir, publisher, \
+            d.textDir, newBatchId=d.batchId)
         if isdir(d.batchDir):
             raise Exception("%s already exists, is this really a new run?" % d.batchDir)
         else:
@@ -1953,9 +1993,9 @@ def runStep(publisher, command, d):
             maxCommon.errAbort("All data files have been processed. Skipping all steps.")
 
         # get common uppercase words for protein filter
-        maxCommon.mustBeEmptyDir(d.dnaAnnotDir, makeDir=True)
-        maxCommon.mustBeEmptyDir(d.protAnnotDir, makeDir=True)
-        maxCommon.mustBeEmptyDir(d.markerAnnotDir, makeDir=True)
+        maxCommon.mustExistDir(d.dnaAnnotDir, makeDir=True)
+        maxCommon.mustExistDir(d.protAnnotDir, makeDir=True)
+        maxCommon.mustExistDir(d.markerAnnotDir, makeDir=True)
         wordCountBase = "wordCounts.tab"
         wordFile = countUpcaseWords(d.baseDir, wordCountBase, d.textDir, d.updateIds)
 
@@ -2052,7 +2092,7 @@ def runStep(publisher, command, d):
         #pubAlg.mapReduce("unifyAuthors", d.textDir, paramDict, d.displayIdFname, cleanUp=True, runTest=False, skipMap=options.skipConvert, updateIds=d.updateIds)
         pubAlg.mapReduce("getFileDesc", d.textDir, {}, d.fileDescFname, cleanUp=True, runTest=False, skipMap=options.skipConvert, updateIds=d.updateIds)
         logging.info("Results written to %s" % (d.fileDescFname))
-        #appendBatchProgress(d.baseDir, d.batchId, d.updateIds, "identifiers")
+        appendBatchProgress(d.baseDir, d.batchId, d.updateIds, "identifiers")
 
     elif command=="tables":
         if not options.skipConvert:
@@ -2073,7 +2113,7 @@ def runStep(publisher, command, d):
         articleDbs = addHumanForMarkers(articleDbs, d.markerArticleFile)
         # format articles
         writeArticleTables(articleDbs, d.textDir, d.tableDir, d.dbList, d.updateIds)
-        #appendBatchProgress(d.baseDir, d.batchId, d.updateIds, "tables")
+        appendBatchProgress(d.baseDir, d.batchId, d.updateIds, "tables")
 
     # ===== COMMANDS TO LOAD STUFF FROM THE batches/{0,1,2,3...}/tables DIRECTORIES INTO THE BROWSER
     elif command=="load":
@@ -2100,37 +2140,7 @@ def runStep(publisher, command, d):
 
     # ======== OTHER COMMANDS 
     elif command=="expFasta":
-        pubList = publisher.split(",")
-        annotDir = pubConf.annotDir
-        artMainIds = {}
-        for pub in pubList:
-            logging.info("Processing %s" % pub)
-            textDir = join(pubConf.textBaseDir, pub) 
-            logging.info("Reading article identifiers, titles, citation info")
-            for article in pubStore.iterArticleDataDir(textDir):
-                if article.pmid!="":
-                    mainId = article.pmid
-                elif article.doi!="":
-                    mainId = article.doi
-                elif article.externalId!="":
-                    mainId = article.externalId
-
-                mainId += " "+article.title+" "+article.journal+" "+article.year
-                artMainIds[int(article.articleId)] = mainId
-            
-            annotDir = pubConf.annotDir
-            annotTypes = ["dna", "prot"]
-            for annotType in annotTypes:
-                maxCommon.mustExistDir(pubConf.faDir, makeDir=True)
-                outFname = join(pubConf.faDir, pub+"."+annotType+".fa")
-                outFh = codecs.open(outFname, "w", encoding="utf8")
-                logging.info("Reformatting %s sequences to fasta %s" % (annotType, outFname))
-                tabDir = join(annotDir, annotType, pub)
-                for row in maxCommon.iterTsvDir(tabDir):
-                    articleId = int(row.annotId[:pubConf.ARTICLEDIGITS])
-                    seqId = artMainIds[articleId]
-                    outFh.write(">"+row.annotId+"|"+seqId+"\n")
-                    outFh.write(row.seq+"\n")
+        annotToFasta(publisher, annotDir)
 
     else:
         maxCommon.errAbort("unknown command: %s" % command)
