@@ -1987,6 +1987,7 @@ def runStep(publisher, command, d):
             raise Exception("%s already exists, is this really a new run?" % d.batchDir)
         else:
             os.makedirs(d.batchDir)
+
         # find updates to annotate
         d.updateIds = findUnprocUpdateIds(d.stepProgressFname, d.textDir, d.baseDir)
         if d.updateIds==None or len(d.updateIds)==0:
@@ -2005,9 +2006,11 @@ def runStep(publisher, command, d):
         options = {"wordFile":wordFile, \
             "startAnnotId.SeqScraper":0, "startAnnotId.ProteinDetect":15000, \
             "startAnnotId.MarkerAnnotate" : 30000 }
+        runner = pubGeneric.makeClusterRunner("pubMap-annot")
         chunkNames = pubAlg.annotate(
-            "markerSearch.py:MarkerAnnotate,t2gDnaDetect.py:Annotate,protDetect.py",
-            d.textDir, options, outDirs, updateIds=d.updateIds, cleanUp=True, runNow=True)
+            "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py",
+            d.textDir, options, outDirs, updateIds=d.updateIds, \
+            cleanUp=True, runNow=True, runner=runner)
 
         writeChunkNames(chunkNames, d.chunkListFname)
 

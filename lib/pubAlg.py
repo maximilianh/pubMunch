@@ -444,7 +444,9 @@ def runAnnotate(reader, alg, paramDict, outName):
 
     annotIdAdd = getAnnotId(alg, paramDict)
 
-    onlyMain = paramDict.get("onlyMain", False).lower()=="true"
+    onlyMain = paramDict.get("onlyMain", False)
+    if isinstance(onlyMain, basestring):
+        onlyMain = (onlyMain.lower()=="true")
     logging.info("Only main files: %s" % onlyMain)
 
     onlyMeta = attributeTrue(alg, "onlyMeta")

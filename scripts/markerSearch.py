@@ -29,23 +29,27 @@ MAXCOUNT=150
 # parseKwDicts will read dictionaries and bed files from this directory
 DICTDIR=pubConf.markerDbDir
 
-# words that are usually not gene names
-stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4'])
+# words that are usually not gene names, rather used for cell lines or pathways or other stuff
+stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9'])
 
 # Regular expressions NEED TO DEFINE a group named "id"
 # see python re engine doc: instead of (bla) -> (?P<id>bla)
-genbankRe = re.compile("""[ ,.()](?P<id>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)[ ,.()]""")
-snpRsRe = re.compile("""[ ,.()](?P<id>rs[0-9]{4,10})[ ,.()]""")
-snpSsRe = re.compile("""[ ,.()](?P<id>ss[0-9]{4,16})[ ,.()]""")
+genbankRe = re.compile("""[ ;,.()](?P<id>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)[ ,.()]""")
+snpRsRe = re.compile("""[ ;,.()](?P<id>rs[0-9]{4,10})[ ,.()]""")
+snpSsRe = re.compile("""[ ;,.()](?P<id>ss[0-9]{4,16})[ ,.()]""")
 #coordRe = re.compile(" chr[0-9]+:[0-9,]+[ ]*[-][ ]*[0-9,]+ ")
 bandRe = re.compile("""[ ,.()](?P<id>(X|Y|[1-9][0-9]?)(p|q)[0-9]+(\.[0-9]+)?)[ ,.()]""")
-symbolRe = re.compile("""[ ,.()-](?P<id>[A-Z]+[a-zA-z0-9]*)[ ,.()-]""") # an uppercase word
+symbolRe = re.compile("""[ ;,.()-](?P<id>[A-Z]+[a-zA-z0-9]*)[ ,.()-]""")
+uniprotRe = re.compile(r'[\s;,.()-](?P<id>[A-NR-ZOPQ][0-9][A-Z0-9][A-Z0-9][A-Z0-9][0-9])[\s;,.()-]')
+pdbRe = re.compile(r'[\s,.()-;](?P<id>[0-9][a-zA-Z][a-zA-Z][a-zA-Z])[\s,.()-;]')
 
 reDict = {"genbank": genbankRe, \
           "snp": snpRsRe, \
           "snpSs": snpSsRe, \
           "band": bandRe, \
           "symbol": symbolRe, \
+          "uniprot": uniprotRe, \
+          "pdb": pdbRe
           }
 
 # == CODE COMMON FOR ANNOTATOR AND MAP TASK 
@@ -112,7 +116,7 @@ def getSearchTypes(paramDict):
     """
     bedFiles = glob.glob(join(DICTDIR, "*.bed"))
     logging.info("Found bedfiles in %s: %s" % (pubConf.markerDbDir, bedFiles))
-    allTypes = [splitext(basename(x))[1] for x in bedFiles]
+    allTypes = [basename(x).split(".")[1] for x in bedFiles]
     paramTypes = paramDict.get("searchType", "").split(",")
     if paramTypes==[""]:
         searchTypes = allTypes
