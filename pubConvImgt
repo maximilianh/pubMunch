@@ -60,6 +60,9 @@ class Reference:
         self.journals=[]
         self.keywords=[]
 
+    def __repr__(self):
+        return "ref:"+"authors:"+", ".join(["|".join(self.authors),"titles:"+ "|".join(self.titles),"title:"+ "|".join(self.journals),"keywords:"+ "|".join(self.keywords)])
+
 class IMGTRecord:
     def __init__(self):
         self.refList=[]
@@ -76,7 +79,8 @@ class IMGTRecord:
         nonDirects = []
         for ref in self.refList:
             title = " ".join(ref.titles)
-            if title.lower()=="direct submission":
+            journal = " ".join(ref.journals)
+            if "direct submission" in title.lower() or journal.lower().startswith("submitted "):
                 directs.append(ref)
             else:
                 nonDirects.append(ref)
@@ -221,7 +225,8 @@ def filterConvertImgt(inFname, species, minId, outDir):
     refPerChunk = len(refToAccList)/chunkCount
 
     chunkId = 0
-    outFname = join(outDir, "%.05d" % chunkId)
+    updateId = 0
+    outFname = join(outDir, "%d_%.05d" % (updateId, chunkId))
     writer = pubStore.PubWriterFile(outFname)
     faFh = open(outFname+".dna.fa", "w")
     accFh = open(outFname+".accession2articleId.tab", "w")
@@ -239,7 +244,7 @@ def filterConvertImgt(inFname, species, minId, outDir):
         if refCount % refPerChunk==0:
             writer.close()
             chunkId += 1
-            outFname = join(outDir, "%.05d" % chunkId)
+            outFname = join(outDir, "0_%.05d" % chunkId)
             writer = pubStore.PubWriterFile(outFname)
             faFh = open(outFname+".dna.fa", "w")
             accFh = open(outFname+".accession2articleId.tab", "w")
@@ -250,18 +255,30 @@ def filterConvertImgt(inFname, species, minId, outDir):
 # === MAIN ====
 def main(args, options):
     inFname, outDir = args
-    firstId = pubConf.identifierStart["imgt"]
-    maxCommon.mustBeEmptyDir(outDir, makeDir=True)
-    filterConvertImgt(inFname, "Homo sapiens", firstId, outDir)
+    if options.parse:
+        for rec in parseImgt(open(inFname)):
+            print "MAIN REF: ",str(rec.mainRef())
+            print "ALL REFS:", str(rec.refList)
+            sys.exit(0)
+
+    if not options.updateDb:
+        firstId = pubConf.identifierStart["imgt"]
+        maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+        filterConvertImgt(inFname, "Homo sapiens", firstId, outDir)
+    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+    dbPath = join(outDir, "articles.db")
+    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
     
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog <imgtFile> <outPubToolsDataDir> - convert IMGT to pubtools format
 example:
-pubConvImgt /hive/groups/immuno/AS/literature/fulltextAnnot/imgt/imgt.dat /hive/data/inside/literature/text/imgt/
+pubConvImgt /hive/data/outside/pubs/imgt/imgt.dat /hive/data/inside/literature/text/imgt/
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only write sqlite DB") 
+parser.add_option("-p", "--parse", dest="parse", action="store_true", help="due a test parse on file") 
 (options, args) = parser.parse_args()
 if len(args)<=1:
     parser.print_help()

@@ -8,50 +8,130 @@ from os.path import *
 sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
 
 # load our own libraries
-import pubConf, pubGeneric, maxMysql, pubStore
+import pubConf, pubGeneric, maxMysql, pubStore, maxTables, maxCommon
 from maxCommon import *
+
+schemaTmpFh = None # to make sure this tmp file stays around until the program ends
+tableTmpFh = None # see above
 
 # ===== FUNCTIONS =======
 
+def createAnnotSchema(tableName, dataDir, fields=None, idxFields=None):
+    if fields==None:
+        fields = gzip.open(glob.glob(join(dataDir, "*.tab.gz"))[0]).readline().strip("\n").strip("#").split("\t")
+    fields.insert(0, "articleId")
+    fields.insert(1, "fileId")
+
+    #idxFields=["type","id"], \
+    fieldTypes = {"articleId" : "bigInt", "snippet":"VARCHAR(16000)"}
+    tblSql, idxSql= maxTables.makeTableCreateStatement(tableName, fields, type="mysql", \
+        primKey="autoId", \
+        intFields=["autoId", "articleId", "fileId", "annotId"], \
+        idxFields=idxFields, \
+        fieldTypes = fieldTypes, \
+        inlineIndex=True)
+
+    logging.debug("Got sql statement %s" % tblSql)
+    tblSql = tblSql.replace("IF NOT EXISTS ", "") # jim's tool doesn't understand this
+    global tmpFh
+    tmpName = join(pubConf.getTempDir(), "tmp.sql")
+    #schemaTmpFh = tempfile.NamedTemporaryFile(dir=pubConf.getTempDir(), prefix="pubLoadMysql", suffix=".temp.sql")
+    #tmpName = schemaTmpFh.name
+    open(tmpName, "w").write(tblSql)
+    return tmpName
+
+def annotIter(dataDir, fields, typeFilter=None):
+    " return selected fields of annotation rows from dataDir and split annotId into its parts "
+    if isfile(dataDir):
+        fnames = [dataDir]
+    else:
+        fnames = glob.glob(join(dataDir, "*.tab.gz"))
+
+    if fields==None:
+        fields = gzip.open(fnames[0]).readline().strip("\n").split("\t")
+        fields.insert(0, "articleId")
+        fields.insert(1, "fileId")
+
+    AnnotRec = collections.namedtuple("AnnotRec", fields)
+    pm = maxCommon.ProgressMeter(len(fnames), stepCount=100)
+    autoId = 0
+    for fname in fnames:
+        for row in maxCommon.iterTsvRows(fname):
+            rowDict = row._asdict()
+            if "type" in rowDict and typeFilter!=None and \
+                    row.type not in typeFilter:
+                continue
+            articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
+            rowDict["articleId"] = str(articleId)
+            rowDict["fileId"] = str(fileId)
+            rowDict["annotId"] = str(annotId)
+            newRow = []
+            for field in fields:
+                if field=="autoId":
+                    val = str(autoId)
+                else:
+                    val = rowDict[field]
+                newRow.append(val)
+            newTuple = AnnotRec(*newRow)
+            autoId += 1
+            yield newTuple
+        pm.taskCompleted()
+                
 def main(args, options):
-    db, tableName, dataDir = args
+    fileType, db, tableName, dataDir = args
     pubGeneric.setupLoggingOptions(options)
     dataDir = pubConf.resolveTextDir(dataDir)
-    if options.files:
-        sqlSchema = "file.sql"
-        fileType = "files"
+    if fileType=="files":
+        sqlFname = join(pubConf.sqlDir, "file.sql")
+        dataIter = pubStore.iterArticleDataDir(dataDir, type=fileType)
+    elif fileType=="articles":
+        sqlFname = join(pubConf.sqlDir, "article.sql")
+        dataIter = pubStore.iterArticleDataDir(dataDir, type=fileType)
+    elif fileType=="markers":
+        annotFields = ["autoId", "articleId", "fileId", "annotId", "type", "id", "snippet"]
+        idFields = ["articleId", "type", "id"]
+        sqlFname = createAnnotSchema(tableName, dataDir, annotFields, idxFields, fieldTypes=fieldTypes)
+        dataIter = annotIter(dataDir, annotFields, typeFilter=options.markerTypes)
+    elif fileType=="fusions":
+        annotFields = None
+        idxFields = ["articleId", "sym1", "sym2", "symPair"]
+        sqlFname = createAnnotSchema(tableName, dataDir, annotFields, idxFields)
+        dataIter  = annotIter(dataDir, annotFields, typeFilter=options.markerTypes)
     else:
-        sqlSchema = "article.sql"
-        fileType = "articles"
+        assert(False) # illegal file type
 
     # create table
-    sqlFname = join(pubConf.sqlDir, sqlSchema)
     tempName = join(pubConf.TEMPDIR, "pubLoad.%s.sqlTable.tmp" % tableName)
-    if isfile(tempName):
-        logging.error("Found an already existing file %s" % tempName)
-        logging.error("Please make sure that no concurrent pubLoad is running and remove this file first.")
-        sys.exit(1)
-    else:
-        tempFile = open(tempName, "w")
-        logging.info("Concatting tables to %s" % tempFile.name)
-        for articleData in pubStore.iterArticleDataDir(dataDir, type=fileType):
-            line = "\t".join(articleData)+"\n"
-            line = line.replace("\\", "\\\\") # mysql treats \ as escape char on LOAD DATA
-            line = line.replace("\a", "\\n") # mysql treats \ as escape char on LOAD DATA
-            tempFile.write(line.encode("utf8"))
-        tempName = tempFile.name
-        tempFile.close()
+    if not options.reuseTable:
+        #tableTmpFh = tempfile.NamedTemporaryFile(dir=pubConf.getTempDir(), prefix="pubLoadMysql", suffix="tmp.tab")
+        #tempName = tableTmpFh.name
+        if isfile(tempName):
+            logging.error("Found an already existing file %s" % tempName)
+            logging.error("Please make sure that no concurrent pubLoad is running and remove this file first.")
+            sys.exit(1)
+        else:
+            tempFile = open(tempName, "w")
+            logging.info("Concatting tables to %s" % tempFile.name)
+            for row in dataIter:
+                line = "\t".join(row)+"\n"
+                line = line.replace("\\", "\\\\") # mysql treats \ as escape char on LOAD DATA
+                line = line.replace("\a", "\\n") # mysql treats \ as escape char on LOAD DATA
+                tempFile.write(line.encode("utf8"))
+            tempName = tempFile.name
+            tempFile.close()
 
     logging.info("Loading table")
     maxMysql.hgLoadSqlTab(db, tableName, sqlFname, tempName, optString="-warn")
-    os.remove(tempName)
+    #os.remove(tempName)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")
+parser = optparse.OptionParser("""usage: %prog [options] <articles|files|markers|fusions> <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-f", "--files", dest="files", action="store_true", help="do not load article but files into db, uses a different schema") 
+parser.add_option("-t", "--markerType", dest="markerTypes", action="append", help="for markers: only load rows with this type (e.g. snp, symbol or pdb). Can be specified multiple times") 
+parser.add_option("", "--reuseTable", dest="reuseTable", action="store_true", help="do not recreate big table, use the existing temporary one, for debugging") 
+#parser.add_option("-f", "--files", dest="files", action="store_true", help="do not load article but files into db, uses a different schema") 
 (options, args) = parser.parse_args()
 
 if args==[]:

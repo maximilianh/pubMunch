@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 # load default python packages
-import sys, logging, optparse, os, glob, shutil, subprocess, collections, codecs
+import sys, logging, optparse, os, glob, shutil, subprocess, collections, codecs, textwrap
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -15,6 +15,10 @@ from Bio.Blast import NCBIXML
 
 BlastMatchFields = "length,identities,positives,eVal,score,tFile,tId,tLen,qFile,qId,qLen,tAln,match,qAln".split(",")
 BlastMatch = collections.namedtuple("blastMatch",BlastMatchFields)
+
+AnnotatedMatchFields = (",".join(BlastMatchFields)+",authors,journal,year,title,abstract,fulltextUrl").split(",")
+AnnotMatch = collections.namedtuple("blastMatchAnnot",AnnotatedMatchFields)
+
 # ==== FUNCTIONS =====
 
 def parseBlastXmlFile(qFile):
@@ -35,19 +39,25 @@ def parseBlastXmlFile(qFile):
                     hsp.score, hsp.expect, tFile, tId, tLen, qFile, qId, qLen, tAln, match, qAln)
                 yield match
 
-def pubBlatToFasta(inDir, inMask, outDir):
+def pubBlatToFasta(inFnames, outDir):
     " write pubBlat annotations from inDir to dbDir in fasta format"
-    maxCommon.mustBeEmptyDir(outDir, makeDir=True)
-    logging.info("Converting all files from %s to fasta" % inDir)
-    inFnames = glob.glob(join(inDir, inMask+".tab.gz"))
+    #maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    #logging.info("Converting all files from %s to fasta" % inDir)
+    #inFnames = glob.glob(join(inDir, inMask+".tab.gz"))
 
     pm = maxCommon.ProgressMeter(len(inFnames))
     for inFname in inFnames:
         faFname = join(outDir, basename(inFname).split(".")[0]+".fa")
+        faDir = dirname(faFname)
+        if not isdir(faDir):
+            logging.info("Creating dir %s" % faDir) 
+            os.makedirs(faDir)
         outFh = open(faFname, "w")
 
         logging.debug("Converting %s to %s" % (inFname, faFname))
         for row in maxCommon.iterTsvRows(inFname):
+            if row.seq=="":
+                continue
             outFh.write(">%s\n" % row.annotId)
             outFh.write(row.seq+"\n")
         pm.taskCompleted()
@@ -111,18 +121,23 @@ def indexAnnots(dbDir, datasets, isProt=False):
     for dataset in datasets:
         outDir = join(dbDir, dataset)
         if isdir(outDir):
-            logging.warn("%s already exists" % outDir)
-            continue
-        pubBlatDir = join(pubConf.pubBlatBaseDir, dataset, "annot/"+seqType)
-        if isdir(pubBlatDir):
-            logging.info("Found %s, importing from pubBlat directory" % pubBlatDir)
-            pubBlatToFasta(pubBlatDir, "*", outDir)
-        else:
+            logging.warn("%s already exists, will overwrite it" % outDir)
+            #continue
+        #pubBlatDir = join(pubConf.pubMapBaseDir, dataset, "annots/"+seqType)
+        annotMask = join(pubConf.pubMapBaseDir, dataset, "batches", "*", "annots", seqType, "*.tab.gz")
+        annotFnames = glob.glob(annotMask)
+        if len(annotFnames)==0:
+            #logging.warn("Not found %s" % annotMask)
             textDir = join(pubConf.textBaseDir, dataset)
+            logging.info("Not found %s, trying %s" % (annotMask, textDir))
             if not isdir(textDir):
                 logging.warn("Could not find %s" % textDir)
                 continue
             pubToolsToFasta(textDir, "*", seqType, outDir)
+        else:
+            logging.info("Found %s, %d files" % (annotMask, len(annotFnames)))
+            pubBlatToFasta(annotFnames, outDir)
+        
 
         indexForBlast(outDir, isProt)
             
@@ -177,10 +192,29 @@ def submitBlastJobs(runner, prog, dbDir, inFaDir, outDir, eVal, dbSize):
                 "-o", "{check out exists %s}" % outFname, "-m", "7"]
             runner.submit(cmd)
 
-def parseBlastDir(inDir, outFile):
+def parseOneBlastFile(inFname, outFname):
+    ofh = open(outFname, "w")
+    ofh.write("\t".join(AnnotatedMatchFields)+"\n")
+    #try:
+    for match in parseBlastXmlFile(inFname):
+        articleId = match.tId[:10]
+        artData = lookupArticleData(articleId)
+        match = [str(x) for x in match]
+        match.append(artData["authors"].encode("utf8"))
+        match.append(artData["journal"].encode("utf8"))
+        match.append(str(artData["year"]).encode("utf8"))
+        match.append(artData["title"].encode("utf8"))
+        match.append(artData["abstract"].encode("utf8"))
+        match.append(artData["fulltextUrl"].encode("utf8"))
+        ofh.write("\t".join(match))
+        ofh.write("\n")
+    #except xml.parsers.expat.ExpatError:
+        #logging.warn("Parsing error: %s" % inFname)
+
+def parseBlastLookupArticle(inDir, outFile):
     " parse all blast xml files and write to outFile in BlastMatch format "
     ofh = open(outFile, "w")
-    ofh.write("\t".join(BlastMatchFields)+"\n")
+    ofh.write("\t".join(AnnotatedMatchFields)+"\n")
     logging.info("Searching for XML files in %s" % inDir)
     inFiles = pubGeneric.findFiles(inDir, ".xml")
     logging.info("Parsing files...")
@@ -192,53 +226,114 @@ def parseBlastDir(inDir, outFile):
             continue
         try:
             for match in parseBlastXmlFile(fname):
+                articleId = match.tId[:10]
+                artData = lookupArticleData(articleId)
                 match = [str(x) for x in match]
+                match.append(artData["authors"].encode("utf8"))
+                match.append(artData["journal"].encode("utf8"))
+                match.append(str(artData["year"]).encode("utf8"))
+                match.append(artData["title"].encode("utf8"))
+                match.append(artData["abstract"].encode("utf8"))
+                match.append(artData["fulltextUrl"].encode("utf8"))
                 ofh.write("\t".join(match))
                 ofh.write("\n")
         except xml.parsers.expat.ExpatError:
             logging.warn("Parsing error: %s" % fname)
         pm.taskCompleted()
 
-def articleHtml(articleId):
-    " get an html version for an article from mysql "
-    tableName = pubStore.articleIdToDataset(articleId)
-    conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
-    sql = "SELECT * from %s where articleId=%s" % (tableName, articleId)
-    rows = maxTables.sqlGetRows(conn,sql) 
-    assert(len(rows)==1)
-    row = rows[0]
-    author = row["authors"].split(";")[0]
-    author = author.split(",")[0]+" et al., "+row["journal"]
-    title = row["title"]
-    title = title.encode("latin1").decode("utf8")
-    text = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, tableName, row["fulltextUrl"], title)
-    return text
+conCache = {}
 
-def makeHtml(inFile, outFile):
+def lookupArticleData(articleId):
+    " lookup article meta data for an article via a database "
+    #conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
+    #sql = "SELECT * from %s where articleId=%s" % (dataset, articleId)
+    #rows = maxTables.sqlGetRows(conn,sql) 
+    dataset = pubStore.articleIdToDataset(articleId)
+    textDir = join(pubConf.textBaseDir, dataset)
+
+    if textDir not in conCache:
+        dbPath = join(textDir, "articles.db")
+        cur, con = maxTables.openSqlite(dbPath, asDict=True)
+        conCache[textDir] = (cur, con)
+    else:
+        cur, con = conCache[textDir]
+        
+    sql = "SELECT * from articles where articleId=%s" % (articleId)
+    rows = list(cur.execute(sql))
+    #assert(len(rows)==1)
+    if len(rows)==0:
+        raise Exception("Could not find article %s in textDir %s" % (articleId, textDir))
+    articleData = rows[0]
+    #authors = row["authors"]
+    #author = author.split(",")[0]+" et al., "+row["journal"]
+    #title = row["title"]
+    #year = row["year"]
+    #journal = row["journal"]
+    #title = title.encode("latin1").decode("utf8")
+    #text = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, dataset, row["fulltextUrl"], title)
+    return articleData
+
+def makeHtml(inFile, outFile, textDir, minId):
     " read a tab sep file with BlastMatch records and write out as html table "
     ofh = codecs.open(outFile, "w", encoding="utf8")
     h = html.htmlWriter(fh=ofh)
     h.head("Literature BLAST", styleString=html.getStylesheet("dyndrive"))
     h.startBody("BLAST matches")
     colHeaders = ["Query Sequence", "Alignment", "Target Article"]
-    colWidths = [500, 500, 600]
+    colWidths = [300, 600, 700]
     h.startTable(colWidths, colHeaders)
 
     for match in maxCommon.iterTsvRows(inFile):
+        if minId:
+            matchLen = float(len(match.match.replace(" ", "").replace("+", "")))
+            queryLen = len(match.qAln)
+            if (matchLen/queryLen)*100.0 < minId:
+                continue
+
         h.startTr()
         qFile = match.qFile.split("---")[1].split(".")[0]
-        qText = "<b>Input Sample:</b> %s<br><b>Sequence:</b> %s" % (qFile, match.qId)
+        lines = textwrap.wrap(match.qId, 30)
+        qText = "<b>Input Sample:</b> %s<br><b>Sequence:</b> %s" % (qFile, " ".join(lines))
         alignText = "<tt>Query: &nbsp;%s<br>Match:&nbsp;  %s<br>Target: %s</tt>" % (match.qAln, match.match, match.tAln)
         articleId = match.tId[:10]
-        tText = articleHtml(articleId)
+        #tText = lookupArticleData(textDir, articleId)
+        dataset = pubStore.articleIdToDataset(articleId)
+        authors = match.authors
+        author = authors.split(",")[0]+" et al., "+match.journal
+        title = match.title
+        year = match.year
+        journal = match.journal
+        #title = title.encode("latin1").decode("utf8")
+        articleHtml = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, dataset, "", title)
 
         h.td(qText)
         h.td(alignText)
-        h.td(tText)
+        h.td(articleHtml)
         h.endTr()
 
     h.endTable()
 
+def submitParseJobs(inDir, outDir):
+    maxCommon.mustBeEmptyDir(outDir)
+    logging.info("Searching for XML files in %s" % inDir)
+    inFnames = pubGeneric.findFiles(inDir, ".xml")
+
+    logging.info("Creating jobList file")
+    jblfh = open("jobList", "w")
+    for relDir, inFname in inFnames:
+        relOutDir = join(outDir, relDir)
+        if not isdir(relOutDir):
+            os.makedirs(relOutDir)
+        outFname = join(relOutDir, splitext(basename(inFname))[0]+".tab")
+        cmd = "%s %s %s {check in exists %s} {check out exists %s}\n" % \
+                (sys.executable, __file__ , "parseJob", inFname, outFname)
+        jblfh.write(cmd)
+    jblfh.close()
+
+    logging.info("Running jobs")
+    #parseBlastLookupArticle(inDir, outFile)
+    cmd = "ssh swarm 'cd %s; para resetCounts; para clearSickNodes; para make jobList'" % os.getcwd()
+    os.system(cmd)
 # === MAIN ====
 def main(args, options):
     cmd = args[0]
@@ -264,12 +359,41 @@ def main(args, options):
     elif cmd=="parse":
         inDir = args[1]
         outFile = args[2]
-        parseBlastDir(inDir, outFile)
+        parseBlastLookupArticle(inDir, outFile)
         
+    elif cmd=="clustParse":
+        inDir = args[1]
+        outDir = args[2]
+        submitParseJobs(inDir, outDir)
+        
+    elif cmd=="parseJob":
+        inFname = args[1]
+        outFname = args[2]
+        parseOneBlastFile(inFname, outFname)
+
+    elif cmd=="clustCat":
+        inDir = args[1]
+        outFname = args[2]
+        logging.info("Looking for files in %s" % inDir)
+        inFnames = pubGeneric.findFiles(inDir, ".tab")
+        ofh = open(outFname, "w")
+        ofh.write("\t".join(AnnotatedMatchFields)+"\n")
+        pm = maxCommon.ProgressMeter(len(inFnames))
+        logging.info("Concatting...")
+        for relDir, fn in inFnames:
+            for line in open(fn):
+                if not line.startswith("length"):
+                    ofh.write(line)
+            pm.taskCompleted()
+        ofh.close()
+
     elif cmd=="html":
         inFile = args[1]
         outFile = args[2]
-        makeHtml(inFile, outFile)
+        textDir = None
+        if len(args)>3:
+            textDir = args[3]
+        makeHtml(inFile, outFile, textDir, options.percentId)
 
     else:
         raise Exception("Illegal command %s" % cmd)
@@ -278,25 +402,33 @@ def main(args, options):
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: 
 %prog index <dbDir> <importNames> - import data from importNames
-        dataset names can be either from pubConf.pubBlatBaseDir (fulltext, like elsevier, pmc)
+        dataset names can be either from pubConf.pubMapBaseDir (fulltext, like elsevier, pmc)
         or pubConf.textBaseDir (DBs, like genbank, imgt)
     
 %prog dna <dbDir> <inDir> <outDir>  - blastn files from inDir onto dbDir and write results to outDir
 %prog prot <dbDir> <inDir> <outDir>  - blastp files from inDir onto dbDir and write results to outDir
 
 %prog parse <outDir> <outFile>  - parse blast xml files in outDir and subdirs to outFile
+ALTERNATIVE:
+%prog clustParse <outDir> <parseOutDir>  - parse blast xml files on swarm to .tab files
+%prog clustCat <parseOutDir> <outFile>  - concat .tab files
+
+%prog html <outFile> <outHtmlFile> - write html summary 
 
 examples:
-pubBlast index /hive/data/inside/literature/blastpDb elsevier pmc imgt
-pubBlast prot /hive/data/inside/literature/blastpDb /hive/users/nknguyen/immuno/AS/adaptiveTcr/irepNallAdaptTCR/productiveCdr3 out/
-pubBlast parse out myBlast.tab
-pubBlast html myBlast.tab myBlast.html
+pubBlast index /hive/data/inside/pubs/blastpDb elsevier pmc imgt aai
+pubBlast prot /hive/data/inside/pubs/blastpDb /hive/users/nknguyen/immuno/AS/adaptiveTcr/irepNallAdaptTCR/productiveCdr3 out/
+mkdir out.parse
+pubBlast clustParse out out.parse
+pubBlast clustCat out.parse out.tab
+pubBlast html out.tab out.html
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("-e", "--eVal", dest="eVal", action="store", help="maximum eVal (careful: set the database size to something reasonable!), default %default", default="10") 
 parser.add_option("-z", "--dbSize", dest="dbSize", action="store", help="effective database size, default %default", default="30000000") 
+parser.add_option("-i", "--percentId", dest="percentId", action="store", type="int", help="minimum percent id for match to shown in the html step, calculated as length of Match-string without spaces/+s etc divided by length of Query string", default=0) 
 (options, args) = parser.parse_args()
 if len(args)<=1:
     parser.print_help()

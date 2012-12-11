@@ -8,7 +8,7 @@ export PATH=$PATH:/cluster/bin/x86_64 # for hgLoadSqlTab
 # VARIABLES
 PYTHON=/cluster/software/bin/python2.7
 BIN=/hive/users/max/projects/pubs/tools/
-DOWNBASE=/hive/data/outside/literature
+DOWNBASE=/hive/data/outside/pubs
 TEXTBASE=/hive/data/inside/pubs/text
 BLATBASE=/hive/data/inside/pubs/blat
 
@@ -23,7 +23,7 @@ BLATDIR=${BLATBASE}/elsevier
 CLUSTER=swarm
 
 CRAWLDIR=/cluster/home/max/projects/pubs/crawlDir
-JOBDIR=/hive/data/inside/literature/cronjob_runs/`date +%m-%d-%y_%H:%M`
+JOBDIR=/hive/data/inside/pubs/cronjob_runs/`date +%m-%d-%y_%H:%M`
 
 mkdir -p $JOBDIR
 cd $JOBDIR

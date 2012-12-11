@@ -51,7 +51,12 @@ crawlPubIds = {
 "HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp",
 "HIGHWIRE The American Society for Pharmacology and Experimental Therapeutics" : "aspet",
 "HIGHWIRE Federation of American Societies for Experimental Biology" : "faseb",
-"HIGHWIRE Society for Leukocyte Biology" : "slb"
+"HIGHWIRE Society for Leukocyte Biology" : "slb",
+"HIGHWIRE The Company of Biologists" : "cob",
+"HIGHWIRE Genetics Society of America" : "genetics",
+"HIGHWIRE Society for General Microbiology" : "sgm",
+"NLM Informa Healthcare" : "informa"
+#"Society for Molecular Biology and Evolution" : "smbe"
 }
 
 # crawler delay config, values in seconds
@@ -224,7 +229,7 @@ genbankMaxRefCount = 50
 
 # DNA MAPPING / GENOME BLATTING SETTINGS ============================
 
-pubBlatBaseDir = "/hive/data/inside/pubs/blat/"
+pubMapBaseDir = "/hive/data/inside/pubs/blat/"
 
 # this is the genbank mapping config file by Mark Diekhans' pipeline
 # it is required for genome partitioning 
@@ -235,7 +240,7 @@ GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 # these variables assign genome to keywords in text files
 # the orgDetect.py plugin will create annotations on the text files
 # for all of these keywords
-# pubBlat will then blat sequences from a textfile only on genomes
+# pubMap will then blat sequences from a textfile only on genomes
 # for which a keyword has been found
 
 speciesNames = {
@@ -332,7 +337,7 @@ cdnaDir = "/hive/data/inside/pubs/cdnaDb/"
 
 # directory with the files t2g.sql, t2gArticle.sql and t2gSequence.sql
 # required for loading into data UCSC genome browser
-# (for "pubBlat load")
+# (for "pubMap <dataset> load")
 sqlDir = "/cluster/home/max/projects/pubs/tools/sql/"
 
 # when writing tables for mysql, we cut all columns to a maximum size,

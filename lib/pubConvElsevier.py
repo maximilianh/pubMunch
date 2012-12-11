@@ -194,7 +194,6 @@ def parseElsevier(tree, data):
         logging.error("no article type found")
 
     data["doi"]             = findText(desc, "doi")
-    #data["externalId"]      = data["doi"]
     data["journal"]         = findText(desc, "publicationName")
     data["fulltextUrl"]     = findText(desc, "url")
     data["printIssn"]       = findText(desc, "issn")
@@ -328,6 +327,7 @@ def createFileData(articleData, mimeType, asciiString):
     fileData["url"] = articleData["fulltextUrl"]
     fileData["content"] = asciiString
     fileData["mimeType"] = mimeType
+    fileData["fileType"] = "main"
     return fileData
 
 def parseDoi2Pmid(baseDir):
@@ -380,17 +380,17 @@ def convertOneChunk(inIndexFile, outFile):
         xmlTree   = pubXml.etreeFromXml(xmlString)
 
         # parse xml
-        articleData = pubStore.createEmptyArticleDict()
+        articleData = pubStore.createEmptyArticleDict(publisher="elsevier")
         articleData = parseElsevier(xmlTree, articleData)
         if articleData==None:
-            logging.warn("Parser got not data for %s" % filename)
+            logging.warn("Parser got no data for %s" % filename)
             continue
         articleData["origFile"]="consyn://"+zipFilename+"/"+filename
         if articleData["doi"] in doi2pmid:
            articleData["pmid"] = doi2pmid[articleData["doi"]]
 
         pii = splitext(basename(filename))[0]
-        articleData["externalId"]="EPII_"+pii
+        articleData["externalId"]="PII"+pii
         articleData["fulltextUrl"]="http://www.sciencedirect.com/science/svapps/pii/"+pii
 
         # convert to ascii

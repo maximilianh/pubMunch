@@ -135,8 +135,9 @@ def countUpcaseWords(baseDir, wordCountBase, textDir, updateIds):
     wordFile = join(baseDir, wordCountBase) # updates use the baseline word file
     if not isfile(wordFile): # if baseline has no wordfile, recreate it
         logging.info("Counting upcase words for protein search to %s" % wordFile)
+        runner = pubGeneric.makeClusterRunner("pubMap-upcaseCount-"+basename(textDir))
         pubAlg.mapReduce("upcaseCount", textDir, {}, wordFile, \
-            tmpDir=mapTmpDir, updateIds=updateIds, runTest=False)
+            tmpDir=mapTmpDir, updateIds=updateIds, runTest=False, runner=runner)
     else:
         logging.info("Not counting words, file %s found" % wordFile)
 
@@ -208,11 +209,11 @@ def initDirs(publisher, pipelineSteps):
     if textDir==None:
         raise Exception("publisher %s can not be resolved to a directory" % publisher)
 
-    maxCommon.mustExistDir(pubConf.pubBlatBaseDir, makeDir=True)
+    maxCommon.mustExistDir(pubConf.pubMapBaseDir, makeDir=True)
 
     d = C() # pseudo object, blame Guido, not me
 
-    d = defineBatchDirectories(d, pubConf.pubBlatBaseDir, publisher, textDir)
+    d = defineBatchDirectories(d, pubConf.pubMapBaseDir, publisher, textDir)
     d.pipelineSteps = pipelineSteps
     d.textDir = textDir
     return d
@@ -446,7 +447,7 @@ def sortDb(pslBaseDir, pslOutFile, tSeqType=None, pslMap=False):
     logging.debug("Found psl dirs: %s" % allPslInDirs)
     pslInDirStr = " ".join(allPslInDirs)
     tmpDir = pubConf.getTempDir()
-    tmpDir = join(tmpDir, "pubBlat-pslSort-"+db)
+    tmpDir = join(tmpDir, "pubMap-pslSort-"+db)
     if isdir(tmpDir):
         shutil.rmtree(tmpDir)
     os.makedirs(tmpDir)
@@ -829,11 +830,11 @@ def mergeFilterPsls(inDirs):
     """ merge/sort/filter all psls (separated by db) in inDir into a temp file with all
     psls for all dbs, split into chunked pieces and write them to outDir 
     """
-    tmpFile, tmpPslFname = maxCommon.makeTempFile(tmpDir=pubConf.getTempDir(), ext=".psl", prefix = "pubBlat_split")
+    tmpFile, tmpPslFname = maxCommon.makeTempFile(tmpDir=pubConf.getTempDir(), ext=".psl", prefix = "pubMap_split")
     tmpFile.close()
     logging.debug("Merging into tmp file %s" % tmpPslFname)
     #tmpFile, tmpPslFname = open("temp.psl", "w"), "temp.psl"
-    pslSortTmpDir = join(pubConf.getTempDir(), "pubBlat-sortSplitPsls")
+    pslSortTmpDir = join(pubConf.getTempDir(), "pubMap-sortSplitPsls")
     if isdir(pslSortTmpDir):
         shutil.rmtree(pslSortTmpDir)
     os.makedirs(pslSortTmpDir)
@@ -923,20 +924,6 @@ def readKeyValFile(fname, inverse=False):
             key, value = value, key
         dict[int(key)] = value
     return dict
-
-def splitAnnoIdString(annotIdString):
-    """ split annot as a string into three parts 
-    >>> splitAnnotId("200616640112350013")
-    (2006166401, 123, 50013)
-    """
-    fileDigits = pubConf.FILEDIGITS
-    annotDigits = pubConf.ANNOTDIGITS
-    articleDigits = pubConf.ARTICLEDIGITS
-
-    articleId = annotIdString[:articleDigits]
-    fileId = annotIdString[articleDigits:articleDigits+fileDigits]
-    annotId = annotIdString[articleDigits+fileDigits:]
-    return articleId, fileId, annotId
 
 def splitAnnotId(annotId):
     """
@@ -1594,7 +1581,7 @@ def appendFilenamesToSqlTable(fileDicts, trackDb, trackingTable, ignoreDir):
                     maxMysql.insertInto(trackDb, trackingTable, ["fileName","size"], [fname, fileSize])
 
 def checkBaseDirsExist(baseDirs):
-    " check if all baseDirs exist, is they don't exist, try <pubBlatBaseDir>/<baseDir> "
+    " check if all baseDirs exist, is they don't exist, try <pubMapBaseDir>/<baseDir> "
     if len(baseDirs)==0:
         logging.error("You have not specified a single baseDir to load data from")
         sys.exit(1)
@@ -1603,7 +1590,7 @@ def checkBaseDirsExist(baseDirs):
     for baseDir in baseDirs:
         if not isdir(baseDir):
             baseDir2 = baseDir
-            baseDir  = join(pubConf.pubBlatBaseDir, baseDir)
+            baseDir  = join(pubConf.pubMapBaseDir, baseDir)
             if not isdir(baseDir):
                 raise Exception("Cannot find directory %s nor %s" % (baseDir, baseDir2))
         newDirs.append(baseDir)
@@ -1768,7 +1755,7 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
     for fname in fnames:
         fileMarkerArticles = defaultdict(set) # the list of article Ids for each marker in current file
         for row in maxCommon.iterTsvRows(fname):
-            articleId, fileId, annotId = splitAnnoIdString(row.annotId)
+            articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
             fullFileId = articleId+fileId
             snippet = pubStore.prepSqlString(row.snippet)
             markerCounts
@@ -1811,14 +1798,14 @@ def iterChunkNames(path):
     for row in maxCommon.iterTsvRows(path):
         yield row.chunkName
 
-def defineBatchDirectories(d, pubBlatBase, publisher, textDir, newBatchId=None):
+def defineBatchDirectories(d, pubMapBase, publisher, textDir, newBatchId=None):
     " add attributes for all input and output directories to object d"
 
     " DEFINE DIRECTORIES "
 
-    logging.debug("Defining batch directories for %s" % pubBlatBase)
+    logging.debug("Defining batch directories for %s" % pubMapBase)
     # base dir for publisher
-    d.baseDir = join(pubBlatBase, publisher)
+    d.baseDir = join(pubMapBase, publisher)
     global baseDir
     baseDir = d.baseDir
 
@@ -1844,10 +1831,13 @@ def defineBatchDirectories(d, pubBlatBase, publisher, textDir, newBatchId=None):
     # list of textfiles that were processed in batch
     d.chunkListFname = join(batchDir, "annotatedTextChunks.tab")
 
-    # non-blat directories
-    d.dnaAnnotDir    = join(pubConf.annotDir, "dna", publisher) # all sequences on all articles, includes tiny seqs&duplicates
-    d.protAnnotDir   = join(pubConf.annotDir, "prot", publisher) # same for proteins
-    d.markerAnnotDir = join(pubConf.annotDir, "markers", publisher) # same for markers
+    # directories for text annotations
+    #d.dnaAnnotDir    = join(pubConf.annotDir, "dna") # all sequences on all articles, includes tiny seqs&duplicates
+    #d.protAnnotDir   = join(pubConf.annotDir, "prot") # same for proteins
+    #d.markerAnnotDir = join(pubConf.annotDir, "markers") # same for markers
+    d.dnaAnnotDir    = join(batchDir, "annots", "dna") # all sequences on all articles, includes tiny seqs&duplicates
+    d.protAnnotDir   = join(batchDir, "annots", "prot") # same for proteins
+    d.markerAnnotDir = join(batchDir, "annots", "markers") # same for markers
 
     d.tableDir     = join(batchDir, "tables") # tables for genome browser
 
@@ -1912,15 +1902,20 @@ def switchOver():
     maxMysql.renameTables("hg19", prodTables, bakTables, checkExists=True)
     maxMysql.renameTables("hg19", devTables, prodTables)
 
-def annotToFasta(publisher, annotDir, useExtArtId=False):
-    pubList = publisher.split(",")
+def annotToFasta(dataset, useExtArtId=False):
+    """ export one or more publishers to fasta files 
+
+    output is writtent pubConf.faDir
+    
+    """
+    pubList = dataset.split(",")
     annotDir = pubConf.annotDir
     artMainIds = {}
     
     if useExtArtId:
         for pub in pubList:
             logging.info("Processing %s" % pub)
-            textDir = join(pubConf.textBaseDir, pub) 
+            textDir = join(pubConf.textBaseDir, pub)
             logging.info("Reading article identifiers, titles, citation info")
             for article in pubStore.iterArticleDataDir(textDir):
                 if article.pmid!="":
@@ -1933,19 +1928,28 @@ def annotToFasta(publisher, annotDir, useExtArtId=False):
                 mainId += " "+article.title+" "+article.journal+" "+article.year
                 artMainIds[int(article.articleId)] = mainId
         
-    annotDir = pubConf.annotDir
+    #annotDir = pubConf.annotDir
     annotTypes = ["dna", "prot"]
-    for annotType in annotTypes:
-        maxCommon.mustExistDir(pubConf.faDir, makeDir=True)
-        outFname = join(pubConf.faDir, annotType+".fa")
-        outFh = codecs.open(outFname, "w", encoding="utf8")
-        logging.info("Reformatting %s sequences to fasta %s" % (annotType, outFname))
-        tabDir = join(annotDir, annotType, pub)
-        for row in maxCommon.iterTsvDir(tabDir):
-            articleId = int(row.annotId[:pubConf.ARTICLEDIGITS])
-            seqId = artMainIds[articleId]
-            outFh.write(">"+row.annotId+"|"+seqId+"\n")
-            outFh.write(row.seq+"\n")
+    maxCommon.mustExistDir(pubConf.faDir, makeDir=True)
+    for pub in pubList:
+        logging.info("Processing dataset %s" % pub)
+        for annotType in annotTypes:
+            outFname = join(pubConf.faDir, pub+"."+annotType+".fa")
+            outFh = codecs.open(outFname, "w", encoding="utf8")
+            logging.info("Reformatting %s sequences to fasta %s" % (annotType, outFname))
+            #tabDir = join(annotDir, annotType, pub)
+            annotMask = join(pubConf.pubMapBaseDir, pub, "batches", "*", "annots", annotType, "*")
+            annotFnames = glob.glob(annotMask)
+            logging.debug("Found dirs: %s" % annotFnames)
+            pm = maxCommon.ProgressMeter(len(annotFnames))
+            for annotFname in annotFnames:
+                for row in maxCommon.iterTsvRows(annotFname):
+                    articleId = int(row.annotId[:pubConf.ARTICLEDIGITS])
+                    seqId = artMainIds.get(articleId, "")
+                    outFh.write(">"+row.annotId+"|"+seqId+"\n")
+                    outFh.write(row.seq+"\n")
+                pm.taskCompleted()
+        logging.info("Output written to %s" % outFname)
 
 def runStepSsh(host, publisher, step):
     " run one step of pubMap on a different machine "
@@ -1981,10 +1985,11 @@ def runStep(publisher, command, d):
                 % d.stepProgressFname)
 
         d.batchId = str(int(d.batchId)+1)
-        d = defineBatchDirectories(d, pubConf.pubBlatBaseDir, publisher, \
+        d = defineBatchDirectories(d, pubConf.pubMapBaseDir, publisher, \
             d.textDir, newBatchId=d.batchId)
         if isdir(d.batchDir):
-            raise Exception("%s already exists, is this really a new run?" % d.batchDir)
+            if not len(os.listdir(d.batchDir))==0:
+                raise Exception("%s contains files, is this really a new run?" % d.batchDir)
         else:
             os.makedirs(d.batchDir)
 
@@ -2006,7 +2011,7 @@ def runStep(publisher, command, d):
         options = {"wordFile":wordFile, \
             "startAnnotId.SeqScraper":0, "startAnnotId.ProteinDetect":15000, \
             "startAnnotId.MarkerAnnotate" : 30000 }
-        runner = pubGeneric.makeClusterRunner("pubMap-annot")
+        runner = pubGeneric.makeClusterRunner("pubMap-annot-"+d.publisher)
         chunkNames = pubAlg.annotate(
             "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py",
             d.textDir, options, outDirs, updateIds=d.updateIds, \
@@ -2122,7 +2127,7 @@ def runStep(publisher, command, d):
     elif command=="load":
         inDirs = []
         for pub in pubConf.loadPublishers:
-            inDir = join(pubConf.pubBlatBaseDir, pub)
+            inDir = join(pubConf.pubMapBaseDir, pub)
             assert(isdir(inDir))
             inDirs.append(inDir)
         logging.info("Input is loaded from directories: %s" % inDirs)
@@ -2143,7 +2148,7 @@ def runStep(publisher, command, d):
 
     # ======== OTHER COMMANDS 
     elif command=="expFasta":
-        annotToFasta(publisher, annotDir)
+        annotToFasta(publisher, useExtArtId=True)
 
     else:
         maxCommon.errAbort("unknown command: %s" % command)

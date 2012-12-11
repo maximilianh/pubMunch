@@ -332,6 +332,10 @@ p, ol, ul, dl, blockquote {
 
 /* tables */
 
+table {
+    table-layout:fixed;
+}
+
 th { background : #BBBBBB; 
 }
 
@@ -504,7 +508,7 @@ a:visited {
 
 class htmlWriter:
     def __init__(self,fname=None,fh=None):
-        if fname=="stdout":
+        if fname=="stdout" or (fname==None and fh==None):
             #codecs.getwriter('utf8')(sys.stdout.buffer)
             self.f = sys.stdout
         elif fname:
@@ -695,8 +699,8 @@ class htmlWriter:
 
     ## FORMS 
 
-    def formStart(self, action, method="get"):
-        self.writeLn('<form name="input>" action="%s" method="%s">' % (action, method))
+    def startForm(self, action, method="get"):
+        self.writeLn('<form name="input" action="%s" method="%s">\n' % (action, method))
 
     def formInput(self, type, name, size=None, value=None):
         addStr=""
@@ -705,7 +709,7 @@ class htmlWriter:
         if value:
             addStr+='value="%s"' % value
 
-        self.writeLn('<input type="%s" name="%s" %s />' % (type, name, addStr))
+        self.writeLn('<input type="%s" name="%s" %s />\n' % (type, name, addStr))
 
     def formInputText(self, name, size=None):
         self.formInput("text", name, size)
@@ -713,11 +717,17 @@ class htmlWriter:
     def formInputSubmit(self, name):
         self.formInput("submit", name, value=name)
 
+    def startTextArea(self, name, rows=3, cols=30):
+        self.writeLn('<textarea name="%s" rows="%d" cols="%d">\n' % (name, rows, cols))
+
+    def endTextArea(self):
+        self.writeLn('</textarea>\n')
+
     def formInputReset(self, name):
         self.formInput("reset", name)
 
-    def formEnd(self):
-        self.writeLn('</form>')
+    def endForm(self):
+        self.writeLn('</form>\n')
 
     ## LINKS TO EXTERNAL RESOURCES
     def ensGeneLink(self, orgName, geneId):

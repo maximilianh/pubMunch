@@ -539,7 +539,7 @@ def convertOneChunk(inIndexFile, outFile):
         nxmlName, nxmlData = getNxmlFile(extractedFiles)
         if nxmlData==None:
             continue
-        articleData = pubStore.createEmptyArticleDict()
+        articleData = pubStore.createEmptyArticleDict(publisher="")
         articleData, suppFileDict = parsePmcXml(nxmlData, articleData)
         store.writeArticle(articleId, articleData)
 

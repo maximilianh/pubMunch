@@ -165,7 +165,8 @@ class Runner:
                     sshDir = self.batchDir
                 else:
                     sshDir = os.getcwd()
-                cmd = "ssh %s 'cd %s; %s'" % (self.headNode, sshDir, cmd)
+                cmd = "ssh %s 'cd %s; para clearSickNodes; para resetCounts; %s'" % \
+                    (self.headNode, sshDir, cmd)
                 logging.debug("headnode set, full command is %s" % cmd)
 
             #os.chdir(self.batchDir)

@@ -19,6 +19,7 @@ parser = optparse.OptionParser("""usage: %prog : Download marker info from UCSC 
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("-o", "--only", dest="only", action="store", help="only create data for one type, e.g. symbol, band, uniprot, snp") 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONS =====
@@ -117,23 +118,42 @@ def mysqlAddKeyVal(db, query, dataDict):
     os.remove(tempFname)
     return dataDict
 
-def makeGeneDict(geneDictFname):
-    " use the UniProt database to create a dictionary uniprotId to all other relevant ids "
-    data = collections.defaultdict(list)
+#def makeGeneDict(geneDictFname):
+#    " use the UniProt database to create a dictionary uniprotId to all other relevant ids "
+#    data = collections.defaultdict(list)
+#
+#    # uniprot alternative acc numbers 
+#    mysqlAddKeyVal("uniProt", 'select acc, val from otherAcc', data)
+#    # uniprot names
+#    mysqlAddKeyVal("uniProt", 'select acc, val from displayId', data)
+#    # pdb accessions
+#    mysqlAddKeyVal("uniProt", 'select acc, extAcc1 from extDbRef JOIN extDb ON (id=extDb) WHERE val="PDB"', data)
+#    # refseq
+#    mysqlAddKeyVal("uniProt", 'select acc, extAcc2 from extDbRef JOIN extDb ON (id=extDb) WHERE val="RefSeq";', data)
+#    # ensembl gene ids
+#    #mysqlAddKeyVal("uniProt", 'select acc, extAcc3 from extDbRef JOIN extDb ON (id=extDb) WHERE val="Ensembl";', data)
+#    writeGzDict(data, geneDictFname)
 
-    # uniprot alternative acc numbers 
-    mysqlAddKeyVal("uniProt", 'select acc, val from otherAcc', data)
-    # uniprot names
-    mysqlAddKeyVal("uniProt", 'select acc, val from displayId', data)
-    # pdb accessions
-    mysqlAddKeyVal("uniProt", 'select acc, extAcc1 from extDbRef JOIN extDb ON (id=extDb) WHERE val="PDB"', data)
-    # refseq
-    mysqlAddKeyVal("uniProt", 'select acc, extAcc2 from extDbRef JOIN extDb ON (id=extDb) WHERE val="RefSeq";', data)
-    # ensembl gene ids
-    #mysqlAddKeyVal("uniProt", 'select acc, extAcc3 from extDbRef JOIN extDb ON (id=extDb) WHERE val="Ensembl";', data)
-    writeGzDict(data, geneDictFname)
+def writePdbFnames(pdbDir, pdbDictFname):
+    " find all files in a pdb local copy and write acc numvers to ouput gz files "
+    # pdb100d.ent.gz
+    logging.info("Reading filenames from %s" % pdbDir)
+    accList = []
+    for dir, path in pubGeneric.findFiles(pdbDir, ".gz"):
+        acc = basename(path).split(".")[0].replace("pdb","")
+        accList.append(acc)
 
-def prepMarkerDir(markerDir):
+    logging.info("Found %d accession numbers, writing to %s" % (len(accList), pdbDictFname))
+    ofh = gzip.open(pdbDictFname, "w")
+    for acc in accList:
+        ofh.write(acc)
+        ofh.write("\n")
+    ofh.close()
+
+
+
+
+def prepMarkerDir(markerDir, onlyType):
     " config targetdir for blatCdna "
 
     if not isdir(markerDir):
@@ -142,34 +162,51 @@ def prepMarkerDir(markerDir):
 
     tempFile = join(pubConf.TEMPDIR, "filter.tmp.bed")
 
-    # gene symbols
-    symbolBedFname = join(markerDir, "hg19.symbol.bed")
-    symbolDictFname = join(markerDir, "symbol.dict.tab.gz")
-    mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.geneSymbol from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name')
-    makeUniqueNames(tempFile, symbolBedFname)
-    writeNames(symbolBedFname, symbolDictFname)
+    if onlyType and onlyType=="symbol":
+        # gene symbols
+        symbolBedFname = join(markerDir, "hg19.symbol.bed")
+        symbolDictFname = join(markerDir, "symbol.dict.tab.gz")
+        mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.geneSymbol from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name')
+        makeUniqueNames(tempFile, symbolBedFname)
+        writeNames(symbolBedFname, symbolDictFname)
 
-    geneDictFname = join(markerDir, "geneAcc.dict.tab.gz")
-    makeGeneDict(geneDictFname)
+    #if onlyType and onlyType=="geneAcc":
+        #geneDictFname = join(markerDir, "geneAcc.dict.tab.gz")
+        #makeGeneDict(geneDictFname)
 
-    bandBed = join(markerDir, "hg19.band.bed")
-    bandDict = join(markerDir, "band.dict.tab.gz")
-    mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from cytoBand")
-    addChrom(tempFile, bandBed)
-    writeNames(bandBed, bandDict)
+    if onlyType and onlyType=="band":
+        bandBed = join(markerDir, "hg19.band.bed")
+        bandDict = join(markerDir, "band.dict.tab.gz")
+        mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from cytoBand")
+        addChrom(tempFile, bandBed)
+        writeNames(bandBed, bandDict)
 
-    geneBed = join(markerDir, "hg19.uniprot.bed")
-    # everything is based on uniprot ids
-    mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.spID from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name where spID<>"" and not spId like "%-%"')
-    makeUniqueNames(tempFile, geneBed)
+    if onlyType and onlyType=="uniprot":
+        upBedFname = join(markerDir, "hg19.uniprot.bed")
+        upDictFname = join(markerDir, "uniprot.dict.tab.gz")
+        # everything is based on uniprot ids
+        mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.spID from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name where spID<>"" and not spId like "%-%"')
+        makeUniqueNames(tempFile, upBedFname)
+        writeNames(upBedFname, upDictFname)
+
+    if onlyType and onlyType=="pdb":
+        pdbBedFname = join(markerDir, "hg19.pdb.bed")
+        mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, uniProt.extDbRef.extAcc1 from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name JOIN uniProt.extDbRef ON (spID=acc) JOIN uniProt.extDb ON (id=extDb) WHERE extDb.val="PDB" AND kgXref.spID<>"" AND NOT kgXref.spId like "%-%"')
+        makeUniqueNames(tempFile, pdbBedFname)
+        #writeNames(upBedFname, upDictFname)
+
+        pdbDir = join(pubConf.dbBaseDir, "pdb")
+        pdbDictFname = join(markerDir, "pdb.dict.tab.gz")
+        writePdbFnames(pdbDir, pdbDictFname)
 
     os.remove(tempFile)
 
-    snpBed = join(markerDir, "hg19.snp.bed")
-    snpDict = join(markerDir, "snp.dict.tab.gz")
-    mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from snp135Common")
-    rewriteSnp(tempFile, snpBed)
-    # no snp dict - we use regular expressions for these
+    if onlyType and onlyType=="snp":
+        snpBed = join(markerDir, "hg19.snp.bed")
+        snpDict = join(markerDir, "snp.dict.tab.gz")
+        mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from snp135Common")
+        rewriteSnp(tempFile, snpBed)
+        # no snp dict - we use regular expressions for these
 
 if len(args)!=0:
     parser.print_help()
@@ -177,4 +214,4 @@ if len(args)!=0:
 
 pubGeneric.setupLogging(progFile, options)
 markerDir = pubConf.markerDbDir
-prepMarkerDir(markerDir)
+prepMarkerDir(markerDir, options.only)

@@ -29,7 +29,7 @@ import maxRun, pubStore, pubConf, pubGeneric, protDetect, pubAlg, maxCommon
 from maxCommon import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <algorithmName> <in> <outDir> <opt1>=<val1> <opt2>=<val2> ...- run an algorithm on a directory of fulltext files and write results to out directory
+parser = optparse.OptionParser("""usage: %prog [options] <algorithmName> <in> <out> <opt1>=<val1> <opt2>=<val2> ...- run an algorithm on a directory of fulltext files and write results to out directory
 
 <in> can be a directory or dataset name:
 - search <in> for fulltext chunks (*.articles.gz and *.files.gz)
@@ -44,6 +44,7 @@ parser.add_option("-t", "--test", dest="test", action="store_true", help="run lo
 parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
 parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test, but input file is just a single text file")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. pmid or doi. can be used several times")
+parser.add_option("-c", "--concat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -110,4 +111,4 @@ else:
         runner = pubGeneric.makeClusterRunner(algName)
 
     inNames = inName.split(",")
-    pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields)
+    pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields, concat=options.concat)

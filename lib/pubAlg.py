@@ -145,7 +145,7 @@ def findArticleBasenames(dataset, updateIds=None):
         filteredNames = []
         for updateId in updateIds:
             updateId = str(updateId)
-            logging.debug("Removing all filenames that don't start with updateId %s" % updateId)
+            logging.log(5, "Keeping files that start with updateId %s" % updateId)
             filteredNames.extend([fn for fn in baseNames if basename(fn).startswith("%s_" % updateId)])
         baseNames = filteredNames
     logging.debug("Found %s basenames for %s: " % (len(baseNames), dataset))
@@ -162,18 +162,30 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
         Returns the list of baseNames, e.g. 0_00000,0_00001, etc that it ran on
     """
     assert(algMethod in ["map", "annotate"]) 
-    assert(algNames.count(",")==outDirs.count(",")) # need several output dirs if multiple algs specified
 
     if isinstance(inDirs, basestring):
         inDirs = [inDirs]
+    if isinstance(algNames, basestring):
+        algNames = algNames.split(",")
+    if isinstance(outDirs, basestring):
+        outDirs = outDirs.split(",")
 
-    algNames = algNames.split(",")
-    outDirs = outDirs.split(",")
+    assert(len(algNames)==len(outDirs))
 
     paramDict["addFields"] = addFields
+    paramDir = None
+
+    # try to keep the parameter file somewhere where there is little 
+    # risk of being overwritten by a concurrent batch
+    if batchDir!=".":
+        paramDir = batchDir
 
     if runner==None:
+        logging.debug("Creating job runner")
         runner = maxRun.Runner(batchDir=batchDir)
+    else:
+        logging.debug("Batch runner was supplied")
+        paramDir = runner.batchDir
 
     algCount = 0
     for algName, outDir in zip(algNames, outDirs):
@@ -182,7 +194,9 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
             baseNames = findArticleBasenames(inDir, updateIds)
             algShortName = basename(algName).split(".")[0]
             outDir = abspath(outDir)
-            paramFname = join(outDir, algShortName+".mapReduceParam.marshal.gz")
+            if paramDir==None:
+                paramDir = outDir
+            paramFname = join(paramDir, algShortName+".algParams.marshal.gz")
             # if multiple algs specified: try to make annotIds non-overlapping
             paramKey = "startAnnotId."+algShortName
             if paramKey not in paramDict and len(algNames)>1:
@@ -298,17 +312,20 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
     annotDigits = int(pubConf.ANNOTDIGITS)
     fileDigits = int(pubConf.FILEDIGITS)
     annotIdStart = (int(fileData.fileId) * (10**annotDigits)) + annotIdAdd
-    logging.debug("fileId %s, annotIdStart %d" % (fileData.fileId, annotIdStart))
+    logging.debug("fileId %s, annotIdStart %d, fileLen %d" % (fileData.fileId, annotIdStart, len(fileData.content)))
 
     text = fileData.content.replace("\a", "\n")
 
-    allTextSections = {"unknown": (0, len(text))}
-    if doSectioning:
-        sections = pubGeneric.sectionRanges(text)
-        if sections==None:
-            sections = allTextSections
+    if fileData.fileType=="supp":
+        sections = {"supplement": (0, len(text))}
     else:
-        sections = allTextSections
+        allTextSections = {"unknown": (0, len(text))}
+        if doSectioning:
+            sections = pubGeneric.sectionRanges(text)
+            if sections==None:
+                sections = allTextSections
+        else:
+            sections = allTextSections
 
     annotCount = 0
     for section, sectionRange in sections.iteritems():
@@ -324,7 +341,7 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
 
         for row in annots:
             # prefix with fileId, extId
-            logging.debug("received annotation row: %s" %  row)
+            logging.debug("received annotation row: %s" %  str(row))
             fields = ["%018d" % (int(annotIdStart)+annotCount)]
             if articleData!=None:
                 extId = articleData.externalId
@@ -333,8 +350,9 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             fields.append(extId)
             # add addFields
             artDict = articleData._asdict()
-            for addField in addFields:
-                fields.append(artDict.get(addField, ""))
+            if addFields!=None:
+                for addField in addFields:
+                    fields.append(artDict.get(addField, ""))
             # add other fields
             fields.extend(row)
 
@@ -371,8 +389,9 @@ def writeHeaders(alg, outFh, doSectioning, addFields):
     headers = copy.copy(alg.headers)
     headers.insert(0, "annotId")
     headers.insert(1, "externalId")
-    for i, addField in enumerate(addFields):
-        headers.insert(2+i, addField)
+    if addFields!=None:
+        for i, addField in enumerate(addFields):
+            headers.insert(2+i, addField)
 
     if doSectioning:
         headers.append("section")
@@ -407,7 +426,7 @@ def makeLocalTempFile():
     return tmpOutFname
 
 def moveTempToFinal(tmpOutFname, outFname):
-    " copy from temp to final out dest fname "
+    " copy from temp to final out destination fname "
     logging.debug("Copying %s to %s" % (tmpOutFname, outFname))
     outDir = dirname(outFname)
     if outDir!="" and not isdir(outDir):
@@ -461,9 +480,8 @@ def runAnnotate(reader, alg, paramDict, outName):
         for fileData in fileDataList:
             writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields)
 
-    outFh.close()
-
     if outName!="stdout":
+        outFh.close()
         moveTempToFinal(tmpOutFname, outName)
 
 def runMap(reader, alg, paramDict, outFname):
@@ -576,22 +594,59 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
         meter.taskCompleted()
     ofh.close()
 
-def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, updateIds=None, batchDir=".", runner=None, addFields=[]):
+def concatFiles(inDir, outFname):
+    " concat all files in outDir and write to outFname. "
+    logging.info("Looking for tab.gz files in %s" % inDir)
+    inFnames = pubGeneric.findFiles(inDir, ".tab.gz")
+    ofh = open(outFname, "w")
+    pm = maxCommon.ProgressMeter(len(inFnames))
+    logging.info("Concatting...")
+    fno = 0
+    for relDir, fn in inFnames:
+        lno = 0
+        for line in open(fn):
+            if lno==0 and fno==0:
+                ofh.write(line)
+            if lno!=0:
+                ofh.write(line)
+            lno += 1
+        pm.taskCompleted()
+        fno += 1
+    ofh.close()
+
+def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, updateIds=None, batchDir=".", runner=None, addFields=[], concat=False):
     """ 
     submit jobs to batch system to run algorithm over text in textDir, write
     annotations to outDir 
 
     algNames can be a comma-sep list of names
     outDirs can be a comma-sep list of directories
+    cleanUp deletes all cluster system tempfiles
+    runNow waits until jobs have finished
+    concat will concatenate all output files and write to outDir (actually a textfile)
     """
-    for algName in algNames.split(","):
+    if isinstance(algNames, basestring):
+        algNames = algNames.split(",")
+    if isinstance(outDirs, basestring):
+        outDirs = outDirs.split(",")
+
+    for algName in algNames:
         logging.debug("Testing algorithm %s startup" % algName)
         alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
         if "startup" in dir(alg):
             alg.startup(paramDict) # to check if startup works
 
+    logging.debug("Testing successful, submitting jobs")
+    #if concat:
+        #outFnames = copy.copy(outDirs)
+        #outDirs = [d+".jobOutput" for d in outDirs]
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \
-        ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner, addFields=addFields)
+        ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, \
+        batchDir=batchDir, runner=runner, addFields=addFields)
+    
+    if concat:
+        for outDir in outDirs:
+            concatFiles(outDir, outDir+".tab")
     return baseNames
 
 def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False):

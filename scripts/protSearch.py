@@ -143,7 +143,7 @@ def cleanText(text):
     cleanText = nonLetterRe.sub(" ", text)
     return cleanText
 
-class ProteinDetect:
+class Annotate:
     """ annotator to find protein sequence in english text """
     def __init__(self):
         self.headers = ["start", "end", "seq", "partCount"]
@@ -166,6 +166,7 @@ class ProteinDetect:
     def annotateFile(self, articleData, fileData):
         text = cleanText(fileData.content)
         stack = []
+        rows = []
 
         for match in wordRe.finditer(text):
             word = match.group().strip()
@@ -183,11 +184,19 @@ class ProteinDetect:
                     # check that whole stack contains enough different letters
                     start = stack[0][1]
                     end   = stack[-1][-1]
-                    yield (start, end, stackWord, len(stack))
+                    #yield (start, end, stackWord, len(stack))
+                    row = [start, end, stackWord, len(stack)]
+                    rows.append(row)
                 else:
                     logging.log(5, "Skipping stack %s, too short/too few avg diff letters: %f" % \
                         (stackWord, diffLetterPerChar))
                 stack = []
+
+        if len(rows)>1000:
+            logging.warn("Too many proteins in document, skipping")
+            return []
+        else:
+            return rows
 
 def test():
    rootLog = logging.getLogger('')

@@ -295,7 +295,7 @@ def main(args, options):
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] pdb - parse PMIDs from database and write to Db dir""")
+parser = optparse.OptionParser("""usage: %prog [options] pdb or uniprot - parse PMIDs from PDB or UniProt and write to Db dir""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")

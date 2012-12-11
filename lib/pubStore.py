@@ -23,8 +23,9 @@ csv.field_size_limit(50000000)
 
 articleFields=[
 "articleId",  # internal number that identifies this article in the pubtools system
-"externalId", # original string id of the article, e.g. PMC12343 or doi:123213213/dfsdf or PMID123123
-"source",  # the origin of the article, something like "elsevier" or "pubmed" or "medline"
+"externalId", # original string id of the article, e.g. PMC12343 or the PPI or PMID123123
+"source",  # the data format of the article, "elsevier", "medline", "pmc" or "crawler"
+"publisher", # the publisher, e.g. "pnas" or "aai"
 "origFile", # the original file where the article came from, e.g. the zipfile or genbank file
 "journal",      # journal or book title
 "printIssn",    # ISSN of the print edition of the article
@@ -87,10 +88,12 @@ def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=No
     logging.log(5, "Creating new file record, url=%s, fileType=%s, desc=%s" % (url, fileType, desc))
     return fileData
 
-def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=None, id=None, origFile=None, authors=None, fulltextUrl=None, keywords=None, title=None, abstract=None):
+def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=None, id=None, origFile=None, authors=None, fulltextUrl=None, keywords=None, title=None, abstract=None, publisher=None):
     """ create a dictionary with all fields of the ArticleType """
     metaInfo = emptyArticle._asdict()
     metaInfo["time"]=time.asctime()
+    if publisher!=None:
+        fileData["publisher"]=publisher
     if pmcId:
         metaInfo["pmcId"]=pmcId
     if origFile:
@@ -353,7 +356,7 @@ def createPseudoFile(articleData):
     logging.debug("no file data, creating pseudo-file from abstract")
     fileData = createEmptyFileDict()
     fileData["url"] = articleData.fulltextUrl
-    fileData["content"] = " ".join([articleData.title, articleData.abstract])
+    fileData["content"] = " ".join([" ",articleData.title, articleData.abstract, " "]) 
     fileData["mimeType"] = "text/plain"
     fileData["fileId"] = int(articleData.articleId) * (10**pubConf.FILEDIGITS)
     fileTuple = FileDataRec(**fileData)
@@ -429,16 +432,31 @@ class PubReaderFile:
         mainFiles = {}
         newFiles = []
         for fileData in files:
-            if fileData.fileType=="main":
-                assert(fileData.mimeType not in mainFiles) # we should never have two main files with same type
+            if fileData.fileType=="main" or fileData.fileType=="":
+                # we should never have two main files with same type
+                assert(fileData.mimeType not in mainFiles) 
                 mainFiles[fileData.mimeType] = fileData
             else:
                 newFiles.append(fileData)
 
-        if "application/pdf" in mainFiles and "text/xml" in mainFiles or "text/html" in mainFiles:
+        # this should happen only very very rarely, if main file was corrupted
+        if len(mainFiles)==0:
+            logging.error("No main file for article?")
+            logging.error("%s" % files)
+            return newFiles
+
+        # now remove the pdf if there are better files
+        if len(mainFiles)>1 and \
+                "application/pdf" in mainFiles and \
+                ("text/xml" in mainFiles or "text/html" in mainFiles):
+            logging.debug("Removing pdf")
             del mainFiles["application/pdf"]
 
-        assert(len(mainFiles)==1)
+        # paranoia check: make sure that we still have left one file0
+        if not len(mainFiles)>=1:
+            logging.error("no main file anymore: input %s output %s " % (files, mainFiles))
+            assert(len(mainFiles)>=1)
+
         newFiles.insert(0, mainFiles.values()[0])
         return newFiles
 
@@ -517,10 +535,14 @@ class PubReaderTest:
     def __init__(self, fname):
         self.text = open(fname).read()
 
-    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False):
+    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False, onlyMain=False):
         class C:
             def _replace(self, content=None):
                 return self
+
+            def _asdict(self):
+                return {"pmid":10, "externalId":"extId000", "articleId":100000000}
+
 
         art = C()
         art.articleId = "1000000000"
@@ -530,6 +552,7 @@ class PubReaderTest:
         fileObj = C()
         fileObj.fileId = "1001"
         fileObj.content = self.text
+        fileObj.fileType = "main"
         
         yield art, [fileObj]
 
@@ -810,12 +833,15 @@ def sortPubFnames(fnames):
 
 def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     " load pubDoc files into sqlite db table, keep track of loaded file names "
+    logging.debug("Loading %d files into table %s, db %s" %(len(tsvFnames), tableName, dbFname))
     firstFname = tsvFnames[0]
     if firstFname.endswith(".gz"):
         firstFh = gzip.open(firstFname)
     else:
         firstFh = open(firstFname)
-    headers = firstFh.readline().strip("\n#").split("\t")
+    #headers = firstFh.readline().strip("\n#").split("\t")
+    headers = pubStore.articleFields
+    logging.debug("DB fields are: %s" % headers)
     toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
     toLoadFnames = sortPubFnames(toLoadFnames)
 

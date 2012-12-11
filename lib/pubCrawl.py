@@ -97,8 +97,8 @@ pubsCrawlCfg = { "npg" :
         "suppListUrl_replace" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
         "suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
         "ignoreSuppFileLinkWords" : ["Video"],
-        "suppFileUrlREs" : [".*/content/suppl/.*"],
-        "ignoreSuppFileContentText" : ["Reprint (PDF) Version"]
+        "ignoreSuppFileContentText" : ["Reprint (PDF) Version"],
+        "suppFileUrlREs" : [".*/content/suppl/.*"]
     },
     # http://jb.asm.org/content/194/16/4161.abstract = PMID 22636775
     "asm" :
@@ -165,9 +165,12 @@ pubsCrawlCfg = { "npg" :
         "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
     },
+    # society of leukocyte biology
+    # PMID 20971921
     "slb" :
     {
         "hostnames" : ["jleukbio.org"],
+        "landingUrl_templates" : {"0741-5400" : "http://www.jleukbio.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
         "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
         "doiUrl_rewriteRules" : {"$" : ".long"},
         "landingPageIsArticleUrlKeyword" : ".long",
@@ -176,6 +179,72 @@ pubsCrawlCfg = { "npg" :
         "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
     },
+    # Company of Biologists
+    "cob" :
+    {
+        "hostnames" : ["biologists.org"],
+        "landingUrl_templates" : {"0950-1991" : "http://dev.biologists.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", "0022-0949" : "http://jcs.biologists.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+    },
+    # Genetics Society of America
+    # PMID 22714407
+    "genetics" :
+    {
+        "hostnames" : ["genetics.org"],
+        "landingUrl_templates" : {"0016-6731" : "http://genetics.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+    },
+    # Society of General Microbiology
+    # PMID 22956734
+    # THEY USE DC1 AND DC2 !!! Currently we're missing the DC1 or DC2 files... :-(
+    # todo: invert linkdict to link -> text and not text -> link
+    # otherwise we miss one link if we see twice "supplemental table" (see example)
+    "sgm" :
+    {
+        "hostnames" : ["sgmjournals.org"],
+        "landingUrl_templates" : {\
+        "1466-5026" : "http://ijs.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
+        "1350-0872" : "http://mic.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
+        "0022-2615" : "http://jmm.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
+        "0022-1317" : "http://vir.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content.*suppl/DC[0-9]"],
+        "suppFileUrlREs" : [".*/content.*suppl/.*"],
+    },
+    # SMBE - Soc of Mol Biol and Evol
+    # part of OUP - careful, duplicates!
+    # PMID 22956734
+    "smbe" :
+    {
+        "hostnames" : ["mbe.oxfordjournals.org"],
+        "landingUrl_templates" : \
+            {"0737-4038" : "http://mbe.oxfordjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_rewriteRules" : {"$" : ".long"},
+        "landingPageIsArticleUrlKeyword" : ".long",
+        "ignoreMetaTag" : True,
+        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "suppListUrlREs" : [".*/content.*suppl/DC[0-9]"],
+        "suppFileUrlREs" : [".*/content.*suppl/.*"],
+    },
+    # http://www.jimmunol.org/content/189/11/5129/suppl/DC1
+    # http://www.jimmunol.org/content/suppl/2012/10/25/jimmunol.1201570.DC1/12-01570_S1-4_ed10-24.pdf
     "aai" :
     {
         "hostnames" : ["jimmunol.org"],
@@ -185,7 +254,7 @@ pubsCrawlCfg = { "npg" :
         "landingPageIsArticleUrlKeyword" : ".long",
         "ignoreMetaTag" : True,
         "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*suppl/DCSupplemental"],
+        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppFileUrlREs" : [".*/content/suppl/.*"],
     },
     # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
@@ -229,7 +298,40 @@ addHeaders = [ # additional headers for fulltext download metaData
 "landingUrl" # can be different from mainHtml
 ]
 
-metaHeaders = copy.copy(pubStore.articleFields)
+# this is a copy from pubStore.py
+# to avoid ANY change to this, copy/pasted here
+# these fields should NEVER change while a crawl is running otherwise it will mess up the
+# tab file field count in the crawl output files (the crawler always appends)
+
+articleFields=[
+"articleId",  # internal number that identifies this article in the pubtools system
+"externalId", # original string id of the article, e.g. PMC12343 or doi:123213213/dfsdf or PMID123123
+"source",  # the origin of the article, something like "elsevier" or "pubmed" or "medline"
+"origFile", # the original file where the article came from, e.g. the zipfile or genbank file
+"journal",      # journal or book title
+"printIssn",    # ISSN of the print edition of the article
+"eIssn",        # optional: ISSN of the electronic edition of the journal/book of the article
+"journalUniqueId", # medline only: NLM unique ID for journal
+"year",         # first year of publication (electronic or print or advanced access)
+"articleType", # research-article, review or other
+"articleSection",  # elsevier: the section of the book/journal, e.g. "methods", "chapter 5" or "Comments" 
+"authors",  # list of author names, usually separated by semicolon
+"authorEmails",  # email addresses of authors
+"authorAffiliations",  # authors' affiliations
+"keywords", # medline: mesh terms or similar, separated by / (medline is using , internally)
+"title",    # title of article
+"abstract", # abstract if available
+"vol",      # volume
+"issue",    # issue
+"page",            # first page of article, can be ix, x, or S4
+"pmid",            # PubmedID if available
+"pmcId",           # Pubmed Central ID
+"doi",             # DOI, without leading doi:
+"fulltextUrl",     # URL to fulltext of article
+"time"     # date of download
+]
+
+metaHeaders = articleFields
 metaHeaders.extend(addHeaders)
 
 # ===== EXCEPTIONS ======
@@ -554,19 +656,18 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
     metaData["suppUrls"] = ",".join(suppUrls)
     return metaData
         
-def soupToText(soup):
-    ' convert a tag to a string of the text within it '
-    text = soup.string
-    if text!=None:
-        return text
+#def soupToText(soup): # not needed?
+    #' convert a tag to a string of the text within it '
+    #text = soup.getText()
+    #return text 
 
     # soup has children: need to get them and concat their texts
-    texts = []
-    allTags = soup.findAll(True)
-    for t in allTags:
-        if t.string!=None:
-            texts.append(t.string)
-    return " ".join(texts)
+    #texts = [text]
+    #allTags = soup.findAll(True)
+    #for t in allTags:
+        #if t.string!=None:
+            #texts.append(t.getText())
+    #return " ".join(texts)
 
 def anyMatch(regexList, queryStr):
     for regex in regexList:
@@ -606,6 +707,7 @@ def parseHtml(page, canBeOffsite=False, ignoreUrlREs=[]):
     iframeDict = collections.OrderedDict()
 
     for l in fulltextLinks:
+        logging.log(5, "got link %s" % l)
         if l.name=="iframe":
             src = l.get("src")
             if src==None or "pdf" not in src:
@@ -614,10 +716,11 @@ def parseHtml(page, canBeOffsite=False, ignoreUrlREs=[]):
             iframeDict[id] = src
 
         elif l.name=="a":
-            text = soupToText(l)
+            text = l.getText() # used to be: soupToText(l)
             text = text.encode("utf8")
             url = l.get("href")
             if url==None:
+                logging.log(5, "url is None")
                 continue
             try:
                 linkLoc = urlparse.urlsplit(url)[1]
@@ -626,19 +729,23 @@ def parseHtml(page, canBeOffsite=False, ignoreUrlREs=[]):
                 raise pubGetError("Value error on url split %s" % url, "urlSplitError", url)
             # skip links that point to a different server
             if canBeOffsite==False and linkLoc!="" and linkLoc!=baseLoc:
+                logging.log(5, "skipping link %s, is offsite" % url)
                 continue
 
             # remove #xxxx fragment identifiers from link URL
             fullUrl = urlparse.urljoin(baseUrl, url)
             parts = list(urlparse.urlsplit(fullUrl)[:4])
             if parts[0]=="javascript":
+                logging.log(5, "skipping link %s, is javascript" % url)
                 continue
             parts.append("")
             fullUrlNoFrag = urlparse.urlunsplit(parts)
             #logging.debug("Checking link against %s" % ignoreUrlREs)
             if anyMatch(ignoreUrlREs, fullUrlNoFrag):
+                logging.log(5, "skipping link %s, because of ignore REs" % url)
                 continue
             linkDict[text] = fullUrlNoFrag
+            logging.log(5, "Added link %s for text %s" % (repr(fullUrlNoFrag), repr(text)))
 
         elif l.name=="meta":
             # parse meta tags
@@ -693,15 +800,16 @@ def parsePmidStatus(outDir):
             pmid = l.strip().split("\t")[0]
             pmid = int(pmid)
             donePmids.add(pmid)
-    logging.info("Found %d PMIDs that have some status" % len(donePmids))
+        logging.info("Found %d PMIDs that have some status" % len(donePmids))
 
     dbFname = join(outDir, "articles.db")
-    logging.info("Reading done PMIDs from db %s" % dbFname)
-    con, cur = maxTables.openSqlite(dbFname)
-    dbPmids = set([x for (x,) in cur.execute("SELECT pmid from articles")])
-    donePmids.update(dbPmids)
-    logging.info("Found %d PMIDs that are already done or have status" % len(donePmids))
-    logging.log(5, "PMIDs are: %s" % donePmids)
+    if isfile(dbFname):
+        logging.info("Reading done PMIDs from db %s" % dbFname)
+        con, cur = maxTables.openSqlite(dbFname)
+        dbPmids = set([x for (x,) in cur.execute("SELECT pmid from articles")])
+        donePmids.update(dbPmids)
+        logging.info("Found %d PMIDs that are already done or have status" % len(donePmids))
+        logging.log(5, "PMIDs are: %s" % donePmids)
     return donePmids
 
 def parseIssnStatus(outDir):
@@ -907,6 +1015,7 @@ def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTex
                         continue
 
         for searchRe in searchUrlRes:
+            logging.log(5, "Checking url %s against regex %s" % (linkUrl, searchRe.pattern))
             if searchRe.match(linkUrl):
                 if urlHasExt(linkUrl, linkText, searchFileExts, searchRe.pattern):
                         yield linkUrl
@@ -1140,6 +1249,8 @@ def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
     """
     for searchLinkRe in searchLinkRes:
         for linkName, linkUrl in links.iteritems():
+            logging.log(5, "checking link %s, linkUrl %s for %s, (searchUrls:%s)" %
+            (repr(linkName), repr(linkUrl), searchLinkRe.pattern, searchUrls))
             if (not searchUrls and searchLinkRe.match(linkName)) or \
                     (searchUrls and searchLinkRe.match(linkUrl)):
                 suppListUrl = linkUrl
@@ -1317,6 +1428,8 @@ def writeReport(baseDir, htmlFname):
 
     totalPmidCount = 0
     totalOkCount = 0
+    totalDownCount = 0
+
 
     for name in os.listdir(baseDir):
         dirName = join(baseDir, name)
@@ -1333,8 +1446,12 @@ def writeReport(baseDir, htmlFname):
         isActive = isfile(join(dirName, "_pubCrawl.lock"))
         totalPmidCount += pmidCount
         totalOkCount  += len(statusPmids["OK"])
+        totalDownCount  += len(statusPmids.values())
 
-        h.h4("Publisher: %s (%s)" % (publDesc[publisher], publisher))
+        if publisher in publDesc:
+            h.h4("Publisher: %s (%s)" % (publDesc[publisher], publisher))
+        else:
+            h.h4("Publisher: %s (%s)" % (publisher, publisher))
         h.startUl()
         h.li("Crawler is currently running: %s" % isActive)
         h.li("Number of journals: %d" % issnCount)
@@ -1352,7 +1469,8 @@ def writeReport(baseDir, htmlFname):
         h.endUl()
 
     h.h4("Total PMIDs scheduled to download: %d" % totalPmidCount)
-    h.h4("Overall PMIDs downloaded so far: %d" % totalOkCount)
+    h.h4("Overall PMID download tried: %d" % totalDownCount)
+    h.h4("Overall PMIDs downloaded successfully: %d" % totalOkCount)
     h.endHtml()
 
 

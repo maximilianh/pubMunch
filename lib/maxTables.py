@@ -520,29 +520,49 @@ def openBed(fname, fileType="bed3"):
     fh = openFile(fname)
     return TableParser(fh, fileType=fileType).lines()
 
-def makeSqlLiteCreateStatement(tableName, fields, intFields=[], primKey=None, idxFields=[]):
+def makeTableCreateStatement(tableName, fields, type="sqlite", intFields=[], primKey=None, idxFields=[], inlineIndex=False, primKeyIsAuto=False, fieldTypes={}):
     """
     return a tuple with a create table statement and a list of create index statements.
+    returns the index statements separately for additional speed.
+    if inlineIndex is true, index create is part of the table create statement.
 
-    >>> makeSqlLiteCreateStatement("testTbl", ["test", "hi", "col3"], intFields=["hi"], primKey="test", idxFields=["col3"])
+    >>> makeTableCreateStatement("testTbl", ["test", "hi", "col3"], intFields=["hi"], primKey="test", idxFields=["col3"])
     ('CREATE TABLE IF NOT EXISTS testTbl (test TEXT PRIMARY KEY, hi INTEGER, col3 TEXT); ', 'CREATE INDEX testTbl_col3_idx ON testTbl (col3);')
     """
     intFields = set(intFields)
     idxFields = set(idxFields)
+    idxFieldNames = [] 
     parts = []
     idxSqls = []
     for field in fields:
-        ftype = "TEXT"
-        if field in intFields:
+        if type=="sqlite":
+            ftype = "TEXT"
+        else:
+            ftype = "VARCHAR(255)"
+
+        if field in fieldTypes:
+            ftype = fieldTypes[field]
+        elif field in intFields:
             ftype = "INTEGER"
+
         if field in idxFields:
             idxSqls.append("CREATE INDEX IF NOT EXISTS %s_%s_idx ON %s (%s);" % \
                 (tableName, field, tableName, field))
+            idxFieldNames.append(field)
+
         statement = field+" "+ftype
         if field == primKey:
             statement += " PRIMARY KEY"
+            if primKeyIsAuto:
+                statement += " AUTO_INCREMENT"
+                
         parts.append(statement)
-    tableSql = "CREATE TABLE IF NOT EXISTS %s (%s); " % (tableName, ", ".join(parts))
+
+    idxStr = ""
+    if inlineIndex:
+        idxStr = ", INDEX (%s)" % ", ".join(idxFieldNames)
+
+    tableSql = "CREATE TABLE IF NOT EXISTS %s (%s %s); " % (tableName, ", ".join(parts), idxStr)
     return tableSql, idxSqls
 
 def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, \
@@ -567,7 +587,7 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
         con.commit()
 
     # create table
-    createSql, idxSqls = makeSqlLiteCreateStatement(tableName, headers, \
+    createSql, idxSqls = makeTableCreateStatement(tableName, headers, \
         intFields=intFields, idxFields=idxFields, primKey=primKey)
     logging.log(5, "creating table with %s" % createSql)
     cur.execute(createSql)
@@ -602,7 +622,7 @@ def openSqliteCreateTable(db, tableName, fields, intFields=None, idxFields=None,
     con, cur = openSqlite(db, retries=retries)
     if primKey==None:
         primKey = fields[0]
-    createSql, idxSqls = makeSqlLiteCreateStatement(tableName, fields, \
+    createSql, idxSqls = makeTableCreateStatement(tableName, fields, \
         intFields=intFields, idxFields=idxFields, primKey=primKey)
     logging.debug("creating table with %s" % createSql)
     cur.execute(createSql)
@@ -621,8 +641,9 @@ def namedtuple_factory(cursor, row):
     Row = collections.namedtuple("Row", fields)
     return Row(*row)
 
-def openSqlite(dbName, asNamedTuples=False, lockDb=False, timeOut=10, retries=1):
+def openSqlite(dbName, asNamedTuples=False, lockDb=False, timeOut=10, retries=1, asDict=False):
     " opens sqlite con and cursor for quick reading "
+    logging.debug("Opening sqlite db %s" % dbName)
     tryCount = retries
     con = None
     while tryCount>0 and con==None:
@@ -635,6 +656,9 @@ def openSqlite(dbName, asNamedTuples=False, lockDb=False, timeOut=10, retries=1)
 
     if asNamedTuples:
         con.row_factory = namedtuple_factory
+    elif asDict:
+        con.row_factory = sqlite3.Row
+
     cur = con.cursor()
     #cur.execute("PRAGMA read_uncommited=true;") # has only effect in shared-cache mode
     con.commit()

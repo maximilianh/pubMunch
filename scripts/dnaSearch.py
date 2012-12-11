@@ -265,6 +265,8 @@ class Annotate:
 
         # find dna in text and add organisms
         for row in nucleotideOccurrences(text):
+            if row.seq=="": # can only happen if seq is a restriction site
+                continue
             row = [str(x) for x in row]
             row.append(dbString)
             yield row

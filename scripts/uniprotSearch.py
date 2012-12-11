@@ -1,4 +1,5 @@
-# search for uniprot accessions identifiers
+# very, very simple search for uniprot accessions
+# has many false positives, look into markerSearch.py for a better version
 
 # we need the regular expressions module to split text into words
 import re, logging

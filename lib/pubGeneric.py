@@ -161,8 +161,12 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     stdout, stderr, ret = runCommandTimeout(cmdLine, bufSize=10000000, timeout=30)
     if len(stdout)!=0:
         logging.debug("stdout: %s" % stdout)
+    msgCount = len([match for match in re.finditer(re.escape("a4 is redefined"), stderr)])
     if len(stderr)!=0:
-        logging.debug("stderr: %s" % stderr)
+        if len(stderr)>1000 or msgCount>10:
+            logging.debug("not showing stderr, too big or too many identical messages")
+        else:
+            logging.debug("stderr: %s" % stderr)
     asciiData = None
 
     if ret==2:
@@ -580,6 +584,20 @@ def resolveDatasetDesc(descs):
             raise Exception("Unknown dataset: %s" % desc)
         dirs.append(descDir)
     return dirs
+
+def splitAnnotIdString(annotIdString):
+    """ split annot as a string into three parts 
+    >>> splitAnnotId("200616640112350013")
+    (2006166401, 123, 50013)
+    """
+    fileDigits = pubConf.FILEDIGITS
+    annotDigits = pubConf.ANNOTDIGITS
+    articleDigits = pubConf.ARTICLEDIGITS
+
+    articleId = annotIdString[:articleDigits]
+    fileId = annotIdString[articleDigits:articleDigits+fileDigits]
+    annotId = annotIdString[articleDigits+fileDigits:]
+    return articleId, fileId, annotId
 
 if __name__=="__main__":
     setupLoggingOptions(None)
