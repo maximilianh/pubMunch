@@ -16,12 +16,21 @@ tableTmpFh = None # see above
 
 # ===== FUNCTIONS =======
 
-def createAnnotSchema(tableName, dataDir, fields=None, idxFields=None):
-    if fields==None:
-        fields = gzip.open(glob.glob(join(dataDir, "*.tab.gz"))[0]).readline().strip("\n").strip("#").split("\t")
-    fields.insert(0, "articleId")
-    fields.insert(1, "fileId")
+def readFields(dataDir):
+    " read first line from first file in dataDir or from dataDir if dataDir happens to be a file "
+    if isfile(dataDir):
+        line1 = open(dataDir).readline()
+    elif isdir(dataDir):
+        line1 = gzip.open(glob.glob(join(dataDir, "*.tab.gz"))[0]).readline()
+    else:
+        raise Exception("No dir or file %s" % dataDir)
+    fields = line1.strip("\n").strip("#").split("\t")
+    if "articleId" not in fields:
+        fields.insert(0, "articleId")
+        fields.insert(1, "fileId")
+    return fields
 
+def createAnnotSchema(tableName, fields, idxFields):
     #idxFields=["type","id"], \
     fieldTypes = {"articleId" : "bigInt", "snippet":"VARCHAR(16000)"}
     tblSql, idxSql= maxTables.makeTableCreateStatement(tableName, fields, type="mysql", \
@@ -40,18 +49,24 @@ def createAnnotSchema(tableName, dataDir, fields=None, idxFields=None):
     open(tmpName, "w").write(tblSql)
     return tmpName
 
-def annotIter(dataDir, fields, typeFilter=None):
+def annotIter(dataDirs, fields, typeFilter=None):
     " return selected fields of annotation rows from dataDir and split annotId into its parts "
-    if isfile(dataDir):
-        fnames = [dataDir]
-    else:
-        fnames = glob.glob(join(dataDir, "*.tab.gz"))
+    fnames = []
+    for dataDir in dataDirs:
+        if dataDir=="map":
+            dirFnames = []
+            for pub in pubConf.loadPublishers:
+                for annotDir in glob.glob(join(pubConf.pubMapBaseDir, pub, "batches", "*", "annots", "markers")):
+                    logging.info("checking dir %s for .tab.gz files" % annotDir)
+                    annotNames = glob.glob(join(annotDir, "*.tab.gz"))
+                    dirFnames.extend(annotNames)
+        elif isfile(dataDir):
+            dirFnames = [dataDir]
+        else:
+            dirFnames = glob.glob(join(dataDir, "*.tab.gz"))
+        fnames.extend(dirFnames)
 
-    if fields==None:
-        fields = gzip.open(fnames[0]).readline().strip("\n").split("\t")
-        fields.insert(0, "articleId")
-        fields.insert(1, "fileId")
-
+    logging.info("Found %d input files from %d input directories" % (len(fnames), len(dataDirs)))
     AnnotRec = collections.namedtuple("AnnotRec", fields)
     pm = maxCommon.ProgressMeter(len(fnames), stepCount=100)
     autoId = 0
@@ -61,10 +76,11 @@ def annotIter(dataDir, fields, typeFilter=None):
             if "type" in rowDict and typeFilter!=None and \
                     row.type not in typeFilter:
                 continue
-            articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
-            rowDict["articleId"] = str(articleId)
-            rowDict["fileId"] = str(fileId)
-            rowDict["annotId"] = str(annotId)
+            if "annotId" in row._fields:
+                articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
+                rowDict["articleId"] = str(articleId)
+                rowDict["fileId"] = str(fileId)
+                rowDict["annotId"] = str(annotId)
             newRow = []
             for field in fields:
                 if field=="autoId":
@@ -78,25 +94,28 @@ def annotIter(dataDir, fields, typeFilter=None):
         pm.taskCompleted()
                 
 def main(args, options):
-    fileType, db, tableName, dataDir = args
+    fileType, db, tableName = args[:3]
+    dataDirs = args[3:]
+    assert(len(dataDirs)>=1)
     pubGeneric.setupLoggingOptions(options)
-    dataDir = pubConf.resolveTextDir(dataDir)
+
     if fileType=="files":
         sqlFname = join(pubConf.sqlDir, "file.sql")
-        dataIter = pubStore.iterArticleDataDir(dataDir, type=fileType)
+        dataIter = pubStore.iterArticleDataDirs(dataDirs, type=fileType)
     elif fileType=="articles":
         sqlFname = join(pubConf.sqlDir, "article.sql")
-        dataIter = pubStore.iterArticleDataDir(dataDir, type=fileType)
+        dataIter = pubStore.iterArticleDataDirs(dataDirs, type=fileType)
     elif fileType=="markers":
         annotFields = ["autoId", "articleId", "fileId", "annotId", "type", "id", "snippet"]
-        idFields = ["articleId", "type", "id"]
-        sqlFname = createAnnotSchema(tableName, dataDir, annotFields, idxFields, fieldTypes=fieldTypes)
-        dataIter = annotIter(dataDir, annotFields, typeFilter=options.markerTypes)
+        idxFields = ["articleId", "type", "id", "markerId"]
+        annotFields = readFields(dataDirs[0])
+        sqlFname = createAnnotSchema(tableName, annotFields, idxFields)
+        dataIter = annotIter(dataDirs, annotFields, typeFilter=options.markerTypes)
     elif fileType=="fusions":
-        annotFields = None
+        annotFields = readFields(dataDir)
         idxFields = ["articleId", "sym1", "sym2", "symPair"]
-        sqlFname = createAnnotSchema(tableName, dataDir, annotFields, idxFields)
-        dataIter  = annotIter(dataDir, annotFields, typeFilter=options.markerTypes)
+        sqlFname = createAnnotSchema(tableName, annotFields, idxFields)
+        dataIter  = annotIter(dataDirs, annotFields, typeFilter=options.markerTypes)
     else:
         assert(False) # illegal file type
 
@@ -125,7 +144,10 @@ def main(args, options):
     #os.remove(tempName)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <articles|files|markers|fusions> <db> <tableName> <directoryOrFile> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file""")
+parser = optparse.OptionParser("""usage: %prog [options] <articles|files|markers|fusions> <db> <tableName> <inDirOrFiles> - create sql table and load pubTools files into database.tableName. Uses pubConf.sqlDir to find sql file
+
+inDirOrFiles can be the special keyword "map" which will load all markers from the pubMap-batch-annotation directories
+""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 

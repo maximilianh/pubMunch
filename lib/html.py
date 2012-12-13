@@ -533,7 +533,7 @@ class htmlWriter:
         self.write(str)
         self.write("\n")
 
-    def head(self, title, stylesheet=None, styleString=None):
+    def head(self, title, stylesheet=None, styleString=None, scripts=None):
         self.f.write("""
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -544,6 +544,9 @@ class htmlWriter:
             self.f.write("""<link href="%s" rel="stylesheet" type="text/css" >\n""" % stylesheet)
         if styleString!=None:
             self.f.write("""<style type="text/css">%s\n</style>\n""" % styleString)
+        if scripts!=None:
+            for script in scripts:
+                self.f.write("""<script type="text/javascript" src="%s"></script>\n""" % script)
         self.f.write ("""</head>\n""")
 
     def endHtml(self):
@@ -595,22 +598,31 @@ class htmlWriter:
 
     ### TABLES
 
-    def startTable(self, widths, headers, bgcolor=None, cellspacing=2, cellpadding=3):
-        if bgcolor==None:
-            self.f.write("""\n<table  border="0" cellspacing="%d"  cellpadding="%d"  >\n""" % (cellspacing, cellpadding))
-        else:
-            self.f.write('\n<table  border="0" cellspacing="%d"  cellpadding="%d"  bgcolor="%s">\n' % (cellspacing, cellpadding, bgcolor) )
-        #rules="cols"frame="hsides"
+    def startTable(self, widths, headers, bgcolor=None, cellspacing=2, cellpadding=3, tblClass=None, headClass=None):
+        options = ""
+        if tblClass!=None:
+            options = options+' class="%s"' % tblClass
+        if bgcolor!=None:
+            options = options+' bgcolor="%s"' % bgcolor
+
+        self.f.write('\n<table  border="0" cellspacing="%d"  cellpadding="%d"  %s>\n' % (cellspacing, cellpadding, options) )
+
         if len(widths)>0:
             self.f.write("<colgroup>\n")
             for width in widths:
                 self.f.write("  <col width='%s'>\n" % (str(width)))
             self.f.write("</colgroup>\n\n")
+
         if len(headers)>0:
+            headOpts = ""
+            if headClass!=None:
+                headOpts = 'class="%s"' % headClass
+            self.f.write("  <thead %s>\n" % headOpts)
             self.f.write("  <tr>\n")
             for header in headers:
                 self.f.write('    <th align="left">%s</th>\n' % (header))
             self.f.write("  </tr>\n")
+            self.f.write("  </thead >\n")
 
     def endTable(self):
         self.f.write("</table>\n")
@@ -717,14 +729,17 @@ class htmlWriter:
     def formInputSubmit(self, name):
         self.formInput("submit", name, value=name)
 
-    def startTextArea(self, name, rows=3, cols=30):
-        self.writeLn('<textarea name="%s" rows="%d" cols="%d">\n' % (name, rows, cols))
+    def startTextArea(self, name, rows=3, cols=30, id=None):
+        opt = ""
+        if id!=None:
+            opt = 'id="%s"' % id
+        self.writeLn('<textarea name="%s" rows="%d" cols="%d" %s>\n' % (name, rows, cols, opt))
 
     def endTextArea(self):
         self.writeLn('</textarea>\n')
 
     def formInputReset(self, name):
-        self.formInput("reset", name)
+        self.formInput("reset", name, value=name)
 
     def endForm(self):
         self.writeLn('</form>\n')

@@ -560,7 +560,8 @@ def makeTableCreateStatement(tableName, fields, type="sqlite", intFields=[], pri
 
     idxStr = ""
     if inlineIndex:
-        idxStr = ", INDEX (%s)" % ", ".join(idxFieldNames)
+        for idxFieldName in idxFieldNames:
+            idxStr += ", INDEX (%s)" % idxFieldName
 
     tableSql = "CREATE TABLE IF NOT EXISTS %s (%s %s); " % (tableName, ", ".join(parts), idxStr)
     return tableSql, idxSqls

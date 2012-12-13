@@ -108,7 +108,7 @@ consynRssUrl = "YOURURL"
 _pubsDir = "/hive/data/inside/pubs"
 
 # which publishers should be loaded by the "load" step in pubMap ?
-loadPublishers = ["elsevier", "pmc"]
+loadPublishers = ["elsevier", "pmc", "crawler"]
 
 TEMPDIR = "/scratch/tmp/pubTools" # local filesystem on cluster nodes
 

@@ -41,7 +41,7 @@ def loadPythonObject(moduleFilename, className, defClass=None):
         sys.exit(1)
     modulePath, moduleName = os.path.split(moduleFilename)
     moduleName = moduleName.replace(".py","")
-    logging.debug("Loading python code from %s (class %s)" % (moduleFilename, className))
+    logging.debug("Loading python code from %s (class %s, default class %s)" % (moduleFilename, className, defClass))
     sys.path.append(modulePath)
 
     # load algMod as a module, copied from 
@@ -604,7 +604,7 @@ def concatFiles(inDir, outFname):
     fno = 0
     for relDir, fn in inFnames:
         lno = 0
-        for line in open(fn):
+        for line in gzip.open(fn):
             if lno==0 and fno==0:
                 ofh.write(line)
             if lno!=0:
@@ -646,7 +646,9 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
     
     if concat:
         for outDir in outDirs:
-            concatFiles(outDir, outDir+".tab")
+            outFname = outDir+".tab"
+            concatFiles(outDir, outFname)
+            logging.info("Output written to %s" % outFname)
     return baseNames
 
 def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False):

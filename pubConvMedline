@@ -103,6 +103,7 @@ def convertOneChunk(fileMinId, inFile, outFile):
         logging.debug("Writing article %s" % str(articleId))
         articleData["source"]="medline"
         articleData["origFile"]=inFile
+        articleData["publisher"]="ncbi"
         store.writeArticle(articleId, articleData)
         articleId += 1
     store.close()

@@ -15,10 +15,12 @@ BLATBASE=/hive/data/inside/pubs/blat
 MEDLINEDOWNLOADDIR=${DOWNBASE}/medline
 ELSDOWNLOADDIR=${DOWNBASE}/ElsevierConsyn
 PMCDOWNLOADDIR=${DOWNBASE}/PubMedCentral
+CRAWLDIR=/hive/users/max/projects/pubs/crawlDir/
 
 MEDLINECONVDIR=${TEXTBASE}/medline
 ELSCONVDIR=${TEXTBASE}/elsevier
 PMCCONVDIR=${TEXTBASE}/pmc
+CRAWLCONVDIR=${TEXTBASE}/crawler
 BLATDIR=${BLATBASE}/elsevier
 CLUSTER=swarm
 
@@ -42,7 +44,10 @@ cd $JOBDIR; time $PYTHON $BIN/pubConvMedline $MEDLINEDOWNLOADDIR $MEDLINECONVDIR
 echo __CONVERT ELSEVIER___
 cd $JOBDIR; $PYTHON $BIN/pubConvElsevier $ELSDOWNLOADDIR $ELSCONVDIR
 echo __CONVERT PMC___
-cd $JOBDIR; time $PYTHON $BIN/pubConvPmc $PMCDOWNLOADDIR $PMCCONVDIR --updateDb
+cd $JOBDIR; time $PYTHON $BIN/pubConvPmc $PMCDOWNLOADDIR $PMCCONVDIR 
+echo __CONVERT CRAWLER___
+cd $JOBDIR; time $PYTHON $BIN/pubConvCrawler $CRAWLDIR $CRAWLCONVDIR 
+
 
 $PYTHON $BIN/pubCrawl $CRAWLDIR --report /cluster/home/max/public_html/mining/crawlerStatus.html
 

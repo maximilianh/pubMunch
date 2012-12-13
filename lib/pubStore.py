@@ -93,7 +93,7 @@ def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=Non
     metaInfo = emptyArticle._asdict()
     metaInfo["time"]=time.asctime()
     if publisher!=None:
-        fileData["publisher"]=publisher
+        metaInfo["publisher"]=publisher
     if pmcId:
         metaInfo["pmcId"]=pmcId
     if origFile:
@@ -569,6 +569,12 @@ def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False):
             yield article, fileList
         pm.taskCompleted()
 
+def iterArticleDataDirs(textDirs, type="articles", filterFname=None, updateIds=None):
+    logging.info("Getting rows from %s files in dirs: %s" % (type, textDirs))
+    for textDir in textDirs:
+        for row in iterArticleDataDir(textDir, type, filterFname, updateIds):
+            yield row
+
 def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=None):
     """ yields all articleData from all files in textDir 
         Can filter to yield only a set of filenames or files for a 
@@ -608,6 +614,10 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
         fcount+=1
         if type=="articles":
             for articleData in reader.articleRows:
+                if "publisher" not in articleData._fields: # temporary bugfix as I have some old files
+                    articleData = list(articleData)
+                    articleData.insert(2, "")
+                    articleData[3] = ""
                 yield articleData
         elif type=="files":
             for fileData in reader.fileRows:

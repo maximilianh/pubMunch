@@ -8,7 +8,7 @@ from os.path import *
 # FRAMEWORK
 # this variable has to be defined, otherwise the jobs will not run.
 # The framework will use this for the headers in table output file
-headers = ["start", "end", "matchType", "word1", "word2", "recogSym1", "recogSym2", "sym1", "sym2", "symPair", "hgncIds1", "hgncIds2"]
+headers = ["start", "end", "matchType", "word1", "word2", "recogSym1", "recogSym2", "sym1", "sym2", "markerId", "hgncIds1", "hgncIds2"]
 
 # SEARCH 
 
@@ -55,7 +55,7 @@ stemToOffSym = collections.defaultdict(set)
 blackList = set([("JAK","STAT"), ("PI3K", "AKT"),("MAPK", "ERK"),("AKT","PKB"),("RH", "HR"),("SAPK", "JNK"), ("CAD", "CAM"), ("SD", "OCT"), ("IVF", "ET"), ("PTEN", "AKT"), ("CD", "ROM"), ("JUN", "FOS")])
 
 # never recognize these
-notGenes = ["OK", "II", "KO", "CD[0-9]+", "C[0-9]", "CT", "MS", "MRI", "H[0-9]", "ZIP", "WAF", "CIP", "OCT", "APR"]
+notGenes = ["OK", "II", "KO", "CD[0-9]+", "C[0-9]", "CT", "MS", "MRI", "H[0-9]", "ZIP", "WAF", "CIP", "OCT", "APR", "SEP", "NOV", "DEC", "JAN", "FEB", "TOP", "FOP", "FLASH"]
 notGeneRes = [re.compile(s) for s in notGenes]
 
 def stem(string):

@@ -80,7 +80,7 @@ paramStrings = args[3:]
 paramDict = {}
 paramDict = pubGeneric.stringListToDict(paramStrings)
 
-alg = pubAlg.getAlg(algName) # makes sure that algName exists
+alg = pubAlg.getAlg(algName, "Annotate") # makes sure that algName exists
 
 paramDict["startAnnotId"] = 0
 paramDict["addFields"] = options.addFields

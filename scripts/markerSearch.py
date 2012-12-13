@@ -21,7 +21,10 @@
 # the right ones (e.g. uniprot)
 
 # The main function returns the fields 'recogId' with the recognized synonym
-# and the field 'id' with the final resolved identifier 
+# and the field 'markerId' with the final resolved identifier 
+
+# can be restricted to search only for certain markers with the parameter
+# 'searchType' (comma-sep), e.g. searchType="snp,genbank"
 
 # standard python libraries for regex
 import re, sys, logging, os.path, gzip, glob, doctest
@@ -79,9 +82,9 @@ bandRe = re.compile("""[ ,.()](?P<id>(X|Y|[1-9][0-9]?)(p|q)[0-9]+(\.[0-9]+)?)%s"
 symbolRe = re.compile("""[ ;,.()-](?P<id>[A-Z]+[a-zA-z0-9]*)%s""" % (endSepDash))
 
 # http://flybase.org/static_pages/docs/nomenclature/nomenclature3.html#2.
-flybaseRe = re.compile("""[ ;,.()-](?P<id>(CG|CR)[0-9]{4,5}*)%s""" % (endSepDash))
+flybaseRe = re.compile("""[ ;,.()-](?P<id>(CG|CR)[0-9]{4,5})%s""" % (endSepDash))
 # http://flybase.org/static_pages/docs/refman/refman-F.html
-flybase2Re = re.compile("""[ ;,.()-](?P<id>FB(ab|al|ba|cl|gn|im|mc|ms|pp|rf|st|ti|tp|tr))[0-9]{7}*)%s""" % (endSepDash))
+flybase2Re = re.compile("""[ ;,.()-](?P<id>FB(ab|al|ba|cl|gn|im|mc|ms|pp|rf|st|ti|tp|tr)[0-9]{7})%s""" % (endSepDash))
 
 # http://www.uniprot.org/manual/accession_numbers
 # letter + number + 3 alphas + number,eg A0AAA0
@@ -270,19 +273,18 @@ def getSearchTypes(paramDict):
     #allTypes = [basename(x).split(".")[1] for x in bedFiles]
     paramTypes = paramDict.get("searchType", "").split(",")
     if paramTypes==[""]:
-        #searchTypes = allTypes
-        searchTypes = reDict.keys()
+        searchTypes = reDict.keys() # search for all types
     else:
         searchTypes = paramTypes
     logging.info("Searching for: %s" % searchTypes)
     return set(searchTypes)
 
 # === ANNTOATOR ====
-class MarkerAnnotate:
+class Annotate:
     def __init__(self):
         # this variable has to be defined, otherwise the jobs will not run.
         # The framework will use this for the headers in table output file
-        self.headers = ["start", "end", "type", "recogId", "id"]
+        self.headers = ["start", "end", "type", "recogId", "markerId"]
 
         # let's ignore files with more than 1000 matches
         self.MAXCOUNT = 100

@@ -3,12 +3,13 @@
 
 CREATE TABLE article (
     articleId bigint not null,	# internal article ID, created during download
-    extId varchar(255) not null,	# publisher ID e.g. PMCxxxx or doi or PMIDxxxx
-    source varchar(255),	# the origin of the article, something like elsevier, pmc, pubmed
-    origFile varchar(1000),     # file from which this was imported
+    extId varchar(255) not null,	# publisher internal ID e.g. PMCxxxx or doi or PMIDxxxx, or PPI
+    source varchar(255),	# the origin of the article, something like elsevier, pmc, pubmed or crawler
+    publisher varchar(255),     # code of publisher, something like elsevier, aai, pmc or pnas
+    origFile varchar(1000),     # original file from which this was imported, e.g. zipfile or tarfile
     journal varchar(255),	# journal or book title
     printIssn varchar(255),	# ISSN of the print edition of the article
-    eIssn varchar(255),	 # optional: ISSN of the electronic edition of the journal/book of the article
+    eIssn varchar(255),	 # optional: ISSN of the electronic edition of the journal/book 
     journalUniqueId varchar(255),	 # only medline: nlm unique journal ID
     year varchar(255),	 # first year of publication (electronic or print or advanced access)
     articleType varchar(255), # research-article, review or other

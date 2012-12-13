@@ -38,7 +38,7 @@ parser.add_option("", "--minId", dest="minId", action="store", help="numerical I
 parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
 parser.add_option("-c", "--cluster", dest="useCluster", action="store_true", help="use cluster to do conversion")
 #parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
-parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
+parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export data to sqlite db defined in pubConf") 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -580,13 +580,13 @@ pubGeneric.setupLogging(progFile, options)
 
 if os.path.isdir(pmcDir):
     maxCommon.mustExistDir(outDir)
-    splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, useCluster)
+    if not options.updateDb:
+        splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, useCluster)
+    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+    dbPath = join(outDir, "articles.db")
+    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
 else:
     inIndexFile = pmcDir
     outFile = outDir
     convertOneChunk(inIndexFile, outFile)
 
-if options.updateDb:
-    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-    dbPath = join(outDir, "articles.db")
-    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
