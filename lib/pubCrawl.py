@@ -58,13 +58,13 @@ pubsCrawlCfg = { "npg" :
     # 
     {
         "hostnames" : ["www.nature.com"],
-        "stopPhrases": ["make a payment", "purchase this article"],
-        "landingPageIsArticleUrlKeyword" : "full",
-        "fullUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
-        "mainPdfLinkREs" : ["Download PDF"],
-        "suppListUrl_replace" : {"full" : "suppinfo", "abs" : "suppinfo"},
-        "suppListPageREs" : ["Supplementary information index", "[Ss]upplementary [iI]nfo", "[sS]upplementary [iI]nformation"],
-        "suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]ethods.*", "Supplementary [mM]aterials.*", "Review Process File"]
+        "landingPage_stopPhrases": ["make a payment", "purchase this article"],
+        "landingUrl_isFulltextKeyword" : "full",
+        "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
+        "landingPage_mainLinkTextREs" : ["Download PDF"],
+        "landingUrl_suppListUrl_replace" : {"full" : "suppinfo", "abs" : "suppinfo"},
+        "landingPage_suppListTextREs" : ["Supplementary information index", "[Ss]upplementary [iI]nfo", "[sS]upplementary [iI]nformation"],
+        "suppListPage_suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]ethods.*", "Supplementary [mM]aterials.*", "Review Process File"]
     # Review process file for EMBO, see http://www.nature.com/emboj/journal/v30/n13/suppinfo/emboj2011171as1.html
     },
 
@@ -73,9 +73,9 @@ pubsCrawlCfg = { "npg" :
     "jstage" :
     {
         "hostnames" : ["www.jstage.jst.go.jp"],
-        "fullUrl_replace" : {"_article" : "_pdf" },
-        "mainPdfLinkREs" : ["Full Text PDF.*"],
-        "suppListPageREs" : ["Supplementary materials.*"]
+        "landingUrl_fulltextUrl_replace" : {"_article" : "_pdf" },
+        "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
+        "landingPage_suppListTextREs" : ["Supplementary materials.*"]
     },
     # rupress tests:
     # PMID 12515824 - with integrated suppl files into main PDF
@@ -86,33 +86,33 @@ pubsCrawlCfg = { "npg" :
     "rupress" :
     {
         "hostnames" : ["rupress.org", "jcb.org"],
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignorePageWords" : ["From The Jcb"],
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf"},
-        "addSuppFileTypes" : ["html", "htm"], # pubConf does not include htm/html
-        "mainPdfLinkREs" : ["Full Text (PDF)"],
-        #"suppListPageREs" : ["Supplemental [Mm]aterial [Iindex]", "Supplemental [Mm]aterial"],
-        "suppListUrl_replace" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
-        "suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf"},
+        "suppListPage_addSuppFileTypes" : ["html", "htm"], # pubConf does not include htm/html
+        "landingPage_mainLinkTextREs" : ["Full Text (PDF)"],
+        #"landingPage_suppListTextREs" : ["Supplemental [Mm]aterial [Iindex]", "Supplemental [Mm]aterial"],
+        "landingUrl_suppListUrl_replace" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
+        "suppListPage_suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
         "ignoreSuppFileLinkWords" : ["Video"],
         "ignoreSuppFileContentText" : ["Reprint (PDF) Version"],
-        "suppFileUrlREs" : [".*/content/suppl/.*"]
+        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"]
     },
     # http://jb.asm.org/content/194/16/4161.abstract = PMID 22636775
     "asm" :
     {
         "hostnames" : ["asm.org"],
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "ignoreMetaTag" : True,
-        "errorPageText" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        #"fullUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
-        #"suppListUrl_replace" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
-        "suppListUrlREs" : [".*suppl/DCSupplemental"],
-        "suppFileUrlREs" : [".*/content/suppl/.*"],
+        "landingUrl_isFulltextKeyword" : ".long",
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingPage_ignoreMetaTag" : True,
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        #"landingUrl_fulltextUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
+        #"landingUrl_suppListUrl_replace" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
+        "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
+        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
     },
     # 1995 PMID 7816814 
     # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
@@ -120,50 +120,50 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["cshlp.org"],
         "landingUrl_templates" : {"1355-8382" : "http://rnajournal.cshlp.org/content/%(vol)s/%(issue)s/%(firstPage)s.full"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
-        "stopPhrases" : ["Purchase Short-Term Access"]
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
     },
     "pnas" :
     {
         "hostnames" : ["pnas.org"],
         "landingUrl_templates" : {"0027-8424" : "http://pnas.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*suppl/DCSupplemental"],
-        "suppFileUrlREs" : [".*/content/suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
+        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
     },
     "aspet" :
     {
         "hostnames" : ["aspetjournals.org"],
         "landingUrl_templates" : {"0022-3565" : "http://jpet.aspetjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
     "faseb" :
     {
         "hostnames" : ["fasebj.org"],
         "landingUrl_templates" : {"0892-6638" : "http://www.fasebj.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
     # society of leukocyte biology
     # PMID 20971921
@@ -171,26 +171,26 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["jleukbio.org"],
         "landingUrl_templates" : {"0741-5400" : "http://www.jleukbio.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
     # Company of Biologists
     "cob" :
     {
         "hostnames" : ["biologists.org"],
         "landingUrl_templates" : {"0950-1991" : "http://dev.biologists.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", "0022-0949" : "http://jcs.biologists.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
     # Genetics Society of America
     # PMID 22714407
@@ -198,13 +198,13 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["genetics.org"],
         "landingUrl_templates" : {"0016-6731" : "http://genetics.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
     # Society of General Microbiology
     # PMID 22956734
@@ -215,17 +215,17 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["sgmjournals.org"],
         "landingUrl_templates" : {\
-        "1466-5026" : "http://ijs.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
-        "1350-0872" : "http://mic.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
-        "0022-2615" : "http://jmm.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
-        "0022-1317" : "http://vir.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content.*suppl/DC[0-9]"],
-        "suppFileUrlREs" : [".*/content.*suppl/.*"],
+            "1466-5026" : "http://ijs.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
+            "1350-0872" : "http://mic.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
+            "0022-2615" : "http://jmm.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
+            "0022-1317" : "http://vir.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
+        "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
     },
     # SMBE - Soc of Mol Biol and Evol
     # part of OUP - careful, duplicates!
@@ -235,13 +235,13 @@ pubsCrawlCfg = { "npg" :
         "hostnames" : ["mbe.oxfordjournals.org"],
         "landingUrl_templates" : \
             {"0737-4038" : "http://mbe.oxfordjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content.*suppl/DC[0-9]"],
-        "suppFileUrlREs" : [".*/content.*suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
+        "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
     },
     # http://www.jimmunol.org/content/189/11/5129/suppl/DC1
     # http://www.jimmunol.org/content/suppl/2012/10/25/jimmunol.1201570.DC1/12-01570_S1-4_ed10-24.pdf
@@ -249,13 +249,13 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["jimmunol.org"],
         "landingUrl_templates" : {"0022-1767" : "http://www.jimmunol.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "errorPageText" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_rewriteRules" : {"$" : ".long"},
-        "landingPageIsArticleUrlKeyword" : ".long",
-        "ignoreMetaTag" : True,
-        "fullUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "suppListUrlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppFileUrlREs" : [".*/content/suppl/.*"],
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
     },
     # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
     # example spurious suppinfo link 8536951
@@ -264,23 +264,23 @@ pubsCrawlCfg = { "npg" :
     {
         "hostnames" : ["onlinelibrary.wiley.com"],
         #"landingUrl_templates" : {None: "http://onlinelibrary.wiley.com/doi/%(doi)s/full"},
-        "doiUrl_rewriteRules" : {"abstract" : "full"},
-        "landingPageIsArticleUrlKeyword" : "full",
-        "fullUrl_replace" : {"full" : "pdf", "abstract" : "pdf"},
-        "suppListPageREs" : ["Supporting Information"],
-        "suppFileUrlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
+        "doiUrl_replace" : {"abstract" : "full"},
+        "landingUrl_isFulltextKeyword" : "full",
+        "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "abstract" : "pdf"},
+        "landingPage_suppListTextREs" : ["Supporting Information"],
+        "suppListPage_suppFile_urlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
         "suppFilesAreOffsite" : True,
-        "ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
-        "stopPhrases" : ["You can purchase online access", "Registered Users please login"]
+        "landingPage_ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
+        "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
     # http://www.futuremedicine.com/doi/abs/10.2217/epi.12.21
     "futureScience" :
     {
         "hostnames" : ["futuremedicine.com", "future-science.com", "expert-reviews.com", "future-drugs.com"],
-        "fullUrl_replace" : {"abs" : "pdfplus"},
-        "suppListUrl_replace" : {"abs" : "suppl"},
-        "suppFileUrlREs" : [".*suppl_file.*"],
-        "stopPhrases" : ["single article purchase is required", "The page you have requested is unfortunately unavailable"]
+        "landingUrl_fulltextUrl_replace" : {"abs" : "pdfplus"},
+        "landingUrl_suppListUrl_replace" : {"abs" : "suppl"},
+        "suppListPage_suppFile_urlREs" : [".*suppl_file.*"],
+        "landingPage_stopPhrases" : ["single article purchase is required", "The page you have requested is unfortunately unavailable"]
     },
 
 }
@@ -676,7 +676,7 @@ def anyMatch(regexList, queryStr):
             return True
     return False
 
-def parseHtml(page, canBeOffsite=False, ignoreUrlREs=[]):
+def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     """ return all A-like links andm meta-tag-info from a html string as a dict url => text
     and a second name -> content dict
     
@@ -740,8 +740,8 @@ def parseHtml(page, canBeOffsite=False, ignoreUrlREs=[]):
                 continue
             parts.append("")
             fullUrlNoFrag = urlparse.urlunsplit(parts)
-            #logging.debug("Checking link against %s" % ignoreUrlREs)
-            if anyMatch(ignoreUrlREs, fullUrlNoFrag):
+            #logging.debug("Checking link against %s" % landingPage_ignoreUrlREs)
+            if anyMatch(landingPage_ignoreUrlREs, fullUrlNoFrag):
                 logging.log(5, "skipping link %s, because of ignore REs" % url)
                 continue
             linkDict[text] = fullUrlNoFrag
@@ -1022,13 +1022,13 @@ def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTex
 
 def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
     " given a page with links to supp files, add supplemental files to fulltextData dict "
-    suppTextREs = crawlConfig.get("suppFileTextREs", [])
-    suppUrlREs = crawlConfig.get("suppFileUrlREs", [])
+    suppTextREs = crawlConfig.get("suppListPage_suppFileTextREs", [])
+    suppUrlREs = crawlConfig.get("suppListPage_suppFile_urlREs", [])
     ignSuppTextWords = crawlConfig.get("ignoreSuppFileLinkWords", [])
 
     suppFilesAreOffsite = crawlConfig.get("suppFilesAreOffsite", False)
-    ignoreUrlREs = crawlConfig.get("ignoreUrlREs", [])
-    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite, ignoreUrlREs=ignoreUrlREs)
+    landingPage_ignoreUrlREs = crawlConfig.get("landingPage_ignoreUrlREs", [])
+    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite, landingPage_ignoreUrlREs=landingPage_ignoreUrlREs)
     suppLinks = suppListPage["links"]
     htmlMetas = suppListPage["metas"]
     suppUrls  = list(findMatchingLinks(suppLinks, suppTextREs, suppUrlREs, suppExts, ignSuppTextWords))
@@ -1051,11 +1051,11 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
                 raise pubGetError("max suppl count reached", "tooManySupplFiles", str(len(suppUrls)))
     return fulltextData
 
-def replaceUrl(landingUrl, fullUrl_replace):
+def replaceUrl(landingUrl, landingUrl_fulltextUrl_replace):
     " try to find link to PDF/suppInfo based on just the landing URL alone "
     replaceCount = 0
     newUrl = landingUrl
-    for word, replacement in fullUrl_replace.iteritems():
+    for word, replacement in landingUrl_fulltextUrl_replace.iteritems():
         if word in newUrl:
             replaceCount+=1
             newUrl = newUrl.replace(word, replacement)
@@ -1075,12 +1075,12 @@ def replaceUrl(landingUrl, fullUrl_replace):
 def findMainFileUrl(landingPage, crawlConfig):
     " return the url that points to the main pdf file on the landing page "
     pdfUrl = None
-    ignoreUrls = crawlConfig.get("ignoreUrlREs", [])
-    landingPage = parseHtml(landingPage, ignoreUrlREs=ignoreUrls)
+    ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
+    landingPage = parseHtml(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
 
-    if "citation_pdf_url" in htmlMetas and not crawlConfig.get("ignoreMetaTag", False):
+    if "citation_pdf_url" in htmlMetas and not crawlConfig.get("landingPage_ignoreMetaTag", False):
         pdfUrl = htmlMetas["citation_pdf_url"]
         logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
         return pdfUrl
@@ -1090,12 +1090,12 @@ def findMainFileUrl(landingPage, crawlConfig):
         logging.debug("Appending string to URL yields new URL %s" % (pdfUrl))
         return pdfUrl
 
-    if "fullUrl_replace" in crawlConfig:
-        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["fullUrl_replace"])
+    if "landingUrl_fulltextUrl_replace" in crawlConfig:
+        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_fulltextUrl_replace"])
         return pdfUrl
 
     if pdfUrl != None:
-        pdfLinkNames = crawlConfig["mainPdfLinkREs"]
+        pdfLinkNames = crawlConfig["landingPage_mainLinkTextREs"]
         for pdfLinkName in pdfLinkNames:
             for linkText, linkUrl in links.iteritems():
                 if pdfLinkName.match(linkText):
@@ -1108,10 +1108,10 @@ def findMainFileUrl(landingPage, crawlConfig):
     return pdfUrl
 
 def isErrorPage(landingPage, crawlConfig):
-    if not "errorPageText" in crawlConfig:
+    if not "landingPage_errorKeywords" in crawlConfig:
         return False
 
-    if crawlConfig["errorPageText"] in landingPage["data"]:
+    if crawlConfig["landingPage_errorKeywords"] in landingPage["data"]:
         logging.warn("Found error page, waiting for 15 minutes")
         time.sleep(60*15)
         return True
@@ -1145,8 +1145,8 @@ def crawlForFulltext(landingPage, crawlConfig):
         fulltextData["status"] = "LandingOnPdf_NoSuppl"
         return fulltextData
     # other landing pages contain the full article directly as html
-    elif crawlConfig.get("landingPageIsArticleUrlKeyword", False) and \
-           crawlConfig["landingPageIsArticleUrlKeyword"] in landUrl:
+    elif crawlConfig.get("landingUrl_isFulltextKeyword", False) and \
+           crawlConfig["landingUrl_isFulltextKeyword"] in landUrl:
                 logging.debug("URL suggests that landing page is same as article html")
                 fulltextData["main.html"] = landingPage
 
@@ -1182,14 +1182,14 @@ def crawlForFulltext(landingPage, crawlConfig):
     if suppListUrl!=None:
         suppListPage = delayedWget(suppListUrl)
         suppExts = pubConf.crawlSuppExts
-        suppExts.update(crawlConfig.get("addSuppFileTypes", []))
+        suppExts.update(crawlConfig.get("suppListPage_addSuppFileTypes", []))
         fulltextData = getSuppData(fulltextData, suppListPage, crawlConfig, suppExts)
 
     return fulltextData
 
 def noLicensePage(landingPage, crawlConfig):
     " return True if page looks like a 'purchase this article now' page "
-    for stopPhrase in crawlConfig.get("stopPhrases", []):
+    for stopPhrase in crawlConfig.get("landingPage_stopPhrases", []):
         if stopPhrase in landingPage["data"]:
             logging.debug("Found stop phrase %s" % stopPhrase)
             return True
@@ -1259,30 +1259,30 @@ def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
 
 def findSuppListUrl(landingPage, crawlConfig):
     " given the landing page, find the link to the list of supp files "
-    ignoreUrls = crawlConfig.get("ignoreUrlREs", [])
-    landingPage = parseHtml(landingPage, ignoreUrlREs=ignoreUrls)
+    ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
+    landingPage = parseHtml(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
 
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
 
     suppListUrl = None
     # first try if we can derive suppListUrl from main URL
-    if "suppListUrl_replace" in crawlConfig:
+    if "landingUrl_suppListUrl_replace" in crawlConfig:
         landUrl = landingPage["url"]
-        suppListUrlRepl = replaceUrl(landUrl, crawlConfig["suppListUrl_replace"])
+        suppListUrlRepl = replaceUrl(landUrl, crawlConfig["landingUrl_suppListUrl_replace"])
         if suppListUrlRepl!=None:
             suppListUrl = suppListUrlRepl
 
     # then try to find URLs in links
-    if suppListUrl==None and "suppListUrlREs" in crawlConfig:
-        searchLinkRes = crawlConfig.get("suppListUrlREs", [])
+    if suppListUrl==None and "landingPage_suppFileList_urlREs" in crawlConfig:
+        searchLinkRes = crawlConfig.get("landingPage_suppFileList_urlREs", [])
         logging.debug("Searching for links to suppl list on page %s using URLs" % landingPage["url"])
         suppListUrl = findLinkMatchingReList(links, searchLinkRes, searchUrls=True)
 
     # then try text description in links
-    if suppListUrl==None and "suppListPageREs" in crawlConfig:
+    if suppListUrl==None and "landingPage_suppListTextREs" in crawlConfig:
         # if link url replacement not configured, try to search for links
-        searchLinkRes = crawlConfig.get("suppListPageREs", [])
+        searchLinkRes = crawlConfig.get("landingPage_suppListTextREs", [])
         logging.debug("Searching for links to suppl list on page %s using link text" % landingPage["url"])
         suppListUrl = findLinkMatchingReList(links, searchLinkRes)
 
@@ -1528,10 +1528,10 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
         return None, crawlConfig
     if crawlConfig==None:
         crawlConfig  = getConfig(hostToConfig, url)
-    if url==None or crawlConfig==None or "doiUrl_rewriteRules" not in crawlConfig:
+    if url==None or crawlConfig==None or "doiUrl_replace" not in crawlConfig:
         logging.debug("Nothing to rewrite")
         return url, crawlConfig
-    newUrl = stringRewrite(url, crawlConfig, "doiUrl_rewriteRules")
+    newUrl = stringRewrite(url, crawlConfig, "doiUrl_replace")
     return newUrl, crawlConfig
 
 def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher):

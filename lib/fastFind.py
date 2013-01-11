@@ -46,6 +46,7 @@ def recursiveFind(wordList, wordIdx, searchDict, results, firstStart=None):
     if firstStart!=None:
         start = firstStart
     # check current word
+    assert(searchDict!=None)
     matchDict = searchDict.get(word, -1)
     if matchDict==-1: # -1 = not found
         return results
@@ -77,17 +78,24 @@ def splitText(text, wordRegex):
     return words
 
 
-def fastFind(text, lex, wordRegex="[\\w]+"):
+def fastFind(text, lex, wordRegex="[\\w'[\]()-]+"):
     """ find matches of keyword strings in text by splitting text first and then matching
         with dictionaries. For overlaps, returns only longest match.
+        Case matters!
     >>> lex = constructLex([("p1", ["how are"]), ("p2", ["you doing", "are you"]), ("p3", ["how are you"])])
-    >>> fastFind ("how   are  you doing?", lex)
+    >>> test = "how   are  you doing?"
+    >>> fastFind (test, lex)
     [(0, 14, 'p3')]
     >>> lex = constructLex([("p1", ["guinea pigs","Pichia pastoris"]), ("p2", ["pig"])])
-    >>> fastFind ("I hate guinea pigs. I do", lex)
-    [(7, 18, 'p1')]
-    >>> fastFind ("Pichia pastoris.", lex)
+    >>> test = "I  hate    guinea pigs. I do"
+    >>> fastFind (test, lex)
+    [(11, 22, 'p1')]
+    >>> fastFind ("Pichia pastoris .", lex)
     [(0, 15, 'p1')]
+    >>> fastFind ("pichia pastoris .", lex)
+    >>> lex = constructLex([("p1", ["alzheimer's disease"]), ("p2", ["pig"])])
+    >>> fastFind ("alzheimer's disease", lex)
+    [(0, 19, 'p1')]
     """
     words = splitText(text, wordRegex)
 
@@ -125,7 +133,7 @@ def parseLex(fileObj):
             data = gzip.open(fileObj).read()
             lex = marshal.loads(data)
             return lex
-        if fileObj.endswith(".gz"):
+        elif fileObj.endswith(".gz"):
             fileObj = gzip.open(fileObj)
         else:
             fileObj = open(fileObj)

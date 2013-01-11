@@ -15,7 +15,7 @@ import xml.etree.cElementTree as etree
 
 # ===== FUNCTIONS =======
 
-headers = "source,eIssn,pIssn,title,publisher,urls,uniqueId,linkIssn,medlineTA,majMeshList,author,country"
+headers = "source,eIssn,pIssn,title,publisher,urls,uniqueId,linkIssn,medlineTA,majMeshList,author,language,country"
 Rec = collections.namedtuple("NLMRec", headers)
 
 PUBLISHERTAB = 'publishers.tab'
@@ -29,7 +29,7 @@ def urlStringToServers(urlString):
     for url in urls:
         parts = urlparse.urlsplit(url)
         server = parts[1]
-        server = server.replace("www.", "")
+        server = server.replace("www.", "").strip()
         if server!="":
             servers.add(server)
     return servers
@@ -77,11 +77,18 @@ def recIter(tree):
                     else:
                         data["publisher"] = "unknown"
 
-                if data["publisher"].lower() in ["the association", "the society", "the institute", "the college", "the federation"]:
+                if data["publisher"].lower() in ["the association", "the society", "the institute", "the college", "the federation", "the department"]:
                     data["publisher"]=data["author"]
             country = pubInfo.find("Country")
             if country !=None:
                 data["country"] = country.text
+
+            # <Language LangType="Primary">fre</Language>
+            lang = rec.find("Language")
+            if lang!=None:
+                type = lang.attrib.get("LangType", "")
+                if type=="Primary":
+                    data["language"] = lang.text
 
         eloc = rec.find("ELocationList")
         urls = []
@@ -139,6 +146,7 @@ def recIter(tree):
             
         data["source"] = "NLM"
         row = Rec(**data)
+        logging.debug("parsed XML as %s",  data)
         yield row
 
 def writeJournals(journals, outFname, headers=None, append=False, source=None):
@@ -277,7 +285,7 @@ def groupPublishersByName(journals):
     pubCountDict = collections.defaultdict(int)
 
     # remove these words from publishers before grouping
-    removeWords = "Press,Verlag,Services,Inc,Incorporated,AG,Publications,Journals,Editiones,Asia,Ltd,Media,Publishers,International,Group,Publishing,Pub ,Pub.,Periodicals,Pub,Limited,Co".split(",")
+    removeWords = "Press,Verlag,Services,Inc,Incorporated,AG,Publications,Journals,Editiones,Asia,Ltd,Media,Publishers,International,Group,Publishing,Pub ,Pub.,Periodicals,Pub,Limited,Co,Pvt".split(",")
 
     # some manual rules for grouping, to force to a given final publisher if a certain keyword is found 
     # if KEY is part of publisher name, publisher is grouped into VAL
@@ -302,6 +310,7 @@ def groupPublishersByName(journals):
         "Chicago" : "University Of Chicago",
         "Mosby" : "Elsevier",
         "Masson" : "Elsevier",
+        "Elsevier" : "Elsever", \
         "Churchill" : "Elsevier",
         "cambridge" : "Cambridge Univ. Press",
         "karger" : "Karger",
@@ -336,6 +345,8 @@ def groupPublishersByName(journals):
         pubGroup = pubGroup.replace(" &"," and").replace(",","").replace(".","").replace("-", " ")
         pubGroup = pubGroup.replace("Assn", "Association")
         pubGroup = pubGroup.replace("Of", "of")
+        pubGroup = pubGroup.replace("Dept", "Department")
+        pubGroup = pubGroup.replace("U S ", "US")
         pubGroup = pubGroup.replace("Univ ", "University ")
         pubGroup = pubGroup.replace("Univ. ", "University ")
         pubGroup = pubGroup.replace('"', "")
@@ -371,21 +382,33 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
     ofh = codecs.open(outFname, openMode, encoding="utf8")
     logging.info("Writing %s" % outFname)
     if not append:
-        ofh.write("journalCount\tpubName\tpubSynonyms\twebservers\tjournalEIssns\n")
+        ofh.write("journalCount\tpubName\tpubSynonyms\ttitles\twebservers\tjournalEIssns\tjournalIssns\tuid\tcountries\tlanguages\n")
     for pubGroup, journals in pubGroups.iteritems():
         jIds = []
+        jIssns = []
         syns = set()
         servers = set()
+        titles = []
+        uids = []
+        countries = set()
+        languages = set()
         for journal in journals:
             jIds.append(journal.eIssn)
+            jIssns.append(journal.pIssn)
+            titles.append(journal.title)
             syns.add(journal.publisher)
             jServers = urlStringToServers(journal.urls)
             servers.update(jServers)
+            if "country" in journal._fields:
+                countries.add(journal.country)
+                uids.append(journal.uniqueId)
+                languages.add(journal.language)
             #server = jourToServer.get(journal.eIssn, None)
         journalCount = len(journals)
         if prefix:
             pubGroup=prefix+" "+pubGroup
-        row = [str(journalCount), pubGroup, u"|".join(syns), "|".join(servers), "|".join(jIds)]
+        row = [str(journalCount), pubGroup, u"|".join(syns), "|".join(titles), "|".join(servers), \
+            "|".join(jIds), "|".join(jIssns), "|".join(uids), "|".join(countries)]
         ofh.write("%s\n" % "\t".join(row))
 
 def findBestGroupForServer(pubGroups):
@@ -437,7 +460,7 @@ def regroupByServer(pubGroups, serverToBestGroup):
 def parseTabPublisherFile(fname):
     " parse a file with columns eIssn, publisher (optional) and urls into a list of records "
     logging.info("Parsing %s" % fname)
-    journals = list(maxCommon.iterTsvRows(fname))
+    journals = list(maxCommon.iterTsvRows(fname, encoding="latin1"))
     # modify publisher field
     datasetName = splitext(basename(fname))[0]
     headers = list(journals[0]._fields)

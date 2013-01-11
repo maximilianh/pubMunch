@@ -239,10 +239,11 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
 #        iterator = reader.iterFileArticles()
 #    return iterator
 
+pointRe = re.compile(r'[.] (?=[A-Z]|$)')
+
 def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
     " get end or start pos of best snippet for (start, end) in range (minPos, maxPos)"
     textLen = len(text)
-    #print "isLeft", isLeft, "corr", minPos, maxPos
         
     # make sure that (min,max) stays within string boundaries
     # and does not go into (start,end)
@@ -253,7 +254,17 @@ def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
     else:
        minPos = max(0, minPos)
        maxPos = min(maxPos, textLen)
-       dotPos = text.find(". ", minPos, maxPos)
+       #dotPos = text.find(". ", minPos, maxPos)
+       # better: attempt to eliminate cases like E. coli 
+       subText = text[minPos:minPos+250]
+       match = None
+       for m in pointRe.finditer(subText):
+           match = m
+           break
+       if match!=None:
+             dotPos = minPos+match.start()
+       else:
+             dotPos = -1
 
     if dotPos==-1:
         if isLeft:
@@ -273,10 +284,6 @@ def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
 
 def getSnippet(text, start, end, minContext=0, maxContext=250):
     """ return contextLen characters around start:end from text string 
-    >>> textWithDot = 'A sentence. Another sentence. XXX. And yes a sentence. Oh my. Oh my.'
-    >>> Xpos = textWithDot.find("X")
-    >>> getSnippet(textWithDot, Xpos, Xpos+3, minContext=5, maxContext=30)
-    'Another sentence. <<<XXX>>>. And yes a sentence.'
     >>> textWithDot = 'cex XXX And'
     >>> Xpos = textWithDot.find("X")
     >>> getSnippet(textWithDot, Xpos, Xpos+3, minContext=5, maxContext=30)
@@ -291,6 +298,14 @@ def getSnippet(text, start, end, minContext=0, maxContext=250):
     >>> textWithDot = 'Hihi. bobo. X A sentence that starts with a dot.'
     >>> Xpos = textWithDot.find("X")
     >>> getSnippet(textWithDot, Xpos, Xpos+1, minContext=0, maxContext=50)
+    '<<<X>>> A sentence that starts with a dot.'
+    >>> textWithDot = 'A sentence. Another sentence. XXX. And yes a sentence. Oh my. Oh my.'
+    >>> Xpos = textWithDot.find("X")
+    >>> getSnippet(textWithDot, Xpos, Xpos+3, minContext=5, maxContext=30)
+    'Another sentence. <<<XXX>>>. And yes a sentence.'
+    >>> textWithDot = 'A sentence. Another sentence. XXX. E. coli is a great model organism, of course. '
+    >>> getSnippet(textWithDot, Xpos, Xpos+3, minContext=5, maxContext=30)
+    'Another sentence. <<<XXX>>>. E. coli is a great model organism, of course.'
     """
     start = int(start)
     end = int(end)
@@ -305,7 +320,7 @@ def getSnippet(text, start, end, minContext=0, maxContext=250):
     snippet = snippet.replace("\t", " ")
     return snippet
 
-def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields):
+def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields, addSnippet):
     """ use alg to annotate fileData, write to outFh, adding annotIdAdd to all annotations 
     return next free annotation id.
     """
@@ -356,17 +371,22 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             # add other fields
             fields.extend(row)
 
-            # lift start and end if sectioning
-            start, end = row[0:2]
-            snippet = getSnippet(secText, start, end)
-            start = secStart+int(start)
-            end = secStart+int(end)
+            # check if alg actually returns coordinates
+            if alg.headers[0]=="start" and alg.headers[1]=="end":
+                start, end = row[0:2]
+                if (start,end) == (0,0) or not addSnippet:
+                    snippet = ""
+                else:
+                    snippet = getSnippet(secText, start, end)
+                    # lift start and end if sectioning
+                    start = secStart+int(start)
+                    end = secStart+int(end)
 
-            # postfix with snippet
-            logging.debug("Got row: %s" % str(row))
-            if doSectioning:
-                fields.append(section)
-            fields.append(snippet)
+                # postfix with snippet
+                logging.debug("Got row: %s" % str(row))
+                if doSectioning:
+                    fields.append(section)
+                fields.append(snippet)
             #fields = [unicode(x).encode("utf8") for x in fields]
             fields = [unicode(x) for x in fields]
                 
@@ -395,7 +415,9 @@ def writeHeaders(alg, outFh, doSectioning, addFields):
 
     if doSectioning:
         headers.append("section")
-    headers.append("snippet")
+
+    if not "snippet" in headers:
+        headers.append("snippet")
     logging.debug("Writing headers %s to %s" % (headers, outFh.name))
     outFh.write("\t".join(headers)+"\n")
 
@@ -463,7 +485,8 @@ def runAnnotate(reader, alg, paramDict, outName):
 
     annotIdAdd = getAnnotId(alg, paramDict)
 
-    onlyMain = paramDict.get("onlyMain", False)
+    onlyMain = attributeTrue(alg, "onlyMain")
+    onlyMain = paramDict.get("onlyMain", onlyMain)
     if isinstance(onlyMain, basestring):
         onlyMain = (onlyMain.lower()=="true")
     logging.info("Only main files: %s" % onlyMain)
@@ -474,11 +497,13 @@ def runAnnotate(reader, alg, paramDict, outName):
     bestMain = attributeTrue(alg, "bestMain")
     logging.info("Only best main files: %s" % bestMain)
 
+    addSnippet = not "snippet" in alg.headers
+
     for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
         logging.debug("Annotating article %s with %d files, %s" % \
             (articleData.articleId, len(fileDataList), [x.fileId for x in fileDataList]))
         for fileData in fileDataList:
-            writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields)
+            writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields, addSnippet)
 
     if outName!="stdout":
         outFh.close()

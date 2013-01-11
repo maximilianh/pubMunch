@@ -303,7 +303,23 @@ def httpDownload(url, fname, verbose=False):
     if verbose:
         logging.info("Downloading %s to %s" % (url, fname))
     fh = httpGet(url)
-    open(fname, "wb").write(fh.read())
+    tryCount = 10
+    success = False
+    while tryCount>0 and not success:
+        try:
+            data = fh.read()
+            success = True
+        except socket.timeout:
+            logging.info("Retrying download of %s" % url)
+            tryCount =- 1
+            pass
+            
+    if not success:
+        logging.error("Unable to download %s" % url)
+        return False
+
+    open(fname, "wb").write(data)
+    return True
 
 def htmlHeader(fh, title):
     fh.write("<html>\n<head>\n")

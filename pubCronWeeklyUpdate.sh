@@ -6,4 +6,4 @@ set -o errexit                        # stop on errors
 echo updating pdb
 sh /hive/data/outside/pdb/sync.sh
 echo updating uniprot
-sh /hive/data/outside/uniprot/sync.sh
+sh /hive/data/outside/uniProtCurrent/sync.sh

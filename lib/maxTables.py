@@ -598,7 +598,6 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     tp = maxCommon.ProgressMeter(len(tsvFnames))
     sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(headers), ", ".join(["?"]*len(headers)))
     for tsvName in tsvFnames:
-        #cur.execute("BEGIN TRANSACTION;")
         logging.debug("Importing %s" % tsvName)
         rows = list(maxCommon.iterTsvRows(tsvName))
         logging.log(5, "Running Sql %s against %d rows" % (sql, len(rows)))

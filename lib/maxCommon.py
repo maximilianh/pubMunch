@@ -76,7 +76,7 @@ def iterCsvRows(path, headers=None):
         yield fields
 
 def iterTsvDir(inDir, ext=".tab.gz", headers=None, format=None, fieldTypes=None, \
-            noHeaderCount=None, encoding="utf8", fieldSep="\t"):
+            noHeaderCount=None, encoding="utf8", fieldSep="\t", onlyFirst=False):
     " run iterTsvRows on all .tab or .tab.gz files in inDir "
     inMask = os.path.join(inDir, "*"+ext)
     inFnames = glob.glob(inMask)
@@ -89,8 +89,10 @@ def iterTsvDir(inDir, ext=".tab.gz", headers=None, format=None, fieldTypes=None,
         for row in iterTsvRows(inFname, headers, format, fieldTypes, noHeaderCount, encoding, fieldSep):
             yield row
         pm.taskCompleted()
+        if onlyFirst:
+            break
 
-def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t"):
+def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False):
     """ 
         parses tab-sep file with headers as field names 
         yields collection.namedtuples
@@ -120,7 +122,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         fieldTypes =   [IntType, IntType,      IntType,      IntType,  IntType,      IntType,       IntType,       IntType,      StringType,  StringType, IntType, IntType,  IntType,StringType, IntType, IntType,  IntType,IntType ,     StringType,   StringType,StringType]
 
     if isinstance(inFile, str):
-        if inFile.endswith(".gz"):
+        if inFile.endswith(".gz") or isGzip:
             zf = gzip.open(inFile, 'rb')
             reader = codecs.getreader(encoding)
             fh = reader(zf)

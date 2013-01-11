@@ -44,6 +44,7 @@ parser.add_option("-t", "--test", dest="test", action="store_true", help="run lo
 parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
 parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test, but input file is just a single text file")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. pmid or doi. can be used several times")
+parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs")
 parser.add_option("-c", "--concat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
 (options, args) = parser.parse_args()
 
@@ -108,7 +109,10 @@ else:
         runner = None
     else:
         checkCleanDir(outName)
-        runner = pubGeneric.makeClusterRunner(algName)
+        maxJobs = None
+        if options.limitJobs:
+            maxJobs = options.limitJobs
+        runner = pubGeneric.makeClusterRunner(algName, maxJob=maxJobs)
 
     inNames = inName.split(",")
     pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields, concat=options.concat)

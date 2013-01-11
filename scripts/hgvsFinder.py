@@ -6,14 +6,33 @@
 import re, logging
 
 # global variable
-bandRe = re.compile(" (x|y|[1-9][0-9]?)(p|q)[0-9]+(\.[0-9]+)? ")
+refseq = "(?P<gene>[XYNAZ][PRM]_[0-9]{4,11}([.][0-9]{1,2}))"
+hgnc = "(?P<gene>[A-Zorf]{1,6})"
+uniprot = r'(?P<gene>[A-NR-ZOPQ][0-9][A-Z0-9][A-Z0-9][A-Z0-9][0-9])'
+pdbRe = r'(?P<gene>[0-9][a-zA-Z][a-zA-Z][a-zA-Z])' 
+ensembl = r'(?P<gene>ENS([A-Z]{3})?[GPT][0-9]{9,14})'
+gene = "(%s|%s|%s|%s|%s)" % (refseq, hgnc, uniprot, pdbRe, ensembl)
+
+nuclSub = "([cr][.][0-9]{1,6}[actguACTGU]>[actguACTGU])"
+protSub = "(p[.][A-Za-z]{1,3}[0-9]{1,5}[A-Za-z]{1,3})"
+delDupInsInv = "([crp][.][a-zA-Z]{1,3}[0-9]{1,6}(del|dup|ins|inv)[a-zA-Z]{1,3})"
+ddivr = re.compile(delDupInsInv)
+sub = "(%s|%s)" % (nuclSub, protSub)
+
+#pr = re.compile(protSub)
+#mutr = re.compile(mut)
+#nr = re.compile(nuclSub)
+#gr = re.compile(gene)
+#hgr = re.compile(hgnc)
+#rsr = re.compile(refseq)
+#print subMutStr
+
+subMutStr = "[,.; -]%(refseq)s[ :]*%(sub)s[,.; -]" % locals()
+subMutRe = re.compile(subMutStr)
 
 # this variable has to be defined, otherwise the jobs will not run.
 # The framework will use this for the headers in table output file
-headers = ["start", "end", "band"]
-
-# global variable, holds the mapping KEYWORD => hugo-Id
-hugoDict = {}
+headers = ["start", "end", "mut"]
 
 # this method is called ONCE on each cluster node, when the article chunk
 # is opened, it fills the hugoDict variable
@@ -28,7 +47,7 @@ def annotateFile(article, file):
     " go over words of text and check if they are in dict "
     text = file.content
     count = 0
-    for match in bandRe.finditer(text):
+    for match in subMutRe.finditer(text):
         word = match.group()
         count += 1
         if count > 1000: # we skip files with more than 1000 genes 

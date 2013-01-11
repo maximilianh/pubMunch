@@ -14,7 +14,7 @@ if sys.version_info[0]==2 and not sys.version_info[1]>=7:
     exit(1)
 
 # load default python packages
-import logging, optparse, os, glob, zipfile, types, gzip
+import logging, optparse, os, glob, zipfile, types, gzip, shutil
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -53,6 +53,24 @@ parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help
 # ==== FUNCTIONs =====
 def submitJobs(inDir, outDir, minId, idStep, useCluster):
     " create one job per input medline file, process only new files "
+    flagFnames = glob.glob(join(inDir, "newVersion.*"))
+    assert(len(flagFnames))<=1
+    if len(flagFnames)!=0:
+        flagFname = flagFnames[0]
+        oldVersionId = flagFname.split(".")[-1]
+        oldDirBak = outDir+"."+oldVersionId
+        logging.warn("New baseline came in. Removing all old data. Renaming %s to %s" % (outDir, oldDirBak))
+        shutil.move(outDir, oldDirBak)
+        logging.warn("Recreating clean %s" % outDir)
+        os.makedirs(outDir)
+
+        newFlag = join(outDir, basename(flagFname))
+        logging.warn("Dropping flagfile %s" % newFlag)
+        open(newFlag, "w").write("")
+
+        logging.warn("Removing old flagfile %s" % flagFname)
+        os.remove(flagFname)
+
     updateId, firstArticleId, doneFiles = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
 
     medlineFnames = glob.glob(join(inDir, "*.xml.gz"))

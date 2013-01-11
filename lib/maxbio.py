@@ -45,10 +45,12 @@ def writeToTsv(fileObj, rec):
 # --- FASTA FILES ---
 def parseFastaAsDict(fname, inDict={}):
     logging.info("Parsing %s" % fname)
-    fr = FastaReader(filename)
+    fr = FastaReader(fname)
     for (id, seq) in fr.parse():
-        if id in inDict:
-            raise Exception("%s already seen before" % id)
+        #if id in inDict:
+            #print inDict
+            #print inDict[id]
+            #raise Exception("%s already seen before" % id)
         inDict[id]=seq
     return inDict
 

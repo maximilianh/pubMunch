@@ -24,19 +24,23 @@ If in and out are files:
     Will parse the input file as an index file
     Writes to outDir/<xxxx>.zip
 
-CONSYN zipfiles have to be uploaded by Elsevier into your own ftp server
+Example:
+pubConvElsevier /hive/data/outside/pubs/ElsevierConsyn/ /hive/data/inside/pubs/text/elsevier/
+
+*big* CONSYN zipfiles have to be uploaded by Elsevier into your own ftp server
 or are shipped on blue ray discs. Updates are downloaded via http (RSS feed)
 
 If a file doi2pmid.tab.gz is found in the input directory, the PMIDs are added for DOIs
 where they are available.
 
 Make sure that you run pubGetElsevier whenever a new batch is ready. Consyn 
-will DELETE all batches once a new one is available. If you missed once, you need
-to prepare them manually ("updated since=xxx"). More info on consyn.elsevier.com
+will DELETE after a few days. If you missed updates, you need
+to add them manually ("updated since=xxx"). More info on consyn.elsevier.com
 
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default", default=2000) 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
 parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 

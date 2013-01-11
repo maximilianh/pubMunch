@@ -18,7 +18,7 @@ Goto http://highwire.stanford.edu/cgi/journalinfo, check
 "Brief description of the journal"
 "Who is the publisher"
 "Where is the publisher's home page"
-"What is the online ISSN number"
+"What is the main URL of the journal site"
 "What is the print ISSN number"
 
 Click "select all journals"
@@ -27,8 +27,8 @@ Check "Check to also generate a tab-delimited file for importing into Microsoft 
 
 Enter your email address and wait until your receive an email.
 
-Import the tab-sep file into Excel, replace the first column with
-title   publisher       urls    eIssn   pIssn
+Import the tab-sep file into Excel, replace the first row with
+title	publisher	urls	eIssn	pIssn
 
 save to a tab-sep file and replace the file highwire.tsv here (version from 2012)
 

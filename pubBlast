@@ -10,13 +10,13 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, util, maxCommon, maxRun, xml, html, pubStore, maxTables
+import pubConf, pubGeneric, util, maxCommon, maxRun, xml, html, pubStore, maxTables, maxbio
 from Bio.Blast import NCBIXML
 
 BlastMatchFields = "length,identities,positives,eVal,score,tFile,tId,tLen,qFile,qId,qLen,tAln,match,qAln".split(",")
 BlastMatch = collections.namedtuple("blastMatch",BlastMatchFields)
 
-AnnotatedMatchFields = (",".join(BlastMatchFields)+",authors,journal,year,title,abstract,fulltextUrl").split(",")
+AnnotatedMatchFields = (",".join(BlastMatchFields)+",articleId,authors,journal,year,title,abstract,fulltextUrl").split(",")
 AnnotMatch = collections.namedtuple("blastMatchAnnot",AnnotatedMatchFields)
 
 # ==== FUNCTIONS =====
@@ -127,7 +127,7 @@ def indexAnnots(dbDir, datasets, isProt=False):
         annotMask = join(pubConf.pubMapBaseDir, dataset, "batches", "*", "annots", seqType, "*.tab.gz")
         annotFnames = glob.glob(annotMask)
         if len(annotFnames)==0:
-            #logging.warn("Not found %s" % annotMask)
+            logging.warn("Not found %s" % annotMask)
             textDir = join(pubConf.textBaseDir, dataset)
             logging.info("Not found %s, trying %s" % (annotMask, textDir))
             if not isdir(textDir):
@@ -141,7 +141,7 @@ def indexAnnots(dbDir, datasets, isProt=False):
 
         indexForBlast(outDir, isProt)
             
-def submitBlastJobs(runner, prog, dbDir, inFaDir, outDir, eVal, dbSize):
+def submitBlastJobs(runner, prog, dbDir, inFaDir, outDir, eVal, dbSize, dataFilter):
     " submit blast jobs for all inFaFiles against all files in dbDir "
     if isfile(inFaDir):
         inFaFiles = [inFaDir]
@@ -170,6 +170,10 @@ def submitBlastJobs(runner, prog, dbDir, inFaDir, outDir, eVal, dbSize):
     logging.info("Scanning %s for %s files" % (blastDir, ext))
     dbFnames = pubGeneric.findFiles(blastDir, ext)
     logging.info("Found %d target files" % len(dbFnames))
+
+    if dataFilter:
+        dbFnames = [f for f in dbFnames if dataFilter in f]
+        logging.info("Filter '%s' activated: reduced to %d target files" % (dataFilter, len(dbFnames)))
 
     logging.info("Preparing %d BLAST jobs" % (len(dbFnames)*len(inFaFiles)))
 
@@ -200,6 +204,7 @@ def parseOneBlastFile(inFname, outFname):
         articleId = match.tId[:10]
         artData = lookupArticleData(articleId)
         match = [str(x) for x in match]
+        match.append(artData["articleId"].encode("utf8"))
         match.append(artData["authors"].encode("utf8"))
         match.append(artData["journal"].encode("utf8"))
         match.append(str(artData["year"]).encode("utf8"))
@@ -334,6 +339,30 @@ def submitParseJobs(inDir, outDir):
     #parseBlastLookupArticle(inDir, outFile)
     cmd = "ssh swarm 'cd %s; para resetCounts; para clearSickNodes; para make jobList'" % os.getcwd()
     os.system(cmd)
+
+def iterIds(faFname):
+    for line in open(faFname):
+        line = line.strip()
+        if line.startswith(">"):
+            yield line.strip(">").split()[0]
+
+def iterSeqCounts(dbDir):
+    " find all fa files in dbDir and return count of sequences per article "
+    logging.info("Searching for fa files in %s" % dbDir)
+    faFnames = pubGeneric.findFiles(dbDir, ".fa")
+    pm = maxCommon.ProgressMeter(len(faFnames))
+
+    logging.info("Parsing fa files to get article -> seq counts")
+    for relDir, fname in faFnames:
+        counts = collections.defaultdict(int)
+        for seqId in iterIds(fname):
+            artId = seqId[:10]
+            counts[int(artId)]+=1
+            #print counts
+        yield counts
+        pm.taskCompleted()
+            
+
 # === MAIN ====
 def main(args, options):
     cmd = args[0]
@@ -349,12 +378,12 @@ def main(args, options):
         outDir = args[3]
         runner = maxRun.Runner(maxRam="2g")
         if cmd=="dna":
-            submitBlastJobs(runner, "blastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
-            submitBlastJobs(runner, "blastx", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
+            submitBlastJobs(runner, "blastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize, options.limit)
+            submitBlastJobs(runner, "blastx", dbDir, inFaDir, outDir, options.eVal, options.dbSize, options.limit)
         elif cmd=="prot":
-            submitBlastJobs(runner, "blastp", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
-            submitBlastJobs(runner, "tblastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize)
-        runner.finish()
+            submitBlastJobs(runner, "blastp", dbDir, inFaDir, outDir, options.eVal, options.dbSize, options.limit)
+            submitBlastJobs(runner, "tblastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize, options.limit)
+        runner.finish(wait=True)
 
     elif cmd=="parse":
         inDir = args[1]
@@ -387,6 +416,28 @@ def main(args, options):
             pm.taskCompleted()
         ofh.close()
 
+    elif cmd=="counts":
+        outFname = args[2]
+
+        # get list of article ids to remove
+        #removeArticles = set()
+        ofh = open(outFname, "w")
+        ofh.write("\t".join(["articleId", "seqCount"])+"\n")
+        for counts in iterSeqCounts(dbDir):
+            for artId, count in counts.iteritems():
+                ofh.write("%s\t%d\n" % (artId, count))
+            #if count > options.maxCount:
+                #removeArticles.add(artId)
+
+        #logging.info("Filtering %s" % inFname)
+        #headerLine = open(inFname).readline()
+        #ofh = open(outFname, "w")
+        #ofh.write("\t".join(AnnotatedMatchFields)+"\n")
+        #ofh.write(headerLine)
+        #for row in maxCommon.iterTsvRows(inFname):
+            #if not row.tId[:10] in removeArticles:
+                #ofh.write("\t".join(row)+"\n")
+
     elif cmd=="html":
         inFile = args[1]
         outFile = args[2]
@@ -415,6 +466,8 @@ ALTERNATIVE:
 
 %prog html <outFile> <outHtmlFile> - write html summary 
 
+%prog counts <dbDir> <outTabFile>
+
 examples:
 pubBlast index /hive/data/inside/pubs/blastpDb elsevier pmc imgt aai
 pubBlast prot /hive/data/inside/pubs/blastpDb /hive/users/nknguyen/immuno/AS/adaptiveTcr/irepNallAdaptTCR/productiveCdr3 out/
@@ -422,13 +475,19 @@ mkdir out.parse
 pubBlast clustParse out out.parse
 pubBlast clustCat out.parse out.tab
 pubBlast html out.tab out.html
+
+count command:
+pubBlast counts hive/data/inside/pubs/blastpDb artIdCounts.tab
+
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-e", "--eVal", dest="eVal", action="store", help="maximum eVal (careful: set the database size to something reasonable!), default %default", default="10") 
-parser.add_option("-z", "--dbSize", dest="dbSize", action="store", help="effective database size, default %default", default="30000000") 
+parser.add_option("-e", "--eVal", dest="eVal", action="store", help="maximum eVal (careful: set the database size to something reasonable!), default %default", default="10")
+parser.add_option("-z", "--dbSize", dest="dbSize", action="store", help="effective database size, default %default", default="30000000")
+parser.add_option("-m", "--maxCount", dest="maxCount", action="store", type="int", help="for the filter step: remove articles with more than X matches, default %default", default=50)
 parser.add_option("-i", "--percentId", dest="percentId", action="store", type="int", help="minimum percent id for match to shown in the html step, calculated as length of Match-string without spaces/+s etc divided by length of Query string", default=0) 
+parser.add_option("-l", "--limit", dest="limit", action="store", help="blast only against a given dataset, e.g. pmc, elsevier or imgt")
 (options, args) = parser.parse_args()
 if len(args)<=1:
     parser.print_help()
