@@ -382,7 +382,7 @@ def recursiveSubmit(runner, parameterString):
     cmd = "%(python)s %(progFile)s %(parameterString)s" % locals()
     runner.submit(cmd)
 
-def makeClusterRunner(scriptName, maxJob=None, runNow=True):
+def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None):
     " create a default runner to submit jobs to cluster system "
     scriptBase = splitext(basename(scriptName))[0]
     batchDir = join(pubConf.clusterBatchDir, scriptBase)

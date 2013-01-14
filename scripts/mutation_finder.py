@@ -32,7 +32,14 @@ mutation_finder_home = './'
 
 version_number = '1.0'
 
-from re import compile, VERBOSE, IGNORECASE
+# --MAX--
+# re2 is A LOT faster (>10x when I tried, 15 minutes versus 233 minutes on cluster)
+try:
+    from re2 import compile, VERBOSE, IGNORECASE
+except:
+    print "Failed to import module re2, falling back to re module (a lot slower)"
+    from re import compile, VERBOSE, IGNORECASE
+
 from os.path import exists
 from sys import exit
 from os.path import *
@@ -128,7 +135,7 @@ class PointMutation(Mutation):
     _abbreviation_lookup.update(amino_acid_three_to_one_letter_map)
     _abbreviation_lookup.update(amino_acid_name_to_one_letter_map)
 
-    def __init__(self,Position,WtResidue,MutResidue):
+    def __init__(self,Position,WtResidue,MutResidue,regexNum):
         """ Initalize the object and call the base class init 
 
             Position: the sequence position or start position of the mutation
@@ -142,6 +149,7 @@ class PointMutation(Mutation):
         """
         self.__wt_residue = self._normalize_residue_identity(WtResidue)
         self.__mut_residue = self._normalize_residue_identity(MutResidue)
+        self.regexNum = regexNum
         Mutation.__init__(self,Position=Position)
 
     def _normalize_residue_identity(self,residue):
@@ -457,11 +465,13 @@ class MutationFinder(MutationExtractor):
 
         """
         result = {}
-        for regular_expression in self._regular_expressions:
+        # --MAX--
+        # added the regexNum to get a better handle on what is important of the regexes
+        for regexNum, regular_expression in enumerate(self._regular_expressions):
             for m in regular_expression.finditer(raw_text):
                 current_mutation = \
                   PointMutation(m.group('pos'),m.group('wt_res'),\
-                            m.group('mut_res'))
+                            m.group('mut_res'), regexNum)
                 # The span of the mutation is calcluated as the min
                 # start span of the three components and the max end span
                 # of the three components -- these are then packed up as 
@@ -791,11 +801,12 @@ if __name__ == "__main__":
     # All done, exit cleanly
     exit(0)
 
-headers = ["start", "end", "wtRes", "pos", "mutRes"]
+headers = ["start", "end", "regexId", "wtRes", "pos", "mutRes"]
 mutFinder = None
 def startup(paramDict):
     global mutFinder
-    regexFname = join(dirname(__file__), "data", "mutationFinder.regex.txt")
+    regexFname = join(dirname(__file__), "data", "mutationFinder.regex2.txt")
+    #regexFname = "regex2.txt"
     mutFinder = mutation_finder_from_regex_filepath(regexFname)
 
 def annotateFile(article, file):
@@ -805,7 +816,7 @@ def annotateFile(article, file):
         #print repr(mutations)
         for start, end in spans:
             print str(mut)
-            row = [start, end, mut._get_wt_residue(), str(mut.Position), mut._get_mut_residue()]
+            row = [start, end, mut.regexNum, mut._get_wt_residue(), str(mut.Position), mut._get_mut_residue()]
             yield row
         #print row
 

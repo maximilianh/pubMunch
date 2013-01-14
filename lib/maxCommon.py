@@ -258,7 +258,7 @@ class ProgressMeter:
     def taskCompleted(self):
         if self.quiet and self.taskCount<=5:
             return
-        logging.debug("task completed called, i=%d, tasksPerMsg=%d" % (self.i, self.tasksPerMsg))
+        #logging.debug("task completed called, i=%d, tasksPerMsg=%d" % (self.i, self.tasksPerMsg))
         if self.tasksPerMsg!=0 and self.i % self.tasksPerMsg == 0:
             donePercent = (self.i*100) / self.taskCount
             #print "".join(5*[chr(8)]),

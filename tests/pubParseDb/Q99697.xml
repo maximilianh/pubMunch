@@ -1,0 +1,1265 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<uniprot xmlns="http://uniprot.org/uniprot" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://uniprot.org/uniprot http://www.uniprot.org/support/docs/uniprot.xsd">
+<entry dataset="Swiss-Prot" created="1998-07-15" modified="2013-01-09" version="140">
+<accession>Q99697</accession>
+<accession>B2RA02</accession>
+<accession>B3KXS0</accession>
+<accession>O60578</accession>
+<accession>O60579</accession>
+<accession>O60580</accession>
+<accession>Q3KQX9</accession>
+<accession>Q9BY17</accession>
+<name>PITX2_HUMAN</name>
+<protein>
+<recommendedName>
+<fullName>Pituitary homeobox 2</fullName>
+</recommendedName>
+<alternativeName>
+<fullName>ALL1-responsive protein ARP1</fullName>
+</alternativeName>
+<alternativeName>
+<fullName>Homeobox protein PITX2</fullName>
+</alternativeName>
+<alternativeName>
+<fullName>Paired-like homeodomain transcription factor 2</fullName>
+</alternativeName>
+<alternativeName>
+<fullName>RIEG bicoid-related homeobox transcription factor</fullName>
+</alternativeName>
+<alternativeName>
+<fullName>Solurshin</fullName>
+</alternativeName>
+</protein>
+<gene>
+<name type="primary">PITX2</name>
+<name type="synonym">ARP1</name>
+<name type="synonym">RGS</name>
+<name type="synonym">RIEG</name>
+<name type="synonym">RIEG1</name>
+</gene>
+<organism>
+<name type="scientific">Homo sapiens</name>
+<name type="common">Human</name>
+<dbReference type="NCBI Taxonomy" id="9606"/>
+<lineage>
+<taxon>Eukaryota</taxon>
+<taxon>Metazoa</taxon>
+<taxon>Chordata</taxon>
+<taxon>Craniata</taxon>
+<taxon>Vertebrata</taxon>
+<taxon>Euteleostomi</taxon>
+<taxon>Mammalia</taxon>
+<taxon>Eutheria</taxon>
+<taxon>Euarchontoglires</taxon>
+<taxon>Primates</taxon>
+<taxon>Haplorrhini</taxon>
+<taxon>Catarrhini</taxon>
+<taxon>Hominidae</taxon>
+<taxon>Homo</taxon>
+</lineage>
+</organism>
+<reference key="1">
+<citation type="journal article" date="1996" name="Nat. Genet." volume="14" first="392" last="399">
+<title>Cloning and characterization of a novel bicoid-related homeobox transcription factor gene, RIEG, involved in Rieger syndrome.</title>
+<authorList>
+<person name="Semina E.V."/>
+<person name="Reiter R."/>
+<person name="Leysens N.J."/>
+<person name="Alward W.L.M."/>
+<person name="Small K.W."/>
+<person name="Datson N.A."/>
+<person name="Siegle-Bartelt J."/>
+<person name="Bierke-Nelson D."/>
+<person name="Bitoun P."/>
+<person name="Zabel B.U."/>
+<person name="Carey J.C."/>
+<person name="Murray J.C."/>
+</authorList>
+<dbReference type="MEDLINE" id="97099449"/>
+<dbReference type="PubMed" id="8944018"/>
+<dbReference type="DOI" id="10.1038/ng1296-392"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA]</scope>
+<scope>VARIANTS RIEG1 GLN-100; PRO-114 AND PRO-137</scope>
+<source>
+<tissue>Craniofacial</tissue>
+<tissue>Fetal brain</tissue>
+</source>
+</reference>
+<reference key="2">
+<citation type="journal article" date="1998" name="Proc. Natl. Acad. Sci. U.S.A." volume="95" first="4573" last="4578">
+<title>Identification and characterization of the ARP1 gene, a target for the human acute leukemia ALL1 gene.</title>
+<authorList>
+<person name="Arakawa H."/>
+<person name="Nakamura T."/>
+<person name="Zhadanov A.B."/>
+<person name="Fidanza Y."/>
+<person name="Yano T."/>
+<person name="Bullrich F."/>
+<person name="Shimizu M."/>
+<person name="Blechman J."/>
+<person name="Mazo A."/>
+<person name="Canaani E."/>
+<person name="Croce C.M."/>
+</authorList>
+<dbReference type="MEDLINE" id="98208582"/>
+<dbReference type="PubMed" id="9539779"/>
+<dbReference type="DOI" id="10.1073/pnas.95.8.4573"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA]</scope>
+<scope>ALTERNATIVE SPLICING</scope>
+</reference>
+<reference key="3">
+<citation type="submission" date="2000-02" db="EMBL/GenBank/DDBJ databases">
+<title>Spectrum and frequency of PITX2 mutations in patients with Rieger syndrome and related ocular anomalies.</title>
+<authorList>
+<person name="Semina E.V."/>
+<person name="Funkhauser C."/>
+<person name="Bitoun P."/>
+<person name="Daack-Hirsch S."/>
+<person name="Alward W.L.M."/>
+<person name="Amendt B."/>
+<person name="Murray J.C."/>
+</authorList>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [GENOMIC DNA] (ISOFORM PTX2A)</scope>
+</reference>
+<reference key="4">
+<citation type="journal article" date="2004" name="Nat. Genet." volume="36" first="40" last="45">
+<title>Complete sequencing and characterization of 21,243 full-length human cDNAs.</title>
+<authorList>
+<person name="Ota T."/>
+<person name="Suzuki Y."/>
+<person name="Nishikawa T."/>
+<person name="Otsuki T."/>
+<person name="Sugiyama T."/>
+<person name="Irie R."/>
+<person name="Wakamatsu A."/>
+<person name="Hayashi K."/>
+<person name="Sato H."/>
+<person name="Nagai K."/>
+<person name="Kimura K."/>
+<person name="Makita H."/>
+<person name="Sekine M."/>
+<person name="Obayashi M."/>
+<person name="Nishi T."/>
+<person name="Shibahara T."/>
+<person name="Tanaka T."/>
+<person name="Ishii S."/>
+<person name="Yamamoto J."/>
+<person name="Saito K."/>
+<person name="Kawai Y."/>
+<person name="Isono Y."/>
+<person name="Nakamura Y."/>
+<person name="Nagahari K."/>
+<person name="Murakami K."/>
+<person name="Yasuda T."/>
+<person name="Iwayanagi T."/>
+<person name="Wagatsuma M."/>
+<person name="Shiratori A."/>
+<person name="Sudo H."/>
+<person name="Hosoiri T."/>
+<person name="Kaku Y."/>
+<person name="Kodaira H."/>
+<person name="Kondo H."/>
+<person name="Sugawara M."/>
+<person name="Takahashi M."/>
+<person name="Kanda K."/>
+<person name="Yokoi T."/>
+<person name="Furuya T."/>
+<person name="Kikkawa E."/>
+<person name="Omura Y."/>
+<person name="Abe K."/>
+<person name="Kamihara K."/>
+<person name="Katsuta N."/>
+<person name="Sato K."/>
+<person name="Tanikawa M."/>
+<person name="Yamazaki M."/>
+<person name="Ninomiya K."/>
+<person name="Ishibashi T."/>
+<person name="Yamashita H."/>
+<person name="Murakawa K."/>
+<person name="Fujimori K."/>
+<person name="Tanai H."/>
+<person name="Kimata M."/>
+<person name="Watanabe M."/>
+<person name="Hiraoka S."/>
+<person name="Chiba Y."/>
+<person name="Ishida S."/>
+<person name="Ono Y."/>
+<person name="Takiguchi S."/>
+<person name="Watanabe S."/>
+<person name="Yosida M."/>
+<person name="Hotuta T."/>
+<person name="Kusano J."/>
+<person name="Kanehori K."/>
+<person name="Takahashi-Fujii A."/>
+<person name="Hara H."/>
+<person name="Tanase T.-O."/>
+<person name="Nomura Y."/>
+<person name="Togiya S."/>
+<person name="Komai F."/>
+<person name="Hara R."/>
+<person name="Takeuchi K."/>
+<person name="Arita M."/>
+<person name="Imose N."/>
+<person name="Musashino K."/>
+<person name="Yuuki H."/>
+<person name="Oshima A."/>
+<person name="Sasaki N."/>
+<person name="Aotsuka S."/>
+<person name="Yoshikawa Y."/>
+<person name="Matsunawa H."/>
+<person name="Ichihara T."/>
+<person name="Shiohata N."/>
+<person name="Sano S."/>
+<person name="Moriya S."/>
+<person name="Momiyama H."/>
+<person name="Satoh N."/>
+<person name="Takami S."/>
+<person name="Terashima Y."/>
+<person name="Suzuki O."/>
+<person name="Nakagawa S."/>
+<person name="Senoh A."/>
+<person name="Mizoguchi H."/>
+<person name="Goto Y."/>
+<person name="Shimizu F."/>
+<person name="Wakebe H."/>
+<person name="Hishigaki H."/>
+<person name="Watanabe T."/>
+<person name="Sugiyama A."/>
+<person name="Takemoto M."/>
+<person name="Kawakami B."/>
+<person name="Yamazaki M."/>
+<person name="Watanabe K."/>
+<person name="Kumagai A."/>
+<person name="Itakura S."/>
+<person name="Fukuzumi Y."/>
+<person name="Fujimori Y."/>
+<person name="Komiyama M."/>
+<person name="Tashiro H."/>
+<person name="Tanigami A."/>
+<person name="Fujiwara T."/>
+<person name="Ono T."/>
+<person name="Yamada K."/>
+<person name="Fujii Y."/>
+<person name="Ozaki K."/>
+<person name="Hirao M."/>
+<person name="Ohmori Y."/>
+<person name="Kawabata A."/>
+<person name="Hikiji T."/>
+<person name="Kobatake N."/>
+<person name="Inagaki H."/>
+<person name="Ikema Y."/>
+<person name="Okamoto S."/>
+<person name="Okitani R."/>
+<person name="Kawakami T."/>
+<person name="Noguchi S."/>
+<person name="Itoh T."/>
+<person name="Shigeta K."/>
+<person name="Senba T."/>
+<person name="Matsumura K."/>
+<person name="Nakajima Y."/>
+<person name="Mizuno T."/>
+<person name="Morinaga M."/>
+<person name="Sasaki M."/>
+<person name="Togashi T."/>
+<person name="Oyama M."/>
+<person name="Hata H."/>
+<person name="Watanabe M."/>
+<person name="Komatsu T."/>
+<person name="Mizushima-Sugano J."/>
+<person name="Satoh T."/>
+<person name="Shirai Y."/>
+<person name="Takahashi Y."/>
+<person name="Nakagawa K."/>
+<person name="Okumura K."/>
+<person name="Nagase T."/>
+<person name="Nomura N."/>
+<person name="Kikuchi H."/>
+<person name="Masuho Y."/>
+<person name="Yamashita R."/>
+<person name="Nakai K."/>
+<person name="Yada T."/>
+<person name="Nakamura Y."/>
+<person name="Ohara O."/>
+<person name="Isogai T."/>
+<person name="Sugano S."/>
+</authorList>
+<dbReference type="PubMed" id="14702039"/>
+<dbReference type="DOI" id="10.1038/ng1285"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] (ISOFORMS PTX2B AND PTX2C)</scope>
+<source>
+<tissue>Placenta</tissue>
+<tissue>Tongue</tissue>
+</source>
+</reference>
+<reference key="5">
+<citation type="submission" date="2005-07" db="EMBL/GenBank/DDBJ databases">
+<authorList>
+<person name="Mural R.J."/>
+<person name="Istrail S."/>
+<person name="Sutton G.G."/>
+<person name="Florea L."/>
+<person name="Halpern A.L."/>
+<person name="Mobarry C.M."/>
+<person name="Lippert R."/>
+<person name="Walenz B."/>
+<person name="Shatkay H."/>
+<person name="Dew I."/>
+<person name="Miller J.R."/>
+<person name="Flanigan M.J."/>
+<person name="Edwards N.J."/>
+<person name="Bolanos R."/>
+<person name="Fasulo D."/>
+<person name="Halldorsson B.V."/>
+<person name="Hannenhalli S."/>
+<person name="Turner R."/>
+<person name="Yooseph S."/>
+<person name="Lu F."/>
+<person name="Nusskern D.R."/>
+<person name="Shue B.C."/>
+<person name="Zheng X.H."/>
+<person name="Zhong F."/>
+<person name="Delcher A.L."/>
+<person name="Huson D.H."/>
+<person name="Kravitz S.A."/>
+<person name="Mouchard L."/>
+<person name="Reinert K."/>
+<person name="Remington K.A."/>
+<person name="Clark A.G."/>
+<person name="Waterman M.S."/>
+<person name="Eichler E.E."/>
+<person name="Adams M.D."/>
+<person name="Hunkapiller M.W."/>
+<person name="Myers E.W."/>
+<person name="Venter J.C."/>
+</authorList>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]</scope>
+</reference>
+<reference key="6">
+<citation type="journal article" date="2004" name="Genome Res." volume="14" first="2121" last="2127">
+<title>The status, quality, and expansion of the NIH full-length cDNA project: the Mammalian Gene Collection (MGC).</title>
+<authorList>
+<consortium name="The MGC Project Team"/>
+</authorList>
+<dbReference type="PubMed" id="15489334"/>
+<dbReference type="DOI" id="10.1101/gr.2596504"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] (ISOFORMS PTX2C AND PTX2A)</scope>
+<source>
+<tissue>Lung</tissue>
+<tissue>Uterus</tissue>
+</source>
+</reference>
+<reference key="7">
+<citation type="journal article" date="1998" name="Am. J. Ophthalmol." volume="125" first="98" last="100">
+<title>Autosomal dominant iris hypoplasia is caused by a mutation in the Rieger syndrome (RIEG/PITX2) gene.</title>
+<authorList>
+<person name="Alward W.L.M."/>
+<person name="Semina E.V."/>
+<person name="Kalenak J.W."/>
+<person name="Heon E."/>
+<person name="Sheth B.P."/>
+<person name="Stone E.M."/>
+<person name="Murray J.C."/>
+</authorList>
+<dbReference type="MEDLINE" id="98099967"/>
+<dbReference type="PubMed" id="9437321"/>
+<dbReference type="DOI" id="10.1016/S0002-9394(99)80242-6"/>
+</citation>
+<scope>VARIANT IRID2 TRP-130</scope>
+</reference>
+<reference key="8">
+<citation type="journal article" date="1998" name="Hum. Mol. Genet." volume="7" first="1113" last="1117">
+<title>Mutation in the RIEG1 gene in patients with iridogoniodysgenesis syndrome.</title>
+<authorList>
+<person name="Kulak S.C."/>
+<person name="Kozlowski K."/>
+<person name="Semina E.V."/>
+<person name="Pearce W.G."/>
+<person name="Walter M.A."/>
+</authorList>
+<dbReference type="MEDLINE" id="98282237"/>
+<dbReference type="PubMed" id="9618168"/>
+<dbReference type="DOI" id="10.1093/hmg/7.7.1113"/>
+</citation>
+<scope>VARIANT IRID2 HIS-115</scope>
+</reference>
+<reference key="9">
+<citation type="journal article" date="1999" name="J. Med. Genet." volume="36" first="152" last="155">
+<title>A mutation in the RIEG1 gene associated with Peters' anomaly.</title>
+<authorList>
+<person name="Doward W."/>
+<person name="Perveen R."/>
+<person name="Lloyd I.C."/>
+<person name="Ridgway A.E.A."/>
+<person name="Wilson L."/>
+<person name="Black G.C.M."/>
+</authorList>
+<dbReference type="PubMed" id="10051017"/>
+</citation>
+<scope>INVOLVEMENT IN PAN</scope>
+</reference>
+<reference key="10">
+<citation type="journal article" date="2000" name="Invest. Ophthalmol. Vis. Sci." volume="41" first="2456" last="2460">
+<title>Phenotypic variability and asymmetry of Rieger syndrome associated with PITX2 mutations.</title>
+<authorList>
+<person name="Perveen R."/>
+<person name="Lloyd I.C."/>
+<person name="Clayton-Smith J."/>
+<person name="Churchill A."/>
+<person name="van Heyningen V."/>
+<person name="Hanson I."/>
+<person name="Taylor D."/>
+<person name="McKeown C."/>
+<person name="Super M."/>
+<person name="Kerr B."/>
+<person name="Winter R."/>
+<person name="Black G.C.M."/>
+</authorList>
+<dbReference type="PubMed" id="10937553"/>
+</citation>
+<scope>VARIANTS RIEG1 GLU-134 AND CYS-136</scope>
+</reference>
+<reference key="11">
+<citation type="journal article" date="2001" name="Hum. Mol. Genet." volume="10" first="1631" last="1638">
+<title>Functional analyses of two newly identified PITX2 mutants reveal a novel molecular mechanism for Axenfeld-Rieger syndrome.</title>
+<authorList>
+<person name="Priston M."/>
+<person name="Kozlowski K."/>
+<person name="Gill D."/>
+<person name="Letwin K."/>
+<person name="Buys Y."/>
+<person name="Levin A.V."/>
+<person name="Walter M.A."/>
+<person name="Heon E."/>
+</authorList>
+<dbReference type="PubMed" id="11487566"/>
+<dbReference type="DOI" id="10.1093/hmg/10.16.1631"/>
+</citation>
+<scope>VARIANTS RIEG1 ARG-128--134-LYS DEL AND LEU-129</scope>
+<scope>CHARACTERIZATION OF VARIANTS RIEG1 ARG-128--134-LYS DEL AND LEU-129</scope>
+</reference>
+<reference key="12">
+<citation type="journal article" date="2002" name="Ophthalmic Res." volume="34" first="324" last="326">
+<title>Four novel mutations in the PITX2 gene in patients with Axenfeld-Rieger syndrome.</title>
+<authorList>
+<person name="Phillips J.C."/>
+</authorList>
+<dbReference type="PubMed" id="12381896"/>
+<dbReference type="DOI" id="10.1159/000065602"/>
+</citation>
+<scope>VARIANTS RIEG1 LEU-110; CYS-136; VAL-151 AND THR-154</scope>
+</reference>
+<reference key="13">
+<citation type="journal article" date="2004" name="J. Med. Genet." volume="41" first="E129" last="E129">
+<title>Mutation in PITX2 is associated with ring dermoid of the cornea.</title>
+<authorList>
+<person name="Xia K."/>
+<person name="Wu L."/>
+<person name="Liu X."/>
+<person name="Xi X."/>
+<person name="Liang D."/>
+<person name="Zheng D."/>
+<person name="Cai F."/>
+<person name="Pan Q."/>
+<person name="Long Z."/>
+<person name="Dai H."/>
+<person name="Hu Z."/>
+<person name="Tang B."/>
+<person name="Zhang Z."/>
+<person name="Xia J."/>
+</authorList>
+<dbReference type="PubMed" id="15591271"/>
+<dbReference type="DOI" id="10.1136/jmg.2004.022434"/>
+</citation>
+<scope>VARIANT RDC HIS-108</scope>
+</reference>
+<reference key="14">
+<citation type="journal article" date="2006" name="Invest. Ophthalmol. Vis. Sci." volume="47" first="3846" last="3852">
+<title>Novel mutations of FOXC1 and PITX2 in patients with Axenfeld-Rieger malformations.</title>
+<authorList>
+<person name="Weisschuh N."/>
+<person name="Dressler P."/>
+<person name="Schuettauf F."/>
+<person name="Wolf C."/>
+<person name="Wissinger B."/>
+<person name="Gramer E."/>
+</authorList>
+<dbReference type="PubMed" id="16936096"/>
+<dbReference type="DOI" id="10.1167/iovs.06-0343"/>
+</citation>
+<scope>VARIANTS RIEG1 LEU-110 AND ARG-110</scope>
+</reference>
+<reference key="15">
+<citation type="journal article" date="2006" name="Invest. Ophthalmol. Vis. Sci." volume="47" first="5162" last="5162">
+<authorList>
+<person name="Weisschuh N."/>
+<person name="Dressler P."/>
+<person name="Schuettauf F."/>
+<person name="Wolf C."/>
+<person name="Wissinger B."/>
+<person name="Gramer E."/>
+</authorList>
+</citation>
+<scope>ERRATUM</scope>
+</reference>
+<comment type="function">
+<text>Controls cell proliferation in a tissue-specific manner and is involved in morphogenesis. During embryonic development, exerts a role in the expansion of muscle progenitors. May play a role in the proper localization of asymmetric organs such as the heart and stomach. Isoform PTX2C is involved in left-right asymmetry the developing embryo (By similarity).</text>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-1175243"/>
+<interactant intactId="EBI-1175253">
+<id>Q12948</id>
+<label>FOXC1</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>6</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-1175211"/>
+<interactant intactId="EBI-3957603">
+<id>P09022</id>
+<label>Hoxa1</label>
+</interactant>
+<organismsDiffer>true</organismsDiffer>
+<experiments>3</experiments>
+</comment>
+<comment type="subcellular location">
+<subcellularLocation>
+<location>Nucleus</location>
+</subcellularLocation>
+</comment>
+<comment type="alternative products">
+<event type="alternative splicing"/>
+<isoform>
+<id>Q99697-1</id>
+<name>PTX2B</name>
+<name>ARP1B</name>
+<sequence type="displayed"/>
+</isoform>
+<isoform>
+<id>Q99697-2</id>
+<name>PTX2C</name>
+<name>ARP1C</name>
+<sequence type="described" ref="VSP_002260"/>
+</isoform>
+<isoform>
+<id>Q99697-3</id>
+<name>PTX2A</name>
+<name>ARP1A</name>
+<sequence type="described" ref="VSP_002261"/>
+</isoform>
+</comment>
+<comment type="PTM">
+<text>Phosphorylation at Thr-90 impairs its association with the CCND1 mRNA-stabilizing complex thus shortening the half-life of CCND1 (By similarity).</text>
+</comment>
+<comment type="disease">
+<text evidence="1 2 3 4 5">Defects in PITX2 are the cause of Axenfeld-Rieger syndrome type 1 (RIEG1) [MIM:180500]; also known as Rieger syndrome type 1. RIEG1 is an autosomal dominant defect characterized by hypodontia (partial anodontia), anal stenosis, hypertelorism, mental deficiency, agenesis of the facial bones, with malformation of the anterior chamber of the eye.</text>
+</comment>
+<comment type="disease">
+<text evidence="6 7">Defects in PITX2 are the cause of iridogoniodysgenesis type 2 (IRID2) [MIM:137600]; also known as iridogoniodysgenesis syndrome 2 (IGDS2). It is an autosomal dominant inherited disease.</text>
+</comment>
+<comment type="disease">
+<text evidence="8">Defects in PITX2 are a cause of Peters anomaly (PAN) [MIM:604229]. It is a congenital defect of the anterior chamber of the eye.</text>
+</comment>
+<comment type="disease">
+<text evidence="9">Defects in PITX2 are associated with ring dermoid of cornea (RDC) [MIM:180550]. RDC is an autosomal dominantly inherited syndrome characterized by bilateral annular limbal dermoids with corneal and conjunctival extension.</text>
+</comment>
+<comment type="similarity">
+<text>Belongs to the paired homeobox family. Bicoid subfamily.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 1 homeobox DNA-binding domain.</text>
+</comment>
+<comment type="online information" name="GeneReviews">
+<link uri="http://www.ncbi.nlm.nih.gov/sites/GeneTests/lab/gene/PITX2"/>
+</comment>
+<dbReference type="EMBL" id="U69961">
+<property type="protein sequence ID" value="AAC16257.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF048720">
+<property type="protein sequence ID" value="AAC39716.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF048721">
+<property type="protein sequence ID" value="AAC39717.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF048722">
+<property type="protein sequence ID" value="AAC39718.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF238048">
+<property type="protein sequence ID" value="AAK15048.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AK127829">
+<property type="protein sequence ID" value="BAG54582.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AK313987">
+<property type="protein sequence ID" value="BAG36699.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="CH471057">
+<property type="protein sequence ID" value="EAX06262.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="CH471057">
+<property type="protein sequence ID" value="EAX06263.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="CH471057">
+<property type="protein sequence ID" value="EAX06264.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC013998">
+<property type="protein sequence ID" value="AAH13998.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC106010">
+<property type="protein sequence ID" value="AAI06011.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="IPI" id="IPI00017093"/>
+<dbReference type="IPI" id="IPI00220801"/>
+<dbReference type="IPI" id="IPI00220802"/>
+<dbReference type="RefSeq" id="NP_000316.2">
+<property type="nucleotide sequence ID" value="NM_000325.5"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_001191326.1">
+<property type="nucleotide sequence ID" value="NM_001204397.1"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_001191327.1">
+<property type="nucleotide sequence ID" value="NM_001204398.1"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_001191328.1">
+<property type="nucleotide sequence ID" value="NM_001204399.1"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_700475.1">
+<property type="nucleotide sequence ID" value="NM_153426.2"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_700476.1">
+<property type="nucleotide sequence ID" value="NM_153427.2"/>
+</dbReference>
+<dbReference type="UniGene" id="Hs.643588"/>
+<dbReference type="UniGene" id="Hs.738484"/>
+<dbReference type="PDB" id="2L7F">
+<property type="method" value="NMR"/>
+<property type="chains" value="P=85-144"/>
+</dbReference>
+<dbReference type="PDB" id="2L7M">
+<property type="method" value="NMR"/>
+<property type="chains" value="P=85-144"/>
+</dbReference>
+<dbReference type="PDB" id="2LKX">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=85-144"/>
+</dbReference>
+<dbReference type="PDBsum" id="2L7F"/>
+<dbReference type="PDBsum" id="2L7M"/>
+<dbReference type="PDBsum" id="2LKX"/>
+<dbReference type="ProteinModelPortal" id="Q99697"/>
+<dbReference type="SMR" id="Q99697">
+<property type="residue range" value="51-144"/>
+</dbReference>
+<dbReference type="IntAct" id="Q99697">
+<property type="interactions" value="6"/>
+</dbReference>
+<dbReference type="STRING" id="Q99697"/>
+<dbReference type="DMDM" id="6174907"/>
+<dbReference type="PRIDE" id="Q99697"/>
+<dbReference type="DNASU" id="5308"/>
+<dbReference type="Ensembl" id="ENST00000306732">
+<property type="protein sequence ID" value="ENSP00000304169"/>
+<property type="gene ID" value="ENSG00000164093"/>
+</dbReference>
+<dbReference type="Ensembl" id="ENST00000354925">
+<property type="protein sequence ID" value="ENSP00000347004"/>
+<property type="gene ID" value="ENSG00000164093"/>
+</dbReference>
+<dbReference type="Ensembl" id="ENST00000355080">
+<property type="protein sequence ID" value="ENSP00000347192"/>
+<property type="gene ID" value="ENSG00000164093"/>
+</dbReference>
+<dbReference type="Ensembl" id="ENST00000394598">
+<property type="protein sequence ID" value="ENSP00000378097"/>
+<property type="gene ID" value="ENSG00000164093"/>
+</dbReference>
+<dbReference type="GeneID" id="5308"/>
+<dbReference type="KEGG" id="hsa:5308"/>
+<dbReference type="UCSC" id="uc003iac.3">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="UCSC" id="uc003iad.3">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="UCSC" id="uc003iae.3">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="CTD" id="5308"/>
+<dbReference type="GeneCards" id="GC04M111538"/>
+<dbReference type="HGNC" id="HGNC:9005">
+<property type="gene designation" value="PITX2"/>
+</dbReference>
+<dbReference type="MIM" id="137600">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="180500">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="180550">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="601542">
+<property type="type" value="gene"/>
+</dbReference>
+<dbReference type="MIM" id="604229">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="neXtProt" id="NX_Q99697"/>
+<dbReference type="Orphanet" id="98978">
+<property type="disease" value="Axenfeld's anomaly"/>
+</dbReference>
+<dbReference type="Orphanet" id="782">
+<property type="disease" value="Axenfeld-Rieger syndrome"/>
+</dbReference>
+<dbReference type="Orphanet" id="708">
+<property type="disease" value="Peters anomaly"/>
+</dbReference>
+<dbReference type="Orphanet" id="91483">
+<property type="disease" value="Rieger's anomaly"/>
+</dbReference>
+<dbReference type="Orphanet" id="91481">
+<property type="disease" value="Ring dermoid of cornea"/>
+</dbReference>
+<dbReference type="PharmGKB" id="PA33339"/>
+<dbReference type="eggNOG" id="NOG249113"/>
+<dbReference type="HOVERGEN" id="HBG068770"/>
+<dbReference type="KO" id="K04686"/>
+<dbReference type="OMA" id="DMYPSYT"/>
+<dbReference type="OrthoDB" id="EOG4W9J4N"/>
+<dbReference type="EvolutionaryTrace" id="Q99697"/>
+<dbReference type="GenomeRNAi" id="5308"/>
+<dbReference type="NextBio" id="20518"/>
+<dbReference type="ArrayExpress" id="Q3KQX9"/>
+<dbReference type="Bgee" id="Q99697"/>
+<dbReference type="CleanEx" id="HS_PITX2"/>
+<dbReference type="Genevestigator" id="Q99697"/>
+<dbReference type="GermOnline" id="ENSG00000164093">
+<property type="organism name" value="Homo sapiens"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005737">
+<property type="term" value="C:cytoplasm"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005634">
+<property type="term" value="C:nucleus"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005667">
+<property type="term" value="C:transcription factor complex"/>
+<property type="evidence" value="IDA:MGI"/>
+</dbReference>
+<dbReference type="GO" id="GO:0031490">
+<property type="term" value="F:chromatin DNA binding"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0043021">
+<property type="term" value="F:ribonucleoprotein complex binding"/>
+<property type="evidence" value="IC:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001078">
+<property type="term" value="F:RNA polymerase II core promoter proximal region sequence-specific DNA binding transcription factor activity involved in negative regulation of transcription"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001105">
+<property type="term" value="F:RNA polymerase II transcription coactivator activity"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001191">
+<property type="term" value="F:RNA polymerase II transcription factor binding transcription factor activity involved in negative regulation of transcription"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0000981">
+<property type="term" value="F:sequence-specific DNA binding RNA polymerase II transcription factor activity"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0003700">
+<property type="term" value="F:sequence-specific DNA binding transcription factor activity"/>
+<property type="evidence" value="IDA:MGI"/>
+</dbReference>
+<dbReference type="GO" id="GO:0000976">
+<property type="term" value="F:transcription regulatory region sequence-specific DNA binding"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0055009">
+<property type="term" value="P:atrial cardiac muscle tissue morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0003171">
+<property type="term" value="P:atrioventricular valve development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0003253">
+<property type="term" value="P:cardiac neural crest cell migration involved in outflow tract morphogenesis"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0061325">
+<property type="term" value="P:cell proliferation involved in outflow tract morphogenesis"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035993">
+<property type="term" value="P:deltoid tuberosity development"/>
+<property type="evidence" value="IMP:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0007368">
+<property type="term" value="P:determination of left/right symmetry"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0031076">
+<property type="term" value="P:embryonic camera-type eye development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048557">
+<property type="term" value="P:embryonic digestive tract morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035116">
+<property type="term" value="P:embryonic hindlimb morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0061031">
+<property type="term" value="P:endodermal digestive tract morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0002074">
+<property type="term" value="P:extraocular skeletal muscle development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035315">
+<property type="term" value="P:hair cell differentiation"/>
+<property type="evidence" value="IC:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0021855">
+<property type="term" value="P:hypothalamus cell migration"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001701">
+<property type="term" value="P:in utero embryonic development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0061072">
+<property type="term" value="P:iris morphogenesis"/>
+<property type="evidence" value="IMP:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060460">
+<property type="term" value="P:left lung morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0070986">
+<property type="term" value="P:left/right axis specification"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0007520">
+<property type="term" value="P:myoblast fusion"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0000122">
+<property type="term" value="P:negative regulation of transcription from RNA polymerase II promoter"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001764">
+<property type="term" value="P:neuron migration"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0042476">
+<property type="term" value="P:odontogenesis"/>
+<property type="evidence" value="IMP:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001569">
+<property type="term" value="P:patterning of blood vessels"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0043388">
+<property type="term" value="P:positive regulation of DNA binding"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:2000288">
+<property type="term" value="P:positive regulation of myoblast proliferation"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0045944">
+<property type="term" value="P:positive regulation of transcription from RNA polymerase II promoter"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060127">
+<property type="term" value="P:prolactin secreting cell differentiation"/>
+<property type="evidence" value="TAS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0003350">
+<property type="term" value="P:pulmonary myocardium development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060577">
+<property type="term" value="P:pulmonary vein morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0030334">
+<property type="term" value="P:regulation of cell migration"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060126">
+<property type="term" value="P:somatotropin secreting cell differentiation"/>
+<property type="evidence" value="TAS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048536">
+<property type="term" value="P:spleen development"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0021763">
+<property type="term" value="P:subthalamic nucleus development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060578">
+<property type="term" value="P:superior vena cava morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035886">
+<property type="term" value="P:vascular smooth muscle cell differentiation"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001570">
+<property type="term" value="P:vasculogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0055015">
+<property type="term" value="P:ventricular cardiac muscle cell development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060412">
+<property type="term" value="P:ventricular septum morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0016055">
+<property type="term" value="P:Wnt receptor signaling pathway"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="Gene3D" id="1.10.10.60">
+<property type="entry name" value="Homeodomain-rel"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR017970">
+<property type="entry name" value="Homeobox_CS"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR016233">
+<property type="entry name" value="Homeobox_Pitx/unc30"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR001356">
+<property type="entry name" value="Homeodomain"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR009057">
+<property type="entry name" value="Homeodomain-like"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR003654">
+<property type="entry name" value="OAR_dom"/>
+</dbReference>
+<dbReference type="Pfam" id="PF00046">
+<property type="entry name" value="Homeobox"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Pfam" id="PF03826">
+<property type="entry name" value="OAR"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PIRSF" id="PIRSF000563">
+<property type="entry name" value="Homeobox_protein_Pitx/Unc30"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SMART" id="SM00389">
+<property type="entry name" value="HOX"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SUPFAM" id="SSF46689">
+<property type="entry name" value="Homeodomain_like"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS00027">
+<property type="entry name" value="HOMEOBOX_1"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50071">
+<property type="entry name" value="HOMEOBOX_2"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50803">
+<property type="entry name" value="OAR"/>
+<property type="match status" value="1"/>
+</dbReference>
+<proteinExistence type="evidence at protein level"/>
+<keyword id="KW-0002">3D-structure</keyword>
+<keyword id="KW-0025">Alternative splicing</keyword>
+<keyword id="KW-0181">Complete proteome</keyword>
+<keyword id="KW-0238">DNA-binding</keyword>
+<keyword id="KW-0217">Developmental protein</keyword>
+<keyword id="KW-0225">Disease mutation</keyword>
+<keyword id="KW-0371">Homeobox</keyword>
+<keyword id="KW-0539">Nucleus</keyword>
+<keyword id="KW-1059">Peters anomaly</keyword>
+<keyword id="KW-0597">Phosphoprotein</keyword>
+<keyword id="KW-1185">Reference proteome</keyword>
+<feature type="chain" description="Pituitary homeobox 2" id="PRO_0000049223">
+<location>
+<begin position="1"/>
+<end position="317"/>
+</location>
+</feature>
+<feature type="DNA-binding region" description="Homeobox">
+<location>
+<begin position="85"/>
+<end position="144"/>
+</location>
+</feature>
+<feature type="short sequence motif" description="OAR">
+<location>
+<begin position="279"/>
+<end position="292"/>
+</location>
+</feature>
+<feature type="short sequence motif" description="Nuclear localization signal" status="potential">
+<location>
+<begin position="285"/>
+<end position="289"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphothreonine; by PKB/AKT2" status="by similarity">
+<location>
+<position position="90"/>
+</location>
+</feature>
+<feature type="splice variant" description="In isoform PTX2C." id="VSP_002260">
+<original>METNCRKLVSACVQLGVQPAAVECLFSKDSEIKKVEFTDSPESRKEAASSKFFPRQHPGAN</original>
+<variation>MNCMKGPLHLEHRAAGTKLSAVSSSSCHHPQPLAMASVLAPGQPRSLDSSKHRLEVHTISDTSSPEAA</variation>
+<location>
+<begin position="1"/>
+<end position="61"/>
+</location>
+</feature>
+<feature type="splice variant" description="In isoform PTX2A." id="VSP_002261">
+<location>
+<begin position="16"/>
+<end position="61"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_003763" evidence="1">
+<original>L</original>
+<variation>Q</variation>
+<location>
+<position position="100"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RDC." id="VAR_035027" evidence="9">
+<original>R</original>
+<variation>H</variation>
+<location>
+<position position="108"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_058735" evidence="4 5">
+<original>P</original>
+<variation>L</variation>
+<location>
+<position position="110"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_058736" evidence="5">
+<original>P</original>
+<variation>R</variation>
+<location>
+<position position="110"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_003764" evidence="1">
+<original>T</original>
+<variation>P</variation>
+<location>
+<position position="114"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In IRID2." id="VAR_003765" evidence="7">
+<original>R</original>
+<variation>H</variation>
+<location>
+<position position="115"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1; more than 100-fold reduction in DNA binding activity as well as no detectable transactivation activity." id="VAR_035028">
+<location>
+<begin position="128"/>
+<end position="134"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1; more than 200% increase in transactivation activity." id="VAR_035029" evidence="3">
+<original>V</original>
+<variation>L</variation>
+<location>
+<position position="129"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In IRID2." id="VAR_003762" evidence="6">
+<original>R</original>
+<variation>W</variation>
+<location>
+<position position="130"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_058737" evidence="2">
+<original>K</original>
+<variation>E</variation>
+<location>
+<position position="134"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_058738" evidence="2 4">
+<original>R</original>
+<variation>C</variation>
+<location>
+<position position="136"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_003766" evidence="1">
+<original>R</original>
+<variation>P</variation>
+<location>
+<position position="137"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_058739" evidence="4">
+<original>L</original>
+<variation>V</variation>
+<location>
+<position position="151"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In RIEG1." id="VAR_058740" evidence="4">
+<original>N</original>
+<variation>T</variation>
+<location>
+<position position="154"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1 and 3." ref="1 3">
+<original>V</original>
+<variation>L</variation>
+<location>
+<position position="13"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1; AAC16257." ref="1">
+<original>E</original>
+<variation>Q</variation>
+<location>
+<position position="99"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1 and 3." ref="1 3">
+<original>N</original>
+<variation>K</variation>
+<location>
+<position position="301"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="86"/>
+<end position="88"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="90"/>
+<end position="92"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="94"/>
+<end position="106"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="112"/>
+<end position="122"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="126"/>
+<end position="141"/>
+</location>
+</feature>
+<evidence key="1" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="8944018"/>
+</source>
+</evidence>
+<evidence key="2" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="10937553"/>
+</source>
+</evidence>
+<evidence key="3" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11487566"/>
+</source>
+</evidence>
+<evidence key="4" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="12381896"/>
+</source>
+</evidence>
+<evidence key="5" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="16936096"/>
+</source>
+</evidence>
+<evidence key="6" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="9437321"/>
+</source>
+</evidence>
+<evidence key="7" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="9618168"/>
+</source>
+</evidence>
+<evidence key="8" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="10051017"/>
+</source>
+</evidence>
+<evidence key="9" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15591271"/>
+</source>
+</evidence>
+<sequence length="317" mass="35370" checksum="00853AFDBA4433CB" modified="1999-07-15" version="2">
+METNCRKLVSACVQLGVQPAAVECLFSKDSEIKKVEFTDSPESRKEAASSKFFPRQHPGA
+NEKDKSQQGKNEDVGAEDPSKKKRQRRQRTHFTSQQLQELEATFQRNRYPDMSTREEIAV
+WTNLTEARVRVWFKNRRAKWRKRERNQQAELCKNGFGPQFNGLMQPYDDMYPGYSYNNWA
+AKGLTSASLSTKSFPFFNSMNVNPLSSQSMFSPPNSISSMSMSSSMVPSAVTGVPGSSLN
+SLNNLNNLSSPSLNSAVPTPACPYAPPTPPYVYRDTCNSSLASLRLKAKQHSSFGYASVQ
+NPASNLSACQYAVDRPV
+</sequence>
+</entry>
+<copyright>
+Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+Distributed under the Creative Commons Attribution-NoDerivs License
+</copyright>
+</uniprot>

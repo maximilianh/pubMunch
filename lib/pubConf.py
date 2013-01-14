@@ -8,10 +8,9 @@ pubsDataDir = '/hive/data/inside/pubs'
 # directory for files with pubs references for each DB, e.g. uniprot or pdb
 dbRefDir = '/hive/data/inside/pubs/dbRef'
 
-# directory with a local copy of PDB or uniprot
-# pubParseDb expects subdirectories called
-# "pdb" and "uniprot" in here
-dbBaseDir = '/hive/data/outside/'
+# directories with a local copy of PDB or uniprot
+uniProtBaseDir = '/hive/data/outside/uniProtCurrent'
+pdbBaseDir = '/hive/data/outside/pdb'
 
 # CONVERTER SETTINGS ================================================
 # for pubConvMedline:
@@ -354,6 +353,10 @@ blastBinDir = '/hive/data/outside/blast229'
 
 # default Mysql database 
 mysqlDb = 'publications'
+
+# UNIPROT PARSING ============================
+# only convert records with one of these taxon Ids
+uniProtTaxonIds = [9606, 10090, 10116, 7955]
 
 # ACCESS METHODS (convenience) ============================
 

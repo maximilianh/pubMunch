@@ -105,6 +105,8 @@ if options.test or options.oneText:
             reader = pubStore.PubReaderFile(inFname)
         pubAlg.runAnnotate(reader, alg, paramDict, outName)
 else:
+    inNames = inName.split(",")
+
     if options.realTest:
         runner = None
     else:
@@ -112,7 +114,8 @@ else:
         maxJobs = None
         if options.limitJobs:
             maxJobs = options.limitJobs
-        runner = pubGeneric.makeClusterRunner(algName, maxJob=maxJobs)
+        inBaseNames = [basename(x) for x in inNames]
+        batchBase = algName+"_"+"".join(inBaseNames)
+        runner = pubGeneric.makeClusterRunner(batchBase, maxJob=maxJobs)
 
-    inNames = inName.split(",")
     pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields, concat=options.concat)

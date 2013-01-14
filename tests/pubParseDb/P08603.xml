@@ -1,0 +1,3099 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<uniprot xmlns="http://uniprot.org/uniprot" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://uniprot.org/uniprot http://www.uniprot.org/support/docs/uniprot.xsd">
+<entry dataset="Swiss-Prot" created="1988-08-01" modified="2013-01-09" version="165">
+<accession>P08603</accession>
+<accession>A5PL14</accession>
+<accession>P78435</accession>
+<accession>Q14570</accession>
+<accession>Q2TAZ5</accession>
+<accession>Q38G77</accession>
+<accession>Q5TFM3</accession>
+<accession>Q8N708</accession>
+<accession>Q9NU86</accession>
+<name>CFAH_HUMAN</name>
+<protein>
+<recommendedName>
+<fullName>Complement factor H</fullName>
+</recommendedName>
+<alternativeName>
+<fullName>H factor 1</fullName>
+</alternativeName>
+</protein>
+<gene>
+<name type="primary">CFH</name>
+<name type="synonym">HF</name>
+<name type="synonym">HF1</name>
+<name type="synonym">HF2</name>
+</gene>
+<organism>
+<name type="scientific">Homo sapiens</name>
+<name type="common">Human</name>
+<dbReference type="NCBI Taxonomy" id="9606"/>
+<lineage>
+<taxon>Eukaryota</taxon>
+<taxon>Metazoa</taxon>
+<taxon>Chordata</taxon>
+<taxon>Craniata</taxon>
+<taxon>Vertebrata</taxon>
+<taxon>Euteleostomi</taxon>
+<taxon>Mammalia</taxon>
+<taxon>Eutheria</taxon>
+<taxon>Euarchontoglires</taxon>
+<taxon>Primates</taxon>
+<taxon>Haplorrhini</taxon>
+<taxon>Catarrhini</taxon>
+<taxon>Hominidae</taxon>
+<taxon>Homo</taxon>
+</lineage>
+</organism>
+<reference key="1">
+<citation type="journal article" date="1988" name="Biochem. J." volume="249" first="593" last="602">
+<title>The complete amino acid sequence of human complement factor H.</title>
+<authorList>
+<person name="Ripoche J."/>
+<person name="Day A.J."/>
+<person name="Harris T.J.R."/>
+<person name="Sim R.B."/>
+</authorList>
+<dbReference type="MEDLINE" id="88134059"/>
+<dbReference type="PubMed" id="2963625"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA] (ISOFORMS 1 AND 2)</scope>
+<scope>GLYCOSYLATION AT ASN-529</scope>
+<scope>VARIANTS HIS-402 AND ARG-493</scope>
+<source>
+<tissue>Liver</tissue>
+</source>
+</reference>
+<reference key="2">
+<citation type="submission" date="2005-10" db="EMBL/GenBank/DDBJ databases">
+<authorList>
+<consortium name="SeattleSNPs variation discovery resource"/>
+</authorList>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [GENOMIC DNA]</scope>
+<scope>VARIANTS ILE-62; THR-551; ILE-890; ASP-936; ILE-1007; ILE-1017; TYR-1050 AND THR-1059</scope>
+</reference>
+<reference key="3">
+<citation type="journal article" date="2006" name="Nature" volume="441" first="315" last="321">
+<title>The DNA sequence and biological annotation of human chromosome 1.</title>
+<authorList>
+<person name="Gregory S.G."/>
+<person name="Barlow K.F."/>
+<person name="McLay K.E."/>
+<person name="Kaul R."/>
+<person name="Swarbreck D."/>
+<person name="Dunham A."/>
+<person name="Scott C.E."/>
+<person name="Howe K.L."/>
+<person name="Woodfine K."/>
+<person name="Spencer C.C.A."/>
+<person name="Jones M.C."/>
+<person name="Gillson C."/>
+<person name="Searle S."/>
+<person name="Zhou Y."/>
+<person name="Kokocinski F."/>
+<person name="McDonald L."/>
+<person name="Evans R."/>
+<person name="Phillips K."/>
+<person name="Atkinson A."/>
+<person name="Cooper R."/>
+<person name="Jones C."/>
+<person name="Hall R.E."/>
+<person name="Andrews T.D."/>
+<person name="Lloyd C."/>
+<person name="Ainscough R."/>
+<person name="Almeida J.P."/>
+<person name="Ambrose K.D."/>
+<person name="Anderson F."/>
+<person name="Andrew R.W."/>
+<person name="Ashwell R.I.S."/>
+<person name="Aubin K."/>
+<person name="Babbage A.K."/>
+<person name="Bagguley C.L."/>
+<person name="Bailey J."/>
+<person name="Beasley H."/>
+<person name="Bethel G."/>
+<person name="Bird C.P."/>
+<person name="Bray-Allen S."/>
+<person name="Brown J.Y."/>
+<person name="Brown A.J."/>
+<person name="Buckley D."/>
+<person name="Burton J."/>
+<person name="Bye J."/>
+<person name="Carder C."/>
+<person name="Chapman J.C."/>
+<person name="Clark S.Y."/>
+<person name="Clarke G."/>
+<person name="Clee C."/>
+<person name="Cobley V."/>
+<person name="Collier R.E."/>
+<person name="Corby N."/>
+<person name="Coville G.J."/>
+<person name="Davies J."/>
+<person name="Deadman R."/>
+<person name="Dunn M."/>
+<person name="Earthrowl M."/>
+<person name="Ellington A.G."/>
+<person name="Errington H."/>
+<person name="Frankish A."/>
+<person name="Frankland J."/>
+<person name="French L."/>
+<person name="Garner P."/>
+<person name="Garnett J."/>
+<person name="Gay L."/>
+<person name="Ghori M.R.J."/>
+<person name="Gibson R."/>
+<person name="Gilby L.M."/>
+<person name="Gillett W."/>
+<person name="Glithero R.J."/>
+<person name="Grafham D.V."/>
+<person name="Griffiths C."/>
+<person name="Griffiths-Jones S."/>
+<person name="Grocock R."/>
+<person name="Hammond S."/>
+<person name="Harrison E.S.I."/>
+<person name="Hart E."/>
+<person name="Haugen E."/>
+<person name="Heath P.D."/>
+<person name="Holmes S."/>
+<person name="Holt K."/>
+<person name="Howden P.J."/>
+<person name="Hunt A.R."/>
+<person name="Hunt S.E."/>
+<person name="Hunter G."/>
+<person name="Isherwood J."/>
+<person name="James R."/>
+<person name="Johnson C."/>
+<person name="Johnson D."/>
+<person name="Joy A."/>
+<person name="Kay M."/>
+<person name="Kershaw J.K."/>
+<person name="Kibukawa M."/>
+<person name="Kimberley A.M."/>
+<person name="King A."/>
+<person name="Knights A.J."/>
+<person name="Lad H."/>
+<person name="Laird G."/>
+<person name="Lawlor S."/>
+<person name="Leongamornlert D.A."/>
+<person name="Lloyd D.M."/>
+<person name="Loveland J."/>
+<person name="Lovell J."/>
+<person name="Lush M.J."/>
+<person name="Lyne R."/>
+<person name="Martin S."/>
+<person name="Mashreghi-Mohammadi M."/>
+<person name="Matthews L."/>
+<person name="Matthews N.S.W."/>
+<person name="McLaren S."/>
+<person name="Milne S."/>
+<person name="Mistry S."/>
+<person name="Moore M.J.F."/>
+<person name="Nickerson T."/>
+<person name="O'Dell C.N."/>
+<person name="Oliver K."/>
+<person name="Palmeiri A."/>
+<person name="Palmer S.A."/>
+<person name="Parker A."/>
+<person name="Patel D."/>
+<person name="Pearce A.V."/>
+<person name="Peck A.I."/>
+<person name="Pelan S."/>
+<person name="Phelps K."/>
+<person name="Phillimore B.J."/>
+<person name="Plumb R."/>
+<person name="Rajan J."/>
+<person name="Raymond C."/>
+<person name="Rouse G."/>
+<person name="Saenphimmachak C."/>
+<person name="Sehra H.K."/>
+<person name="Sheridan E."/>
+<person name="Shownkeen R."/>
+<person name="Sims S."/>
+<person name="Skuce C.D."/>
+<person name="Smith M."/>
+<person name="Steward C."/>
+<person name="Subramanian S."/>
+<person name="Sycamore N."/>
+<person name="Tracey A."/>
+<person name="Tromans A."/>
+<person name="Van Helmond Z."/>
+<person name="Wall M."/>
+<person name="Wallis J.M."/>
+<person name="White S."/>
+<person name="Whitehead S.L."/>
+<person name="Wilkinson J.E."/>
+<person name="Willey D.L."/>
+<person name="Williams H."/>
+<person name="Wilming L."/>
+<person name="Wray P.W."/>
+<person name="Wu Z."/>
+<person name="Coulson A."/>
+<person name="Vaudin M."/>
+<person name="Sulston J.E."/>
+<person name="Durbin R.M."/>
+<person name="Hubbard T."/>
+<person name="Wooster R."/>
+<person name="Dunham I."/>
+<person name="Carter N.P."/>
+<person name="McVean G."/>
+<person name="Ross M.T."/>
+<person name="Harrow J."/>
+<person name="Olson M.V."/>
+<person name="Beck S."/>
+<person name="Rogers J."/>
+<person name="Bentley D.R."/>
+</authorList>
+<dbReference type="PubMed" id="16710414"/>
+<dbReference type="DOI" id="10.1038/nature04727"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]</scope>
+<scope>VARIANT HIS-402</scope>
+</reference>
+<reference key="4">
+<citation type="journal article" date="2004" name="Genome Res." volume="14" first="2121" last="2127">
+<title>The status, quality, and expansion of the NIH full-length cDNA project: the Mammalian Gene Collection (MGC).</title>
+<authorList>
+<consortium name="The MGC Project Team"/>
+</authorList>
+<dbReference type="PubMed" id="15489334"/>
+<dbReference type="DOI" id="10.1101/gr.2596504"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] (ISOFORMS 1 AND 2)</scope>
+<scope>VARIANT ILE-62</scope>
+<source>
+<tissue>Testis</tissue>
+<tissue>Urinary bladder</tissue>
+</source>
+</reference>
+<reference key="5">
+<citation type="journal article" date="1986" name="Eur. J. Immunol." volume="16" first="1351" last="1355">
+<title>Human complement factor H: isolation of cDNA clones and partial cDNA sequence of the 38-kDa tryptic fragment containing the binding site for C3b.</title>
+<authorList>
+<person name="Schulz T.F."/>
+<person name="Schwaeble W."/>
+<person name="Stanley K.K."/>
+<person name="Weiss E."/>
+<person name="Dierich M.P."/>
+</authorList>
+<dbReference type="MEDLINE" id="87054207"/>
+<dbReference type="PubMed" id="2946589"/>
+<dbReference type="DOI" id="10.1002/eji.1830161107"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA] OF 53-445</scope>
+</reference>
+<reference key="6">
+<citation type="journal article" date="1986" name="J. Immunol." volume="136" first="3407" last="3411">
+<title>Structural analysis of human complement protein H: homology with C4b binding protein, beta 2-glycoprotein I, and the Ba fragment of B2.</title>
+<authorList>
+<person name="Kristensen T."/>
+<person name="Wetsel R.A."/>
+<person name="Tack B.F."/>
+</authorList>
+<dbReference type="MEDLINE" id="86169701"/>
+<dbReference type="PubMed" id="2937845"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA] OF 226-449</scope>
+<scope>PROTEIN SEQUENCE OF 205-216; 237-246; 320-331; 425-435; 508-518; 645-662; 667-717; 858-885; 907-972; 1163-1182 AND 1193-1203</scope>
+</reference>
+<reference key="7">
+<citation type="journal article" date="1991" name="J. Immunol." volume="146" first="3190" last="3196">
+<title>Cloning of the 1.4-kb mRNA species of human complement factor H reveals a novel member of the short consensus repeat family related to the carboxy terminal of the classical 150-kDa molecule.</title>
+<authorList>
+<person name="Estaller C."/>
+<person name="Koistinen V."/>
+<person name="Schwaeble W."/>
+<person name="Dierich M.P."/>
+<person name="Weiss E.H."/>
+</authorList>
+<dbReference type="MEDLINE" id="91201892"/>
+<dbReference type="PubMed" id="1826708"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA] OF 1047-1231</scope>
+</reference>
+<reference key="8">
+<citation type="journal article" date="1982" name="Biochem. J." volume="205" first="285" last="293">
+<title>Purification and structural studies on the complement-system control protein beta 1H (Factor H).</title>
+<authorList>
+<person name="Sim R.B."/>
+<person name="Discipio R.G."/>
+</authorList>
+<dbReference type="MEDLINE" id="83048213"/>
+<dbReference type="PubMed" id="6215918"/>
+</citation>
+<scope>PROTEIN SEQUENCE OF 19-35</scope>
+</reference>
+<reference key="9">
+<citation type="submission" date="1996-04" db="EMBL/GenBank/DDBJ databases">
+<authorList>
+<person name="Vik D.P."/>
+<person name="Williams S.A."/>
+</authorList>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [GENOMIC DNA] OF 1-19</scope>
+</reference>
+<reference key="10">
+<citation type="thesis" date="1993" institute="Hospital Trias I Pujol" country="Spain">
+<authorList>
+<person name="Dominguez O."/>
+</authorList>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [GENOMIC DNA] OF 1-9</scope>
+</reference>
+<reference key="11">
+<citation type="journal article" date="2004" name="Proteomics" volume="4" first="454" last="465">
+<title>Screening for N-glycosylated proteins by liquid chromatography mass spectrometry.</title>
+<authorList>
+<person name="Bunkenborg J."/>
+<person name="Pilch B.J."/>
+<person name="Podtelejnikov A.V."/>
+<person name="Wisniewski J.R."/>
+</authorList>
+<dbReference type="PubMed" id="14760718"/>
+<dbReference type="DOI" id="10.1002/pmic.200300556"/>
+</citation>
+<scope>GLYCOSYLATION [LARGE SCALE ANALYSIS] AT ASN-882</scope>
+<scope>MASS SPECTROMETRY</scope>
+<source>
+<tissue>Plasma</tissue>
+</source>
+</reference>
+<reference key="12">
+<citation type="journal article" date="2005" name="J. Proteome Res." volume="4" first="2070" last="2080">
+<title>Human plasma N-glycoproteome analysis by immunoaffinity subtraction, hydrazide chemistry, and mass spectrometry.</title>
+<authorList>
+<person name="Liu T."/>
+<person name="Qian W.-J."/>
+<person name="Gritsenko M.A."/>
+<person name="Camp D.G. II"/>
+<person name="Monroe M.E."/>
+<person name="Moore R.J."/>
+<person name="Smith R.D."/>
+</authorList>
+<dbReference type="PubMed" id="16335952"/>
+<dbReference type="DOI" id="10.1021/pr0502065"/>
+</citation>
+<scope>GLYCOSYLATION [LARGE SCALE ANALYSIS] AT ASN-529 AND ASN-911</scope>
+<scope>MASS SPECTROMETRY</scope>
+<source>
+<tissue>Plasma</tissue>
+</source>
+</reference>
+<reference key="13">
+<citation type="journal article" date="2009" name="J. Proteome Res." volume="8" first="651" last="661">
+<title>Glycoproteomics analysis of human liver tissue by combination of multiple enzyme digestion and hydrazide chemistry.</title>
+<authorList>
+<person name="Chen R."/>
+<person name="Jiang X."/>
+<person name="Sun D."/>
+<person name="Han G."/>
+<person name="Wang F."/>
+<person name="Ye M."/>
+<person name="Wang L."/>
+<person name="Zou H."/>
+</authorList>
+<dbReference type="PubMed" id="19159218"/>
+<dbReference type="DOI" id="10.1021/pr8008012"/>
+</citation>
+<scope>GLYCOSYLATION [LARGE SCALE ANALYSIS] AT ASN-529; ASN-802; ASN-882; ASN-911 AND ASN-1029</scope>
+<scope>MASS SPECTROMETRY</scope>
+<source>
+<tissue>Liver</tissue>
+</source>
+</reference>
+<reference key="14">
+<citation type="journal article" date="2009" name="Nat. Methods" volume="6" first="809" last="811">
+<title>Enrichment of glycopeptides for glycan structure and attachment site identification.</title>
+<authorList>
+<person name="Nilsson J."/>
+<person name="Rueetschi U."/>
+<person name="Halim A."/>
+<person name="Hesse C."/>
+<person name="Carlsohn E."/>
+<person name="Brinkmalm G."/>
+<person name="Larson G."/>
+</authorList>
+<dbReference type="PubMed" id="19838169"/>
+<dbReference type="DOI" id="10.1038/nmeth.1392"/>
+</citation>
+<scope>GLYCOSYLATION [LARGE SCALE ANALYSIS] AT ASN-882</scope>
+<scope>STRUCTURE OF CARBOHYDRATES</scope>
+<scope>MASS SPECTROMETRY</scope>
+<source>
+<tissue>Cerebrospinal fluid</tissue>
+</source>
+</reference>
+<reference key="15">
+<citation type="journal article" date="1991" name="J. Mol. Biol." volume="219" first="717" last="725">
+<title>Three-dimensional structure of a complement control protein module in solution.</title>
+<authorList>
+<person name="Norman D.G."/>
+<person name="Barlow P.N."/>
+<person name="Baron M."/>
+<person name="Day A.J."/>
+<person name="Sim B."/>
+<person name="Campbell I.D."/>
+</authorList>
+<dbReference type="MEDLINE" id="91278097"/>
+<dbReference type="PubMed" id="1829116"/>
+<dbReference type="DOI" id="10.1016/0022-2836(91)90666-T"/>
+</citation>
+<scope>STRUCTURE BY NMR OF 927-985 (SUSHI 16)</scope>
+</reference>
+<reference key="16">
+<citation type="journal article" date="1992" name="Biochemistry" volume="31" first="3626" last="3634">
+<title>Solution structure of the fifth repeat of factor H: a second example of the complement control protein module.</title>
+<authorList>
+<person name="Barlow P.N."/>
+<person name="Norman D.G."/>
+<person name="Steinkasserer A."/>
+<person name="Horne T.J."/>
+<person name="Pearce J."/>
+<person name="Driscoll P.C."/>
+<person name="Sim B."/>
+<person name="Campbell I.D."/>
+</authorList>
+<dbReference type="MEDLINE" id="92232649"/>
+<dbReference type="PubMed" id="1533152"/>
+<dbReference type="DOI" id="10.1021/bi00129a011"/>
+</citation>
+<scope>STRUCTURE BY NMR OF 264-322 (SUSHI 5)</scope>
+</reference>
+<reference key="17">
+<citation type="journal article" date="1993" name="J. Mol. Biol." volume="232" first="268" last="284">
+<title>Solution structure of a pair of complement modules by nuclear magnetic resonance.</title>
+<authorList>
+<person name="Barlow P.N."/>
+<person name="Steinkasserer A."/>
+<person name="Norman D.G."/>
+<person name="Kieffer B."/>
+<person name="Wiles A.P."/>
+<person name="Sim B."/>
+<person name="Campbell I.D."/>
+</authorList>
+<dbReference type="MEDLINE" id="93323119"/>
+<dbReference type="PubMed" id="8331663"/>
+<dbReference type="DOI" id="10.1006/jmbi.1993.1381"/>
+</citation>
+<scope>STRUCTURE BY NMR OF 866-985 (SUSHIS 15 AND 16)</scope>
+</reference>
+<reference key="18">
+<citation type="journal article" date="1997" name="J. Biol. Chem." volume="272" first="25168" last="25175">
+<title>Human factor H deficiency. Mutations in framework cysteine residues and block in H protein secretion and intracellular catabolism.</title>
+<authorList>
+<person name="Ault B.H."/>
+<person name="Schmidt B.Z."/>
+<person name="Fowler N.L."/>
+<person name="Kashtan C.E."/>
+<person name="Ahmed A.E."/>
+<person name="Vogt B.A."/>
+<person name="Colten H.R."/>
+</authorList>
+<dbReference type="MEDLINE" id="97460109"/>
+<dbReference type="PubMed" id="9312129"/>
+<dbReference type="DOI" id="10.1074/jbc.272.40.25168"/>
+</citation>
+<scope>VARIANTS CFHD ARG-536 AND TYR-959</scope>
+</reference>
+<reference key="19">
+<citation type="journal article" date="1998" name="Kidney Int." volume="53" first="836" last="844">
+<title>Genetic studies into inherited and sporadic hemolytic uremic syndrome.</title>
+<authorList>
+<person name="Warwicker P."/>
+<person name="Goodship T.H.J."/>
+<person name="Donne R.L."/>
+<person name="Pirson Y."/>
+<person name="Nicholls A."/>
+<person name="Ward R.M."/>
+<person name="Turnpenny P."/>
+<person name="Goodship J.A."/>
+</authorList>
+<dbReference type="PubMed" id="9551389"/>
+<dbReference type="DOI" id="10.1046/j.1523-1755.1998.00824.x"/>
+</citation>
+<scope>VARIANT AHUS1 GLY-1215</scope>
+</reference>
+<reference key="20">
+<citation type="journal article" date="1999" name="Am. J. Hum. Genet." volume="65" first="1538" last="1546">
+<title>Complement factor H gene mutation associated with autosomal recessive atypical hemolytic uremic syndrome.</title>
+<authorList>
+<person name="Ying L."/>
+<person name="Katz Y."/>
+<person name="Schlesinger M."/>
+<person name="Carmi R."/>
+<person name="Shalev H."/>
+<person name="Haider N."/>
+<person name="Beck G."/>
+<person name="Sheffield V.C."/>
+<person name="Landau D."/>
+</authorList>
+<dbReference type="MEDLINE" id="20046888"/>
+<dbReference type="PubMed" id="10577907"/>
+<dbReference type="DOI" id="10.1086/302673"/>
+</citation>
+<scope>VARIANT AHUS1 LEU-1191</scope>
+</reference>
+<reference key="21">
+<citation type="journal article" date="2000" name="Am. J. Hum. Genet." volume="66" first="1721" last="1722">
+<title>Complement factor H gene mutation associated with autosomal recessive atypical hemolytic uremic syndrome.</title>
+<authorList>
+<person name="Buddles M.R.H."/>
+<person name="Donne R.L."/>
+<person name="Richards A."/>
+<person name="Goodship J."/>
+<person name="Goodship T.H.J."/>
+</authorList>
+<dbReference type="MEDLINE" id="20311557"/>
+<dbReference type="PubMed" id="10762557"/>
+<dbReference type="DOI" id="10.1086/302877"/>
+</citation>
+<scope>VARIANT AHUS1 1225-TYR--ARG-1231 DELINS PHE-GLN-SER</scope>
+</reference>
+<reference key="22">
+<citation type="journal article" date="2000" name="Immunogenetics" volume="51" first="366" last="369">
+<title>Molecular basis for factor H and FHL-1 deficiency in an Italian family.</title>
+<authorList>
+<person name="Sanchez-Corral P."/>
+<person name="Bellavia D."/>
+<person name="Amico L."/>
+<person name="Brai M."/>
+<person name="Rodriguez de Cordoba S."/>
+</authorList>
+<dbReference type="PubMed" id="10803850"/>
+<dbReference type="DOI" id="10.1007/s002510050631"/>
+</citation>
+<scope>INVOLVEMENT IN CFHD</scope>
+</reference>
+<reference key="23">
+<citation type="journal article" date="2001" name="Am. J. Hum. Genet." volume="68" first="478" last="484">
+<title>Clustering of missense mutations in the C-terminal region of factor H in atypical hemolytic uremic syndrome.</title>
+<authorList>
+<person name="Perez-Caballero D."/>
+<person name="Gonzalez-Rubio C."/>
+<person name="Gallardo M.E."/>
+<person name="Vera M."/>
+<person name="Lopez-Trascasa M."/>
+<person name="Rodriguez de Cordoba S."/>
+<person name="Sanchez-Corral P."/>
+</authorList>
+<dbReference type="MEDLINE" id="21090512"/>
+<dbReference type="PubMed" id="11170895"/>
+<dbReference type="DOI" id="10.1086/318201"/>
+</citation>
+<scope>VARIANTS CFHD MET-956; LEU-1183; ARG-1189 AND ALA-1197</scope>
+</reference>
+<reference key="24">
+<citation type="journal article" date="2001" name="Am. J. Hum. Genet." volume="68" first="485" last="490">
+<title>Factor H mutations in hemolytic uremic syndrome cluster in exons 18-20, a domain important for host cell recognition.</title>
+<authorList>
+<person name="Richards A."/>
+<person name="Buddles M.R."/>
+<person name="Donne R.L."/>
+<person name="Kaplan B.S."/>
+<person name="Kirk E."/>
+<person name="Venning M.C."/>
+<person name="Tielemans C.L."/>
+<person name="Goodship J.A."/>
+<person name="Goodship T.H.J."/>
+</authorList>
+<dbReference type="PubMed" id="11170896"/>
+<dbReference type="DOI" id="10.1086/318203"/>
+</citation>
+<scope>VARIANTS CFHD GLU-1076; GLY-1119 AND ARG-1184</scope>
+</reference>
+<reference key="25">
+<citation type="journal article" date="2001" name="J. Am. Soc. Nephrol." volume="12" first="297" last="307">
+<title>The molecular basis of familial hemolytic uremic syndrome: mutation analysis of factor H gene reveals a hot spot in short consensus repeat 20.</title>
+<authorList>
+<consortium name="Italian registry of familial and recurrent HUS/TTP"/>
+<person name="Caprioli J."/>
+<person name="Bettinaglio P."/>
+<person name="Zipfel P.F."/>
+<person name="Amadei B."/>
+<person name="Daina E."/>
+<person name="Gamba S."/>
+<person name="Skerka C."/>
+<person name="Marziliano N."/>
+<person name="Remuzzi G."/>
+<person name="Noris M."/>
+</authorList>
+<dbReference type="PubMed" id="11158219"/>
+</citation>
+<scope>VARIANTS CFHD CYS-1210 AND GLN-1215</scope>
+</reference>
+<reference key="26">
+<citation type="journal article" date="2002" name="J. Mol. Biol." volume="316" first="217" last="224">
+<title>Molecular modelling of the C-terminal domains of factor H of human complement: a correlation between haemolytic uraemic syndrome and a predicted heparin binding site.</title>
+<authorList>
+<person name="Perkins S.J."/>
+<person name="Goodship T.H.J."/>
+</authorList>
+<dbReference type="PubMed" id="11851332"/>
+<dbReference type="DOI" id="10.1006/jmbi.2001.5337"/>
+</citation>
+<scope>VARIANTS AHUS1 MET-956; GLU-1076; GLY-1119; LEU-1183; ARG-1184; ARG-1189; LEU-1191; ASP-1194; ALA-1197; CYS-1210; GLY-1215 AND GLN-1215</scope>
+</reference>
+<reference key="27">
+<citation type="journal article" date="2002" name="Lancet" volume="359" first="1671" last="1672">
+<title>Combined kidney and liver transplantation for familial haemolytic uraemic syndrome.</title>
+<authorList>
+<person name="Remuzzi G."/>
+<person name="Ruggenenti P."/>
+<person name="Codazzi D."/>
+<person name="Noris M."/>
+<person name="Caprioli J."/>
+<person name="Locatelli G."/>
+<person name="Gridelli B."/>
+</authorList>
+<dbReference type="PubMed" id="12020532"/>
+<dbReference type="DOI" id="10.1016/S0140-6736(02)08560-4"/>
+</citation>
+<scope>VARIANT CFHD ARG-1183</scope>
+</reference>
+<reference key="28">
+<citation type="journal article" date="2003" name="Hum. Mol. Genet." volume="12" first="3385" last="3395">
+<title>Complement factor H mutations and gene polymorphisms in haemolytic uraemic syndrome: the C-257T, the A2089G and the G2881T polymorphisms are strongly associated with the disease.</title>
+<authorList>
+<consortium name="International registry of recurrent and familial HUS/TTP"/>
+<person name="Caprioli J."/>
+<person name="Castelletti F."/>
+<person name="Bucchioni S."/>
+<person name="Bettinaglio P."/>
+<person name="Bresin E."/>
+<person name="Pianetti G."/>
+<person name="Gamba S."/>
+<person name="Brioschi S."/>
+<person name="Daina E."/>
+<person name="Remuzzi G."/>
+<person name="Noris M."/>
+</authorList>
+<dbReference type="PubMed" id="14583443"/>
+<dbReference type="DOI" id="10.1093/hmg/ddg363"/>
+</citation>
+<scope>VARIANTS AHUS1 GLY-78; HIS-950; HIS-951; TRP-1163 AND ALA-1198</scope>
+<scope>VARIANT ASP-936</scope>
+</reference>
+<reference key="29">
+<citation type="journal article" date="2003" name="J. Med. Genet." volume="40" first="676" last="681">
+<title>Haemolytic uraemic syndrome and mutations of the factor H gene: a registry-based study of German speaking countries.</title>
+<authorList>
+<person name="Neumann H.P.H."/>
+<person name="Salzmann M."/>
+<person name="Bohnert-Iwan B."/>
+<person name="Mannuelian T."/>
+<person name="Skerka C."/>
+<person name="Lenk D."/>
+<person name="Bender B.U."/>
+<person name="Cybulla M."/>
+<person name="Riegler P."/>
+<person name="Koenigsrainer A."/>
+<person name="Neyer U."/>
+<person name="Bock A."/>
+<person name="Widmer U."/>
+<person name="Male D.A."/>
+<person name="Franke G."/>
+<person name="Zipfel P.F."/>
+</authorList>
+<dbReference type="PubMed" id="12960213"/>
+<dbReference type="DOI" id="10.1136/jmg.40.9.676"/>
+</citation>
+<scope>VARIANTS AHUS1 TRP-630; LYS-850; CYS-978; PHE-1021; ARG-1043; GLY-1134; ASP-1142; ARG-1157; ARG-1183 AND SER-1226</scope>
+</reference>
+<reference key="30">
+<citation type="journal article" date="2004" name="J. Am. Soc. Nephrol." volume="15" first="787" last="795">
+<title>Heterozygous and homozygous factor H deficiencies associated with hemolytic uremic syndrome or membranoproliferative glomerulonephritis: report and genetic analysis of 16 cases.</title>
+<authorList>
+<person name="Dragon-Durey M.-A."/>
+<person name="Fremeaux-Bacchi V."/>
+<person name="Loirat C."/>
+<person name="Blouin J."/>
+<person name="Niaudet P."/>
+<person name="Deschenes G."/>
+<person name="Coppo P."/>
+<person name="Herman Fridman W."/>
+<person name="Weiss L."/>
+</authorList>
+<dbReference type="PubMed" id="14978182"/>
+<dbReference type="DOI" id="10.1097/01.ASN.0000115702.28859.A7"/>
+</citation>
+<scope>VARIANTS CFHD LEU-127; SER-431 AND SER-673</scope>
+<scope>VARIANTS AHUS1 LYS-400; TYR-673; ARG-893; SER-915; LEU-1183 AND SER-1199</scope>
+</reference>
+<reference key="31">
+<citation type="journal article" date="2005" name="Am. J. Hum. Genet." volume="77" first="149" last="153">
+<title>Strong association of the Y402H variant in complement factor H at 1q32 with susceptibility to age-related macular degeneration.</title>
+<authorList>
+<person name="Zareparsi S."/>
+<person name="Branham K.E.H."/>
+<person name="Li M."/>
+<person name="Shah S."/>
+<person name="Klein R.J."/>
+<person name="Ott J."/>
+<person name="Hoh J."/>
+<person name="Abecasis G.R."/>
+<person name="Swaroop A."/>
+</authorList>
+<dbReference type="PubMed" id="15895326"/>
+<dbReference type="DOI" id="10.1086/431426"/>
+</citation>
+<scope>VARIANT HIS-402</scope>
+</reference>
+<reference key="32">
+<citation type="journal article" date="2005" name="Proc. Natl. Acad. Sci. U.S.A." volume="102" first="7227" last="7232">
+<title>A common haplotype in the complement regulatory gene factor H (HF1/CFH) predisposes individuals to age-related macular degeneration.</title>
+<authorList>
+<person name="Hageman G.S."/>
+<person name="Anderson D.H."/>
+<person name="Johnson L.V."/>
+<person name="Hancox L.S."/>
+<person name="Taiber A.J."/>
+<person name="Hardisty L.I."/>
+<person name="Hageman J.L."/>
+<person name="Stockman H.A."/>
+<person name="Borchardt J.D."/>
+<person name="Gehrs K.M."/>
+<person name="Smith R.J.H."/>
+<person name="Silvestri G."/>
+<person name="Russell S.R."/>
+<person name="Klaver C.C.W."/>
+<person name="Barbazetto I."/>
+<person name="Chang S."/>
+<person name="Yannuzzi L.A."/>
+<person name="Barile G.R."/>
+<person name="Merriam J.C."/>
+<person name="Smith R.T."/>
+<person name="Olsh A.K."/>
+<person name="Bergeron J."/>
+<person name="Zernant J."/>
+<person name="Merriam J.E."/>
+<person name="Gold B."/>
+<person name="Dean M."/>
+<person name="Allikmets R."/>
+</authorList>
+<dbReference type="PubMed" id="15870199"/>
+<dbReference type="DOI" id="10.1073/pnas.0501536102"/>
+</citation>
+<scope>VARIANTS ILE-62 AND HIS-402</scope>
+<scope>ASSOCIATION WITH ARMD</scope>
+</reference>
+<reference key="33">
+<citation type="journal article" date="2005" name="Science" volume="308" first="385" last="389">
+<title>Complement factor H polymorphism in age-related macular degeneration.</title>
+<authorList>
+<person name="Klein R.J."/>
+<person name="Zeiss C."/>
+<person name="Chew E.Y."/>
+<person name="Tsai J.-Y."/>
+<person name="Sackler R.S."/>
+<person name="Haynes C."/>
+<person name="Henning A.K."/>
+<person name="SanGiovanni J.P."/>
+<person name="Mane S.M."/>
+<person name="Mayne S.T."/>
+<person name="Bracken M.B."/>
+<person name="Ferris F.L."/>
+<person name="Ott J."/>
+<person name="Barnstable C."/>
+<person name="Hoh J."/>
+</authorList>
+<dbReference type="PubMed" id="15761122"/>
+<dbReference type="DOI" id="10.1126/science.1109557"/>
+</citation>
+<scope>ASSOCIATION OF VARIANT HIS-402 WITH ARMD</scope>
+</reference>
+<reference key="34">
+<citation type="journal article" date="2005" name="Science" volume="308" first="419" last="421">
+<title>Complement factor H variant increases the risk of age-related macular degeneration.</title>
+<authorList>
+<person name="Haines J.L."/>
+<person name="Hauser M.A."/>
+<person name="Schmidt S."/>
+<person name="Scott W.K."/>
+<person name="Olson L.M."/>
+<person name="Gallins P."/>
+<person name="Spencer K.L."/>
+<person name="Kwan S.Y."/>
+<person name="Noureddine M."/>
+<person name="Gilbert J.R."/>
+<person name="Schnetz-Boutaud N."/>
+<person name="Agarwal A."/>
+<person name="Postel E.A."/>
+<person name="Pericak-Vance M.A."/>
+</authorList>
+<dbReference type="PubMed" id="15761120"/>
+<dbReference type="DOI" id="10.1126/science.1110359"/>
+</citation>
+<scope>ASSOCIATION OF VARIANT HIS-402 WITH ARMD</scope>
+</reference>
+<reference key="35">
+<citation type="journal article" date="2005" name="Science" volume="308" first="421" last="424">
+<title>Complement factor H polymorphism and age-related macular degeneration.</title>
+<authorList>
+<person name="Edwards A.O."/>
+<person name="Ritter R. III"/>
+<person name="Abel K.J."/>
+<person name="Manning A."/>
+<person name="Panhuysen C."/>
+<person name="Farrer L.A."/>
+</authorList>
+<dbReference type="PubMed" id="15761121"/>
+<dbReference type="DOI" id="10.1126/science.1110189"/>
+</citation>
+<scope>ASSOCIATION OF VARIANT HIS-402 WITH ARMD</scope>
+</reference>
+<reference key="36">
+<citation type="journal article" date="2006" name="Kidney Int." volume="70" first="42" last="50">
+<title>Deletion of Lys224 in regulatory domain 4 of factor H reveals a novel pathomechanism for dense deposit disease (MPGN II).</title>
+<authorList>
+<person name="Licht C."/>
+<person name="Heinen S."/>
+<person name="Jozsi M."/>
+<person name="Loeschmann I."/>
+<person name="Saunders R.E."/>
+<person name="Perkins S.J."/>
+<person name="Waldherr R."/>
+<person name="Skerka C."/>
+<person name="Kirschfink M."/>
+<person name="Hoppe B."/>
+<person name="Zipfel P.F."/>
+</authorList>
+<dbReference type="PubMed" id="16612335"/>
+<dbReference type="DOI" id="10.1038/sj.ki.5000269"/>
+</citation>
+<scope>VARIANT CFHD LYS-224 DEL</scope>
+<scope>CHARACTERIZATION OF VARIANT CFHD LYS-224 DEL</scope>
+</reference>
+<reference key="37">
+<citation type="journal article" date="2008" name="Am. J. Hum. Genet." volume="82" first="516" last="523">
+<title>Basal laminar drusen caused by compound heterozygous variants in the CFH gene.</title>
+<authorList>
+<person name="Boon C.J.F."/>
+<person name="Klevering B.J."/>
+<person name="Hoyng C.B."/>
+<person name="Zonneveld-Vrieling M.N."/>
+<person name="Nabuurs S.B."/>
+<person name="Blokland E."/>
+<person name="Cremers F.P.M."/>
+<person name="den Hollander A.I."/>
+</authorList>
+<dbReference type="PubMed" id="18252232"/>
+<dbReference type="DOI" id="10.1016/j.ajhg.2007.11.007"/>
+</citation>
+<scope>INVOLVEMENT IN BASAL LAMINAR DRUSEN</scope>
+<scope>VARIANTS HIS-402; GLY-567; ASP-936; TYR-1050 AND SER-1078</scope>
+</reference>
+<reference key="38">
+<citation type="journal article" date="2010" name="Hum. Mutat." volume="31" first="E1445" last="E1460">
+<title>Mutations in alternative pathway complement proteins in American patients with atypical hemolytic uremic syndrome.</title>
+<authorList>
+<person name="Maga T.K."/>
+<person name="Nishimura C.J."/>
+<person name="Weaver A.E."/>
+<person name="Frees K.L."/>
+<person name="Smith R.J.H."/>
+</authorList>
+<dbReference type="PubMed" id="20513133"/>
+<dbReference type="DOI" id="10.1002/humu.21256"/>
+</citation>
+<scope>VARIANTS AHUS1 TYR-325; ILE-609; LEU-1169 AND CYS-1183</scope>
+<scope>VARIANT ASP-936</scope>
+</reference>
+<reference key="39">
+<citation type="journal article" date="2011" name="J. Mol. Cell Biol." volume="3" first="309" last="315">
+<title>Quantitative detection of single amino acid polymorphisms by targeted proteomics.</title>
+<authorList>
+<person name="Su Z.D."/>
+<person name="Sun L."/>
+<person name="Yu D.X."/>
+<person name="Li R.X."/>
+<person name="Li H.X."/>
+<person name="Yu Z.J."/>
+<person name="Sheng Q.H."/>
+<person name="Lin X."/>
+<person name="Zeng R."/>
+<person name="Wu J.R."/>
+</authorList>
+<dbReference type="PubMed" id="22028381"/>
+<dbReference type="DOI" id="10.1093/jmcb/mjr024"/>
+</citation>
+<scope>VARIANTS ILE-62; LYS-850; TYR-959 AND GLU-1143</scope>
+<scope>MASS SPECTROMETRY</scope>
+</reference>
+<reference key="40">
+<citation type="journal article" date="2011" name="Nat. Genet." volume="43" first="1232" last="1236">
+<title>A rare penetrant mutation in CFH confers high risk of age-related macular degeneration.</title>
+<authorList>
+<person name="Raychaudhuri S."/>
+<person name="Iartchouk O."/>
+<person name="Chin K."/>
+<person name="Tan P.L."/>
+<person name="Tai A.K."/>
+<person name="Ripke S."/>
+<person name="Gowrisankar S."/>
+<person name="Vemuri S."/>
+<person name="Montgomery K."/>
+<person name="Yu Y."/>
+<person name="Reynolds R."/>
+<person name="Zack D.J."/>
+<person name="Campochiaro B."/>
+<person name="Campochiaro P."/>
+<person name="Katsanis N."/>
+<person name="Daly M.J."/>
+<person name="Seddon J.M."/>
+</authorList>
+<dbReference type="PubMed" id="22019782"/>
+<dbReference type="DOI" id="10.1038/ng.976"/>
+</citation>
+<scope>VARIANT ARMD4 CYS-1210</scope>
+</reference>
+<comment type="function">
+<text>Factor H functions as a cofactor in the inactivation of C3b by factor I and also increases the rate of dissociation of the C3bBb complex (C3 convertase) and the (C3b)NBB complex (C5 convertase) in the alternative complement pathway.</text>
+</comment>
+<comment type="subcellular location">
+<subcellularLocation>
+<location>Secreted</location>
+</subcellularLocation>
+</comment>
+<comment type="alternative products">
+<event type="alternative splicing"/>
+<isoform>
+<id>P08603-1</id>
+<name>1</name>
+<sequence type="displayed"/>
+</isoform>
+<isoform>
+<id>P08603-2</id>
+<name>2</name>
+<name>FHL-1</name>
+<sequence type="described" ref="VSP_001190 VSP_001191"/>
+</isoform>
+</comment>
+<comment type="tissue specificity">
+<text>Expressed by the liver and secreted in plasma.</text>
+</comment>
+<comment type="disease">
+<text>Genetic variations in CFH are associated with basal laminar drusen (BLD) [MIM:126700]; also known as drusen of Bruch membrane or cuticular drusen or grouped early adult-onset drusen. Drusen are extracellular deposits that accumulate below the retinal pigment epithelium on Bruch membrane. Basal laminar drusen refers to an early adult-onset drusen phenotype that shows a pattern of uniform small, slightly raised yellow subretinal nodules randomly scattered in the macula. In later stages, these drusen often become more numerous, with clustered groups of drusen scattered throughout the retina. In time these small basal laminar drusen may expand and ultimately lead to a serous pigment epithelial detachment of the macula that may result in vision loss.</text>
+</comment>
+<comment type="disease">
+<text evidence="1 2 3 4 5 6 7 8">Defects in CFH are the cause of complement factor H deficiency (CFHD) [MIM:609814]. A disorder that can manifest as several different phenotypes, including asymptomatic, recurrent bacterial infections, and renal failure. Laboratory features usually include decreased serum levels of factor H, complement component C3, and a decrease in other terminal complement components, indicating activation of the alternative complement pathway. It is associated with a number of renal diseases with variable clinical presentation and progression, including membranoproliferative glomerulonephritis and atypical hemolytic uremic syndrome.</text>
+</comment>
+<comment type="disease">
+<text evidence="7 9 10 11 12 13 14 15">Defects in CFH are a cause of susceptibility to hemolytic uremic syndrome atypical type 1 (AHUS1) [MIM:235400]. An atypical form of hemolytic uremic syndrome. It is a complex genetic disease characterized by microangiopathic hemolytic anemia, thrombocytopenia, renal failure and absence of episodes of enterocolitis and diarrhea. In contrast to typical hemolytic uremic syndrome, atypical forms have a poorer prognosis, with higher death rates and frequent progression to end-stage renal disease. Note=Susceptibility to the development of atypical hemolytic uremic syndrome can be conferred by mutations in various components of or regulatory factors in the complement cascade system. Other genes may play a role in modifying the phenotype.</text>
+</comment>
+<comment type="disease">
+<text evidence="16">Genetic variation in CFH is associated with age-related macular degeneration type 4 (ARMD4) [MIM:610698]. ARMD is a multifactorial eye disease and the most common cause of irreversible vision loss in the developed world. In most patients, the disease is manifest as ophthalmoscopically visible yellowish accumulations of protein and lipid (known as drusen) that lie beneath the retinal pigment epithelium and within an elastin-containing structure known as Bruch membrane.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 20 Sushi (CCP/SCR) domains.</text>
+</comment>
+<comment type="sequence caution">
+<conflict type="frameshift">
+<sequence resource="EMBL-CDS" id="CAB41739" version="1"/>
+</conflict>
+<location>
+<position position="341"/>
+</location>
+</comment>
+<comment type="online information" name="CFHbase">
+<link uri="http://bioinf.uta.fi/CFHbase/"/>
+<text>CFH mutation db</text>
+</comment>
+<comment type="online information" name="GeneReviews">
+<link uri="http://www.ncbi.nlm.nih.gov/sites/GeneTests/lab/gene/CFH"/>
+</comment>
+<comment type="online information" name="SeattleSNPs">
+<link uri="http://pga.gs.washington.edu/data/cfh/"/>
+</comment>
+<dbReference type="EMBL" id="Y00716">
+<property type="protein sequence ID" value="CAA68704.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="DQ233256">
+<property type="protein sequence ID" value="ABB02180.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AL049744">
+<property type="protein sequence ID" value="CAI19672.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC037285">
+<property type="protein sequence ID" value="AAH37285.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC110643">
+<property type="protein sequence ID" value="AAI10644.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC142699">
+<property type="protein sequence ID" value="AAI42700.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="X04697">
+<property type="protein sequence ID" value="CAB41739.1"/>
+<property type="status" value="ALT_FRAME"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="X07523">
+<property type="protein sequence ID" value="CAA30403.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="M12383">
+<property type="protein sequence ID" value="AAA52013.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="M65294">
+<property type="protein sequence ID" value="AAA35948.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="U56979">
+<property type="protein sequence ID" value="AAB01987.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z29665">
+<property type="protein sequence ID" value="CAA82763.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="IPI" id="IPI00029739"/>
+<dbReference type="IPI" id="IPI00942414"/>
+<dbReference type="PIR" id="S00254">
+<property type="entry name" value="NBHUH"/>
+</dbReference>
+<dbReference type="PIR" id="S03013">
+<property type="entry name" value="NBHUHS"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_000177.2">
+<property type="nucleotide sequence ID" value="NM_000186.3"/>
+</dbReference>
+<dbReference type="UniGene" id="Hs.363396"/>
+<dbReference type="PDB" id="1FHC">
+<property type="method" value="Model"/>
+<property type="chains" value="A=1105-1231"/>
+</dbReference>
+<dbReference type="PDB" id="1HAQ">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=19-1231"/>
+</dbReference>
+<dbReference type="PDB" id="1HCC">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=927-985"/>
+</dbReference>
+<dbReference type="PDB" id="1HFH">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=866-985"/>
+</dbReference>
+<dbReference type="PDB" id="1HFI">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=866-927"/>
+</dbReference>
+<dbReference type="PDB" id="1KOV">
+<property type="method" value="Model"/>
+<property type="chains" value="A=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="2BZM">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=1107-1231"/>
+</dbReference>
+<dbReference type="PDB" id="2G7I">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="1.75"/>
+<property type="chains" value="A=1107-1231"/>
+</dbReference>
+<dbReference type="PDB" id="2IC4">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=321-506"/>
+</dbReference>
+<dbReference type="PDB" id="2JGW">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=386-446"/>
+</dbReference>
+<dbReference type="PDB" id="2JGX">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=386-446"/>
+</dbReference>
+<dbReference type="PDB" id="2KMS">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=690-804"/>
+</dbReference>
+<dbReference type="PDB" id="2QFG">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=19-322"/>
+</dbReference>
+<dbReference type="PDB" id="2QFH">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=928-1231"/>
+</dbReference>
+<dbReference type="PDB" id="2RLP">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=20-142"/>
+</dbReference>
+<dbReference type="PDB" id="2RLQ">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=84-206"/>
+</dbReference>
+<dbReference type="PDB" id="2UWN">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.35"/>
+<property type="chains" value="A=322-506"/>
+</dbReference>
+<dbReference type="PDB" id="2V8E">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.50"/>
+<property type="chains" value="A=322-506"/>
+</dbReference>
+<dbReference type="PDB" id="2W80">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.35"/>
+<property type="chains" value="A/B/E/G=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="2W81">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.35"/>
+<property type="chains" value="A/B/E=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="2WII">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.70"/>
+<property type="chains" value="C=18-264"/>
+</dbReference>
+<dbReference type="PDB" id="2XQW">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.31"/>
+<property type="chains" value="C=1103-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3GAU">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=19-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3GAV">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=19-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3GAW">
+<property type="method" value="X-ray"/>
+<property type="chains" value="A=19-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3KXV">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.00"/>
+<property type="chains" value="A=1103-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3KZJ">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="1.65"/>
+<property type="chains" value="A=1103-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3OXU">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.10"/>
+<property type="chains" value="D/E/F=1107-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3R62">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="1.52"/>
+<property type="chains" value="A/B=1107-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3RJ3">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.35"/>
+<property type="chains" value="D/E/F=1107-1231"/>
+</dbReference>
+<dbReference type="PDB" id="3SW0">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="1.80"/>
+<property type="chains" value="X=1046-1231"/>
+</dbReference>
+<dbReference type="PDB" id="4AYD">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.40"/>
+<property type="chains" value="A/B/E=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="4AYE">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.80"/>
+<property type="chains" value="A/B/E=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="4AYI">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.31"/>
+<property type="chains" value="A/E=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="4AYM">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="3.00"/>
+<property type="chains" value="A/B/E/F=321-443"/>
+</dbReference>
+<dbReference type="PDB" id="4B2R">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=566-687"/>
+</dbReference>
+<dbReference type="PDB" id="4B2S">
+<property type="method" value="NMR"/>
+<property type="chains" value="A=627-747"/>
+</dbReference>
+<dbReference type="PDBsum" id="1FHC"/>
+<dbReference type="PDBsum" id="1HAQ"/>
+<dbReference type="PDBsum" id="1HCC"/>
+<dbReference type="PDBsum" id="1HFH"/>
+<dbReference type="PDBsum" id="1HFI"/>
+<dbReference type="PDBsum" id="1KOV"/>
+<dbReference type="PDBsum" id="2BZM"/>
+<dbReference type="PDBsum" id="2G7I"/>
+<dbReference type="PDBsum" id="2IC4"/>
+<dbReference type="PDBsum" id="2JGW"/>
+<dbReference type="PDBsum" id="2JGX"/>
+<dbReference type="PDBsum" id="2KMS"/>
+<dbReference type="PDBsum" id="2QFG"/>
+<dbReference type="PDBsum" id="2QFH"/>
+<dbReference type="PDBsum" id="2RLP"/>
+<dbReference type="PDBsum" id="2RLQ"/>
+<dbReference type="PDBsum" id="2UWN"/>
+<dbReference type="PDBsum" id="2V8E"/>
+<dbReference type="PDBsum" id="2W80"/>
+<dbReference type="PDBsum" id="2W81"/>
+<dbReference type="PDBsum" id="2WII"/>
+<dbReference type="PDBsum" id="2XQW"/>
+<dbReference type="PDBsum" id="3GAU"/>
+<dbReference type="PDBsum" id="3GAV"/>
+<dbReference type="PDBsum" id="3GAW"/>
+<dbReference type="PDBsum" id="3KXV"/>
+<dbReference type="PDBsum" id="3KZJ"/>
+<dbReference type="PDBsum" id="3OXU"/>
+<dbReference type="PDBsum" id="3R62"/>
+<dbReference type="PDBsum" id="3RJ3"/>
+<dbReference type="PDBsum" id="3SW0"/>
+<dbReference type="PDBsum" id="4AYD"/>
+<dbReference type="PDBsum" id="4AYE"/>
+<dbReference type="PDBsum" id="4AYI"/>
+<dbReference type="PDBsum" id="4AYM"/>
+<dbReference type="PDBsum" id="4B2R"/>
+<dbReference type="PDBsum" id="4B2S"/>
+<dbReference type="ProteinModelPortal" id="P08603"/>
+<dbReference type="SMR" id="P08603">
+<property type="residue range" value="20-506, 525-804, 809-1231"/>
+</dbReference>
+<dbReference type="DIP" id="DIP-38303N"/>
+<dbReference type="IntAct" id="P08603">
+<property type="interactions" value="9"/>
+</dbReference>
+<dbReference type="STRING" id="P08603"/>
+<dbReference type="PhosphoSite" id="P08603"/>
+<dbReference type="DMDM" id="158517847"/>
+<dbReference type="PaxDb" id="P08603"/>
+<dbReference type="PRIDE" id="P08603"/>
+<dbReference type="DNASU" id="3075"/>
+<dbReference type="Ensembl" id="ENST00000367429">
+<property type="protein sequence ID" value="ENSP00000356399"/>
+<property type="gene ID" value="ENSG00000000971"/>
+</dbReference>
+<dbReference type="GeneID" id="3075"/>
+<dbReference type="KEGG" id="hsa:3075"/>
+<dbReference type="UCSC" id="uc001gtj.4">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="CTD" id="3075"/>
+<dbReference type="GeneCards" id="GC01P196621"/>
+<dbReference type="HGNC" id="HGNC:4883">
+<property type="gene designation" value="CFH"/>
+</dbReference>
+<dbReference type="HPA" id="CAB016385"/>
+<dbReference type="HPA" id="CAB016769"/>
+<dbReference type="HPA" id="HPA038922"/>
+<dbReference type="MIM" id="126700">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="134370">
+<property type="type" value="gene"/>
+</dbReference>
+<dbReference type="MIM" id="235400">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="609814">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="610698">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="neXtProt" id="NX_P08603"/>
+<dbReference type="Orphanet" id="279">
+<property type="disease" value="Age-related macular degeneration"/>
+</dbReference>
+<dbReference type="Orphanet" id="93579">
+<property type="disease" value="Atypical hemolytic uremic syndrome with H factor anomaly"/>
+</dbReference>
+<dbReference type="Orphanet" id="244275">
+<property type="disease" value="De novo thrombotic microangiopathy after kidney transplantation"/>
+</dbReference>
+<dbReference type="Orphanet" id="75376">
+<property type="disease" value="Familial drusen"/>
+</dbReference>
+<dbReference type="Orphanet" id="244242">
+<property type="disease" value="HELLP syndrome"/>
+</dbReference>
+<dbReference type="Orphanet" id="200421">
+<property type="disease" value="Immunodeficiency with factor H anomaly"/>
+</dbReference>
+<dbReference type="Orphanet" id="54370">
+<property type="disease" value="Membranoproliferative glomerulonephritis"/>
+</dbReference>
+<dbReference type="PharmGKB" id="PA29261"/>
+<dbReference type="eggNOG" id="NOG148800"/>
+<dbReference type="HOVERGEN" id="HBG005665"/>
+<dbReference type="InParanoid" id="P08603"/>
+<dbReference type="KO" id="K04004"/>
+<dbReference type="OrthoDB" id="EOG44TP71"/>
+<dbReference type="Reactome" id="REACT_6900">
+<property type="pathway name" value="Immune System"/>
+</dbReference>
+<dbReference type="ChEMBL" id="CHEMBL4629"/>
+<dbReference type="EvolutionaryTrace" id="P08603"/>
+<dbReference type="GenomeRNAi" id="3075"/>
+<dbReference type="NextBio" id="12163"/>
+<dbReference type="ArrayExpress" id="P08603"/>
+<dbReference type="Bgee" id="P08603"/>
+<dbReference type="Genevestigator" id="P08603"/>
+<dbReference type="GermOnline" id="ENSG00000000971">
+<property type="organism name" value="Homo sapiens"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005615">
+<property type="term" value="C:extracellular space"/>
+<property type="evidence" value="TAS:ProtInc"/>
+</dbReference>
+<dbReference type="GO" id="GO:0006956">
+<property type="term" value="P:complement activation"/>
+<property type="evidence" value="TAS:ProtInc"/>
+</dbReference>
+<dbReference type="GO" id="GO:0006957">
+<property type="term" value="P:complement activation, alternative pathway"/>
+<property type="evidence" value="IEA:UniProtKB-KW"/>
+</dbReference>
+<dbReference type="GO" id="GO:0045087">
+<property type="term" value="P:innate immune response"/>
+<property type="evidence" value="TAS:Reactome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0030449">
+<property type="term" value="P:regulation of complement activation"/>
+<property type="evidence" value="TAS:Reactome"/>
+</dbReference>
+<dbReference type="Gene3D" id="2.10.70.10">
+<property type="entry name" value="Complement_control_module"/>
+<property type="match status" value="18"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR016060">
+<property type="entry name" value="Complement_control_module"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR000436">
+<property type="entry name" value="Sushi_SCR_CCP"/>
+</dbReference>
+<dbReference type="Pfam" id="PF00084">
+<property type="entry name" value="Sushi"/>
+<property type="match status" value="19"/>
+</dbReference>
+<dbReference type="SMART" id="SM00032">
+<property type="entry name" value="CCP"/>
+<property type="match status" value="20"/>
+</dbReference>
+<dbReference type="SUPFAM" id="SSF57535">
+<property type="entry name" value="Complement_control_module"/>
+<property type="match status" value="19"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50923">
+<property type="entry name" value="SUSHI"/>
+<property type="match status" value="19"/>
+</dbReference>
+<proteinExistence type="evidence at protein level"/>
+<keyword id="KW-0002">3D-structure</keyword>
+<keyword id="KW-0913">Age-related macular degeneration</keyword>
+<keyword id="KW-0025">Alternative splicing</keyword>
+<keyword id="KW-0179">Complement alternate pathway</keyword>
+<keyword id="KW-0181">Complete proteome</keyword>
+<keyword id="KW-0903">Direct protein sequencing</keyword>
+<keyword id="KW-0225">Disease mutation</keyword>
+<keyword id="KW-1015">Disulfide bond</keyword>
+<keyword id="KW-0325">Glycoprotein</keyword>
+<keyword id="KW-1068">Hemolytic uremic syndrome</keyword>
+<keyword id="KW-0391">Immunity</keyword>
+<keyword id="KW-0399">Innate immunity</keyword>
+<keyword id="KW-0621">Polymorphism</keyword>
+<keyword id="KW-1185">Reference proteome</keyword>
+<keyword id="KW-0677">Repeat</keyword>
+<keyword id="KW-0964">Secreted</keyword>
+<keyword id="KW-0732">Signal</keyword>
+<keyword id="KW-0768">Sushi</keyword>
+<feature type="signal peptide" evidence="17">
+<location>
+<begin position="1"/>
+<end position="18"/>
+</location>
+</feature>
+<feature type="chain" description="Complement factor H" id="PRO_0000005894">
+<location>
+<begin position="19"/>
+<end position="1231"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 1">
+<location>
+<begin position="19"/>
+<end position="82"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 2">
+<location>
+<begin position="83"/>
+<end position="143"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 3">
+<location>
+<begin position="144"/>
+<end position="207"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 4">
+<location>
+<begin position="208"/>
+<end position="264"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 5">
+<location>
+<begin position="265"/>
+<end position="322"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 6">
+<location>
+<begin position="324"/>
+<end position="386"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 7">
+<location>
+<begin position="387"/>
+<end position="444"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 8">
+<location>
+<begin position="446"/>
+<end position="507"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 9">
+<location>
+<begin position="515"/>
+<end position="566"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 10">
+<location>
+<begin position="567"/>
+<end position="625"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 11">
+<location>
+<begin position="628"/>
+<end position="686"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 12">
+<location>
+<begin position="689"/>
+<end position="746"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 13">
+<location>
+<begin position="751"/>
+<end position="805"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 14">
+<location>
+<begin position="809"/>
+<end position="866"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 15">
+<location>
+<begin position="868"/>
+<end position="928"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 16">
+<location>
+<begin position="929"/>
+<end position="986"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 17">
+<location>
+<begin position="987"/>
+<end position="1045"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 18">
+<location>
+<begin position="1046"/>
+<end position="1104"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 19">
+<location>
+<begin position="1107"/>
+<end position="1165"/>
+</location>
+</feature>
+<feature type="domain" description="Sushi 20">
+<location>
+<begin position="1170"/>
+<end position="1230"/>
+</location>
+</feature>
+<feature type="site" description="Not glycosylated">
+<location>
+<position position="217"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)" evidence="18 19 20">
+<location>
+<position position="529"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)" status="potential">
+<location>
+<position position="718"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)" evidence="20">
+<location>
+<position position="802"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)">
+<location>
+<position position="822"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...) (complex)" evidence="20 21 22">
+<location>
+<position position="882"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)" evidence="19 20">
+<location>
+<position position="911"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)" evidence="20">
+<location>
+<position position="1029"/>
+</location>
+</feature>
+<feature type="glycosylation site" description="N-linked (GlcNAc...)" status="potential">
+<location>
+<position position="1095"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="21"/>
+<end position="66"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="52"/>
+<end position="80"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="85"/>
+<end position="129"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="114"/>
+<end position="141"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="146"/>
+<end position="192"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="178"/>
+<end position="205"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="210"/>
+<end position="251"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="237"/>
+<end position="262"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="267"/>
+<end position="309"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="294"/>
+<end position="320"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="325"/>
+<end position="374"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="357"/>
+<end position="385"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="389"/>
+<end position="431"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="416"/>
+<end position="442"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="448"/>
+<end position="494"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="477"/>
+<end position="505"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="509"/>
+<end position="553"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="536"/>
+<end position="564"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="569"/>
+<end position="611"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="597"/>
+<end position="623"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="630"/>
+<end position="673"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="659"/>
+<end position="684"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="691"/>
+<end position="733"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="719"/>
+<end position="744"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="753"/>
+<end position="792"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="781"/>
+<end position="803"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="811"/>
+<end position="853"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="839"/>
+<end position="864"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="870"/>
+<end position="915"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="901"/>
+<end position="926"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="931"/>
+<end position="973"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="959"/>
+<end position="984"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="989"/>
+<end position="1032"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1018"/>
+<end position="1043"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1048"/>
+<end position="1091"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1077"/>
+<end position="1102"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1109"/>
+<end position="1152"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1138"/>
+<end position="1163"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1167"/>
+<end position="1218"/>
+</location>
+</feature>
+<feature type="disulfide bond" status="by similarity">
+<location>
+<begin position="1201"/>
+<end position="1228"/>
+</location>
+</feature>
+<feature type="splice variant" description="In isoform 2." id="VSP_001190">
+<original>KTCS</original>
+<variation>SFTL</variation>
+<location>
+<begin position="446"/>
+<end position="449"/>
+</location>
+</feature>
+<feature type="splice variant" description="In isoform 2." id="VSP_001191">
+<location>
+<begin position="450"/>
+<end position="1231"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Polymorphism confirmed at protein level; dbSNP:rs800292." id="VAR_023836" evidence="23 24 25 26">
+<original>V</original>
+<variation>I</variation>
+<location>
+<position position="62"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025864" evidence="13">
+<original>R</original>
+<variation>G</variation>
+<location>
+<position position="78"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD; with membranoproliferative glomerulonephritis." id="VAR_031978" evidence="7">
+<original>R</original>
+<variation>L</variation>
+<location>
+<position position="127"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD; with membranoproliferative glomerulonephritis; affects binding of factor H to C3b and shows defective complement regulation." id="VAR_031979" evidence="8">
+<location>
+<position position="224"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_063648" evidence="15">
+<original>C</original>
+<variation>Y</variation>
+<location>
+<position position="325"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_031980" evidence="7">
+<original>Q</original>
+<variation>K</variation>
+<location>
+<position position="400"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Polymorphism associated with ARMD4; dbSNP:rs1061170." id="VAR_001979" evidence="18 25 27 28 29 30 31 32">
+<original>Y</original>
+<variation>H</variation>
+<location>
+<position position="402"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD; with membranoproliferative glomerulonephritis." id="VAR_031981" evidence="7">
+<original>C</original>
+<variation>S</variation>
+<location>
+<position position="431"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs1061171." id="VAR_043892" evidence="18">
+<original>T</original>
+<variation>R</variation>
+<location>
+<position position="493"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD." id="VAR_019405" evidence="1">
+<original>C</original>
+<variation>R</variation>
+<location>
+<position position="536"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs35453854." id="VAR_025092" evidence="23">
+<original>I</original>
+<variation>T</variation>
+<location>
+<position position="551"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Associated with basal laminar drusen." id="VAR_043893" evidence="32">
+<original>R</original>
+<variation>G</variation>
+<location>
+<position position="567"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_063649" evidence="15">
+<original>V</original>
+<variation>I</variation>
+<location>
+<position position="609"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025865" evidence="14">
+<original>C</original>
+<variation>W</variation>
+<location>
+<position position="630"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD; with membranoproliferative glomerulonephritis." id="VAR_031982" evidence="7">
+<original>C</original>
+<variation>S</variation>
+<location>
+<position position="673"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_031983" evidence="7">
+<original>C</original>
+<variation>Y</variation>
+<location>
+<position position="673"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1; variant confirmed at protein level." id="VAR_025866" evidence="14 26">
+<original>E</original>
+<variation>K</variation>
+<location>
+<position position="850"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs515299." id="VAR_025093" evidence="23">
+<original>S</original>
+<variation>I</variation>
+<location>
+<position position="890"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_031984" evidence="7">
+<original>H</original>
+<variation>R</variation>
+<location>
+<position position="893"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_031985" evidence="7">
+<original>C</original>
+<variation>S</variation>
+<location>
+<position position="915"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Polymorphism associated with hemolytic uremic syndrome and basal laminar drusen; dbSNP:rs1065489." id="VAR_020261" evidence="13 15 23 32">
+<original>E</original>
+<variation>D</variation>
+<location>
+<position position="936"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025867" evidence="13">
+<original>Q</original>
+<variation>H</variation>
+<location>
+<position position="950"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025868" evidence="13">
+<original>Y</original>
+<variation>H</variation>
+<location>
+<position position="951"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025869" evidence="3 12">
+<original>T</original>
+<variation>M</variation>
+<location>
+<position position="956"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD; variant confirmed at protein level." id="VAR_019406" evidence="1 26">
+<original>C</original>
+<variation>Y</variation>
+<location>
+<position position="959"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025870" evidence="14">
+<original>W</original>
+<variation>C</variation>
+<location>
+<position position="978"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs17575212." id="VAR_055683">
+<original>N</original>
+<variation>T</variation>
+<location>
+<position position="997"/>
+</location>
+</feature>
+<feature type="sequence variant" id="VAR_025094" evidence="23">
+<original>V</original>
+<variation>I</variation>
+<location>
+<position position="1007"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs534399." id="VAR_043894">
+<original>V</original>
+<variation>L</variation>
+<location>
+<position position="1007"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs11539862." id="VAR_055684">
+<original>A</original>
+<variation>T</variation>
+<location>
+<position position="1010"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs34362004." id="VAR_025095" evidence="23">
+<original>T</original>
+<variation>I</variation>
+<location>
+<position position="1017"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025871" evidence="14">
+<original>Y</original>
+<variation>F</variation>
+<location>
+<position position="1021"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025872" evidence="14">
+<original>C</original>
+<variation>R</variation>
+<location>
+<position position="1043"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Polymorphism associated with basal laminar drusen; dbSNP:rs35274867." id="VAR_025096" evidence="23 32">
+<original>N</original>
+<variation>Y</variation>
+<location>
+<position position="1050"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs35343172." id="VAR_025097" evidence="23">
+<original>I</original>
+<variation>T</variation>
+<location>
+<position position="1059"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD." id="VAR_025873" evidence="4 12">
+<original>Q</original>
+<variation>E</variation>
+<location>
+<position position="1076"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Associated with basal laminar drusen." id="VAR_043895" evidence="32">
+<original>R</original>
+<variation>S</variation>
+<location>
+<position position="1078"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD." id="VAR_025874" evidence="4 12">
+<original>D</original>
+<variation>G</variation>
+<location>
+<position position="1119"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025875" evidence="14">
+<original>V</original>
+<variation>G</variation>
+<location>
+<position position="1134"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025876" evidence="14">
+<original>Y</original>
+<variation>D</variation>
+<location>
+<position position="1142"/>
+</location>
+</feature>
+<feature type="sequence variant" description="Polymorphism confirmed at protein level; dbSNP:rs34247141." id="VAR_043896" evidence="26">
+<original>Q</original>
+<variation>E</variation>
+<location>
+<position position="1143"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025877" evidence="14">
+<original>W</original>
+<variation>R</variation>
+<location>
+<position position="1157"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025878" evidence="13">
+<original>C</original>
+<variation>W</variation>
+<location>
+<position position="1163"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_063650" evidence="15">
+<original>I</original>
+<variation>L</variation>
+<location>
+<position position="1169"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_063651" evidence="15">
+<original>W</original>
+<variation>C</variation>
+<location>
+<position position="1183"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025879" evidence="3 7 12">
+<original>W</original>
+<variation>L</variation>
+<location>
+<position position="1183"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025880" evidence="6 14">
+<original>W</original>
+<variation>R</variation>
+<location>
+<position position="1183"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD." id="VAR_025881" evidence="4 12">
+<original>T</original>
+<variation>R</variation>
+<location>
+<position position="1184"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_019407" evidence="3 12">
+<original>L</original>
+<variation>R</variation>
+<location>
+<position position="1189"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1; dbSNP:rs460897." id="VAR_019408" evidence="10 12">
+<original>S</original>
+<variation>L</variation>
+<location>
+<position position="1191"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025882" evidence="12">
+<original>G</original>
+<variation>D</variation>
+<location>
+<position position="1194"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1; dbSNP:rs460184." id="VAR_025883" evidence="3 12">
+<original>V</original>
+<variation>A</variation>
+<location>
+<position position="1197"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025884" evidence="13">
+<original>E</original>
+<variation>A</variation>
+<location>
+<position position="1198"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_031986" evidence="7">
+<original>F</original>
+<variation>S</variation>
+<location>
+<position position="1199"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD and ARMD4; rare penetrant mutation that confers high risk of age-related macular degeneration." id="VAR_025885" evidence="5 12 16">
+<original>R</original>
+<variation>C</variation>
+<location>
+<position position="1210"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_025886" evidence="9 12">
+<original>R</original>
+<variation>G</variation>
+<location>
+<position position="1215"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In CFHD." id="VAR_025887" evidence="5 12">
+<original>R</original>
+<variation>Q</variation>
+<location>
+<position position="1215"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1." id="VAR_019409">
+<original>YPTCAKR</original>
+<variation>FQS</variation>
+<location>
+<begin position="1225"/>
+<end position="1231"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In AHUS1; atypical." id="VAR_025888" evidence="14">
+<original>P</original>
+<variation>S</variation>
+<location>
+<position position="1226"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 8; AA sequence." ref="8">
+<original>C</original>
+<variation>Q</variation>
+<location>
+<position position="21"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 8; AA sequence." ref="8">
+<original>T</original>
+<variation>V</variation>
+<location>
+<position position="30"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 8; AA sequence." ref="8">
+<original>T</original>
+<variation>Q</variation>
+<location>
+<position position="34"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 5; CAB41739." ref="5">
+<original>RP</original>
+<variation>IL</variation>
+<location>
+<begin position="53"/>
+<end position="54"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="21"/>
+<end position="23"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="29"/>
+<end position="33"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="47"/>
+<end position="52"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="62"/>
+<end position="66"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="68"/>
+<end position="74"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="94"/>
+<end position="105"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="109"/>
+<end position="114"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="118"/>
+<end position="123"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="126"/>
+<end position="129"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="131"/>
+<end position="134"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="140"/>
+<end position="143"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="155"/>
+<end position="158"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="159"/>
+<end position="162"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="172"/>
+<end position="175"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="182"/>
+<end position="186"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="188"/>
+<end position="192"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="196"/>
+<end position="200"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="204"/>
+<end position="207"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="218"/>
+<end position="222"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="232"/>
+<end position="237"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="241"/>
+<end position="245"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="247"/>
+<end position="252"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="255"/>
+<end position="258"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="262"/>
+<end position="264"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="333"/>
+<end position="335"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="338"/>
+<end position="341"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="342"/>
+<end position="344"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="352"/>
+<end position="357"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="366"/>
+<end position="375"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="378"/>
+<end position="383"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="386"/>
+<end position="390"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="400"/>
+<end position="403"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="405"/>
+<end position="407"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="411"/>
+<end position="413"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="415"/>
+<end position="417"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="420"/>
+<end position="422"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="423"/>
+<end position="425"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="427"/>
+<end position="432"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="435"/>
+<end position="438"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="447"/>
+<end position="449"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="450"/>
+<end position="452"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="456"/>
+<end position="459"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="465"/>
+<end position="468"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="472"/>
+<end position="477"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="484"/>
+<end position="486"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="488"/>
+<end position="495"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="498"/>
+<end position="500"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="578"/>
+<end position="581"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="585"/>
+<end position="587"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="592"/>
+<end position="597"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="602"/>
+<end position="605"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="607"/>
+<end position="612"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="615"/>
+<end position="618"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="622"/>
+<end position="626"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="637"/>
+<end position="641"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="654"/>
+<end position="658"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="663"/>
+<end position="665"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="669"/>
+<end position="674"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="684"/>
+<end position="686"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="700"/>
+<end position="703"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="714"/>
+<end position="718"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="729"/>
+<end position="732"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="757"/>
+<end position="760"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="765"/>
+<end position="767"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="769"/>
+<end position="771"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="790"/>
+<end position="792"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="797"/>
+<end position="799"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="870"/>
+<end position="872"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="879"/>
+<end position="881"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="883"/>
+<end position="887"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="889"/>
+<end position="891"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="895"/>
+<end position="904"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="906"/>
+<end position="909"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="911"/>
+<end position="916"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="925"/>
+<end position="927"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="940"/>
+<end position="943"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="950"/>
+<end position="952"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="957"/>
+<end position="959"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="965"/>
+<end position="967"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="971"/>
+<end position="974"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="977"/>
+<end position="979"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1057"/>
+<end position="1059"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1065"/>
+<end position="1067"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1072"/>
+<end position="1077"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1082"/>
+<end position="1085"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1087"/>
+<end position="1092"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1101"/>
+<end position="1103"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1118"/>
+<end position="1122"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1126"/>
+<end position="1128"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1133"/>
+<end position="1138"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1143"/>
+<end position="1146"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1148"/>
+<end position="1153"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1162"/>
+<end position="1164"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1167"/>
+<end position="1170"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="1171"/>
+<end position="1177"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1179"/>
+<end position="1181"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="1182"/>
+<end position="1186"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1189"/>
+<end position="1191"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1196"/>
+<end position="1201"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="1202"/>
+<end position="1204"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1205"/>
+<end position="1207"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1214"/>
+<end position="1217"/>
+</location>
+</feature>
+<feature type="strand">
+<location>
+<begin position="1228"/>
+<end position="1230"/>
+</location>
+</feature>
+<evidence key="1" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="9312129"/>
+</source>
+</evidence>
+<evidence key="2" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="10803850"/>
+</source>
+</evidence>
+<evidence key="3" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11170895"/>
+</source>
+</evidence>
+<evidence key="4" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11170896"/>
+</source>
+</evidence>
+<evidence key="5" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11158219"/>
+</source>
+</evidence>
+<evidence key="6" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="12020532"/>
+</source>
+</evidence>
+<evidence key="7" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="14978182"/>
+</source>
+</evidence>
+<evidence key="8" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="16612335"/>
+</source>
+</evidence>
+<evidence key="9" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="9551389"/>
+</source>
+</evidence>
+<evidence key="10" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="10577907"/>
+</source>
+</evidence>
+<evidence key="11" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="10762557"/>
+</source>
+</evidence>
+<evidence key="12" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11851332"/>
+</source>
+</evidence>
+<evidence key="13" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="14583443"/>
+</source>
+</evidence>
+<evidence key="14" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="12960213"/>
+</source>
+</evidence>
+<evidence key="15" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="20513133"/>
+</source>
+</evidence>
+<evidence key="16" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="22019782"/>
+</source>
+</evidence>
+<evidence key="17" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="6215918"/>
+</source>
+</evidence>
+<evidence key="18" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="2963625"/>
+</source>
+</evidence>
+<evidence key="19" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="16335952"/>
+</source>
+</evidence>
+<evidence key="20" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="19159218"/>
+</source>
+</evidence>
+<evidence key="21" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="14760718"/>
+</source>
+</evidence>
+<evidence key="22" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="19838169"/>
+</source>
+</evidence>
+<evidence key="23" type="ECO:0000006">
+<source ref="2"/>
+</evidence>
+<evidence key="24" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15489334"/>
+</source>
+</evidence>
+<evidence key="25" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15870199"/>
+</source>
+</evidence>
+<evidence key="26" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="22028381"/>
+</source>
+</evidence>
+<evidence key="27" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="16710414"/>
+</source>
+</evidence>
+<evidence key="28" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15895326"/>
+</source>
+</evidence>
+<evidence key="29" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15761122"/>
+</source>
+</evidence>
+<evidence key="30" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15761120"/>
+</source>
+</evidence>
+<evidence key="31" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15761121"/>
+</source>
+</evidence>
+<evidence key="32" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="18252232"/>
+</source>
+</evidence>
+<sequence length="1231" mass="139096" checksum="3C26D62A2BF9BFEE" modified="2007-09-11" version="4" precursor="true">
+MRLLAKIICLMLWAICVAEDCNELPPRRNTEILTGSWSDQTYPEGTQAIYKCRPGYRSLG
+NVIMVCRKGEWVALNPLRKCQKRPCGHPGDTPFGTFTLTGGNVFEYGVKAVYTCNEGYQL
+LGEINYRECDTDGWTNDIPICEVVKCLPVTAPENGKIVSSAMEPDREYHFGQAVRFVCNS
+GYKIEGDEEMHCSDDGFWSKEKPKCVEISCKSPDVINGSPISQKIIYKENERFQYKCNMG
+YEYSERGDAVCTESGWRPLPSCEEKSCDNPYIPNGDYSPLRIKHRTGDEITYQCRNGFYP
+ATRGNTAKCTSTGWIPAPRCTLKPCDYPDIKHGGLYHENMRRPYFPVAVGKYYSYYCDEH
+FETPSGSYWDHIHCTQDGWSPAVPCLRKCYFPYLENGYNQNYGRKFVQGKSIDVACHPGY
+ALPKAQTTVTCMENGWSPTPRCIRVKTCSKSSIDIENGFISESQYTYALKEKAKYQCKLG
+YVTADGETSGSITCGKDGWSAQPTCIKSCDIPVFMNARTKNDFTWFKLNDTLDYECHDGY
+ESNTGSTTGSIVCGYNGWSDLPICYERECELPKIDVHLVPDRKKDQYKVGEVLKFSCKPG
+FTIVGPNSVQCYHFGLSPDLPICKEQVQSCGPPPELLNGNVKEKTKEEYGHSEVVEYYCN
+PRFLMKGPNKIQCVDGEWTTLPVCIVEESTCGDIPELEHGWAQLSSPPYYYGDSVEFNCS
+ESFTMIGHRSITCIHGVWTQLPQCVAIDKLKKCKSSNLIILEEHLKNKKEFDHNSNIRYR
+CRGKEGWIHTVCINGRWDPEVNCSMAQIQLCPPPPQIPNSHNMTTTLNYRDGEKVSVLCQ
+ENYLIQEGEEITCKDGRWQSIPLCVEKIPCSQPPQIEHGTINSSRSSQESYAHGTKLSYT
+CEGGFRISEENETTCYMGKWSSPPQCEGLPCKSPPEISHGVVAHMSDSYQYGEEVTYKCF
+EGFGIDGPAIAKCLGEKWSHPPSCIKTDCLSLPSFENAIPMGEKKDVYKAGEQVTYTCAT
+YYKMDGASNVTCINSRWTGRPTCRDTSCVNPPTVQNAYIVSRQMSKYPSGERVRYQCRSP
+YEMFGDEEVMCLNGNWTEPPQCKDSTGKCGPPPPIDNGDITSFPLSVYAPASSVEYQCQN
+LYQLEGNKRITCRNGQWSEPPKCLHPCVISREIMENYNIALRWTAKQKLYSRTGESVEFV
+CKRGYRLSSRSHTLRTTCWDGKLEYPTCAKR
+</sequence>
+</entry>
+<copyright>
+Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+Distributed under the Creative Commons Attribution-NoDerivs License
+</copyright>
+</uniprot>

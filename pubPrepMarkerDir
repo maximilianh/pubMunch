@@ -150,9 +150,6 @@ def writePdbFnames(pdbDir, pdbDictFname):
         ofh.write("\n")
     ofh.close()
 
-
-
-
 def prepMarkerDir(markerDir, onlyType):
     " config targetdir for blatCdna "
 

@@ -62,7 +62,9 @@ class FastaReader:
             print id,seq """
 
     def __init__(self, fname):
-        if fname=="stdin":
+        if hasattr(fname, 'read'):
+            self.f = fname
+        elif fname=="stdin":
             self.f=sys.stdin
         else:
             self.f=open(fname)

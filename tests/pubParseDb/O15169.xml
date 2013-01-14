@@ -1,0 +1,1594 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<uniprot xmlns="http://uniprot.org/uniprot" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://uniprot.org/uniprot http://www.uniprot.org/support/docs/uniprot.xsd">
+<entry dataset="Swiss-Prot" created="2000-12-01" modified="2013-01-09" version="145">
+<accession>O15169</accession>
+<accession>Q4TT26</accession>
+<accession>Q4TT27</accession>
+<accession>Q86YA7</accession>
+<accession>Q8WVW6</accession>
+<accession>Q96S28</accession>
+<name>AXIN1_HUMAN</name>
+<protein>
+<recommendedName>
+<fullName>Axin-1</fullName>
+</recommendedName>
+<alternativeName>
+<fullName>Axis inhibition protein 1</fullName>
+<shortName>hAxin</shortName>
+</alternativeName>
+</protein>
+<gene>
+<name type="primary">AXIN1</name>
+<name type="synonym">AXIN</name>
+</gene>
+<organism>
+<name type="scientific">Homo sapiens</name>
+<name type="common">Human</name>
+<dbReference type="NCBI Taxonomy" id="9606"/>
+<lineage>
+<taxon>Eukaryota</taxon>
+<taxon>Metazoa</taxon>
+<taxon>Chordata</taxon>
+<taxon>Craniata</taxon>
+<taxon>Vertebrata</taxon>
+<taxon>Euteleostomi</taxon>
+<taxon>Mammalia</taxon>
+<taxon>Eutheria</taxon>
+<taxon>Euarchontoglires</taxon>
+<taxon>Primates</taxon>
+<taxon>Haplorrhini</taxon>
+<taxon>Catarrhini</taxon>
+<taxon>Hominidae</taxon>
+<taxon>Homo</taxon>
+</lineage>
+</organism>
+<reference key="1">
+<citation type="journal article" date="1997" name="Cell" volume="90" first="181" last="192">
+<title>The mouse Fused locus encodes Axin, an inhibitor of the Wnt signaling pathway that regulates embryonic axis formation.</title>
+<authorList>
+<person name="Zeng L."/>
+<person name="Fagotto F."/>
+<person name="Zhang T."/>
+<person name="Hsu W."/>
+<person name="Vasicek T.J."/>
+<person name="Perry W.L. III"/>
+<person name="Lee J.J."/>
+<person name="Tilghman S.M."/>
+<person name="Gumbiner B.M."/>
+<person name="Costantini F."/>
+</authorList>
+<dbReference type="MEDLINE" id="97373830"/>
+<dbReference type="PubMed" id="9230313"/>
+<dbReference type="DOI" id="10.1016/S0092-8674(00)80324-4"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA] (ISOFORM 1)</scope>
+</reference>
+<reference key="2">
+<citation type="journal article" date="2001" name="Hum. Mol. Genet." volume="10" first="339" last="352">
+<title>Sequence, structure and pathology of the fully annotated terminal 2 Mb of the short arm of human chromosome 16.</title>
+<authorList>
+<person name="Daniels R.J."/>
+<person name="Peden J.F."/>
+<person name="Lloyd C."/>
+<person name="Horsley S.W."/>
+<person name="Clark K."/>
+<person name="Tufarelli C."/>
+<person name="Kearney L."/>
+<person name="Buckle V.J."/>
+<person name="Doggett N.A."/>
+<person name="Flint J."/>
+<person name="Higgs D.R."/>
+</authorList>
+<dbReference type="MEDLINE" id="21096910"/>
+<dbReference type="PubMed" id="11157797"/>
+<dbReference type="DOI" id="10.1093/hmg/10.4.339"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]</scope>
+</reference>
+<reference key="3">
+<citation type="journal article" date="2004" name="Nature" volume="432" first="988" last="994">
+<title>The sequence and analysis of duplication-rich human chromosome 16.</title>
+<authorList>
+<person name="Martin J."/>
+<person name="Han C."/>
+<person name="Gordon L.A."/>
+<person name="Terry A."/>
+<person name="Prabhakar S."/>
+<person name="She X."/>
+<person name="Xie G."/>
+<person name="Hellsten U."/>
+<person name="Chan Y.M."/>
+<person name="Altherr M."/>
+<person name="Couronne O."/>
+<person name="Aerts A."/>
+<person name="Bajorek E."/>
+<person name="Black S."/>
+<person name="Blumer H."/>
+<person name="Branscomb E."/>
+<person name="Brown N.C."/>
+<person name="Bruno W.J."/>
+<person name="Buckingham J.M."/>
+<person name="Callen D.F."/>
+<person name="Campbell C.S."/>
+<person name="Campbell M.L."/>
+<person name="Campbell E.W."/>
+<person name="Caoile C."/>
+<person name="Challacombe J.F."/>
+<person name="Chasteen L.A."/>
+<person name="Chertkov O."/>
+<person name="Chi H.C."/>
+<person name="Christensen M."/>
+<person name="Clark L.M."/>
+<person name="Cohn J.D."/>
+<person name="Denys M."/>
+<person name="Detter J.C."/>
+<person name="Dickson M."/>
+<person name="Dimitrijevic-Bussod M."/>
+<person name="Escobar J."/>
+<person name="Fawcett J.J."/>
+<person name="Flowers D."/>
+<person name="Fotopulos D."/>
+<person name="Glavina T."/>
+<person name="Gomez M."/>
+<person name="Gonzales E."/>
+<person name="Goodstein D."/>
+<person name="Goodwin L.A."/>
+<person name="Grady D.L."/>
+<person name="Grigoriev I."/>
+<person name="Groza M."/>
+<person name="Hammon N."/>
+<person name="Hawkins T."/>
+<person name="Haydu L."/>
+<person name="Hildebrand C.E."/>
+<person name="Huang W."/>
+<person name="Israni S."/>
+<person name="Jett J."/>
+<person name="Jewett P.B."/>
+<person name="Kadner K."/>
+<person name="Kimball H."/>
+<person name="Kobayashi A."/>
+<person name="Krawczyk M.-C."/>
+<person name="Leyba T."/>
+<person name="Longmire J.L."/>
+<person name="Lopez F."/>
+<person name="Lou Y."/>
+<person name="Lowry S."/>
+<person name="Ludeman T."/>
+<person name="Manohar C.F."/>
+<person name="Mark G.A."/>
+<person name="McMurray K.L."/>
+<person name="Meincke L.J."/>
+<person name="Morgan J."/>
+<person name="Moyzis R.K."/>
+<person name="Mundt M.O."/>
+<person name="Munk A.C."/>
+<person name="Nandkeshwar R.D."/>
+<person name="Pitluck S."/>
+<person name="Pollard M."/>
+<person name="Predki P."/>
+<person name="Parson-Quintana B."/>
+<person name="Ramirez L."/>
+<person name="Rash S."/>
+<person name="Retterer J."/>
+<person name="Ricke D.O."/>
+<person name="Robinson D.L."/>
+<person name="Rodriguez A."/>
+<person name="Salamov A."/>
+<person name="Saunders E.H."/>
+<person name="Scott D."/>
+<person name="Shough T."/>
+<person name="Stallings R.L."/>
+<person name="Stalvey M."/>
+<person name="Sutherland R.D."/>
+<person name="Tapia R."/>
+<person name="Tesmer J.G."/>
+<person name="Thayer N."/>
+<person name="Thompson L.S."/>
+<person name="Tice H."/>
+<person name="Torney D.C."/>
+<person name="Tran-Gyamfi M."/>
+<person name="Tsai M."/>
+<person name="Ulanovsky L.E."/>
+<person name="Ustaszewska A."/>
+<person name="Vo N."/>
+<person name="White P.S."/>
+<person name="Williams A.L."/>
+<person name="Wills P.L."/>
+<person name="Wu J.-R."/>
+<person name="Wu K."/>
+<person name="Yang J."/>
+<person name="DeJong P."/>
+<person name="Bruce D."/>
+<person name="Doggett N.A."/>
+<person name="Deaven L."/>
+<person name="Schmutz J."/>
+<person name="Grimwood J."/>
+<person name="Richardson P."/>
+<person name="Rokhsar D.S."/>
+<person name="Eichler E.E."/>
+<person name="Gilna P."/>
+<person name="Lucas S.M."/>
+<person name="Myers R.M."/>
+<person name="Rubin E.M."/>
+<person name="Pennacchio L.A."/>
+</authorList>
+<dbReference type="PubMed" id="15616553"/>
+<dbReference type="DOI" id="10.1038/nature03187"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]</scope>
+</reference>
+<reference key="4">
+<citation type="journal article" date="2004" name="Genome Res." volume="14" first="2121" last="2127">
+<title>The status, quality, and expansion of the NIH full-length cDNA project: the Mammalian Gene Collection (MGC).</title>
+<authorList>
+<consortium name="The MGC Project Team"/>
+</authorList>
+<dbReference type="PubMed" id="15489334"/>
+<dbReference type="DOI" id="10.1101/gr.2596504"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] (ISOFORM 2)</scope>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA] OF 471-862 (ISOFORM 1)</scope>
+<source>
+<tissue>Lymphoma</tissue>
+<tissue>Renal cell carcinoma</tissue>
+</source>
+</reference>
+<reference key="5">
+<citation type="journal article" date="1999" name="J. Biol. Chem." volume="274" first="3439" last="3445">
+<title>Identification of a domain of Axin that binds to the serine/threonine protein phosphatase 2A and a self-binding domain.</title>
+<authorList>
+<person name="Hsu W."/>
+<person name="Zeng L."/>
+<person name="Costantini F."/>
+</authorList>
+<dbReference type="MEDLINE" id="99121080"/>
+<dbReference type="PubMed" id="9920888"/>
+<dbReference type="DOI" id="10.1074/jbc.274.6.3439"/>
+</citation>
+<scope>INTERACTION WITH GSK3B AND PPP2CA</scope>
+<scope>PHOSPHORYLATION</scope>
+<scope>DEPHOSPHORYLATION</scope>
+</reference>
+<reference key="6">
+<citation type="journal article" date="2000" name="Nat. Genet." volume="24" first="245" last="250">
+<title>AXIN1 mutations in hepatocellular carcinomas, and growth suppression in cancer cells by virus-mediated transfer of AXIN1.</title>
+<authorList>
+<person name="Satoh S."/>
+<person name="Daigo Y."/>
+<person name="Furukawa Y."/>
+<person name="Kato T."/>
+<person name="Miwa N."/>
+<person name="Nishiwaki T."/>
+<person name="Kawasoe T."/>
+<person name="Ishiguro H."/>
+<person name="Fujita M."/>
+<person name="Tokino T."/>
+<person name="Sasaki Y."/>
+<person name="Imaoka S."/>
+<person name="Murata M."/>
+<person name="Shimano T."/>
+<person name="Yamaoka Y."/>
+<person name="Nakamura Y."/>
+</authorList>
+<dbReference type="MEDLINE" id="20164320"/>
+<dbReference type="PubMed" id="10700176"/>
+<dbReference type="DOI" id="10.1038/73448"/>
+</citation>
+<scope>DISEASE</scope>
+</reference>
+<reference key="7">
+<citation type="journal article" date="2001" name="Mol. Cell" volume="7" first="801" last="809">
+<title>Low-density lipoprotein receptor-related protein-5 binds to Axin and regulates the canonical Wnt signaling pathway.</title>
+<authorList>
+<person name="Mao J."/>
+<person name="Wang J."/>
+<person name="Liu B."/>
+<person name="Pan W."/>
+<person name="Farr G.H. III"/>
+<person name="Flynn C."/>
+<person name="Yuan H."/>
+<person name="Takada S."/>
+<person name="Kimelman D."/>
+<person name="Li L."/>
+<person name="Wu D."/>
+</authorList>
+<dbReference type="PubMed" id="11336703"/>
+<dbReference type="DOI" id="10.1016/S1097-2765(01)00224-6"/>
+</citation>
+<scope>INTERACTION WITH LRP5</scope>
+</reference>
+<reference key="8">
+<citation type="journal article" date="2002" name="Mol. Cell. Biol." volume="22" first="6393" last="6405">
+<title>I-mfa domain proteins interact with Axin and affect its regulation of the Wnt and c-Jun N-terminal kinase signaling pathways.</title>
+<authorList>
+<person name="Kusano S."/>
+<person name="Raab-Traub N."/>
+</authorList>
+<dbReference type="PubMed" id="12192039"/>
+<dbReference type="DOI" id="10.1128/MCB.22.18.6393-6405.2002"/>
+</citation>
+<scope>INTERACTION WITH MDFI AND MDFIC</scope>
+<scope>FUNCTION</scope>
+</reference>
+<reference key="9">
+<citation type="journal article" date="2003" name="EMBO J." volume="22" first="3084" last="3094">
+<title>Regulation of the Wnt signaling pathway by disabled-2 (Dab2).</title>
+<authorList>
+<person name="Howe P.H."/>
+</authorList>
+<dbReference type="PubMed" id="12805222"/>
+<dbReference type="DOI" id="10.1093/emboj/cdg286"/>
+</citation>
+<scope>INTERACTION WITH DAB2</scope>
+</reference>
+<reference key="10">
+<citation type="journal article" date="2004" name="J. Biol. Chem." volume="279" first="39366" last="39373">
+<title>The DIX domain protein coiled-coil-DIX1 inhibits c-Jun N-terminal kinase activation by Axin and dishevelled through distinct mechanisms.</title>
+<authorList>
+<person name="Wong C.K."/>
+<person name="Luo W."/>
+<person name="Deng Y."/>
+<person name="Zou H."/>
+<person name="Ye Z."/>
+<person name="Lin S.-C."/>
+</authorList>
+<dbReference type="PubMed" id="15262978"/>
+<dbReference type="DOI" id="10.1074/jbc.M404598200"/>
+</citation>
+<scope>INTERACTION WITH DIXDC1; MAP3K1 AND MAP3K4</scope>
+</reference>
+<reference key="11">
+<citation type="journal article" date="2006" name="Am. J. Hum. Genet." volume="79" first="155" last="162">
+<title>Increased DNA methylation at the AXIN1 gene in a monozygotic twin from a pair discordant for a caudal duplication anomaly.</title>
+<authorList>
+<person name="Oates N.A."/>
+<person name="van Vliet J."/>
+<person name="Duffy D.L."/>
+<person name="Kroes H.Y."/>
+<person name="Martin N.G."/>
+<person name="Boomsma D.I."/>
+<person name="Campbell M."/>
+<person name="Coulthard M.G."/>
+<person name="Whitelaw E."/>
+<person name="Chong S."/>
+</authorList>
+<dbReference type="PubMed" id="16773576"/>
+<dbReference type="DOI" id="10.1086/505031"/>
+</citation>
+<scope>INVOLVEMENT IN CAUDAL DUPLICATION ANOMALY</scope>
+</reference>
+<reference key="12">
+<citation type="journal article" date="2006" name="EMBO J." volume="25" first="1646" last="1658">
+<title>Axin is a scaffold protein in TGF-beta signaling that promotes degradation of Smad7 by Arkadia.</title>
+<authorList>
+<person name="Liu W."/>
+<person name="Rui H."/>
+<person name="Wang J."/>
+<person name="Lin S."/>
+<person name="He Y."/>
+<person name="Chen M."/>
+<person name="Li Q."/>
+<person name="Ye Z."/>
+<person name="Zhang S."/>
+<person name="Chan S.C."/>
+<person name="Chen Y.-G."/>
+<person name="Han J."/>
+<person name="Lin S.-C."/>
+</authorList>
+<dbReference type="PubMed" id="16601693"/>
+<dbReference type="DOI" id="10.1038/sj.emboj.7601057"/>
+</citation>
+<scope>INTERACTION WITH SMAD6; SMAD7 AND RNF111</scope>
+<scope>FUNCTION</scope>
+<scope>SUBCELLULAR LOCATION</scope>
+</reference>
+<reference key="13">
+<citation type="journal article" date="2007" name="Cancer Res." volume="67" first="66" last="74">
+<title>Daxx cooperates with the Axin/HIPK2/p53 complex to induce cell death.</title>
+<authorList>
+<person name="Li Q."/>
+<person name="Wang X."/>
+<person name="Wu X."/>
+<person name="Rui Y."/>
+<person name="Liu W."/>
+<person name="Wang J."/>
+<person name="Wang X."/>
+<person name="Liou Y.C."/>
+<person name="Ye Z."/>
+<person name="Lin S.C."/>
+</authorList>
+<dbReference type="PubMed" id="17210684"/>
+<dbReference type="DOI" id="10.1158/0008-5472.CAN-06-1671"/>
+</citation>
+<scope>INTERACTION WITH DAXX</scope>
+<scope>IDENTIFICATION AS A COMPONENT OF THE AXIN1-HIPK2-TP53 COMPLEX</scope>
+<scope>SUBCELLULAR LOCATION</scope>
+<scope>FUNCTION</scope>
+</reference>
+<reference key="14">
+<citation type="journal article" date="2007" name="EMBO J." volume="26" first="1511" last="1521">
+<title>Protein phosphatase 1 regulates assembly and function of the beta-catenin degradation complex.</title>
+<authorList>
+<person name="Luo W."/>
+<person name="Peterson A."/>
+<person name="Garcia B.A."/>
+<person name="Coombs G."/>
+<person name="Kofahl B."/>
+<person name="Heinrich R."/>
+<person name="Shabanowitz J."/>
+<person name="Hunt D.F."/>
+<person name="Yost H.J."/>
+<person name="Virshup D.M."/>
+</authorList>
+<dbReference type="PubMed" id="17318175"/>
+<dbReference type="DOI" id="10.1038/sj.emboj.7601607"/>
+</citation>
+<scope>PHOSPHORYLATION AT SER-75; SER-77; SER-217 AND SER-469</scope>
+<scope>MASS SPECTROMETRY</scope>
+<scope>INTERACTION WITH GSK3B AND PPP1CA</scope>
+</reference>
+<reference key="15">
+<citation type="journal article" date="2008" name="FASEB J." volume="22" first="3785" last="3794">
+<title>SUMOylation target sites at the C terminus protect Axin from ubiquitination and confer protein stability.</title>
+<authorList>
+<person name="Kim M.J."/>
+<person name="Chia I.V."/>
+<person name="Costantini F."/>
+</authorList>
+<dbReference type="PubMed" id="18632848"/>
+<dbReference type="DOI" id="10.1096/fj.08-113910"/>
+</citation>
+<scope>SUMOYLATION</scope>
+</reference>
+<reference key="16">
+<citation type="journal article" date="2009" name="Nature" volume="461" first="614" last="620">
+<title>Tankyrase inhibition stabilizes axin and antagonizes Wnt signalling.</title>
+<authorList>
+<person name="Huang S.M."/>
+<person name="Mishina Y.M."/>
+<person name="Liu S."/>
+<person name="Cheung A."/>
+<person name="Stegmeier F."/>
+<person name="Michaud G.A."/>
+<person name="Charlat O."/>
+<person name="Wiellette E."/>
+<person name="Zhang Y."/>
+<person name="Wiessner S."/>
+<person name="Hild M."/>
+<person name="Shi X."/>
+<person name="Wilson C.J."/>
+<person name="Mickanin C."/>
+<person name="Myer V."/>
+<person name="Fazal A."/>
+<person name="Tomlinson R."/>
+<person name="Serluca F."/>
+<person name="Shao W."/>
+<person name="Cheng H."/>
+<person name="Shultz M."/>
+<person name="Rau C."/>
+<person name="Schirle M."/>
+<person name="Schlegl J."/>
+<person name="Ghidelli S."/>
+<person name="Fawell S."/>
+<person name="Lu C."/>
+<person name="Curtis D."/>
+<person name="Kirschner M.W."/>
+<person name="Lengauer C."/>
+<person name="Finan P.M."/>
+<person name="Tallarico J.A."/>
+<person name="Bouwmeester T."/>
+<person name="Porter J.A."/>
+<person name="Bauer A."/>
+<person name="Cong F."/>
+</authorList>
+<dbReference type="PubMed" id="19759537"/>
+<dbReference type="DOI" id="10.1038/nature08356"/>
+</citation>
+<scope>ADP-RIBOSYLATION</scope>
+<scope>UBIQUITINATION</scope>
+<scope>DOMAIN TANKYRASE-BINDING MOTIF</scope>
+<scope>INTERACTION WITH TNKS AND TNKS2</scope>
+</reference>
+<reference key="17">
+<citation type="journal article" date="2011" name="Mol. Cell. Biol." volume="31" first="2053" last="2065">
+<title>The Ubiquitin specific protease USP34 regulates Axin stability and Wnt/beta-catenin signaling.</title>
+<authorList>
+<person name="Lui T.T."/>
+<person name="Lacroix C."/>
+<person name="Ahmed S.M."/>
+<person name="Goldenberg S.J."/>
+<person name="Leach C.A."/>
+<person name="Daulat A.M."/>
+<person name="Angers S."/>
+</authorList>
+<dbReference type="PubMed" id="21383061"/>
+<dbReference type="DOI" id="10.1128/MCB.01094-10"/>
+</citation>
+<scope>UBIQUITINATION</scope>
+<scope>DEUBIQUITINATION BY USP34</scope>
+<scope>SUBCELLULAR LOCATION</scope>
+</reference>
+<reference key="18">
+<citation type="journal article" date="2011" name="Nat. Cell Biol." volume="13" first="623" last="629">
+<title>RNF146 is a poly(ADP-ribose)-directed E3 ligase that regulates axin degradation and Wnt signalling.</title>
+<authorList>
+<person name="Zhang Y."/>
+<person name="Liu S."/>
+<person name="Mickanin C."/>
+<person name="Feng Y."/>
+<person name="Charlat O."/>
+<person name="Michaud G.A."/>
+<person name="Schirle M."/>
+<person name="Shi X."/>
+<person name="Hild M."/>
+<person name="Bauer A."/>
+<person name="Myer V.E."/>
+<person name="Finan P.M."/>
+<person name="Porter J.A."/>
+<person name="Huang S.M."/>
+<person name="Cong F."/>
+</authorList>
+<dbReference type="PubMed" id="21478859"/>
+<dbReference type="DOI" id="10.1038/ncb2222"/>
+</citation>
+<scope>ADP-RIBOSYLATION</scope>
+<scope>UBIQUITINATION</scope>
+<scope>INTERACTION WITH RNF146; TNKS AND TNKS2</scope>
+</reference>
+<reference key="19">
+<citation type="journal article" date="2011" name="PLoS ONE" volume="6" first="E22595" last="E22595">
+<title>Ubiquitin ligase RNF146 regulates tankyrase and Axin to promote Wnt signaling.</title>
+<authorList>
+<person name="Callow M.G."/>
+<person name="Tran H."/>
+<person name="Phu L."/>
+<person name="Lau T."/>
+<person name="Lee J."/>
+<person name="Sandoval W.N."/>
+<person name="Liu P.S."/>
+<person name="Bheddah S."/>
+<person name="Tao J."/>
+<person name="Lill J.R."/>
+<person name="Hongo J.A."/>
+<person name="Davis D."/>
+<person name="Kirkpatrick D.S."/>
+<person name="Polakis P."/>
+<person name="Costa M."/>
+</authorList>
+<dbReference type="PubMed" id="21799911"/>
+<dbReference type="DOI" id="10.1371/journal.pone.0022595"/>
+</citation>
+<scope>INTERACTION WITH TNKS</scope>
+<scope>UBIQUITINATION</scope>
+</reference>
+<reference key="20">
+<citation type="journal article" date="2000" name="EMBO J." volume="19" first="2270" last="2279">
+<title>Structural basis of the axin-adenomatous polyposis coli interaction.</title>
+<authorList>
+<person name="Spink K.E."/>
+<person name="Polakis P."/>
+<person name="Weis W.I."/>
+</authorList>
+<dbReference type="MEDLINE" id="20271867"/>
+<dbReference type="PubMed" id="10811618"/>
+<dbReference type="DOI" id="10.1093/emboj/19.10.2270"/>
+</citation>
+<scope>X-RAY CRYSTALLOGRAPHY (1.57 ANGSTROMS) OF 74-220 IN COMPLEX WITH APC</scope>
+</reference>
+<reference key="21">
+<citation type="journal article" date="2003" name="EMBO J." volume="22" first="494" last="501">
+<title>Structural basis for recruitment of glycogen synthase kinase 3beta to the axin-APC scaffold complex.</title>
+<authorList>
+<person name="Dajani R."/>
+<person name="Fraser E."/>
+<person name="Roe S.M."/>
+<person name="Yeo M."/>
+<person name="Good V.M."/>
+<person name="Thompson V."/>
+<person name="Dale T.C."/>
+<person name="Pearl L.H."/>
+</authorList>
+<dbReference type="PubMed" id="12554650"/>
+<dbReference type="DOI" id="10.1093/emboj/cdg068"/>
+</citation>
+<scope>X-RAY CRYSTALLOGRAPHY (2.4 ANGSTROMS) OF 383-400 IN COMPLEX WITH GSK3B</scope>
+</reference>
+<reference key="22">
+<citation type="journal article" date="2002" name="Oncogene" volume="21" first="4863" last="4871">
+<title>Mutational spectrum of beta-catenin, AXIN1, and AXIN2 in hepatocellular carcinomas and hepatoblastomas.</title>
+<authorList>
+<person name="Taniguchi K."/>
+<person name="Roberts L.R."/>
+<person name="Aderca I.N."/>
+<person name="Dong X."/>
+<person name="Qian C."/>
+<person name="Murphy L.M."/>
+<person name="Nagorney D.M."/>
+<person name="Burgart L.J."/>
+<person name="Roche P.C."/>
+<person name="Smith D.I."/>
+<person name="Ross J.A."/>
+<person name="Liu W."/>
+</authorList>
+<dbReference type="MEDLINE" id="22096103"/>
+<dbReference type="PubMed" id="12101426"/>
+<dbReference type="DOI" id="10.1038/sj.onc.1205591"/>
+</citation>
+<scope>VARIANTS HCC ARG-106; LEU-345; SER-425 AND SER-650</scope>
+<scope>VARIANT HEPATOBLASTOMA GLN-841</scope>
+</reference>
+<comment type="function">
+<text evidence="1 2 3">Component of the beta-catenin destruction complex required for regulating CTNNB1 levels through phosphorylation and ubiquitination, and modulating Wnt-signaling. Controls dorsoventral patterning via two opposing effects; down-regulates CTNNB1 to inhibit the Wnt signaling pathway and ventralize embryos, but also dorsalizes embryos by activating a Wnt-independent JNK signaling pathway. In Wnt signaling, probably facilitates the phosphorylation of CTNNB1 and APC by GSK3B. Likely to function as a tumor suppressor. Facilitates the phosphorylation of TP53 by HIPK2 upon ultraviolet irradiation. Enhances TGF-beta signaling by recruiting the RNF111 E3 ubiquitin ligase and promoting the degradation of inhibitory SMAD7. Also component of the AXIN1-HIPK2-TP53 complex which controls cell growth, apoptosis and development.</text>
+</comment>
+<comment type="subunit">
+<text evidence="1 2 3 4 5 6 7 8 9 10 11">Homodimer (By similarity). Component of the beta-catenin destruction complex, containing at least, CTNNB1, an axin and GSK3B, that regulates CTNNB1 protein levels through phosphorylation and ubiquitination. Interacts with CTNNB1 (via the armadillo repeats 2-7). Interacts with GSK3B; the interaction hyperphosphorylates CTNNB1 leading to its ubiquitination and destruction. Component of the AXIN1-HIPK2-TP53 complex. Interacts directly in the complex with TP53 and HIPK2. Interacts with DAXX; the interaction stimulates the interaction of DAXX with TP53, stimulates 'Ser-46' phosphorylation of TP53 and induces cell death on UV irradiation. Also binds APC, SMAD6, SMAD7 and RNF111. Interacts with DIXDC1; prevents interaction with MAP3K1. Interacts with MAP3K4. Interacts with ANKRD6 and AIDA (By similarity). Interacts with MDFI; the interaction decreases AXIN1-mediated JUN N-terminal kinase (JNK) activation. Interacts with MDFIC; the interaction inhibits beta-cateninin-mediated signaling and AXIN1-mediated JUN N-terminal kinase (JNK) activation. Interacts with LRP5 (via its phosphorylated PPPSP motifs); the interaction is stimulated by WNT1 and GSK3B and activates beta-catenin signaling. Interacts (via the C-terminal) with PPP1CA; the interaction dephosphorylates AXIN1 and regulates interaction with GSK3B. Interacts with PPP2CA; the interaction dephosphorylates AXIN1. Interacts with MACF1 (By similarity). Found in a complex composed of MACF1, APC, AXIN1, CTNNB1 and GSK3B (By similarity). Interacts with TNKS. Interacts with DAB2; the interaction is mutually exclusive with the AXIN1:PPP1CA interaction.</text>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-359234">
+<id>P39687</id>
+<label>ANP32A</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>2</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-473101">
+<id>Q14194</id>
+<label>CRMP1</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>2</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-749343">
+<id>P49674</id>
+<label>CSNK1E</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>4</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-491549">
+<id>P35222</id>
+<label>CTNNB1</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>20</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-397872">
+<id>Q02248</id>
+<label>Ctnnb1</label>
+</interactant>
+<organismsDiffer>true</organismsDiffer>
+<experiments>5</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-355189">
+<id>Q9UKB1</id>
+<label>FBXW11</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>4</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-373586">
+<id>P49841</id>
+<label>GSK3B</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>26</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-4398527">
+<id>Q9H2K2</id>
+<label>TNKS2</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>2</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-366083">
+<id>P04637</id>
+<label>TP53</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>4</experiments>
+</comment>
+<comment type="interaction">
+<interactant intactId="EBI-710484"/>
+<interactant intactId="EBI-702370">
+<id>Q14134</id>
+<label>TRIM29</label>
+</interactant>
+<organismsDiffer>false</organismsDiffer>
+<experiments>2</experiments>
+</comment>
+<comment type="subcellular location">
+<subcellularLocation>
+<location>Cytoplasm</location>
+</subcellularLocation>
+<subcellularLocation>
+<location>Nucleus</location>
+</subcellularLocation>
+<subcellularLocation>
+<location status="by similarity">Cell membrane</location>
+</subcellularLocation>
+<text evidence="2 3 12">MACF1 is required for its translocation to cell membrane (By similarity). On UV irradiation, translocates to the nucleus and colocalizes with DAAX.</text>
+</comment>
+<comment type="alternative products">
+<event type="alternative splicing"/>
+<isoform>
+<id>O15169-1</id>
+<name>1</name>
+<sequence type="displayed"/>
+</isoform>
+<isoform>
+<id>O15169-2</id>
+<name>2</name>
+<sequence type="described" ref="VSP_019398"/>
+</isoform>
+</comment>
+<comment type="tissue specificity">
+<text>Ubiquitously expressed.</text>
+</comment>
+<comment type="domain">
+<text evidence="9">The tankyrase-binding motif (also named TBD) is required for interaction with tankyrase TNKS and TNKS2.</text>
+</comment>
+<comment type="PTM">
+<text evidence="4 8">Phosphorylation and dephosphorylation of AXIN1 regulates assembly and function of the beta-catenin complex. Phosphorylated by CK1 and GSK3B. Dephosphorylated by PPP1CA and PPP2CA. Phosphorylation by CK1 enhances binding of GSK3B to AXIN1.</text>
+</comment>
+<comment type="PTM">
+<text>ADP-ribosylated by tankyrase TNKS and TNKS2. Poly-ADP-ribosylated protein is recognized by RNF146, followed by ubiquitination at 'Lys-48' and subsequent activation of the Wnt signaling pathway.</text>
+</comment>
+<comment type="PTM">
+<text evidence="9 10 11 12">Ubiquitinated by RNF146 when poly-ADP-ribosylated, leading to its degradation and subsequent activation of the Wnt signaling pathway. Sumoylation at Lys-857 and Lys-860 prevents ubiquitination and degradation. Sumoylation is required for AXIN1-mediated JNK activation. Deubiquitinated by USP34, deubiquitinated downstream of beta-catenin stabilization step: deubiquitination is important for nuclear accumulation during Wnt signaling to positively regulate beta-catenin (CTNBB1)-mediated transcription.</text>
+</comment>
+<comment type="disease">
+<text evidence="13 14">Defects in AXIN1 are involved in hepatocellular carcinoma (HCC) [MIM:114550].</text>
+</comment>
+<comment type="disease">
+<text evidence="13">Defects in AXIN1 are a cause of caudal duplication anomaly (CADUA) [MIM:607864]. Caudal duplication anomaly is characterized by the occurrence of duplications of different organs in the caudal region. Note=Caudal duplication anomaly is associated with hypermethylation of the AXIN1 promoter.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 1 DIX domain.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 1 RGS domain.</text>
+</comment>
+<comment type="sequence caution">
+<conflict type="erroneous initiation">
+<sequence resource="EMBL-CDS" id="AAC51624" version="1"/>
+</conflict>
+<text>Translation N-terminally shortened.</text>
+</comment>
+<dbReference type="EMBL" id="AF009674">
+<property type="protein sequence ID" value="AAC51624.1"/>
+<property type="status" value="ALT_INIT"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AE006463">
+<property type="protein sequence ID" value="AAK61224.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z69667">
+<property type="protein sequence ID" value="CAI95589.2"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AC005202">
+<property type="protein sequence ID" value="CAI95589.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z99754">
+<property type="protein sequence ID" value="CAI95589.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z69667">
+<property type="protein sequence ID" value="CAI95590.2"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AC005202">
+<property type="protein sequence ID" value="CAI95590.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z99754">
+<property type="protein sequence ID" value="CAI95590.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z99754">
+<property type="protein sequence ID" value="CAI95600.2"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AC005202">
+<property type="protein sequence ID" value="CAI95600.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z69667">
+<property type="protein sequence ID" value="CAI95600.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z99754">
+<property type="protein sequence ID" value="CAI95601.2"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AC005202">
+<property type="protein sequence ID" value="CAI95601.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="Z69667">
+<property type="protein sequence ID" value="CAI95601.2"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC017447">
+<property type="protein sequence ID" value="AAH17447.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="BC044648">
+<property type="protein sequence ID" value="AAH44648.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="IPI" id="IPI00747002"/>
+<dbReference type="IPI" id="IPI00748214"/>
+<dbReference type="RefSeq" id="NP_003493.1">
+<property type="nucleotide sequence ID" value="NM_003502.3"/>
+</dbReference>
+<dbReference type="RefSeq" id="NP_851393.1">
+<property type="nucleotide sequence ID" value="NM_181050.2"/>
+</dbReference>
+<dbReference type="UniGene" id="Hs.592082"/>
+<dbReference type="PDB" id="1DK8">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="1.57"/>
+<property type="chains" value="A=74-220"/>
+</dbReference>
+<dbReference type="PDB" id="1EMU">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="1.90"/>
+<property type="chains" value="A=80-211"/>
+</dbReference>
+<dbReference type="PDB" id="1O9U">
+<property type="method" value="X-ray"/>
+<property type="resolution" value="2.40"/>
+<property type="chains" value="B=383-400"/>
+</dbReference>
+<dbReference type="PDBsum" id="1DK8"/>
+<dbReference type="PDBsum" id="1EMU"/>
+<dbReference type="PDBsum" id="1O9U"/>
+<dbReference type="ProteinModelPortal" id="O15169"/>
+<dbReference type="SMR" id="O15169">
+<property type="residue range" value="18-220, 779-862"/>
+</dbReference>
+<dbReference type="DIP" id="DIP-34630N"/>
+<dbReference type="IntAct" id="O15169">
+<property type="interactions" value="43"/>
+</dbReference>
+<dbReference type="MINT" id="MINT-100969"/>
+<dbReference type="STRING" id="O15169"/>
+<dbReference type="PhosphoSite" id="O15169"/>
+<dbReference type="PaxDb" id="O15169"/>
+<dbReference type="PRIDE" id="O15169"/>
+<dbReference type="Ensembl" id="ENST00000262320">
+<property type="protein sequence ID" value="ENSP00000262320"/>
+<property type="gene ID" value="ENSG00000103126"/>
+</dbReference>
+<dbReference type="Ensembl" id="ENST00000354866">
+<property type="protein sequence ID" value="ENSP00000346935"/>
+<property type="gene ID" value="ENSG00000103126"/>
+</dbReference>
+<dbReference type="GeneID" id="8312"/>
+<dbReference type="KEGG" id="hsa:8312"/>
+<dbReference type="UCSC" id="uc002cgp.2">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="UCSC" id="uc002cgq.2">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="CTD" id="8312"/>
+<dbReference type="GeneCards" id="GC16M000338"/>
+<dbReference type="HGNC" id="HGNC:903">
+<property type="gene designation" value="AXIN1"/>
+</dbReference>
+<dbReference type="HPA" id="CAB012987"/>
+<dbReference type="MIM" id="114550">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="603816">
+<property type="type" value="gene"/>
+</dbReference>
+<dbReference type="MIM" id="607864">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="neXtProt" id="NX_O15169"/>
+<dbReference type="PharmGKB" id="PA25195"/>
+<dbReference type="eggNOG" id="NOG238205"/>
+<dbReference type="HOVERGEN" id="HBG004324"/>
+<dbReference type="InParanoid" id="O15169"/>
+<dbReference type="KO" id="K02157"/>
+<dbReference type="OMA" id="IMQWIIE"/>
+<dbReference type="OrthoDB" id="EOG47SSDB"/>
+<dbReference type="PhylomeDB" id="O15169"/>
+<dbReference type="Pathway_Interaction_DB" id="wnt_canonical_pathway">
+<property type="pathway name" value="Canonical Wnt signaling pathway"/>
+</dbReference>
+<dbReference type="Pathway_Interaction_DB" id="ps1pathway">
+<property type="pathway name" value="Presenilin action in Notch and Wnt signaling"/>
+</dbReference>
+<dbReference type="Pathway_Interaction_DB" id="tgfbrpathway">
+<property type="pathway name" value="TGF-beta receptor signaling"/>
+</dbReference>
+<dbReference type="Reactome" id="REACT_111102">
+<property type="pathway name" value="Signal Transduction"/>
+</dbReference>
+<dbReference type="ChEMBL" id="CHEMBL1255127"/>
+<dbReference type="EvolutionaryTrace" id="O15169"/>
+<dbReference type="GenomeRNAi" id="8312"/>
+<dbReference type="NextBio" id="31127"/>
+<dbReference type="ArrayExpress" id="O15169"/>
+<dbReference type="Bgee" id="O15169"/>
+<dbReference type="CleanEx" id="HS_AXIN1"/>
+<dbReference type="Genevestigator" id="O15169"/>
+<dbReference type="GermOnline" id="ENSG00000103126">
+<property type="organism name" value="Homo sapiens"/>
+</dbReference>
+<dbReference type="GO" id="GO:0030877">
+<property type="term" value="C:beta-catenin destruction complex"/>
+<property type="evidence" value="IDA:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005938">
+<property type="term" value="C:cell cortex"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0016023">
+<property type="term" value="C:cytoplasmic membrane-bounded vesicle"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005881">
+<property type="term" value="C:cytoplasmic microtubule"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005829">
+<property type="term" value="C:cytosol"/>
+<property type="evidence" value="TAS:Reactome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0016328">
+<property type="term" value="C:lateral plasma membrane"/>
+<property type="evidence" value="IDA:MGI"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005634">
+<property type="term" value="C:nucleus"/>
+<property type="evidence" value="IDA:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048471">
+<property type="term" value="C:perinuclear region of cytoplasm"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0014069">
+<property type="term" value="C:postsynaptic density"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0070016">
+<property type="term" value="F:armadillo repeat domain binding"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0008013">
+<property type="term" value="F:beta-catenin binding"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005096">
+<property type="term" value="F:GTPase activator activity"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0002039">
+<property type="term" value="F:p53 binding"/>
+<property type="evidence" value="IDA:MGI"/>
+</dbReference>
+<dbReference type="GO" id="GO:0032947">
+<property type="term" value="F:protein complex scaffold"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0042803">
+<property type="term" value="F:protein homodimerization activity"/>
+<property type="evidence" value="ISS:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0019901">
+<property type="term" value="F:protein kinase binding"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0004871">
+<property type="term" value="F:signal transducer activity"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0007257">
+<property type="term" value="P:activation of JUN kinase activity"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0006915">
+<property type="term" value="P:apoptotic process"/>
+<property type="evidence" value="IEA:UniProtKB-KW"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048320">
+<property type="term" value="P:axial mesoderm formation"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060823">
+<property type="term" value="P:canonical Wnt receptor signaling pathway involved in neural plate anterior/posterior pattern formation"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0008219">
+<property type="term" value="P:cell death"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0043623">
+<property type="term" value="P:cellular protein complex assembly"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0071407">
+<property type="term" value="P:cellular response to organic cyclic compound"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0031122">
+<property type="term" value="P:cytoplasmic microtubule organization"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0007368">
+<property type="term" value="P:determination of left/right symmetry"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0009950">
+<property type="term" value="P:dorsal/ventral axis specification"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048048">
+<property type="term" value="P:embryonic eye morphogenesis"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060272">
+<property type="term" value="P:embryonic skeletal joint morphogenesis"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0021797">
+<property type="term" value="P:forebrain anterior/posterior pattern specification"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0071514">
+<property type="term" value="P:genetic imprinting"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001701">
+<property type="term" value="P:in utero embryonic development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0055001">
+<property type="term" value="P:muscle cell development"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0090090">
+<property type="term" value="P:negative regulation of canonical Wnt receptor signaling pathway"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0045599">
+<property type="term" value="P:negative regulation of fat cell differentiation"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0051248">
+<property type="term" value="P:negative regulation of protein metabolic process"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0034244">
+<property type="term" value="P:negative regulation of transcription elongation from RNA polymerase II promoter"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0006913">
+<property type="term" value="P:nucleocytoplasmic transport"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0030910">
+<property type="term" value="P:olfactory placode formation"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001743">
+<property type="term" value="P:optic placode formation"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0046330">
+<property type="term" value="P:positive regulation of JNK cascade"/>
+<property type="evidence" value="ISS:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0033138">
+<property type="term" value="P:positive regulation of peptidyl-serine phosphorylation"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0010800">
+<property type="term" value="P:positive regulation of peptidyl-threonine phosphorylation"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0032436">
+<property type="term" value="P:positive regulation of proteasomal ubiquitin-dependent protein catabolic process"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0045732">
+<property type="term" value="P:positive regulation of protein catabolic process"/>
+<property type="evidence" value="IDA:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:2000060">
+<property type="term" value="P:positive regulation of protein ubiquitination involved in ubiquitin-dependent protein catabolic process"/>
+<property type="evidence" value="ISS:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0045893">
+<property type="term" value="P:positive regulation of transcription, DNA-dependent"/>
+<property type="evidence" value="IMP:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0030511">
+<property type="term" value="P:positive regulation of transforming growth factor beta receptor signaling pathway"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0051443">
+<property type="term" value="P:positive regulation of ubiquitin-protein ligase activity"/>
+<property type="evidence" value="IMP:BHF-UCL"/>
+</dbReference>
+<dbReference type="GO" id="GO:0030163">
+<property type="term" value="P:protein catabolic process"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0051260">
+<property type="term" value="P:protein homooligomerization"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0000209">
+<property type="term" value="P:protein polyubiquitination"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035412">
+<property type="term" value="P:regulation of catenin import into nucleus"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0007605">
+<property type="term" value="P:sensory perception of sound"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0038032">
+<property type="term" value="P:termination of G-protein coupled receptor signaling pathway"/>
+<property type="evidence" value="IEA:InterPro"/>
+</dbReference>
+<dbReference type="GO" id="GO:0021881">
+<property type="term" value="P:Wnt receptor signaling pathway involved in forebrain neuron fate commitment"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="GO" id="GO:0090244">
+<property type="term" value="P:Wnt receptor signaling pathway involved in somitogenesis"/>
+<property type="evidence" value="IBA:RefGenome"/>
+</dbReference>
+<dbReference type="Gene3D" id="1.10.196.10">
+<property type="entry name" value="G3DSA:1.10.196.10"/>
+<property type="match status" value="2"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR014936">
+<property type="entry name" value="Axin_b-cat-bd"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR001158">
+<property type="entry name" value="DIX"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR000342">
+<property type="entry name" value="Regulat_G_prot_signal"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR024066">
+<property type="entry name" value="Regulat_G_prot_signal_dom1"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR016137">
+<property type="entry name" value="Regulat_G_prot_signal_superfam"/>
+</dbReference>
+<dbReference type="Pfam" id="PF08833">
+<property type="entry name" value="Axin_b-cat_bind"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Pfam" id="PF00778">
+<property type="entry name" value="DIX"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Pfam" id="PF00615">
+<property type="entry name" value="RGS"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PRINTS" id="PR01301">
+<property type="entry name" value="RGSPROTEIN"/>
+</dbReference>
+<dbReference type="SMART" id="SM00021">
+<property type="entry name" value="DAX"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SMART" id="SM00315">
+<property type="entry name" value="RGS"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SUPFAM" id="SSF48097">
+<property type="entry name" value="Regulat_G_prot_signal_superfam"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50841">
+<property type="entry name" value="DIX"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50132">
+<property type="entry name" value="RGS"/>
+<property type="match status" value="1"/>
+</dbReference>
+<proteinExistence type="evidence at protein level"/>
+<keyword id="KW-0002">3D-structure</keyword>
+<keyword id="KW-0013">ADP-ribosylation</keyword>
+<keyword id="KW-0025">Alternative splicing</keyword>
+<keyword id="KW-0053">Apoptosis</keyword>
+<keyword id="KW-1003">Cell membrane</keyword>
+<keyword id="KW-0181">Complete proteome</keyword>
+<keyword id="KW-0963">Cytoplasm</keyword>
+<keyword id="KW-0217">Developmental protein</keyword>
+<keyword id="KW-0225">Disease mutation</keyword>
+<keyword id="KW-1017">Isopeptide bond</keyword>
+<keyword id="KW-0472">Membrane</keyword>
+<keyword id="KW-0539">Nucleus</keyword>
+<keyword id="KW-0597">Phosphoprotein</keyword>
+<keyword id="KW-1185">Reference proteome</keyword>
+<keyword id="KW-0043">Tumor suppressor</keyword>
+<keyword id="KW-0832">Ubl conjugation</keyword>
+<keyword id="KW-0879">Wnt signaling pathway</keyword>
+<feature type="chain" description="Axin-1" id="PRO_0000220888">
+<location>
+<begin position="1"/>
+<end position="862"/>
+</location>
+</feature>
+<feature type="domain" description="RGS">
+<location>
+<begin position="88"/>
+<end position="211"/>
+</location>
+</feature>
+<feature type="domain" description="DIX">
+<location>
+<begin position="780"/>
+<end position="862"/>
+</location>
+</feature>
+<feature type="region of interest" description="Interaction with TP53" status="by similarity">
+<location>
+<begin position="209"/>
+<end position="338"/>
+</location>
+</feature>
+<feature type="region of interest" description="Interaction with GSK3B" status="by similarity">
+<location>
+<begin position="348"/>
+<end position="433"/>
+</location>
+</feature>
+<feature type="region of interest" description="Interaction with CTNNB1" status="by similarity">
+<location>
+<begin position="434"/>
+<end position="502"/>
+</location>
+</feature>
+<feature type="region of interest" description="Interaction with RNF111">
+<location>
+<begin position="507"/>
+<end position="757"/>
+</location>
+</feature>
+<feature type="region of interest" description="Interaction with PPP2CA">
+<location>
+<begin position="575"/>
+<end position="789"/>
+</location>
+</feature>
+<feature type="region of interest" description="Interaction with HIPK2" status="by similarity">
+<location>
+<begin position="677"/>
+<end position="752"/>
+</location>
+</feature>
+<feature type="short sequence motif" description="Tankyrase-binding motif">
+<location>
+<begin position="20"/>
+<end position="29"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphoserine; by CK1" evidence="8">
+<location>
+<position position="75"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphoserine; by CK1" evidence="8">
+<location>
+<position position="77"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphoserine; by CK1" evidence="8">
+<location>
+<position position="217"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphoserine; by CK1" evidence="8">
+<location>
+<position position="469"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphothreonine; by GSK3-beta" status="probable">
+<location>
+<position position="481"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphoserine; by GSK3-beta" status="by similarity">
+<location>
+<position position="486"/>
+</location>
+</feature>
+<feature type="modified residue" description="Phosphoserine" status="by similarity">
+<location>
+<position position="493"/>
+</location>
+</feature>
+<feature type="cross-link" description="Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in SUMO)" status="by similarity">
+<location>
+<position position="857"/>
+</location>
+</feature>
+<feature type="cross-link" description="Glycyl lysine isopeptide (Lys-Gly) (interchain with G-Cter in SUMO)" status="by similarity">
+<location>
+<position position="860"/>
+</location>
+</feature>
+<feature type="splice variant" description="In isoform 2." id="VSP_019398">
+<location>
+<begin position="730"/>
+<end position="765"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In HCC." id="VAR_015589" evidence="14">
+<original>L</original>
+<variation>R</variation>
+<location>
+<position position="106"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In HCC." id="VAR_015590" evidence="14">
+<original>P</original>
+<variation>L</variation>
+<location>
+<position position="345"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In HCC." id="VAR_015591" evidence="14">
+<original>G</original>
+<variation>S</variation>
+<location>
+<position position="425"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In HCC and in hepatoblastoma." id="VAR_015592" evidence="14">
+<original>G</original>
+<variation>S</variation>
+<location>
+<position position="650"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In hepatoblastoma; dbSNP:rs34015754." id="VAR_015593" evidence="14">
+<original>R</original>
+<variation>Q</variation>
+<location>
+<position position="841"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1; AAC51624." ref="1">
+<original>V</original>
+<variation>A</variation>
+<location>
+<position position="360"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1; AAC51624." ref="1">
+<original>CVDMG</original>
+<variation>LCWTWA</variation>
+<location>
+<begin position="451"/>
+<end position="455"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1; AAC51624." ref="1">
+<original>P</original>
+<variation>T</variation>
+<location>
+<position position="482"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="81"/>
+<end position="87"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="89"/>
+<end position="92"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="96"/>
+<end position="107"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="108"/>
+<end position="110"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="112"/>
+<end position="126"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="131"/>
+<end position="133"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="134"/>
+<end position="148"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="155"/>
+<end position="159"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="162"/>
+<end position="174"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="179"/>
+<end position="182"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="183"/>
+<end position="195"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="197"/>
+<end position="201"/>
+</location>
+</feature>
+<feature type="helix">
+<location>
+<begin position="205"/>
+<end position="208"/>
+</location>
+</feature>
+<feature type="turn">
+<location>
+<begin position="209"/>
+<end position="212"/>
+</location>
+</feature>
+<evidence key="1" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="12192039"/>
+</source>
+</evidence>
+<evidence key="2" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="16601693"/>
+</source>
+</evidence>
+<evidence key="3" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="17210684"/>
+</source>
+</evidence>
+<evidence key="4" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="9920888"/>
+</source>
+</evidence>
+<evidence key="5" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11336703"/>
+</source>
+</evidence>
+<evidence key="6" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="12805222"/>
+</source>
+</evidence>
+<evidence key="7" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="15262978"/>
+</source>
+</evidence>
+<evidence key="8" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="17318175"/>
+</source>
+</evidence>
+<evidence key="9" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="19759537"/>
+</source>
+</evidence>
+<evidence key="10" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="21478859"/>
+</source>
+</evidence>
+<evidence key="11" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="21799911"/>
+</source>
+</evidence>
+<evidence key="12" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="21383061"/>
+</source>
+</evidence>
+<evidence key="13" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="10700176"/>
+</source>
+</evidence>
+<evidence key="14" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="12101426"/>
+</source>
+</evidence>
+<sequence length="862" mass="95635" checksum="10779173F5092F3F" modified="2002-05-10" version="2">
+MNIQEQGFPLDLGASFTEDAPRPPVPGEEGELVSTDPRPASYSFCSGKGVGIKGETSTAT
+PRRSDLDLGYEPEGSASPTPPYLKWAESLHSLLDDQDGISLFRTFLKQEGCADLLDFWFA
+CTGFRKLEPCDSNEEKRLKLARAIYRKYILDNNGIVSRQTKPATKSFIKGCIMKQLIDPA
+MFDQAQTEIQATMEENTYPSFLKSDIYLEYTRTGSESPKVCSDQSSGSGTGKGISGYLPT
+LNEDEEWKCDQDMDEDDGRDAAPPGRLPQKLLLETAAPRVSSSRRYSEGREFRYGSWREP
+VNPYYVNAGYALAPATSANDSEQQSLSSDADTLSLTDSSVDGIPPYRIRKQHRREMQESV
+QVNGRVPLPHIPRTYRVPKEVRVEPQKFAEELIHRLEAVQRTREAEEKLEERLKRVRMEE
+EGEDGDPSSGPPGPCHKLPPAPAWHHFPPRCVDMGCAGLRDAHEENPESILDEHVQRVLR
+TPGRQSPGPGHRSPDSGHVAKMPVALGGAASGHGKHVPKSGAKLDAAGLHHHRHVHHHVH
+HSTARPKEQVEAEATRRAQSSFAWGLEPHSHGARSRGYSESVGAAPNASDGLAHSGKVGV
+ACKRNAKKAESGKSASTEVPGASEDAEKNQKIMQWIIEGEKEISRHRRTGHGSSGTRKPQ
+PHENSRPLSLEHPWAGPQLRTSVQPSHLFIQDPTMPPHPAPNPLTQLEEARRRLEEEEKR
+ASRAPSKQRYVQEVMRRGRACVRPACAPVLHVVPAVSDMELSETETRSQRKVGGGSAQPC
+DSIVVAYYFCGEPIPYRTLVRGRAVTLGQFKELLTKKGSYRYYFKKVSDEFDCGVVFEEV
+REDEAVLPVFEEKIIGKVEKVD
+</sequence>
+</entry>
+<copyright>
+Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+Distributed under the Creative Commons Attribution-NoDerivs License
+</copyright>
+</uniprot>

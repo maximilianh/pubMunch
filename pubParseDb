@@ -1,7 +1,7 @@
 #!/usr/bin/env python2.7
 
 # load default python packages
-import logging, optparse, sys, glob, gzip, collections, copy, gzip, os
+import logging, optparse, sys, glob, gzip, collections, copy, gzip, os, doctest, re
 from os.path import *
 
 try:
@@ -14,13 +14,13 @@ except ImportError:
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, pubCrawl, maxCommon, pubConf
+import pubGeneric, pubCrawl, maxCommon, pubConf, maxbio
+
+# example file /hive/data/outside/pdb/aa/pdb1aa0.ent.gz
 
 pdbHeaders = ["acc", "isMain", "authors", "title", "ref", "issn", "pmid", "doi"]
 pdbToHeader = {'AUTH' : "authors", "TITL" : "title", "REFN": "issn", "PMID":"pmid", "DOI":"doi", "REF":"ref", "isMain":"isMain", "acc": "acc"}
 PdbRefRec  = collections.namedtuple("pdbRef", pdbHeaders)
-
-# /hive/data/outside/pdb/aa/pdb1aa0.ent.gz
 
 def parsePdbRefLine(data, line):
     " add line to data dict "
@@ -106,6 +106,24 @@ def parsePdb(pdbDir, outDir):
 
 # UNIPROT PARSING 
 
+# main record info
+entryHeaders = ["dataset", "acc", "orgName", "orgCommon", "taxonId", "name", "accList", \
+    "protFullNames", "protShortNames", "protAltNames", "geneName", "geneSynonyms", "isoNames", \
+    "geneOrdLocus", "geneOrf", \
+    "hugo", "refSeq", "ncbiGene", "ensembl", "embl", \
+    "isoIds", "isoSeqs"]
+EntryRec = collections.namedtuple("uprec", entryHeaders)
+
+# disease associated mutation
+mutHeaders = ["acc", "varId", "position", "origAa", "mutAa", "dbSnpId", "disease", "pmid"]
+MutRec = collections.namedtuple("mutrec", mutHeaders)
+
+# references from record
+refHeaders = ["name", "citType", "year", "journal", "vol", "page", \
+        "title", "authors", "doi", "pmid", "scopeList"]
+RefRec = collections.namedtuple("refRec", refHeaders)
+emptyRef = dict(zip(refHeaders, len(refHeaders)*[""]))
+
 def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
     """ Takes a parsed ET structure and does an in-place removal of all namespaces,
         or removes a specific namespacem (by its URL).
@@ -179,25 +197,308 @@ def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAtt
     s = "|".join(l)
     dataDict[key] = s
 
-def openOutTabFile(outDir, outSubDir, outName, headers):
+def openOutTabFile(subDir, outName, headers):
     " create outdir and open outfile, write headers "
-    subDir = join(outDir, outSubDir) 
+    #subDir = join(outDir, outSubDir) 
     if not isdir(subDir):
         logging.info("Creating dir %s" % subDir)
         os.makedirs(subDir)
     outPath = join(subDir, outName)
-    logging.debug("Writing headers to %s" % outPath)
+    logging.info("Writing output to %s" % outPath)
     ofh = open(outPath, "w")
     ofh.write("\t".join(headers)+"\n")
     return ofh
 
-def parseRecInfo(entryEl, entry):
-    "parse uniprot general record info into entry dict"
+def findDiseases(text):
+    """ find disease codes and their names in text, return as dict code -> name 
+    >>> findDiseases("Defects in CEACAM16 are the cause of deafness autosomal dominant type 4B (DFNA4B) [MIM:614614].")
+    {'DFNA4B': 'deafness autosomal dominant type 4B'}
+    >>> findDiseases("Defects in ALX4 are the cause of parietal foramina 2 (PFM2) [MIM:609597]; also known as foramina parietalia permagna (FPP). PFM2 is an autosomal dominant disease characterized by oval defects of the parietal bones caused by deficient ossification around the parietal notch, which is normally obliterated during the fifth fetal month. PFM2 is also a clinical feature of Potocki-Shaffer syndrome.")
+    {'PFM2': 'parietal foramina 2', 'FPP': 'foramina parietalia permagna'}
+    # disease is only one word, but long enough
+    >>> findDiseases("Defects in HAL are the cause of histidinemia (HISTID) ")
+    {'HISTID': 'histidinemia'}
+    """
+    result = {}
+    phrases = re.split("[;.] ", text)
+    notDisease = set(["of", "with", "to", "as", "or", "also", "in"])
+
+    for phrase in phrases:
+        words = phrase.split()
+        revWords = reversed(words)
+
+        grabWords = False
+        disWords = []
+        disCode = None
+        # go backwords over words and look for acronym, then grab all words before that
+        # until we find a common English word
+        for word in revWords:
+            m = re.match("[(]([A-Z0-9-]+)[)]", word)
+            if m!=None:
+                disCode = m.group(1)
+                grabWords = True
+                continue
+
+            if word in notDisease and (len(disWords)>1 or len("".join(disWords))>=9):
+                disName = " ".join(list(reversed(disWords)))
+                if disCode==None:
+                    logging.debug("Found disease %s, but no code for it" % disName)
+                    continue
+                result[disCode] = disName
+                disCode = None
+                disWords = []
+                grabWords = False
+
+            if grabWords:
+                disWords.append(word)
+
+    return result
+
+def parseDiseaseComment(entryEl):
+    " return dict with evidenceCode -> disCode -> disease name "
+    disRefs = {}
+    disCodes = {}
+    for commentEl in entryEl.findall("comment"):
+        textEl = commentEl.find("text")
+        if commentEl.attrib["type"]=="disease":
+            refStr = commentEl.attrib.get("evidence", None)
+            # website xml is different, has evidence attribute on text element
+            if refStr==None:
+                refStr = textEl.attrib.get("evidence", None)
+                if refStr==None:
+                    continue
+
+            refs = refStr.split(" ")
+
+            text = textEl.text
+            logging.debug("Disease comment: %s, evidence %s" % (text, refStr))
+            disCodes.update(findDiseases(text))
+
+            for refId in refs:
+                disRefs[refId] = disCodes
+
+    logging.debug("Found disease evidences: %s" % disRefs)
+    logging.debug("Found disease names: %s" % disCodes)
+    return disRefs, disCodes
+
+def parseIsoforms(acc, mainSeq, entryEl, isoSeqs):
+    " parse sequences of isoforms, returns lists: isoIds, isoNames, seqs "
+    isoDefined = False
+    isoIds = []
+    isoNames = []
+    seqs = []
+    for isoEl in entryEl.findall("comment/isoform"):
+        isoDefined = True
+        # get id
+        idEl = isoEl.find("id")
+        isoId = idEl.text
+
+        # get names (just as gene synonyms)
+        for nameEl in isoEl.find("name"):
+            isoNames.append(nameEl.text)
+        seqEl = isoEl.find("sequence")
+
+        # get sequences
+        seqType = seqEl.attrib["type"]
+        if seqType=="displayed":
+            seqs.append(mainSeq)
+            isoIds.append(isoId)
+        elif seqType=="external":
+            pass # weird anyways
+        else:
+            if isoId not in isoSeqs:
+                logging.debug("sequence %s does not exist" % isoId)
+            else:
+                seqs.append(isoSeqs[isoId])
+                isoIds.append(isoId)
+
+    if not isoDefined:
+        isoIds = [acc]
+        seqs = [mainSeq]
+
+    if len(seqs)!=len(isoIds):
+        print seqs, isoIds
+    assert(len(seqs)==len(isoIds))
+
+    return isoIds, isoNames, seqs
+
+def parseDbRefs(entryEl):
+    " return dict with db -> id (various special cases) "
+    dbRefs = {}
+    for dbRefEl in entryEl.findall("dbReference"):
+        db = dbRefEl.attrib["type"]
+        id = dbRefEl.attrib["id"]
+        dbRefs.setdefault(db, [])
+        propEl = dbRefEl.find("property")
+        if propEl!=None:
+            propType = propEl.attrib["type"]
+            if (db, propType) in [\
+                ("RefSeq", "nucleotide sequence ID"), \
+                ("Ensembl", "protein sequence ID")]:
+                propVal = propEl.attrib["value"]
+                id = propVal
+            elif db=="HGNC" and propType=="gene designation":
+                id = propEl.attrib["value"]
+        dbRefs[db].append(id)
+
+    result = {}
+    for db, valList in dbRefs.iteritems():
+        result[db] = "|".join(valList)
+        
+    return result
+
+def parseFeatDesc(text, disCodes):
+    """ return tuple: (disease name, dbSnpId)
+    >>> parseFeatDesc("In sporadic cancers; somatic mutation; dbSNP:rs11540654.", {})
+    ('sporadic cancers', 'rs11540654')
+    >>> parseFeatDesc("In RIEG1; pointless comment", {"RIEG1" : "Axel-Riegerfeldt syndrome"})
+    ('Axel-Riegerfeldt syndrome', '')
+    """
+    # find disease name and try to resolve via disCodes
+    logging.debug("Feature description: %s (codes: %s)" % (text, disCodes))
+    text = text.strip(".").strip()
+    parts = text.split("; ")
+    disName = ""
+    for part in parts:
+        part = part.replace("a patient with", "")
+        partLow = part.lower()
+        if partLow.startswith("in ") and "dbSNP" not in part and "allele" not in part:
+            disName = " ".join(part.split()[1:])
+            # some entries contain two disease names
+            if " and " in disName:
+                subDises = disName.split(" and ")
+                newDises = []
+                for subDis in subDises:
+                    if subDis in disCodes:
+                        newDises.append(disCodes[subDis])
+                    else:
+                        newDises.append(subDis)
+                disName = ",".join(newDises)
+                    
+    if disName in disCodes:
+        disName = disCodes[disName]
+
+    # find snpId
+    snpId = ""
+    for m in re.finditer("dbSNP:(rs[0-9]+)", text):
+        if m!=None:
+            #assert(snpId=="")
+            snpId = m.group(1)
+
+    logging.debug("Disease: %s, snpId: %s" % (disName, snpId))
+    return disName, snpId
+
+
+def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids):
+    " go over features and yield mutation records "
+
+    acc = entryEl.find("accession").text
+
+    mutations = []
+    for featEl in entryEl.findall("feature"):
+        if featEl.attrib["type"] != "sequence variant":
+            continue
+
+        varId = featEl.attrib.get("id", "")
+        logging.debug("Variant %s" % varId)
+
+        origEl = featEl.find("original")
+        if origEl==None:
+            logging.debug("No original residue")
+            continue
+        orig = origEl.text
+
+        variant = featEl.find("variation").text
+        logging.debug("residue change: %s->%s" % (orig, variant))
+
+        posEl = featEl.find("location/position")
+        if posEl==None:
+            logging.debug("No position")
+            continue
+        position=posEl.attrib["position"]
+
+        desc = featEl.attrib.get("description", None)
+        if desc==None:
+            logging.debug("No description")
+            continue
+
+        evidStr = featEl.attrib.get("evidence", None)
+        logging.debug("variant pos %s, desc %s, evidence %s" % (position, desc, evidStr))
+        desc = desc.strip("() ")
+        if desc==None:
+            logging.debug("No description")
+            continue
+        if evidStr==None:
+            logging.debug("No evidence")
+            continue
+        evidList = evidStr.split()
+
+        for evidId in evidList:
+            if not evidId in disRefs:
+                logging.debug("evidence is not a disease evidence or blacklisted")
+                continue
+
+            disCode = disRefs[evidId]
+            disName, snpId = parseFeatDesc(desc, disCodes)
+            #print disCode
+            #if not disCode in desc:
+                #print entryEl.find("accession").text
+                #print disCode,"not in ", desc
+                #continue
+
+            #disName = disCode.values()
+            if not evidId in evidPmids:
+                logging.debug("No PMID for this evidence")
+                continue
+            pmids = evidPmids[evidId]
+            assert(len(pmids)<=1)
+            pmid = list(pmids)[0]
+            mut = MutRec(acc, varId, position, orig, variant, snpId, disName, pmid)
+            logging.debug("Accepted variant: %s" % str(mut))
+            yield mut
+
+def parseEvidence(entryEl):
+    " return a dict with evidCode -> PMID "
+    pmidBlackList = set([17344846])
+    result = {}
+    for evidEl in entryEl.findall("evidence"):
+        evidCode = evidEl.attrib["key"]
+        for dbRefEl in evidEl.findall("source/dbReference"):
+            dbType = dbRefEl.attrib["type"]
+            if dbType=="PubMed":
+                pmid = dbRefEl.attrib["id"]
+                if pmid in pmidBlackList:
+                    continue
+                result.setdefault(evidCode, [])
+                result[evidCode].append(pmid)
+    return result
+    
+def parseVariants(entryEl):
+    " return MutRecs with disease associated variants "
+    disRefs, disCodes = parseDiseaseComment(entryEl)
+
+    if len(disRefs)==0:
+        logging.debug("No disease evidence")
+        return []
+    acc = entryEl.find("accession").text
+    logging.debug("Diseases in %s" % acc)
+
+    evidPmids = parseEvidence(entryEl)
+    mutRecs = list(parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids))
+    return mutRecs
+
+def parseRecInfo(entryEl, entry, isoSeqs):
+    """parse uniprot general record info into entry dict
+    use isoform sequences from isoSeqs
+    only process certain taxonIds
+    """
     dataset = entryEl.attrib["dataset"]
     entry["dataset"] = dataset
 
     findSaveList(entryEl, "name", entry, "name")
     findSaveList(entryEl, "accession", entry, "accList")
+    entry["acc"] = entry["accList"].split("|")[0]
+
     findSaveList(entryEl, "protein/recommendedName/fullName", entry, "protFullNames")
     findSaveList(entryEl, "protein/recommendedName/shortName", entry, "protShortNames")
     findSaveList(entryEl, "protein/alternativeName/fullName", entry, "protAltNames")
@@ -207,12 +508,28 @@ def parseRecInfo(entryEl, entry):
     findSaveList(entryEl, "gene/name", entry, "geneOrf", attribKey="type", attribVal="ORF")
     findSaveList(entryEl, "organism/name", entry, "orgName", attribKey="type", attribVal="scientific")
     findSaveList(entryEl, "organism/name", entry, "orgCommon", attribKey="type", attribVal="common")
-    findSaveList(entryEl, "organism/dbReference", entry, "orgTaxId", useAttrib="id")
+    findSaveList(entryEl, "organism/dbReference", entry, "taxonId", useAttrib="id")
+    findSaveList(entryEl, "comment/isoform/id", entry, "isoIds")
+    findSaveList(entryEl, "comment/isoform/name", entry, "isoNames")
 
-    entryRow = entryRec(**entry)
+    mainSeq = entryEl.find("sequence").text
+    isoIds, isoNames, seqs = parseIsoforms(entry["acc"], mainSeq, entryEl, isoSeqs)
+    dbRefs = parseDbRefs(entryEl)
+
+    entry["hugo"] = dbRefs.get("HGNC", "")
+    entry["refSeq"] = dbRefs.get("RefSeq", "")
+    entry["ensembl"] = dbRefs.get("Ensembl", "")
+    entry["ncbiGene"] = dbRefs.get("GeneID", "")
+    entry["embl"] = dbRefs.get("EMBL", "")
+        
+    entry["isoIds"]="|".join(isoIds)
+    entry["isoSeqs"]="|".join(seqs)
+    entry["isoNames"]="|".join(isoNames)
+
+    entryRow = EntryRec(**entry)
     return entryRow
 
-def parseRefInfo(entryEl):
+def parseRefInfo(entryEl, recName):
     for refEl in entryEl.findall("reference"):
         ref = copy.copy(emptyRef)
         ref["name"] = recName
@@ -242,56 +559,101 @@ def parseRefInfo(entryEl):
                     ref["pmid"] = dbRefEl.attrib["id"]
 
         findSaveList(refEl, "scope", ref, "scopeList")
-        refRow = refRec(**ref)
+        refRow = RefRec(**ref)
         yield refRow
 
-def parseUniprot(inDir, outDir):
+def readIsoforms(inDir):
+    " return all isoform sequences as dict isoName (eg. P48347-2) -> sequence "
+    isoFname = join(inDir, "uniprot_sprot_varsplic.fasta.gz")
+    isoFile = gzip.open(isoFname)
+    logging.info("reading isoform sequences from %s" % isoFname)
+    isoSeqs = maxbio.parseFastaAsDict(isoFile)
+    result = {}
+    seqNames = []
+    for id, seq in isoSeqs.iteritems():
+        idParts = id.split("|")
+        isoName = idParts[1]
+        result[isoName] = seq
+        seqNames.append(idParts[2].split()[0])
+    logging.info("Found %d isoform sequences" % len(result))
+    return result, len(set(seqNames))
+
+
+def parseUniprot(inDir, outDir, taxonIds):
     " parse uniprot to records and refs subdirs of outdir "
 
-    xmlFile = gzip.open(join(inDir, "uniprot_sprot.xml.gz"))
+    if options.parse:
+        fname = options.parse
+        logging.info("Debug parse of %s" % fname)
+        xmlFile = open(fname)
+        isoSeqs, recCount = {}, 1
+        entryOf = openOutTabFile(".", "temp.tab", entryHeaders)
+        refOf = openOutTabFile(".", "temp.refs.tab", refHeaders)
+        mutOf = openOutTabFile(".", "temp.mut.tab", mutHeaders)
+    else:
+        isoSeqs, recCount = readIsoforms(inDir)
+        xmlFile = gzip.open(join(inDir, "uniprot_sprot.xml.gz"))
+        logging.info("Parsing main XML file %s" % xmlFile.name)
+        entryOf = openOutTabFile(outDir, "uniprot.tab", entryHeaders)
+        refOf = openOutTabFile(outDir, "uniprot.refs.tab", refHeaders)
+        mutOf = openOutTabFile(outDir, "uniprot.mut.tab", mutHeaders)
 
-    entryHeaders = ["dataset", "name", "accList", "protFullNames", \
-        "protShortNames", "protAltNames", "geneName", "geneSynonyms", \
-        "geneOrdLocus", "geneOrf", "orgName", "orgCommon", "orgTaxId"]
-    entryRec = collections.namedtuple("uprec", entryHeaders)
     emptyEntry = dict(zip(entryHeaders, len(entryHeaders)*[""]))
-    entryOf = openOutTabFile(outDir, "records", "uniprot.tab", entryHeaders)
 
-    refHeaders = ["name", "citType", "year", "journal", "vol", "page", \
-            "title", "authors", "doi", "pmid", "scopeList"]
-    refRec = collections.namedtuple("refRec", refHeaders)
-    emptyRef = dict(zip(refHeaders, len(refHeaders)*[""]))
-    refOf = openOutTabFile(outDir, "refs", "uniprot.tab", refHeaders)
 
+    pm = maxCommon.ProgressMeter(550000)
     for _, entryEl in etree.iterparse(xmlFile, tag='{http://uniprot.org/uniprot}entry'):
         strip_namespace_inplace(entryEl) # die, die stupid namespaces!!
         entry = copy.copy(emptyEntry)
-        entryRow = parseRecInfo(entryEl, entry)
+
+        pm.taskCompleted()
+
+        if int(entryEl.find("organism/dbReference").attrib["id"]) not in taxonIds:
+            continue
+
+        entryRow = parseRecInfo(entryEl, entry, isoSeqs)
+
         entryOf.write("\t".join(entryRow)+"\n")
         recName = entryRow.name
 
-        refRows = list(parseRefInfo(entryEl))
+        refRows = list(parseRefInfo(entryEl, recName))
         for refRow in refRows:
             refOf.write("\t".join(refRow)+"\n")
+
+        mutRecs = parseVariants(entryEl)
+        for mutRow in mutRecs:
+            logging.debug("writing row %s" % str(mutRow))
+            mutOf.write("\t".join(mutRow)+"\n")
 
         entryEl.clear()
 
 
 def main(args, options):
     #logFname = join(outDir, "dbParse.log")
+    if options.test:
+        import doctest
+        doctest.testmod()
+        sys.exit(0)
+
     pubGeneric.setupLogging("", options)
     db = args[0]
 
     refDir = pubConf.dbRefDir
     maxCommon.mustExistDir(refDir, makeDir=True)
 
-    dbDir = join(pubConf.dbBaseDir, db)
+    if db=="pdb":
+        dbDir = pubConf.pdbBaseDir
+    elif db=="uniprot":
+        dbDir = pubConf.uniProtBaseDir
+    else:
+        assert(False) # illegal db arg
 
     if db=="pdb":
         #parsePdb("/hive/data/outside/pdb/o9/pdb1o91.ent.gz", refDir)
         parsePdb(dbDir, refDir)
     elif db=="uniprot":
-        parseUniprot(dbDir, refDir)
+        taxonIds = set(pubConf.uniProtTaxonIds)
+        parseUniprot(dbDir, refDir, taxonIds)
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -299,9 +661,11 @@ parser = optparse.OptionParser("""usage: %prog [options] pdb or uniprot - parse 
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
+parser.add_option("-p", "--parse", dest="parse", action="store", help="parse only a single xml file")
 (options, args) = parser.parse_args()
 
-if args==[]:
+if args==[] and not options.test:
     parser.print_help()
     exit(1)
 

@@ -1,0 +1,544 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<uniprot xmlns="http://uniprot.org/uniprot" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://uniprot.org/uniprot http://www.uniprot.org/support/docs/uniprot.xsd">
+<entry dataset="Swiss-Prot" created="2001-04-27" modified="2012-11-28" version="118">
+<accession>Q9H161</accession>
+<accession>Q96JN7</accession>
+<accession>Q9H198</accession>
+<accession>Q9HAY9</accession>
+<name>ALX4_HUMAN</name>
+<protein>
+<recommendedName>
+<fullName>Homeobox protein aristaless-like 4</fullName>
+</recommendedName>
+</protein>
+<gene>
+<name type="primary">ALX4</name>
+<name type="synonym">KIAA1788</name>
+</gene>
+<organism>
+<name type="scientific">Homo sapiens</name>
+<name type="common">Human</name>
+<dbReference type="NCBI Taxonomy" id="9606"/>
+<lineage>
+<taxon>Eukaryota</taxon>
+<taxon>Metazoa</taxon>
+<taxon>Chordata</taxon>
+<taxon>Craniata</taxon>
+<taxon>Vertebrata</taxon>
+<taxon>Euteleostomi</taxon>
+<taxon>Mammalia</taxon>
+<taxon>Eutheria</taxon>
+<taxon>Euarchontoglires</taxon>
+<taxon>Primates</taxon>
+<taxon>Haplorrhini</taxon>
+<taxon>Catarrhini</taxon>
+<taxon>Hominidae</taxon>
+<taxon>Homo</taxon>
+</lineage>
+</organism>
+<reference key="1">
+<citation type="journal article" date="2000" name="Am. J. Hum. Genet." volume="67" first="1327" last="1332">
+<title>Haploinsufficiency of ALX4 as a potential cause of parietal foramina in the 11p11.2 contiguous gene-deletion syndrome.</title>
+<authorList>
+<person name="Wu Y.-Q."/>
+<person name="Badano J.L."/>
+<person name="McCaskill C."/>
+<person name="Vogel H."/>
+<person name="Potocki L."/>
+<person name="Shaffer L.G."/>
+</authorList>
+<dbReference type="MEDLINE" id="20489877"/>
+<dbReference type="PubMed" id="11017806"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [MRNA]</scope>
+</reference>
+<reference key="2">
+<citation type="journal article" date="2000" name="J. Med. Genet." volume="37" first="916" last="920">
+<title>The ALX4 homeobox gene is mutated in patients with ossification defects of the skull (foramina parietalia permagna, OMIM 168500).</title>
+<authorList>
+<person name="Wuyts W."/>
+<person name="Cleiren E."/>
+<person name="Homfray T."/>
+<person name="Rasore-Quartino A."/>
+<person name="Vanhoenacker F."/>
+<person name="Van Hul W."/>
+</authorList>
+<dbReference type="MEDLINE" id="20558895"/>
+<dbReference type="PubMed" id="11106354"/>
+<dbReference type="DOI" id="10.1136/jmg.37.12.916"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [GENOMIC DNA]</scope>
+<scope>VARIANT THR-35</scope>
+<scope>VARIANT PFM2 PRO-272</scope>
+</reference>
+<reference key="3">
+<citation type="journal article" date="2001" name="Nat. Genet." volume="27" first="17" last="18">
+<title>Haploinsufficiency of the human homeobox gene ALX4 causes skull ossification defects.</title>
+<authorList>
+<person name="Mavrogiannis L.A."/>
+<person name="Antonopoulou I."/>
+<person name="Baxova A."/>
+<person name="Kutilek S."/>
+<person name="Kim C.A."/>
+<person name="Sugayama S.M."/>
+<person name="Salamanca A."/>
+<person name="Wall S.A."/>
+<person name="Morriss-Kay G.M."/>
+<person name="Wilkie A.O.M."/>
+</authorList>
+<dbReference type="MEDLINE" id="20578741"/>
+<dbReference type="PubMed" id="11137991"/>
+<dbReference type="DOI" id="10.1038/83703"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [GENOMIC DNA / MRNA]</scope>
+<scope>VARIANTS THR-35 AND SER-102</scope>
+<scope>VARIANT PFM2 GLN-218</scope>
+</reference>
+<reference key="4">
+<citation type="journal article" date="2001" name="DNA Res." volume="8" first="85" last="95">
+<title>Prediction of the coding sequences of unidentified human genes. XX. The complete sequences of 100 new cDNA clones from brain which code for large proteins in vitro.</title>
+<authorList>
+<person name="Nagase T."/>
+<person name="Nakayama M."/>
+<person name="Nakajima D."/>
+<person name="Kikuno R."/>
+<person name="Ohara O."/>
+</authorList>
+<dbReference type="MEDLINE" id="21245130"/>
+<dbReference type="PubMed" id="11347906"/>
+<dbReference type="DOI" id="10.1093/dnares/8.2.85"/>
+</citation>
+<scope>NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA]</scope>
+<source>
+<tissue>Brain</tissue>
+</source>
+</reference>
+<reference key="5">
+<citation type="journal article" date="2009" name="Hum. Mol. Genet." volume="18" first="4357" last="4366">
+<title>ALX4 dysfunction disrupts craniofacial and epidermal development.</title>
+<authorList>
+<person name="Kayserili H."/>
+<person name="Uz E."/>
+<person name="Niessen C."/>
+<person name="Vargel I."/>
+<person name="Alanay Y."/>
+<person name="Tuncbilek G."/>
+<person name="Yigit G."/>
+<person name="Uyguner O."/>
+<person name="Candan S."/>
+<person name="Okur H."/>
+<person name="Kaygin S."/>
+<person name="Balci S."/>
+<person name="Mavili E."/>
+<person name="Alikasifoglu M."/>
+<person name="Haase I."/>
+<person name="Wollnik B."/>
+<person name="Akarsu N.A."/>
+</authorList>
+<dbReference type="PubMed" id="19692347"/>
+<dbReference type="DOI" id="10.1093/hmg/ddp391"/>
+</citation>
+<scope>INVOLVEMENT IN FND2</scope>
+<scope>FUNCTION</scope>
+<scope>SUBCELLULAR LOCATION</scope>
+</reference>
+<comment type="function">
+<text evidence="1">Transcription factor involved in skull and limb development. Plays an essential role in craniofacial development, skin and hair follicle development.</text>
+</comment>
+<comment type="subunit">
+<text>Binds DNA (By similarity).</text>
+</comment>
+<comment type="subcellular location">
+<subcellularLocation>
+<location evidence="1">Nucleus</location>
+</subcellularLocation>
+</comment>
+<comment type="tissue specificity">
+<text>Expression is likely to be restricted to bone. Found in parietal bone.</text>
+</comment>
+<comment type="disease">
+<text evidence="2 3">Defects in ALX4 are the cause of parietal foramina 2 (PFM2) [MIM:609597]; also known as foramina parietalia permagna (FPP). PFM2 is an autosomal dominant disease characterized by oval defects of the parietal bones caused by deficient ossification around the parietal notch, which is normally obliterated during the fifth fetal month. PFM2 is also a clinical feature of Potocki-Shaffer syndrome.</text>
+</comment>
+<comment type="disease">
+<text evidence="1">Defects in ALX4 are the cause of frontonasal dysplasia type 2 (FND2) [MIM:613451]. The term frontonasal dysplasia describes an array of abnormalities affecting the eyes, forehead and nose and linked to midfacial dysraphia. The clinical picture is highly variable. Major findings include true ocular hypertelorism; broadening of the nasal root; median facial cleft affecting the nose and/or upper lip and palate; unilateral or bilateral clefting of the alae nasi; lack of formation of the nasal tip; anterior cranium bifidum occultum; a V-shaped or widow's peak frontal hairline.</text>
+</comment>
+<comment type="disease">
+<text>Defects in ALX4 are a cause of Potocki-Shaffer syndrome (POSHS) [MIM:601224]. A contiguous gene syndrome caused by deletion of the 11p11.2 region.</text>
+</comment>
+<comment type="similarity">
+<text>Belongs to the paired homeobox family.</text>
+</comment>
+<comment type="similarity">
+<text>Contains 1 homeobox DNA-binding domain.</text>
+</comment>
+<comment type="sequence caution">
+<conflict type="frameshift">
+<sequence resource="EMBL-CDS" id="AAG23961" version="1"/>
+</conflict>
+<location>
+<position position="314"/>
+</location>
+<location>
+<position position="323"/>
+</location>
+<location>
+<position position="340"/>
+</location>
+</comment>
+<comment type="sequence caution">
+<conflict type="erroneous initiation">
+<sequence resource="EMBL-CDS" id="BAB47417" version="1"/>
+</conflict>
+</comment>
+<comment type="online information" name="GeneReviews">
+<link uri="http://www.ncbi.nlm.nih.gov/sites/GeneTests/lab/gene/ALX4"/>
+</comment>
+<dbReference type="EMBL" id="AF294629">
+<property type="protein sequence ID" value="AAG23961.1"/>
+<property type="status" value="ALT_FRAME"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF308822">
+<property type="protein sequence ID" value="AAK38835.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF308823">
+<property type="protein sequence ID" value="AAK38835.1"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF308824">
+<property type="protein sequence ID" value="AAK38835.1"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AF308825">
+<property type="protein sequence ID" value="AAK38835.1"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AJ404888">
+<property type="protein sequence ID" value="CAC15060.1"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AJ279074">
+<property type="protein sequence ID" value="CAC15120.1"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AJ279075">
+<property type="protein sequence ID" value="CAC15120.1"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AJ279076">
+<property type="protein sequence ID" value="CAC15120.1"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AJ279077">
+<property type="protein sequence ID" value="CAC15120.1"/>
+<property type="status" value="JOINED"/>
+<property type="molecule type" value="Genomic_DNA"/>
+</dbReference>
+<dbReference type="EMBL" id="AB058691">
+<property type="protein sequence ID" value="BAB47417.1"/>
+<property type="status" value="ALT_INIT"/>
+<property type="molecule type" value="mRNA"/>
+</dbReference>
+<dbReference type="IPI" id="IPI00334769"/>
+<dbReference type="RefSeq" id="NP_068745.2">
+<property type="nucleotide sequence ID" value="NM_021926.3"/>
+</dbReference>
+<dbReference type="UniGene" id="Hs.436055"/>
+<dbReference type="ProteinModelPortal" id="Q9H161"/>
+<dbReference type="SMR" id="Q9H161">
+<property type="residue range" value="215-271"/>
+</dbReference>
+<dbReference type="STRING" id="Q9H161"/>
+<dbReference type="PhosphoSite" id="Q9H161"/>
+<dbReference type="DMDM" id="254763249"/>
+<dbReference type="PaxDb" id="Q9H161"/>
+<dbReference type="PRIDE" id="Q9H161"/>
+<dbReference type="DNASU" id="60529"/>
+<dbReference type="Ensembl" id="ENST00000329255">
+<property type="protein sequence ID" value="ENSP00000332744"/>
+<property type="gene ID" value="ENSG00000052850"/>
+</dbReference>
+<dbReference type="GeneID" id="60529"/>
+<dbReference type="KEGG" id="hsa:60529"/>
+<dbReference type="UCSC" id="uc001myb.3">
+<property type="organism name" value="human"/>
+</dbReference>
+<dbReference type="CTD" id="60529"/>
+<dbReference type="GeneCards" id="GC11M044238"/>
+<dbReference type="HGNC" id="HGNC:450">
+<property type="gene designation" value="ALX4"/>
+</dbReference>
+<dbReference type="MIM" id="601224">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="605420">
+<property type="type" value="gene"/>
+</dbReference>
+<dbReference type="MIM" id="609597">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="MIM" id="613451">
+<property type="type" value="phenotype"/>
+</dbReference>
+<dbReference type="neXtProt" id="NX_Q9H161"/>
+<dbReference type="Orphanet" id="228390">
+<property type="disease" value="Frontonasal dysplasia with alopecia and genital anomaly"/>
+</dbReference>
+<dbReference type="Orphanet" id="60015">
+<property type="disease" value="Parietal foramina"/>
+</dbReference>
+<dbReference type="Orphanet" id="52022">
+<property type="disease" value="Potocki-Shaffer syndrome"/>
+</dbReference>
+<dbReference type="PharmGKB" id="PA24755"/>
+<dbReference type="eggNOG" id="NOG309608"/>
+<dbReference type="HOGENOM" id="HOG000231518"/>
+<dbReference type="HOVERGEN" id="HBG004214"/>
+<dbReference type="InParanoid" id="Q9H161"/>
+<dbReference type="KO" id="K09451"/>
+<dbReference type="OMA" id="KFQPQPS"/>
+<dbReference type="OrthoDB" id="EOG4ZGPCG"/>
+<dbReference type="PhylomeDB" id="Q9H161"/>
+<dbReference type="GenomeRNAi" id="60529"/>
+<dbReference type="NextBio" id="65433"/>
+<dbReference type="ArrayExpress" id="Q9H161"/>
+<dbReference type="Bgee" id="Q9H161"/>
+<dbReference type="CleanEx" id="HS_ALX4"/>
+<dbReference type="Genevestigator" id="Q9H161"/>
+<dbReference type="GermOnline" id="ENSG00000052850">
+<property type="organism name" value="Homo sapiens"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005634">
+<property type="term" value="C:nucleus"/>
+<property type="evidence" value="IDA:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0005667">
+<property type="term" value="C:transcription factor complex"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0003677">
+<property type="term" value="F:DNA binding"/>
+<property type="evidence" value="NAS:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0043565">
+<property type="term" value="F:sequence-specific DNA binding"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0003700">
+<property type="term" value="F:sequence-specific DNA binding transcription factor activity"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0009952">
+<property type="term" value="P:anterior/posterior pattern specification"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048565">
+<property type="term" value="P:digestive tract development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0042733">
+<property type="term" value="P:embryonic digit morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035115">
+<property type="term" value="P:embryonic forelimb morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0035116">
+<property type="term" value="P:embryonic hindlimb morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0048704">
+<property type="term" value="P:embryonic skeletal system morphogenesis"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001942">
+<property type="term" value="P:hair follicle development"/>
+<property type="evidence" value="IMP:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0007517">
+<property type="term" value="P:muscle organ development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0060021">
+<property type="term" value="P:palate development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0045944">
+<property type="term" value="P:positive regulation of transcription from RNA polymerase II promoter"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0009791">
+<property type="term" value="P:post-embryonic development"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0042981">
+<property type="term" value="P:regulation of apoptotic process"/>
+<property type="evidence" value="IEA:Compara"/>
+</dbReference>
+<dbReference type="GO" id="GO:0001501">
+<property type="term" value="P:skeletal system development"/>
+<property type="evidence" value="NAS:UniProtKB"/>
+</dbReference>
+<dbReference type="GO" id="GO:0006351">
+<property type="term" value="P:transcription, DNA-dependent"/>
+<property type="evidence" value="IEA:UniProtKB-KW"/>
+</dbReference>
+<dbReference type="Gene3D" id="1.10.10.60">
+<property type="entry name" value="Homeodomain-rel"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR017970">
+<property type="entry name" value="Homeobox_CS"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR001356">
+<property type="entry name" value="Homeodomain"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR009057">
+<property type="entry name" value="Homeodomain-like"/>
+</dbReference>
+<dbReference type="InterPro" id="IPR003654">
+<property type="entry name" value="OAR_dom"/>
+</dbReference>
+<dbReference type="Pfam" id="PF00046">
+<property type="entry name" value="Homeobox"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="Pfam" id="PF03826">
+<property type="entry name" value="OAR"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SMART" id="SM00389">
+<property type="entry name" value="HOX"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="SUPFAM" id="SSF46689">
+<property type="entry name" value="Homeodomain_like"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS00027">
+<property type="entry name" value="HOMEOBOX_1"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50071">
+<property type="entry name" value="HOMEOBOX_2"/>
+<property type="match status" value="1"/>
+</dbReference>
+<dbReference type="PROSITE" id="PS50803">
+<property type="entry name" value="OAR"/>
+<property type="match status" value="1"/>
+</dbReference>
+<proteinExistence type="evidence at protein level"/>
+<keyword id="KW-0010">Activator</keyword>
+<keyword id="KW-0181">Complete proteome</keyword>
+<keyword id="KW-0238">DNA-binding</keyword>
+<keyword id="KW-0217">Developmental protein</keyword>
+<keyword id="KW-0225">Disease mutation</keyword>
+<keyword id="KW-0371">Homeobox</keyword>
+<keyword id="KW-0539">Nucleus</keyword>
+<keyword id="KW-0621">Polymorphism</keyword>
+<keyword id="KW-1185">Reference proteome</keyword>
+<keyword id="KW-0804">Transcription</keyword>
+<keyword id="KW-0805">Transcription regulation</keyword>
+<feature type="chain" description="Homeobox protein aristaless-like 4" id="PRO_0000048814">
+<location>
+<begin position="1"/>
+<end position="411"/>
+</location>
+</feature>
+<feature type="DNA-binding region" description="Homeobox">
+<location>
+<begin position="214"/>
+<end position="273"/>
+</location>
+</feature>
+<feature type="short sequence motif" description="OAR">
+<location>
+<begin position="391"/>
+<end position="404"/>
+</location>
+</feature>
+<feature type="compositionally biased region" description="Poly-Gln">
+<location>
+<begin position="104"/>
+<end position="115"/>
+</location>
+</feature>
+<feature type="sequence variant" id="VAR_010783" evidence="2 3">
+<original>R</original>
+<variation>T</variation>
+<location>
+<position position="35"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs12421995." id="VAR_010784" evidence="3">
+<original>P</original>
+<variation>S</variation>
+<location>
+<position position="102"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In PFM2." id="VAR_010785" evidence="3">
+<original>R</original>
+<variation>Q</variation>
+<location>
+<position position="218"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In dbSNP:rs3824915." id="VAR_058413">
+<original>R</original>
+<variation>T</variation>
+<location>
+<position position="257"/>
+</location>
+</feature>
+<feature type="sequence variant" description="In PFM2." id="VAR_010897" evidence="2">
+<original>R</original>
+<variation>P</variation>
+<location>
+<position position="272"/>
+</location>
+</feature>
+<feature type="sequence conflict" description="In Ref. 1; AAG23961." ref="1">
+<original>D</original>
+<variation>N</variation>
+<location>
+<position position="134"/>
+</location>
+</feature>
+<evidence key="1" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="19692347"/>
+</source>
+</evidence>
+<evidence key="2" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11106354"/>
+</source>
+</evidence>
+<evidence key="3" type="ECO:0000006">
+<source>
+<dbReference type="PubMed" id="11137991"/>
+</source>
+</evidence>
+<sequence length="411" mass="44241" checksum="D41780B230C7E55C" modified="2009-07-28" version="2">
+MNAETCVSYCESPAAAMDAYYSPVSQSREGSSPFRAFPGGDKFGTTFLSAAAKAQGFGDA
+KSRARYGAGQQDLATPLESGAGARGSFNKFQPQPSTPQPQPPPQPQPQQQQPQPQPPAQP
+HLYLQRGACKTPPDGSLKLQEGSSGHSAALQVPCYAKESSLGEPELPPDSDTVGMDSSYL
+SVKEAGVKGPQDRASSDLPSPLEKADSESNKGKKRRNRTTFTSYQLEELEKVFQKTHYPD
+VYAREQLAMRTDLTEARVQVWFQNRRAKWRKRERFGQMQQVRTHFSTAYELPLLTRAENY
+AQIQNPSWLGNNGAASPVPACVVPCDPVPACMSPHAHPPGSGASSVTDFLSVSGAGSHVG
+QTHMGSLFGAASLSPGLNGYELNGEPDRKTSSIAALRMKAKEHSAAISWAT
+</sequence>
+</entry>
+<copyright>
+Copyrighted by the UniProt Consortium, see http://www.uniprot.org/terms
+Distributed under the Creative Commons Attribution-NoDerivs License
+</copyright>
+</uniprot>

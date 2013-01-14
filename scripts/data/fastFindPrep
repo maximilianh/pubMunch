@@ -1,4 +1,9 @@
 #!/usr/bin/env python2.7
+
+# preprocess a dictionary in the format
+# <id>tab<term> to a gzipped marshalled
+# file for the fastFind.py module
+
 import fastFind, gzip, marshal, logging, sys
 from os.path import *
 

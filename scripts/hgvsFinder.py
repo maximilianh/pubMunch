@@ -1,22 +1,18 @@
-# exmaple file for pubtools
-# illustrates how to search for text, going over words and output
-
-# we need the regular expressions module to split text into words
-# (unicode-awareness!)
+# recognize substitutions coded in HGVS format, see http://www.hgvs.org/mutnomen/
 import re, logging
 
 # global variable
 refseq = "(?P<gene>[XYNAZ][PRM]_[0-9]{4,11}([.][0-9]{1,2}))"
-hgnc = "(?P<gene>[A-Zorf]{1,6})"
-uniprot = r'(?P<gene>[A-NR-ZOPQ][0-9][A-Z0-9][A-Z0-9][A-Z0-9][0-9])'
-pdbRe = r'(?P<gene>[0-9][a-zA-Z][a-zA-Z][a-zA-Z])' 
-ensembl = r'(?P<gene>ENS([A-Z]{3})?[GPT][0-9]{9,14})'
-gene = "(%s|%s|%s|%s|%s)" % (refseq, hgnc, uniprot, pdbRe, ensembl)
+#hgnc = "(?P<gene>[A-Zorf]{1,6})"
+#uniprot = r'(?P<gene>[A-NR-ZOPQ][0-9][A-Z0-9][A-Z0-9][A-Z0-9][0-9])'
+#pdbRe = r'(?P<gene>[0-9][a-zA-Z][a-zA-Z][a-zA-Z])' 
+#ensembl = r'(?P<gene>ENS([A-Z]{3})?[GPT][0-9]{9,14})'
+#gene = "(%s|%s|%s|%s|%s)" % (refseq, hgnc, uniprot, pdbRe, ensembl)
 
 nuclSub = "([cr][.][0-9]{1,6}[actguACTGU]>[actguACTGU])"
 protSub = "(p[.][A-Za-z]{1,3}[0-9]{1,5}[A-Za-z]{1,3})"
-delDupInsInv = "([crp][.][a-zA-Z]{1,3}[0-9]{1,6}(del|dup|ins|inv)[a-zA-Z]{1,3})"
-ddivr = re.compile(delDupInsInv)
+#delDupInsInv = "([crp][.][a-zA-Z]{1,3}[0-9]{1,6}(del|dup|ins|inv)[a-zA-Z]{1,3})"
+#ddivr = re.compile(delDupInsInv)
 sub = "(%s|%s)" % (nuclSub, protSub)
 
 #pr = re.compile(protSub)
@@ -34,8 +30,6 @@ subMutRe = re.compile(subMutStr)
 # The framework will use this for the headers in table output file
 headers = ["start", "end", "mut"]
 
-# this method is called ONCE on each cluster node, when the article chunk
-# is opened, it fills the hugoDict variable
 def startup(paramDict):
     pass
 
