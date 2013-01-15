@@ -1,0 +1,10 @@
+acc	chr	chrStart	chrEnd	strand	stat	frame	start	stop	orfStop	smallGap	unknownSplice	causes
+1S	1S	1N	1N	1S	1S	1S	1S	1S	1N	1N	1N	1S
+NM_000792.3	chr1	54071881	54088778	+	err	ok	ok	ok	1	0	0	orfStop
+XM_497330.1	chr12	10143441	10156304	+	err	ok	ok	ok	1	0	0	orfStop
+XM_497332.1	chr12	17444599	17445106	+	err	ok	ok	ok	1	0	0	orfStop
+NM_000792.3	chr2	54071881	54088778	+	err	ok	ok	ok	1	0	0	orfStop
+XM_497330.1	chr2	10143441	10156304	+	err	ok	ok	ok	1	0	0	orfStop
+XM_497332.1	chr2	17444599	17445106	+	err	ok	ok	ok	1	0	0	orfStop
+NM_000581.2	chr3	49369614	49370795	-	err	ok	ok	ok	1	0	0	orfStop
+NM_000581.2	chr10	49369614	49370795	-	err	ok	ok	ok	1	0	0	orfStop

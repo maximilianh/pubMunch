@@ -1,0 +1,8 @@
+acc: NM_000792.3	chr: chr1	chrStart: 54071881	chrEnd: 54088778	strand: +	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: XM_497330.1	chr: chr12	chrStart: 10143441	chrEnd: 10156304	strand: +	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: XM_497332.1	chr: chr12	chrStart: 17444599	chrEnd: 17445106	strand: +	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: NM_000792.3	chr: chr2	chrStart: 54071881	chrEnd: 54088778	strand: +	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: XM_497330.1	chr: chr2	chrStart: 10143441	chrEnd: 10156304	strand: +	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: XM_497332.1	chr: chr2	chrStart: 17444599	chrEnd: 17445106	strand: +	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: NM_000581.2	chr: chr3	chrStart: 49369614	chrEnd: 49370795	strand: -	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']
+acc: NM_000581.2	chr: chr10	chrStart: 49369614	chrEnd: 49370795	strand: -	stat: False	frame: ok	start: True	stop: True	orfStop: 1	smallGap: 0	unknownSplice: 0	causes: ['orfStop']

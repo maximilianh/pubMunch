@@ -1,0 +1,57 @@
+--- simplify
+IFile
+OFile
+IOFile
+
+
+
+this hangs:
+
+# blastp scores for augustus
+blastpRawOuts = er.getFiles(glob.glob("/cluster/store4/mario/hg17/predictions/TERX.hmRNA.hsEST.browser/prioritylist/blastp/results/res*.blast"))
+blastpScores = er.getFile(dataDir+"/augustusHints.blastpscores.bz2")
+er.addCmd([(["cat"] + [s.getIn() for s in blastpRawOuts]),
+           ("blastToPsl", blastpScores.getOut("-scores="), "stdin", "/dev/null")])
+
+
+- parallel process and cluster job batch control
+  - allow deleting intermediate files
+    - dynamic subgraphs
+  - 
+
+- return list of errors
+--------------------------------------------
+
+RemoteCmd: task user host dir [simpleCbmd]
+ - want to allow stdin, but conflicts with send commands on stdin.
+ - stdout (returnor pipe) / stderr stderr or except
+ - might want to allow rsh, but exit code problem (ssh rsh seems to work)
+ - can shell be specified to avoid use shell?
+
+ParaRemote
+
+taktuk - efficient, large scale, parallel remote execution of commands
+
+ssh dev sys
+
+see QuoteForPOSIX(string): http://code.activestate.com/recipes/498202/
+
+time ssh hgwdev
+
+time rsh hgwdev date 0.008u 0.004s 0:00.15
+
+time ssh hgwdev date 0.020u 0.008s 0:00.25
+time ssh -o PreferredAuthentications=hostbased  hgwdev date  Permission denied
+
+ -c blowfish  # FASTER
+
+time ssh -c blowfish  hgwdev date 0.018u 0.011s 0:00.25
+time ssh -c 3des  hgwdev date    0.027u 0.006s 0:00.26
+
+------------
+BUGS:
+  - transMap extraction of fasta occasionally has garbage on the first line;
+    could this be a result of not flushing, or files not being closed?
+  - transMap rule seems to not get all of the database file on the first run
+  
+

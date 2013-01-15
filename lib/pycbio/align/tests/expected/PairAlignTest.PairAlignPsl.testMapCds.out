@@ -1,0 +1,2572 @@
+srcQCds: 	NM_001045478.1:1-1823/- sz: 1823 cds: 1170-1673
+srcTCds: 	chr1:9635255-9637231/+ sz: 247249719 cds: 9636424-9637081
+query:  Ugene_clone_id:103093:0-1606/- sz: 1606 cds: None
+target: chr1:9635599-9637196/+ sz: 247249719 cds: 9636424-9637081
+	> query:  0-1526
+	  target: 9635599-9637125  CDS: 9636424-9637081
+	> query:  1526-1541
+	  target: None
+	> query:  None
+	  target: 9637125-9637131
+	> query:  1541-1606
+	  target: 9637131-9637196
+srcQCds: 	NM_017978.1:0-2111/+ sz: 2149 cds: 124-1974
+srcTCds: 	chr5:139761612-139832245/+ sz: 180857866 cds: 139761736-139832108
+query:  Ugene_clone_id:103641:0-8297/+ sz: 8297 cds: None
+target: chr5:139761642-139909210/+ sz: 180857866 cds: 139761736-139832108
+	> query:  0-400
+	  target: 139761642-139762042  CDS: 139761736-139762042
+	> query:  None
+	  target: 139762042-139795872
+	> query:  400-554
+	  target: 139795872-139796026
+	> query:  None
+	  target: 139796026-139798229
+	> query:  554-711
+	  target: 139798229-139798386
+	> query:  None
+	  target: 139798386-139799887
+	> query:  711-859
+	  target: 139799887-139800035
+	> query:  None
+	  target: 139800035-139800763
+	> query:  859-1007
+	  target: 139800763-139800911
+	> query:  None
+	  target: 139800911-139805510
+	> query:  1007-1241
+	  target: 139805510-139805744
+	> query:  None
+	  target: 139805744-139808979
+	> query:  1241-1336
+	  target: 139808979-139809074
+	> query:  None
+	  target: 139809074-139818393
+	> query:  1336-1574
+	  target: 139818393-139818631
+	> query:  None
+	  target: 139818631-139818932
+	> query:  1574-1766
+	  target: 139818932-139819124
+	> query:  None
+	  target: 139819124-139824435
+	> query:  1766-1876
+	  target: 139824435-139824545
+	> query:  None
+	  target: 139824545-139842348  CDS: 139832007-139832108
+	> query:  1876-1964
+	  target: 139842348-139842436
+	> query:  None
+	  target: 139842436-139844889
+	> query:  1964-2092
+	  target: 139844889-139845017
+	> query:  None
+	  target: 139845017-139845357
+	> query:  2092-2236
+	  target: 139845357-139845501
+	> query:  None
+	  target: 139845501-139846726
+	> query:  2236-2339
+	  target: 139846726-139846829
+	> query:  None
+	  target: 139846829-139856288
+	> query:  2339-3098
+	  target: 139856288-139857047
+	> query:  None
+	  target: 139857047-139864589
+	> query:  3098-3244
+	  target: 139864589-139864735
+	> query:  None
+	  target: 139864735-139864890
+	> query:  3244-3356
+	  target: 139864890-139865002
+	> query:  None
+	  target: 139865002-139865492
+	> query:  3356-3502
+	  target: 139865492-139865638
+	> query:  None
+	  target: 139865638-139866603
+	> query:  3502-3645
+	  target: 139866603-139866746
+	> query:  None
+	  target: 139866746-139867553
+	> query:  3645-3859
+	  target: 139867553-139867767
+	> query:  None
+	  target: 139867767-139869405
+	> query:  3859-3905
+	  target: 139869405-139869451
+	> query:  3905-3999
+	  target: None
+	> query:  3999-4129
+	  target: 139869451-139869581
+	> query:  None
+	  target: 139869581-139869787
+	> query:  4129-4292
+	  target: 139869787-139869950
+	> query:  None
+	  target: 139869950-139872596
+	> query:  4292-4388
+	  target: 139872596-139872692
+	> query:  None
+	  target: 139872692-139873131
+	> query:  4388-4505
+	  target: 139873131-139873248
+	> query:  None
+	  target: 139873248-139883834
+	> query:  4505-4680
+	  target: 139883834-139884009
+	> query:  None
+	  target: 139884009-139885764
+	> query:  4680-5128
+	  target: 139885764-139886212
+	> query:  None
+	  target: 139886212-139886696
+	> query:  5128-5275
+	  target: 139886696-139886843
+	> query:  None
+	  target: 139886843-139887641
+	> query:  5275-5425
+	  target: 139887641-139887791
+	> query:  None
+	  target: 139887791-139887952
+	> query:  5425-7038
+	  target: 139887952-139889565
+	> query:  None
+	  target: 139889565-139895130
+	> query:  7038-7215
+	  target: 139895130-139895307
+	> query:  None
+	  target: 139895307-139897106
+	> query:  7215-7467
+	  target: 139897106-139897358
+	> query:  None
+	  target: 139897358-139897854
+	> query:  7467-7643
+	  target: 139897854-139898030
+	> query:  None
+	  target: 139898030-139898687
+	> query:  7643-7808
+	  target: 139898687-139898852
+	> query:  None
+	  target: 139898852-139901940
+	> query:  7808-7918
+	  target: 139901940-139902050
+	> query:  None
+	  target: 139902050-139908674
+	> query:  7918-8089
+	  target: 139908674-139908845
+	> query:  None
+	  target: 139908845-139909002
+	> query:  8089-8297
+	  target: 139909002-139909210
+srcQCds: 	NM_024668.2:0-2144/+ sz: 2164 cds: 124-2007
+srcTCds: 	chr5:139761612-139832245/+ sz: 180857866 cds: 139761736-139832108
+query:  Ugene_clone_id:103641:0-8297/+ sz: 8297 cds: None
+target: chr5:139761642-139909210/+ sz: 180857866 cds: 139761736-139832108
+	> query:  0-400
+	  target: 139761642-139762042  CDS: 139761736-139762042
+	> query:  None
+	  target: 139762042-139795872
+	> query:  400-554
+	  target: 139795872-139796026
+	> query:  None
+	  target: 139796026-139798229
+	> query:  554-711
+	  target: 139798229-139798386
+	> query:  None
+	  target: 139798386-139799887
+	> query:  711-859
+	  target: 139799887-139800035
+	> query:  None
+	  target: 139800035-139800763
+	> query:  859-1007
+	  target: 139800763-139800911
+	> query:  None
+	  target: 139800911-139805510
+	> query:  1007-1241
+	  target: 139805510-139805744
+	> query:  None
+	  target: 139805744-139808979
+	> query:  1241-1336
+	  target: 139808979-139809074
+	> query:  None
+	  target: 139809074-139818393
+	> query:  1336-1574
+	  target: 139818393-139818631
+	> query:  None
+	  target: 139818631-139818932
+	> query:  1574-1766
+	  target: 139818932-139819124
+	> query:  None
+	  target: 139819124-139824435
+	> query:  1766-1876
+	  target: 139824435-139824545
+	> query:  None
+	  target: 139824545-139842348  CDS: 139832007-139832108
+	> query:  1876-1964
+	  target: 139842348-139842436
+	> query:  None
+	  target: 139842436-139844889
+	> query:  1964-2092
+	  target: 139844889-139845017
+	> query:  None
+	  target: 139845017-139845357
+	> query:  2092-2236
+	  target: 139845357-139845501
+	> query:  None
+	  target: 139845501-139846726
+	> query:  2236-2339
+	  target: 139846726-139846829
+	> query:  None
+	  target: 139846829-139856288
+	> query:  2339-3098
+	  target: 139856288-139857047
+	> query:  None
+	  target: 139857047-139864589
+	> query:  3098-3244
+	  target: 139864589-139864735
+	> query:  None
+	  target: 139864735-139864890
+	> query:  3244-3356
+	  target: 139864890-139865002
+	> query:  None
+	  target: 139865002-139865492
+	> query:  3356-3502
+	  target: 139865492-139865638
+	> query:  None
+	  target: 139865638-139866603
+	> query:  3502-3645
+	  target: 139866603-139866746
+	> query:  None
+	  target: 139866746-139867553
+	> query:  3645-3859
+	  target: 139867553-139867767
+	> query:  None
+	  target: 139867767-139869405
+	> query:  3859-3905
+	  target: 139869405-139869451
+	> query:  3905-3999
+	  target: None
+	> query:  3999-4129
+	  target: 139869451-139869581
+	> query:  None
+	  target: 139869581-139869787
+	> query:  4129-4292
+	  target: 139869787-139869950
+	> query:  None
+	  target: 139869950-139872596
+	> query:  4292-4388
+	  target: 139872596-139872692
+	> query:  None
+	  target: 139872692-139873131
+	> query:  4388-4505
+	  target: 139873131-139873248
+	> query:  None
+	  target: 139873248-139883834
+	> query:  4505-4680
+	  target: 139883834-139884009
+	> query:  None
+	  target: 139884009-139885764
+	> query:  4680-5128
+	  target: 139885764-139886212
+	> query:  None
+	  target: 139886212-139886696
+	> query:  5128-5275
+	  target: 139886696-139886843
+	> query:  None
+	  target: 139886843-139887641
+	> query:  5275-5425
+	  target: 139887641-139887791
+	> query:  None
+	  target: 139887791-139887952
+	> query:  5425-7038
+	  target: 139887952-139889565
+	> query:  None
+	  target: 139889565-139895130
+	> query:  7038-7215
+	  target: 139895130-139895307
+	> query:  None
+	  target: 139895307-139897106
+	> query:  7215-7467
+	  target: 139897106-139897358
+	> query:  None
+	  target: 139897358-139897854
+	> query:  7467-7643
+	  target: 139897854-139898030
+	> query:  None
+	  target: 139898030-139898687
+	> query:  7643-7808
+	  target: 139898687-139898852
+	> query:  None
+	  target: 139898852-139901940
+	> query:  7808-7918
+	  target: 139901940-139902050
+	> query:  None
+	  target: 139902050-139908674
+	> query:  7918-8089
+	  target: 139908674-139908845
+	> query:  None
+	  target: 139908845-139909002
+	> query:  8089-8297
+	  target: 139909002-139909210
+srcQCds: 	NM_017747.1:0-8189/+ sz: 8196 cds: 124-7752
+srcTCds: 	chr5:139761612-139899623/+ sz: 180857866 cds: 139761736-139899186
+query:  Ugene_clone_id:103641:0-8297/+ sz: 8297 cds: None
+target: chr5:139761642-139909210/+ sz: 180857866 cds: 139761736-139899186
+	> query:  0-400
+	  target: 139761642-139762042  CDS: 139761736-139762042
+	> query:  None
+	  target: 139762042-139795872
+	> query:  400-554
+	  target: 139795872-139796026
+	> query:  None
+	  target: 139796026-139798229
+	> query:  554-711
+	  target: 139798229-139798386
+	> query:  None
+	  target: 139798386-139799887
+	> query:  711-859
+	  target: 139799887-139800035
+	> query:  None
+	  target: 139800035-139800763
+	> query:  859-1007
+	  target: 139800763-139800911
+	> query:  None
+	  target: 139800911-139805510
+	> query:  1007-1241
+	  target: 139805510-139805744
+	> query:  None
+	  target: 139805744-139808979
+	> query:  1241-1336
+	  target: 139808979-139809074
+	> query:  None
+	  target: 139809074-139818393
+	> query:  1336-1574
+	  target: 139818393-139818631
+	> query:  None
+	  target: 139818631-139818932
+	> query:  1574-1766
+	  target: 139818932-139819124
+	> query:  None
+	  target: 139819124-139824435
+	> query:  1766-1876
+	  target: 139824435-139824545
+	> query:  None
+	  target: 139824545-139842348
+	> query:  1876-1964
+	  target: 139842348-139842436
+	> query:  None
+	  target: 139842436-139844889
+	> query:  1964-2092
+	  target: 139844889-139845017
+	> query:  None
+	  target: 139845017-139845357
+	> query:  2092-2236
+	  target: 139845357-139845501
+	> query:  None
+	  target: 139845501-139846726
+	> query:  2236-2339
+	  target: 139846726-139846829
+	> query:  None
+	  target: 139846829-139856288
+	> query:  2339-3098
+	  target: 139856288-139857047
+	> query:  None
+	  target: 139857047-139864589
+	> query:  3098-3244
+	  target: 139864589-139864735
+	> query:  None
+	  target: 139864735-139864890
+	> query:  3244-3356
+	  target: 139864890-139865002
+	> query:  None
+	  target: 139865002-139865492
+	> query:  3356-3502
+	  target: 139865492-139865638
+	> query:  None
+	  target: 139865638-139866603
+	> query:  3502-3645
+	  target: 139866603-139866746
+	> query:  None
+	  target: 139866746-139867553
+	> query:  3645-3859
+	  target: 139867553-139867767
+	> query:  None
+	  target: 139867767-139869405
+	> query:  3859-3905
+	  target: 139869405-139869451
+	> query:  3905-3999
+	  target: None
+	> query:  3999-4129
+	  target: 139869451-139869581
+	> query:  None
+	  target: 139869581-139869787
+	> query:  4129-4292
+	  target: 139869787-139869950
+	> query:  None
+	  target: 139869950-139872596
+	> query:  4292-4388
+	  target: 139872596-139872692
+	> query:  None
+	  target: 139872692-139873131
+	> query:  4388-4505
+	  target: 139873131-139873248
+	> query:  None
+	  target: 139873248-139883834
+	> query:  4505-4680
+	  target: 139883834-139884009
+	> query:  None
+	  target: 139884009-139885764
+	> query:  4680-5128
+	  target: 139885764-139886212
+	> query:  None
+	  target: 139886212-139886696
+	> query:  5128-5275
+	  target: 139886696-139886843
+	> query:  None
+	  target: 139886843-139887641
+	> query:  5275-5425
+	  target: 139887641-139887791
+	> query:  None
+	  target: 139887791-139887952
+	> query:  5425-7038
+	  target: 139887952-139889565
+	> query:  None
+	  target: 139889565-139895130
+	> query:  7038-7215
+	  target: 139895130-139895307
+	> query:  None
+	  target: 139895307-139897106
+	> query:  7215-7467
+	  target: 139897106-139897358
+	> query:  None
+	  target: 139897358-139897854
+	> query:  7467-7643
+	  target: 139897854-139898030
+	> query:  None
+	  target: 139898030-139898687
+	> query:  7643-7808
+	  target: 139898687-139898852
+	> query:  None
+	  target: 139898852-139901940  CDS: 139899127-139899186
+	> query:  7808-7918
+	  target: 139901940-139902050
+	> query:  None
+	  target: 139902050-139908674
+	> query:  7918-8089
+	  target: 139908674-139908845
+	> query:  None
+	  target: 139908845-139909002
+	> query:  8089-8297
+	  target: 139909002-139909210
+srcQCds: 	NM_020690.4:0-8319/+ sz: 8319 cds: 124-7977
+srcTCds: 	chr5:139761612-139909347/+ sz: 180857866 cds: 139761736-139909005
+query:  Ugene_clone_id:103641:0-8297/+ sz: 8297 cds: None
+target: chr5:139761642-139909210/+ sz: 180857866 cds: 139761736-139909005
+	> query:  0-400
+	  target: 139761642-139762042  CDS: 139761736-139762042
+	> query:  None
+	  target: 139762042-139795872
+	> query:  400-554
+	  target: 139795872-139796026
+	> query:  None
+	  target: 139796026-139798229
+	> query:  554-711
+	  target: 139798229-139798386
+	> query:  None
+	  target: 139798386-139799887
+	> query:  711-859
+	  target: 139799887-139800035
+	> query:  None
+	  target: 139800035-139800763
+	> query:  859-1007
+	  target: 139800763-139800911
+	> query:  None
+	  target: 139800911-139805510
+	> query:  1007-1241
+	  target: 139805510-139805744
+	> query:  None
+	  target: 139805744-139808979
+	> query:  1241-1336
+	  target: 139808979-139809074
+	> query:  None
+	  target: 139809074-139818393
+	> query:  1336-1574
+	  target: 139818393-139818631
+	> query:  None
+	  target: 139818631-139818932
+	> query:  1574-1766
+	  target: 139818932-139819124
+	> query:  None
+	  target: 139819124-139824435
+	> query:  1766-1876
+	  target: 139824435-139824545
+	> query:  None
+	  target: 139824545-139842348
+	> query:  1876-1964
+	  target: 139842348-139842436
+	> query:  None
+	  target: 139842436-139844889
+	> query:  1964-2092
+	  target: 139844889-139845017
+	> query:  None
+	  target: 139845017-139845357
+	> query:  2092-2236
+	  target: 139845357-139845501
+	> query:  None
+	  target: 139845501-139846726
+	> query:  2236-2339
+	  target: 139846726-139846829
+	> query:  None
+	  target: 139846829-139856288
+	> query:  2339-3098
+	  target: 139856288-139857047
+	> query:  None
+	  target: 139857047-139864589
+	> query:  3098-3244
+	  target: 139864589-139864735
+	> query:  None
+	  target: 139864735-139864890
+	> query:  3244-3356
+	  target: 139864890-139865002
+	> query:  None
+	  target: 139865002-139865492
+	> query:  3356-3502
+	  target: 139865492-139865638
+	> query:  None
+	  target: 139865638-139866603
+	> query:  3502-3645
+	  target: 139866603-139866746
+	> query:  None
+	  target: 139866746-139867553
+	> query:  3645-3859
+	  target: 139867553-139867767
+	> query:  None
+	  target: 139867767-139869405
+	> query:  3859-3905
+	  target: 139869405-139869451
+	> query:  3905-3999
+	  target: None
+	> query:  3999-4129
+	  target: 139869451-139869581
+	> query:  None
+	  target: 139869581-139869787
+	> query:  4129-4292
+	  target: 139869787-139869950
+	> query:  None
+	  target: 139869950-139872596
+	> query:  4292-4388
+	  target: 139872596-139872692
+	> query:  None
+	  target: 139872692-139873131
+	> query:  4388-4505
+	  target: 139873131-139873248
+	> query:  None
+	  target: 139873248-139883834
+	> query:  4505-4680
+	  target: 139883834-139884009
+	> query:  None
+	  target: 139884009-139885764
+	> query:  4680-5128
+	  target: 139885764-139886212
+	> query:  None
+	  target: 139886212-139886696
+	> query:  5128-5275
+	  target: 139886696-139886843
+	> query:  None
+	  target: 139886843-139887641
+	> query:  5275-5425
+	  target: 139887641-139887791
+	> query:  None
+	  target: 139887791-139887952
+	> query:  5425-7038
+	  target: 139887952-139889565
+	> query:  None
+	  target: 139889565-139895130
+	> query:  7038-7215
+	  target: 139895130-139895307
+	> query:  None
+	  target: 139895307-139897106
+	> query:  7215-7467
+	  target: 139897106-139897358
+	> query:  None
+	  target: 139897358-139897854
+	> query:  7467-7643
+	  target: 139897854-139898030
+	> query:  None
+	  target: 139898030-139898687
+	> query:  7643-7808
+	  target: 139898687-139898852
+	> query:  None
+	  target: 139898852-139901940
+	> query:  7808-7918
+	  target: 139901940-139902050
+	> query:  None
+	  target: 139902050-139908674
+	> query:  7918-8089
+	  target: 139908674-139908845
+	> query:  None
+	  target: 139908845-139909002
+	> query:  8089-8297
+	  target: 139909002-139909210  CDS: 139909002-139909005
+srcQCds: 	NM_003732.2:0-691/+ sz: 728 cds: 72-374
+srcTCds: 	chr5:139907434-139909347/+ sz: 180857866 cds: 139907506-139909030
+query:  Ugene_clone_id:103641:0-8297/+ sz: 8297 cds: None
+target: chr5:139761642-139909210/+ sz: 180857866 cds: 139909002-139909030
+	> query:  0-400
+	  target: 139761642-139762042
+	> query:  None
+	  target: 139762042-139795872
+	> query:  400-554
+	  target: 139795872-139796026
+	> query:  None
+	  target: 139796026-139798229
+	> query:  554-711
+	  target: 139798229-139798386
+	> query:  None
+	  target: 139798386-139799887
+	> query:  711-859
+	  target: 139799887-139800035
+	> query:  None
+	  target: 139800035-139800763
+	> query:  859-1007
+	  target: 139800763-139800911
+	> query:  None
+	  target: 139800911-139805510
+	> query:  1007-1241
+	  target: 139805510-139805744
+	> query:  None
+	  target: 139805744-139808979
+	> query:  1241-1336
+	  target: 139808979-139809074
+	> query:  None
+	  target: 139809074-139818393
+	> query:  1336-1574
+	  target: 139818393-139818631
+	> query:  None
+	  target: 139818631-139818932
+	> query:  1574-1766
+	  target: 139818932-139819124
+	> query:  None
+	  target: 139819124-139824435
+	> query:  1766-1876
+	  target: 139824435-139824545
+	> query:  None
+	  target: 139824545-139842348
+	> query:  1876-1964
+	  target: 139842348-139842436
+	> query:  None
+	  target: 139842436-139844889
+	> query:  1964-2092
+	  target: 139844889-139845017
+	> query:  None
+	  target: 139845017-139845357
+	> query:  2092-2236
+	  target: 139845357-139845501
+	> query:  None
+	  target: 139845501-139846726
+	> query:  2236-2339
+	  target: 139846726-139846829
+	> query:  None
+	  target: 139846829-139856288
+	> query:  2339-3098
+	  target: 139856288-139857047
+	> query:  None
+	  target: 139857047-139864589
+	> query:  3098-3244
+	  target: 139864589-139864735
+	> query:  None
+	  target: 139864735-139864890
+	> query:  3244-3356
+	  target: 139864890-139865002
+	> query:  None
+	  target: 139865002-139865492
+	> query:  3356-3502
+	  target: 139865492-139865638
+	> query:  None
+	  target: 139865638-139866603
+	> query:  3502-3645
+	  target: 139866603-139866746
+	> query:  None
+	  target: 139866746-139867553
+	> query:  3645-3859
+	  target: 139867553-139867767
+	> query:  None
+	  target: 139867767-139869405
+	> query:  3859-3905
+	  target: 139869405-139869451
+	> query:  3905-3999
+	  target: None
+	> query:  3999-4129
+	  target: 139869451-139869581
+	> query:  None
+	  target: 139869581-139869787
+	> query:  4129-4292
+	  target: 139869787-139869950
+	> query:  None
+	  target: 139869950-139872596
+	> query:  4292-4388
+	  target: 139872596-139872692
+	> query:  None
+	  target: 139872692-139873131
+	> query:  4388-4505
+	  target: 139873131-139873248
+	> query:  None
+	  target: 139873248-139883834
+	> query:  4505-4680
+	  target: 139883834-139884009
+	> query:  None
+	  target: 139884009-139885764
+	> query:  4680-5128
+	  target: 139885764-139886212
+	> query:  None
+	  target: 139886212-139886696
+	> query:  5128-5275
+	  target: 139886696-139886843
+	> query:  None
+	  target: 139886843-139887641
+	> query:  5275-5425
+	  target: 139887641-139887791
+	> query:  None
+	  target: 139887791-139887952
+	> query:  5425-7038
+	  target: 139887952-139889565
+	> query:  None
+	  target: 139889565-139895130
+	> query:  7038-7215
+	  target: 139895130-139895307
+	> query:  None
+	  target: 139895307-139897106
+	> query:  7215-7467
+	  target: 139897106-139897358
+	> query:  None
+	  target: 139897358-139897854
+	> query:  7467-7643
+	  target: 139897854-139898030
+	> query:  None
+	  target: 139898030-139898687
+	> query:  7643-7808
+	  target: 139898687-139898852
+	> query:  None
+	  target: 139898852-139901940
+	> query:  7808-7918
+	  target: 139901940-139902050
+	> query:  None
+	  target: 139902050-139908674
+	> query:  7918-8089
+	  target: 139908674-139908845
+	> query:  None
+	  target: 139908845-139909002
+	> query:  8089-8297
+	  target: 139909002-139909210  CDS: 139909002-139909030
+srcQCds: 	NM_017934.4:26-5817/- sz: 5817 cds: 148-5613
+srcTCds: 	chr6:79707007-79844708/+ sz: 170899992 cds: 79707129-79844504
+query:  Ugene_clone_id:105670:0-5665/- sz: 5665 cds: None
+target: chr6:79707031-79844610/+ sz: 170899992 cds: 79707129-79844504
+	> query:  0-735
+	  target: 79707031-79707766  CDS: 79707129-79707766
+	> query:  None
+	  target: 79707766-79711735
+	> query:  735-933
+	  target: 79711735-79711933
+	> query:  None
+	  target: 79711933-79712436
+	> query:  933-1182
+	  target: 79712436-79712685
+	> query:  None
+	  target: 79712685-79712686
+	> query:  1182-1192
+	  target: 79712686-79712696
+	> query:  None
+	  target: 79712696-79713146
+	> query:  1192-1356
+	  target: 79713146-79713310
+	> query:  None
+	  target: 79713310-79714058
+	> query:  1356-1509
+	  target: 79714058-79714211
+	> query:  None
+	  target: 79714211-79721249
+	> query:  1509-1659
+	  target: 79721249-79721399
+	> query:  None
+	  target: 79721399-79721667
+	> query:  1659-1710
+	  target: 79721667-79721718
+	> query:  None
+	  target: 79721718-79722048
+	> query:  1710-1780
+	  target: 79722048-79722118
+	> query:  None
+	  target: 79722118-79724910
+	> query:  1780-1906
+	  target: 79724910-79725036
+	> query:  None
+	  target: 79725036-79728125
+	> query:  1906-2027
+	  target: 79728125-79728246
+	> query:  None
+	  target: 79728246-79729532
+	> query:  2027-2183
+	  target: 79729532-79729688
+	> query:  None
+	  target: 79729688-79732138
+	> query:  2183-2245
+	  target: 79732138-79732200
+	> query:  None
+	  target: 79732200-79732380
+	> query:  2245-2357
+	  target: 79732380-79732492
+	> query:  None
+	  target: 79732492-79736270
+	> query:  2357-2440
+	  target: 79736270-79736353
+	> query:  None
+	  target: 79736353-79736484
+	> query:  2440-2565
+	  target: 79736484-79736609
+	> query:  None
+	  target: 79736609-79737216
+	> query:  2565-2673
+	  target: 79737216-79737324
+	> query:  None
+	  target: 79737324-79745027
+	> query:  2673-2793
+	  target: 79745027-79745147
+	> query:  None
+	  target: 79745147-79749321
+	> query:  2793-3025
+	  target: 79749321-79749553
+	> query:  None
+	  target: 79749553-79751787
+	> query:  3025-3102
+	  target: 79751787-79751864
+	> query:  None
+	  target: 79751864-79754644
+	> query:  3102-3243
+	  target: 79754644-79754785
+	> query:  None
+	  target: 79754785-79757303
+	> query:  3243-3358
+	  target: 79757303-79757418
+	> query:  None
+	  target: 79757418-79763849
+	> query:  3358-3542
+	  target: 79763849-79764033
+	> query:  None
+	  target: 79764033-79764689
+	> query:  3542-3680
+	  target: 79764689-79764827
+	> query:  None
+	  target: 79764827-79768334
+	> query:  3680-3906
+	  target: 79768334-79768560
+	> query:  None
+	  target: 79768560-79770165
+	> query:  3906-4035
+	  target: 79770165-79770294
+	> query:  None
+	  target: 79770294-79781517
+	> query:  4035-4170
+	  target: 79781517-79781652
+	> query:  None
+	  target: 79781652-79782065
+	> query:  4170-4324
+	  target: 79782065-79782219
+	> query:  None
+	  target: 79782219-79782979
+	> query:  4324-4423
+	  target: 79782979-79783078
+	> query:  None
+	  target: 79783078-79783781
+	> query:  4423-4464
+	  target: 79783781-79783822
+	> query:  None
+	  target: 79783822-79783918
+	> query:  4464-4565
+	  target: 79783918-79784019
+	> query:  None
+	  target: 79784019-79785524
+	> query:  4565-4636
+	  target: 79785524-79785595
+	> query:  None
+	  target: 79785595-79791954
+	> query:  4636-4737
+	  target: 79791954-79792055
+	> query:  None
+	  target: 79792055-79792378
+	> query:  4737-4959
+	  target: 79792378-79792600
+	> query:  None
+	  target: 79792600-79809278
+	> query:  4959-5120
+	  target: 79809278-79809439
+	> query:  None
+	  target: 79809439-79826913
+	> query:  5120-5219
+	  target: 79826913-79827012
+	> query:  None
+	  target: 79827012-79827103
+	> query:  5219-5370
+	  target: 79827103-79827254
+	> query:  None
+	  target: 79827254-79843883
+	> query:  5370-5430
+	  target: 79843883-79843943
+	> query:  None
+	  target: 79843943-79844135
+	> query:  5430-5460
+	  target: 79844135-79844165
+	> query:  None
+	  target: 79844165-79844290
+	> query:  5460-5519
+	  target: 79844290-79844349
+	> query:  None
+	  target: 79844349-79844464
+	> query:  5519-5665
+	  target: 79844464-79844610  CDS: 79844464-79844504
+srcQCds: 	NM_021140.1:9-5408/+ sz: 5418 cds: 26-4231
+srcTCds: 	chrX:44617724-44856787/+ sz: 154913754 cds: 44617741-44855599
+query:  Ugene_clone_id:1318:6-4343/+ sz: 4343 cds: None
+target: chrX:44617724-44855693/+ sz: 154913754 cds: 44617741-44617902
+	> query:  6-184
+	  target: 44617724-44617902  CDS: 44617741-44617902
+	> query:  None
+	  target: 44617902-44618113
+	> query:  184-248
+	  target: 44618113-44618177
+	> query:  None
+	  target: 44618177-44705472
+	> query:  248-357
+	  target: 44705472-44705581
+	> query:  None
+	  target: 44705581-44718854
+	> query:  357-407
+	  target: 44718854-44718904
+	> query:  None
+	  target: 44718904-44755149
+	> query:  407-466
+	  target: 44755149-44755208
+	> query:  None
+	  target: 44755208-44764798
+	> query:  466-587
+	  target: 44764798-44764919
+	> query:  None
+	  target: 44764919-44779119
+	> query:  587-642
+	  target: 44779119-44779174
+	> query:  None
+	  target: 44779174-44781843
+	> query:  642-677
+	  target: 44781843-44781878
+	> query:  None
+	  target: 44781878-44795897
+	> query:  677-771
+	  target: 44795897-44795991
+	> query:  None
+	  target: 44795991-44798017
+	> query:  771-898
+	  target: 44798017-44798144
+	> query:  None
+	  target: 44798144-44803194
+	> query:  898-997
+	  target: 44803194-44803293
+	> query:  None
+	  target: 44803293-44803435
+	> query:  997-1217
+	  target: 44803435-44803655
+	> query:  None
+	  target: 44803655-44804797
+	> query:  1217-1373
+	  target: 44804797-44804953
+	> query:  None
+	  target: 44804953-44805512
+	> query:  1373-1469
+	  target: 44805512-44805608
+	> query:  None
+	  target: 44805608-44806835
+	> query:  1469-1571
+	  target: 44806835-44806937
+	> query:  None
+	  target: 44806937-44807610
+	> query:  1571-1967
+	  target: 44807610-44808006
+	> query:  None
+	  target: 44808006-44813767
+	> query:  1967-2746
+	  target: 44813767-44814546
+	> query:  None
+	  target: 44814546-44820885
+	> query:  2746-2876
+	  target: 44820885-44821015
+	> query:  None
+	  target: 44821015-44822588
+	> query:  2876-2982
+	  target: 44822588-44822694
+	> query:  None
+	  target: 44822694-44823334
+	> query:  2982-3188
+	  target: 44823334-44823540
+	> query:  None
+	  target: 44823540-44826764
+	> query:  3188-3253
+	  target: 44826764-44826829
+	> query:  None
+	  target: 44826829-44826903
+	> query:  3253-3328
+	  target: 44826903-44826978
+	> query:  None
+	  target: 44826978-44827648
+	> query:  3328-3477
+	  target: 44827648-44827797
+	> query:  None
+	  target: 44827797-44830053
+	> query:  3477-3592
+	  target: 44830053-44830168
+	> query:  None
+	  target: 44830168-44833931
+	> query:  3592-3780
+	  target: 44833931-44834119
+	> query:  None
+	  target: 44834119-44834911
+	> query:  3780-3922
+	  target: 44834911-44835053
+	> query:  None
+	  target: 44835053-44851598
+	> query:  3922-4049
+	  target: 44851598-44851725
+	> query:  None
+	  target: 44851725-44854267
+	> query:  4049-4220
+	  target: 44854267-44854438
+	> query:  None
+	  target: 44854438-44855570
+	> query:  4220-4343
+	  target: 44855570-44855693
+srcQCds: 	NM_021140.1:9-5408/+ sz: 5418 cds: 26-4231
+srcTCds: 	chrX:44617724-44856787/+ sz: 154913754 cds: 44617741-44855599
+query:  Ugene_clone_id:1340:6-4068/+ sz: 4068 cds: None
+target: chrX:44617724-44855697/+ sz: 154913754 cds: 44617741-44617902
+	> query:  6-184
+	  target: 44617724-44617902  CDS: 44617741-44617902
+	> query:  None
+	  target: 44617902-44618113
+	> query:  184-248
+	  target: 44618113-44618177
+	> query:  None
+	  target: 44618177-44705472
+	> query:  248-357
+	  target: 44705472-44705581
+	> query:  None
+	  target: 44705581-44718854
+	> query:  357-407
+	  target: 44718854-44718904
+	> query:  None
+	  target: 44718904-44755149
+	> query:  407-466
+	  target: 44755149-44755208
+	> query:  None
+	  target: 44755208-44779119
+	> query:  466-521
+	  target: 44779119-44779174
+	> query:  None
+	  target: 44779174-44781843
+	> query:  521-545
+	  target: 44781843-44781867
+	> query:  None
+	  target: 44781867-44781869
+	> query:  545-554
+	  target: 44781869-44781878
+	> query:  None
+	  target: 44781878-44795897
+	> query:  554-648
+	  target: 44795897-44795991
+	> query:  None
+	  target: 44795991-44798017
+	> query:  648-775
+	  target: 44798017-44798144
+	> query:  None
+	  target: 44798144-44803194
+	> query:  775-874
+	  target: 44803194-44803293
+	> query:  None
+	  target: 44803293-44803435
+	> query:  874-1094
+	  target: 44803435-44803655
+	> query:  None
+	  target: 44803655-44805512
+	> query:  1094-1190
+	  target: 44805512-44805608
+	> query:  None
+	  target: 44805608-44806835
+	> query:  1190-1292
+	  target: 44806835-44806937
+	> query:  None
+	  target: 44806937-44807610
+	> query:  1292-1688
+	  target: 44807610-44808006
+	> query:  None
+	  target: 44808006-44813767
+	> query:  1688-2467
+	  target: 44813767-44814546
+	> query:  None
+	  target: 44814546-44820885
+	> query:  2467-2597
+	  target: 44820885-44821015
+	> query:  None
+	  target: 44821015-44822588
+	> query:  2597-2703
+	  target: 44822588-44822694
+	> query:  None
+	  target: 44822694-44823334
+	> query:  2703-2909
+	  target: 44823334-44823540
+	> query:  None
+	  target: 44823540-44826764
+	> query:  2909-2974
+	  target: 44826764-44826829
+	> query:  None
+	  target: 44826829-44826903
+	> query:  2974-3049
+	  target: 44826903-44826978
+	> query:  None
+	  target: 44826978-44827648
+	> query:  3049-3198
+	  target: 44827648-44827797
+	> query:  None
+	  target: 44827797-44830053
+	> query:  3198-3313
+	  target: 44830053-44830168
+	> query:  None
+	  target: 44830168-44833931
+	> query:  3313-3501
+	  target: 44833931-44834119
+	> query:  None
+	  target: 44834119-44834911
+	> query:  3501-3643
+	  target: 44834911-44835053
+	> query:  None
+	  target: 44835053-44851598
+	> query:  3643-3770
+	  target: 44851598-44851725
+	> query:  None
+	  target: 44851725-44854267
+	> query:  3770-3941
+	  target: 44854267-44854438
+	> query:  None
+	  target: 44854438-44855570
+	> query:  3941-4068
+	  target: 44855570-44855697
+srcQCds: 	NM_021140.1:9-5408/+ sz: 5418 cds: 26-4231
+srcTCds: 	chrX:44617724-44856787/+ sz: 154913754 cds: 44617741-44855599
+query:  Ugene_clone_id:1364:6-4482/+ sz: 4482 cds: None
+target: chrX:44617724-44855697/+ sz: 154913754 cds: 44617741-44617902
+	> query:  6-184
+	  target: 44617724-44617902  CDS: 44617741-44617902
+	> query:  None
+	  target: 44617902-44618113
+	> query:  184-248
+	  target: 44618113-44618177
+	> query:  None
+	  target: 44618177-44705472
+	> query:  248-357
+	  target: 44705472-44705581
+	> query:  None
+	  target: 44705581-44718854
+	> query:  357-407
+	  target: 44718854-44718904
+	> query:  None
+	  target: 44718904-44755149
+	> query:  407-466
+	  target: 44755149-44755208
+	> query:  None
+	  target: 44755208-44764798
+	> query:  466-587
+	  target: 44764798-44764919
+	> query:  None
+	  target: 44764919-44779119
+	> query:  587-642
+	  target: 44779119-44779174
+	> query:  None
+	  target: 44779174-44781843
+	> query:  642-677
+	  target: 44781843-44781878
+	> query:  None
+	  target: 44781878-44795897
+	> query:  677-771
+	  target: 44795897-44795991
+	> query:  None
+	  target: 44795991-44798017
+	> query:  771-898
+	  target: 44798017-44798144
+	> query:  None
+	  target: 44798144-44803194
+	> query:  898-997
+	  target: 44803194-44803293
+	> query:  None
+	  target: 44803293-44803435
+	> query:  997-1217
+	  target: 44803435-44803655
+	> query:  None
+	  target: 44803655-44804210
+	> query:  1217-1352
+	  target: 44804210-44804345
+	> query:  None
+	  target: 44804345-44804797
+	> query:  1352-1508
+	  target: 44804797-44804953
+	> query:  None
+	  target: 44804953-44805512
+	> query:  1508-1604
+	  target: 44805512-44805608
+	> query:  None
+	  target: 44805608-44806835
+	> query:  1604-1706
+	  target: 44806835-44806937
+	> query:  None
+	  target: 44806937-44807610
+	> query:  1706-2102
+	  target: 44807610-44808006
+	> query:  None
+	  target: 44808006-44813767
+	> query:  2102-2881
+	  target: 44813767-44814546
+	> query:  None
+	  target: 44814546-44820885
+	> query:  2881-3011
+	  target: 44820885-44821015
+	> query:  None
+	  target: 44821015-44822588
+	> query:  3011-3117
+	  target: 44822588-44822694
+	> query:  None
+	  target: 44822694-44823334
+	> query:  3117-3323
+	  target: 44823334-44823540
+	> query:  None
+	  target: 44823540-44826764
+	> query:  3323-3388
+	  target: 44826764-44826829
+	> query:  None
+	  target: 44826829-44826903
+	> query:  3388-3463
+	  target: 44826903-44826978
+	> query:  None
+	  target: 44826978-44827648
+	> query:  3463-3612
+	  target: 44827648-44827797
+	> query:  None
+	  target: 44827797-44830053
+	> query:  3612-3727
+	  target: 44830053-44830168
+	> query:  None
+	  target: 44830168-44833931
+	> query:  3727-3915
+	  target: 44833931-44834119
+	> query:  None
+	  target: 44834119-44834911
+	> query:  3915-4057
+	  target: 44834911-44835053
+	> query:  None
+	  target: 44835053-44851598
+	> query:  4057-4184
+	  target: 44851598-44851725
+	> query:  None
+	  target: 44851725-44854267
+	> query:  4184-4355
+	  target: 44854267-44854438
+	> query:  None
+	  target: 44854438-44855570
+	> query:  4355-4482
+	  target: 44855570-44855697
+srcQCds: 	NM_021140.1:9-5408/+ sz: 5418 cds: 26-4231
+srcTCds: 	chrX:44617724-44856787/+ sz: 154913754 cds: 44617741-44855599
+query:  Ugene_clone_id:1388:6-4191/+ sz: 4191 cds: None
+target: chrX:44617724-44855697/+ sz: 154913754 cds: 44617741-44617902
+	> query:  6-184
+	  target: 44617724-44617902  CDS: 44617741-44617902
+	> query:  None
+	  target: 44617902-44618113
+	> query:  184-248
+	  target: 44618113-44618177
+	> query:  None
+	  target: 44618177-44705472
+	> query:  248-357
+	  target: 44705472-44705581
+	> query:  None
+	  target: 44705581-44718854
+	> query:  357-407
+	  target: 44718854-44718904
+	> query:  None
+	  target: 44718904-44755149
+	> query:  407-466
+	  target: 44755149-44755208
+	> query:  None
+	  target: 44755208-44764798
+	> query:  466-587
+	  target: 44764798-44764919
+	> query:  None
+	  target: 44764919-44779119
+	> query:  587-642
+	  target: 44779119-44779174
+	> query:  None
+	  target: 44779174-44781843
+	> query:  642-677
+	  target: 44781843-44781878
+	> query:  None
+	  target: 44781878-44795897
+	> query:  677-771
+	  target: 44795897-44795991
+	> query:  None
+	  target: 44795991-44798017
+	> query:  771-898
+	  target: 44798017-44798144
+	> query:  None
+	  target: 44798144-44803194
+	> query:  898-997
+	  target: 44803194-44803293
+	> query:  None
+	  target: 44803293-44803435
+	> query:  997-1217
+	  target: 44803435-44803655
+	> query:  None
+	  target: 44803655-44805512
+	> query:  1217-1313
+	  target: 44805512-44805608
+	> query:  None
+	  target: 44805608-44806835
+	> query:  1313-1415
+	  target: 44806835-44806937
+	> query:  None
+	  target: 44806937-44807610
+	> query:  1415-1811
+	  target: 44807610-44808006
+	> query:  None
+	  target: 44808006-44813767
+	> query:  1811-2590
+	  target: 44813767-44814546
+	> query:  None
+	  target: 44814546-44820885
+	> query:  2590-2720
+	  target: 44820885-44821015
+	> query:  None
+	  target: 44821015-44822588
+	> query:  2720-2826
+	  target: 44822588-44822694
+	> query:  None
+	  target: 44822694-44823334
+	> query:  2826-3032
+	  target: 44823334-44823540
+	> query:  None
+	  target: 44823540-44826764
+	> query:  3032-3097
+	  target: 44826764-44826829
+	> query:  None
+	  target: 44826829-44826903
+	> query:  3097-3172
+	  target: 44826903-44826978
+	> query:  None
+	  target: 44826978-44827648
+	> query:  3172-3321
+	  target: 44827648-44827797
+	> query:  None
+	  target: 44827797-44830053
+	> query:  3321-3436
+	  target: 44830053-44830168
+	> query:  None
+	  target: 44830168-44833931
+	> query:  3436-3624
+	  target: 44833931-44834119
+	> query:  None
+	  target: 44834119-44834911
+	> query:  3624-3766
+	  target: 44834911-44835053
+	> query:  None
+	  target: 44835053-44851598
+	> query:  3766-3893
+	  target: 44851598-44851725
+	> query:  None
+	  target: 44851725-44854267
+	> query:  3893-4064
+	  target: 44854267-44854438
+	> query:  None
+	  target: 44854438-44855570
+	> query:  4064-4191
+	  target: 44855570-44855697
+srcQCds: 	NM_178124.3:0-1365/+ sz: 1404 cds: 542-1018
+srcTCds: 	chrX:148430462-148436759/+ sz: 154913754 cds: 148435081-148436412
+query:  Ugene_clone_id:14761:0-1098/+ sz: 1098 cds: None
+target: chrX:148430575-148436605/+ sz: 154913754 cds: 148436189-148436412
+	> query:  0-219
+	  target: 148430575-148430794
+	> query:  None
+	  target: 148430794-148431469
+	> query:  219-267
+	  target: 148431469-148431517
+	> query:  None
+	  target: 148431517-148434818
+	> query:  267-400
+	  target: 148434818-148434951
+	> query:  None
+	  target: 148434951-148435052
+	> query:  400-682
+	  target: 148435052-148435334
+	> query:  None
+	  target: 148435334-148436189
+	> query:  682-1098
+	  target: 148436189-148436605  CDS: 148436189-148436412
+srcQCds: 	NM_178124.3:0-1365/+ sz: 1404 cds: 542-1018
+srcTCds: 	chrX:148430462-148436759/+ sz: 154913754 cds: 148435081-148436412
+query:  Ugene_clone_id:14821:0-1117/+ sz: 1117 cds: None
+target: chrX:148430575-148436605/+ sz: 154913754 cds: 148436189-148436412
+	> query:  0-219
+	  target: 148430575-148430794
+	> query:  None
+	  target: 148430794-148431469
+	> query:  219-286
+	  target: 148431469-148431536
+	> query:  None
+	  target: 148431536-148434818
+	> query:  286-419
+	  target: 148434818-148434951
+	> query:  None
+	  target: 148434951-148435052
+	> query:  419-701
+	  target: 148435052-148435334
+	> query:  None
+	  target: 148435334-148436189
+	> query:  701-1117
+	  target: 148436189-148436605  CDS: 148436189-148436412
+srcQCds: 	NM_178124.3:0-1365/+ sz: 1404 cds: 542-1018
+srcTCds: 	chrX:148430462-148436759/+ sz: 154913754 cds: 148435081-148436412
+query:  Ugene_clone_id:14898:0-1065/+ sz: 1065 cds: None
+target: chrX:148430576-148436605/+ sz: 154913754 cds: 148436189-148436412
+	> query:  0-167
+	  target: 148430576-148430743
+	> query:  None
+	  target: 148430743-148431469
+	> query:  167-234
+	  target: 148431469-148431536
+	> query:  None
+	  target: 148431536-148434818
+	> query:  234-367
+	  target: 148434818-148434951
+	> query:  None
+	  target: 148434951-148435052
+	> query:  367-649
+	  target: 148435052-148435334
+	> query:  None
+	  target: 148435334-148436189
+	> query:  649-1065
+	  target: 148436189-148436605  CDS: 148436189-148436412
+srcQCds: 	NM_017699.2:0-5001/+ sz: 5021 cds: 651-3134
+srcTCds: 	chr3:114733907-114831111/+ sz: 199501827 cds: 114734558-114829244
+query:  Ugene_clone_id:18705:0-2498/+ sz: 2498 cds: None
+target: chr3:114734519-114829279/+ sz: 199501827 cds: 114734558-114829244
+	> query:  0-261
+	  target: 114734519-114734780  CDS: 114734558-114734780
+	> query:  None
+	  target: 114734780-114767956
+	> query:  261-383
+	  target: 114767956-114768078
+	> query:  None
+	  target: 114768078-114769076
+	> query:  383-554
+	  target: 114769076-114769247
+	> query:  None
+	  target: 114769247-114778458
+	> query:  554-600
+	  target: 114778458-114778504
+	> query:  None
+	  target: 114778504-114782144
+	> query:  600-702
+	  target: 114782144-114782246
+	> query:  None
+	  target: 114782246-114782897
+	> query:  702-786
+	  target: 114782897-114782981
+	> query:  None
+	  target: 114782981-114784945
+	> query:  786-874
+	  target: 114784945-114785033
+	> query:  None
+	  target: 114785033-114786234
+	> query:  874-946
+	  target: 114786234-114786306
+	> query:  None
+	  target: 114786306-114786713
+	> query:  946-1040
+	  target: 114786713-114786807
+	> query:  None
+	  target: 114786807-114794541
+	> query:  1040-1084
+	  target: 114794541-114794585
+	> query:  None
+	  target: 114794585-114803124
+	> query:  1084-1156
+	  target: 114803124-114803196
+	> query:  None
+	  target: 114803196-114804541
+	> query:  1156-1302
+	  target: 114804541-114804687
+	> query:  None
+	  target: 114804687-114805496
+	> query:  1302-1376
+	  target: 114805496-114805570
+	> query:  None
+	  target: 114805570-114806446
+	> query:  1376-1443
+	  target: 114806446-114806513
+	> query:  None
+	  target: 114806513-114809630
+	> query:  1443-1567
+	  target: 114809630-114809754
+	> query:  None
+	  target: 114809754-114809955
+	> query:  1567-1685
+	  target: 114809955-114810073
+	> query:  None
+	  target: 114810073-114812544
+	> query:  1685-1822
+	  target: 114812544-114812681
+	> query:  None
+	  target: 114812681-114813622
+	> query:  1822-1931
+	  target: 114813622-114813731
+	> query:  1931-1943
+	  target: None
+	> query:  None
+	  target: 114813731-114817633
+	> query:  1943-2023
+	  target: 114817633-114817713
+	> query:  None
+	  target: 114817713-114821216
+	> query:  2023-2070
+	  target: 114821216-114821263
+	> query:  None
+	  target: 114821263-114824963
+	> query:  2070-2176
+	  target: 114824963-114825069
+	> query:  None
+	  target: 114825069-114825159
+	> query:  2176-2287
+	  target: 114825159-114825270
+	> query:  None
+	  target: 114825270-114827638
+	> query:  2287-2401
+	  target: 114827638-114827752
+	> query:  None
+	  target: 114827752-114829182
+	> query:  2401-2498
+	  target: 114829182-114829279  CDS: 114829182-114829244
+srcQCds: 	NM_182580.1:0-3321/+ sz: 3321 cds: 40-729
+srcTCds: 	chr1:109838244-109843000/+ sz: 247249719 cds: 109838284-109840403
+query:  Ugene_clone_id:2318:0-727/+ sz: 727 cds: None
+target: chr1:109838249-109840444/+ sz: 247249719 cds: 109838284-109838432
+	> query:  0-183
+	  target: 109838249-109838432  CDS: 109838284-109838432
+	> query:  None
+	  target: 109838432-109839900
+	> query:  183-727
+	  target: 109839900-109840444
+srcQCds: 	NM_012069.2:0-3853/+ sz: 3857 cds: 57-1118
+srcTCds: 	chrX:119379994-119400250/+ sz: 154913754 cds: 119380051-119397516
+query:  Ugene_clone_id:5122:0-1126/+ sz: 1126 cds: None
+target: chrX:119380024-119397542/+ sz: 154913754 cds: 119380051-119380114
+	> query:  0-90
+	  target: 119380024-119380114  CDS: 119380051-119380114
+	> query:  None
+	  target: 119380114-119384407
+	> query:  90-355
+	  target: 119384407-119384672
+	> query:  None
+	  target: 119384672-119388597
+	> query:  355-484
+	  target: 119388597-119388726
+	> query:  None
+	  target: 119388726-119388988
+	> query:  484-589
+	  target: 119388988-119389093
+	> query:  None
+	  target: 119389093-119393254
+	> query:  589-786
+	  target: 119393254-119393451
+	> query:  None
+	  target: 119393451-119394262
+	> query:  786-843
+	  target: 119394262-119394319
+	> query:  None
+	  target: 119394319-119396560
+	> query:  843-939
+	  target: 119396560-119396656
+	> query:  None
+	  target: 119396656-119397355
+	> query:  939-1126
+	  target: 119397355-119397542
+srcQCds: 	NM_012069.2:0-3853/+ sz: 3857 cds: 57-1118
+srcTCds: 	chrX:119379994-119400250/+ sz: 154913754 cds: 119380051-119397516
+query:  Ugene_clone_id:5146:0-1021/+ sz: 1021 cds: None
+target: chrX:119380024-119397542/+ sz: 154913754 cds: 119380051-119380114
+	> query:  0-90
+	  target: 119380024-119380114  CDS: 119380051-119380114
+	> query:  None
+	  target: 119380114-119384407
+	> query:  90-250
+	  target: 119384407-119384567
+	> query:  None
+	  target: 119384567-119388597
+	> query:  250-379
+	  target: 119388597-119388726
+	> query:  None
+	  target: 119388726-119388988
+	> query:  379-484
+	  target: 119388988-119389093
+	> query:  None
+	  target: 119389093-119393254
+	> query:  484-681
+	  target: 119393254-119393451
+	> query:  None
+	  target: 119393451-119394262
+	> query:  681-738
+	  target: 119394262-119394319
+	> query:  None
+	  target: 119394319-119396560
+	> query:  738-834
+	  target: 119396560-119396656
+	> query:  None
+	  target: 119396656-119397355
+	> query:  834-1021
+	  target: 119397355-119397542
+srcQCds: 	NM_012069.2:0-3853/+ sz: 3857 cds: 57-1118
+srcTCds: 	chrX:119379994-119400250/+ sz: 154913754 cds: 119380051-119397516
+query:  Ugene_clone_id:5162:0-997/+ sz: 997 cds: None
+target: chrX:119380024-119397542/+ sz: 154913754 cds: 119380051-119380114
+	> query:  0-90
+	  target: 119380024-119380114  CDS: 119380051-119380114
+	> query:  None
+	  target: 119380114-119384407
+	> query:  90-355
+	  target: 119384407-119384672
+	> query:  None
+	  target: 119384672-119388988
+	> query:  355-460
+	  target: 119388988-119389093
+	> query:  None
+	  target: 119389093-119393254
+	> query:  460-657
+	  target: 119393254-119393451
+	> query:  None
+	  target: 119393451-119394262
+	> query:  657-714
+	  target: 119394262-119394319
+	> query:  None
+	  target: 119394319-119396560
+	> query:  714-810
+	  target: 119396560-119396656
+	> query:  None
+	  target: 119396656-119397355
+	> query:  810-997
+	  target: 119397355-119397542
+srcQCds: 	NM_012314.3:0-1586/+ sz: 1586 cds: 46-960
+srcTCds: 	chr19:60035985-60051835/+ sz: 63811651 cds: 60036031-60051209
+query:  Ugene_clone_id:12620:5-1431/+ sz: 1431 cds: None
+target: chr19:59989604-60051422/+ sz: 63811651 cds: 60051168-60051209
+	> query:  5-53
+	  target: 59989604-59989652
+	> query:  None
+	  target: 59989652-60020800
+	> query:  53-89
+	  target: 60020800-60020836
+	> query:  None
+	  target: 60020836-60021581
+	> query:  89-374
+	  target: 60021581-60021866
+	> query:  None
+	  target: 60021866-60022979
+	> query:  374-674
+	  target: 60022979-60023279
+	> query:  None
+	  target: 60023279-60024831
+	> query:  674-789
+	  target: 60024831-60024946
+	> query:  None
+	  target: 60024946-60042787
+	> query:  789-968
+	  target: 60042787-60042966
+	> query:  None
+	  target: 60042966-60046134
+	> query:  968-1019
+	  target: 60046134-60046185
+	> query:  None
+	  target: 60046185-60050450
+	> query:  1019-1124
+	  target: 60050450-60050555
+	> query:  None
+	  target: 60050555-60051017
+	> query:  1124-1177
+	  target: 60051017-60051070
+	> query:  None
+	  target: 60051070-60051168
+	> query:  1177-1431
+	  target: 60051168-60051422  CDS: 60051168-60051209
+srcQCds: 	NM_012314.3:0-1586/+ sz: 1586 cds: 46-960
+srcTCds: 	chr19:60035985-60051835/+ sz: 63811651 cds: 60036031-60051209
+query:  Ugene_clone_id:12632:5-1425/+ sz: 1425 cds: None
+target: chr19:60019753-60051416/+ sz: 63811651 cds: 60051168-60051209
+	> query:  5-53
+	  target: 60019753-60019801
+	> query:  None
+	  target: 60019801-60020800
+	> query:  53-89
+	  target: 60020800-60020836
+	> query:  None
+	  target: 60020836-60021581
+	> query:  89-374
+	  target: 60021581-60021866
+	> query:  None
+	  target: 60021866-60022979
+	> query:  374-674
+	  target: 60022979-60023279
+	> query:  None
+	  target: 60023279-60024831
+	> query:  674-884
+	  target: 60024831-60025041
+	> query:  None
+	  target: 60025041-60042882
+	> query:  884-968
+	  target: 60042882-60042966
+	> query:  None
+	  target: 60042966-60046134
+	> query:  968-1019
+	  target: 60046134-60046185
+	> query:  None
+	  target: 60046185-60050450
+	> query:  1019-1124
+	  target: 60050450-60050555
+	> query:  None
+	  target: 60050555-60051017
+	> query:  1124-1177
+	  target: 60051017-60051070
+	> query:  None
+	  target: 60051070-60051168
+	> query:  1177-1425
+	  target: 60051168-60051416  CDS: 60051168-60051209
+srcQCds: 	NM_153341.1:0-1988/- sz: 1988 cds: 362-1987
+srcTCds: 	chr1:33174633-33202301/+ sz: 247249719 cds: 33174994-33202300
+query:  Ugene_clone_id:15591:0-1829/- sz: 1829 cds: None
+target: chr1:33174855-33202368/+ sz: 247249719 cds: 33174994-33202300
+	> query:  0-592
+	  target: 33174855-33175447  CDS: 33174994-33175447
+	> query:  None
+	  target: 33175447-33176584
+	> query:  592-724
+	  target: 33176584-33176716
+	> query:  None
+	  target: 33176716-33180439
+	> query:  724-932
+	  target: 33180439-33180647
+	> query:  None
+	  target: 33180647-33182206
+	> query:  932-1073
+	  target: 33182206-33182347
+	> query:  None
+	  target: 33182347-33183701
+	> query:  1073-1188
+	  target: 33183701-33183816
+	> query:  None
+	  target: 33183816-33184589
+	> query:  1188-1351
+	  target: 33184589-33184752
+	> query:  None
+	  target: 33184752-33186409
+	> query:  1351-1493
+	  target: 33186409-33186551
+	> query:  None
+	  target: 33186551-33187756
+	> query:  1493-1699
+	  target: 33187756-33187962
+	> query:  None
+	  target: 33187962-33202238
+	> query:  1699-1829
+	  target: 33202238-33202368  CDS: 33202238-33202300
+srcQCds: 	NM_025191.2:14-6298/- sz: 6298 cds: 3576-6245
+srcTCds: 	chr1:182926260-182990327/+ sz: 247249719 cds: 182929820-182990274
+query:  Ugene_clone_id:53663:0-3008/- sz: 3008 cds: None
+target: chr1:182929579-182990324/+ sz: 247249719 cds: None
+	> query:  0-650
+	  target: 182929579-182930229
+	> query:  None
+	  target: 182930229-182937253
+	> query:  650-698
+	  target: 182937253-182937301
+	> query:  None
+	  target: 182937301-182938567
+	> query:  698-884
+	  target: 182938567-182938753
+	> query:  None
+	  target: 182938753-182942399
+	> query:  884-1050
+	  target: 182942399-182942565
+	> query:  None
+	  target: 182942565-182943909
+	> query:  1050-1242
+	  target: 182943909-182944101
+	> query:  None
+	  target: 182944101-182946150
+	> query:  1242-1396
+	  target: 182946150-182946304
+	> query:  None
+	  target: 182946304-182947479
+	> query:  1396-1551
+	  target: 182947479-182947634
+	> query:  None
+	  target: 182947634-182948189
+	> query:  1551-1717
+	  target: 182948189-182948355
+	> query:  None
+	  target: 182948355-182952644
+	> query:  1717-1842
+	  target: 182952644-182952769
+	> query:  None
+	  target: 182952769-182953296
+	> query:  1842-1926
+	  target: 182953296-182953380
+	> query:  None
+	  target: 182953380-182954918
+	> query:  1926-2010
+	  target: 182954918-182955002
+	> query:  None
+	  target: 182955002-182955199
+	> query:  2010-2136
+	  target: 182955199-182955325
+	> query:  None
+	  target: 182955325-182957045
+	> query:  2136-2234
+	  target: 182957045-182957143
+	> query:  None
+	  target: 182957143-182959507
+	> query:  2234-2340
+	  target: 182959507-182959613
+	> query:  None
+	  target: 182959613-182962011
+	> query:  2340-2475
+	  target: 182962011-182962146
+	> query:  None
+	  target: 182962146-182968593
+	> query:  2475-2629
+	  target: 182968593-182968747
+	> query:  None
+	  target: 182968747-182970287
+	> query:  2629-2742
+	  target: 182970287-182970400
+	> query:  None
+	  target: 182970400-182972781
+	> query:  2742-2782
+	  target: 182972781-182972821
+	> query:  None
+	  target: 182972821-182973367
+	> query:  2782-2883
+	  target: 182973367-182973468
+	> query:  None
+	  target: 182973468-182985303
+	> query:  2883-2929
+	  target: 182985303-182985349
+	> query:  None
+	  target: 182985349-182990245
+	> query:  2929-3008
+	  target: 182990245-182990324
+srcQCds: 	NM_025191.2:14-6298/- sz: 6298 cds: 3576-6245
+srcTCds: 	chr1:182926260-182990327/+ sz: 247249719 cds: 182929820-182990274
+query:  Ugene_clone_id:53671:0-3027/- sz: 3027 cds: None
+target: chr1:182929579-182990324/+ sz: 247249719 cds: None
+	> query:  0-650
+	  target: 182929579-182930229
+	> query:  None
+	  target: 182930229-182937253
+	> query:  650-698
+	  target: 182937253-182937301
+	> query:  None
+	  target: 182937301-182938567
+	> query:  698-884
+	  target: 182938567-182938753
+	> query:  None
+	  target: 182938753-182942399
+	> query:  884-1069
+	  target: 182942399-182942584
+	> query:  None
+	  target: 182942584-182943909
+	> query:  1069-1261
+	  target: 182943909-182944101
+	> query:  None
+	  target: 182944101-182946150
+	> query:  1261-1415
+	  target: 182946150-182946304
+	> query:  None
+	  target: 182946304-182947479
+	> query:  1415-1570
+	  target: 182947479-182947634
+	> query:  None
+	  target: 182947634-182948189
+	> query:  1570-1736
+	  target: 182948189-182948355
+	> query:  None
+	  target: 182948355-182952644
+	> query:  1736-1861
+	  target: 182952644-182952769
+	> query:  None
+	  target: 182952769-182953296
+	> query:  1861-1945
+	  target: 182953296-182953380
+	> query:  None
+	  target: 182953380-182954918
+	> query:  1945-2029
+	  target: 182954918-182955002
+	> query:  None
+	  target: 182955002-182955199
+	> query:  2029-2155
+	  target: 182955199-182955325
+	> query:  None
+	  target: 182955325-182957045
+	> query:  2155-2253
+	  target: 182957045-182957143
+	> query:  None
+	  target: 182957143-182959507
+	> query:  2253-2359
+	  target: 182959507-182959613
+	> query:  None
+	  target: 182959613-182962011
+	> query:  2359-2494
+	  target: 182962011-182962146
+	> query:  None
+	  target: 182962146-182968593
+	> query:  2494-2648
+	  target: 182968593-182968747
+	> query:  None
+	  target: 182968747-182970287
+	> query:  2648-2761
+	  target: 182970287-182970400
+	> query:  None
+	  target: 182970400-182972781
+	> query:  2761-2801
+	  target: 182972781-182972821
+	> query:  None
+	  target: 182972821-182973367
+	> query:  2801-2902
+	  target: 182973367-182973468
+	> query:  None
+	  target: 182973468-182985303
+	> query:  2902-2948
+	  target: 182985303-182985349
+	> query:  None
+	  target: 182985349-182990245
+	> query:  2948-3027
+	  target: 182990245-182990324
+srcQCds: 	NM_020935.1:11-8015/- sz: 8015 cds: 4698-7637
+srcTCds: 	chr2:219023217-219141293/+ sz: 242951149 cds: 219027897-219131620
+query:  Ugene_clone_id:66679:0-3353/- sz: 3353 cds: None
+target: chr2:219027781-219141258/+ sz: 242951149 cds: None
+	> query:  0-203
+	  target: 219027781-219027984
+	> query:  None
+	  target: 219027984-219028546
+	> query:  203-342
+	  target: 219028546-219028685
+	> query:  None
+	  target: 219028685-219030058
+	> query:  342-412
+	  target: 219030058-219030128
+	> query:  None
+	  target: 219030128-219032756
+	> query:  412-528
+	  target: 219032756-219032872
+	> query:  None
+	  target: 219032872-219036272
+	> query:  528-589
+	  target: 219036272-219036333
+	> query:  None
+	  target: 219036333-219038976
+	> query:  589-756
+	  target: 219038976-219039143
+	> query:  None
+	  target: 219039143-219047596
+	> query:  756-1012
+	  target: 219047596-219047852
+	> query:  None
+	  target: 219047852-219049806
+	> query:  1012-1154
+	  target: 219049806-219049948
+	> query:  None
+	  target: 219049948-219052616
+	> query:  1154-1220
+	  target: 219052616-219052682
+	> query:  None
+	  target: 219052682-219055036
+	> query:  1220-1385
+	  target: 219055036-219055201
+	> query:  None
+	  target: 219055201-219058630
+	> query:  1385-1465
+	  target: 219058630-219058710
+	> query:  None
+	  target: 219058710-219061270
+	> query:  1465-1583
+	  target: 219061270-219061388
+	> query:  None
+	  target: 219061388-219068726
+	> query:  1583-1774
+	  target: 219068726-219068917
+	> query:  None
+	  target: 219068917-219070700
+	> query:  1774-1898
+	  target: 219070700-219070824
+	> query:  None
+	  target: 219070824-219070992
+	> query:  1898-2030
+	  target: 219070992-219071124
+	> query:  None
+	  target: 219071124-219082945
+	> query:  2030-2192
+	  target: 219082945-219083107
+	> query:  None
+	  target: 219083107-219102922
+	> query:  2192-2277
+	  target: 219102922-219103007
+	> query:  None
+	  target: 219103007-219107575
+	> query:  2277-2375
+	  target: 219107575-219107673
+	> query:  None
+	  target: 219107673-219119187
+	> query:  2375-2453
+	  target: 219119187-219119265
+	> query:  None
+	  target: 219119265-219119885
+	> query:  2453-2626
+	  target: 219119885-219120058
+	> query:  None
+	  target: 219120058-219122775
+	> query:  2626-2727
+	  target: 219122775-219122876
+	> query:  None
+	  target: 219122876-219126519
+	> query:  2727-2899
+	  target: 219126519-219126691
+	> query:  None
+	  target: 219126691-219131464
+	> query:  2899-3079
+	  target: 219131464-219131644
+	> query:  None
+	  target: 219131644-219133786
+	> query:  3079-3143
+	  target: 219133786-219133850
+	> query:  None
+	  target: 219133850-219135684
+	> query:  3143-3239
+	  target: 219135684-219135780
+	> query:  None
+	  target: 219135780-219141144
+	> query:  3239-3353
+	  target: 219141144-219141258
+srcQCds: 	NM_020935.1:11-8015/- sz: 8015 cds: 4698-7637
+srcTCds: 	chr2:219023217-219141293/+ sz: 242951149 cds: 219027897-219131620
+query:  Ugene_clone_id:66698:0-3393/- sz: 3393 cds: None
+target: chr2:219027781-219141258/+ sz: 242951149 cds: None
+	> query:  0-203
+	  target: 219027781-219027984
+	> query:  None
+	  target: 219027984-219028546
+	> query:  203-342
+	  target: 219028546-219028685
+	> query:  None
+	  target: 219028685-219030058
+	> query:  342-412
+	  target: 219030058-219030128
+	> query:  None
+	  target: 219030128-219032756
+	> query:  412-528
+	  target: 219032756-219032872
+	> query:  None
+	  target: 219032872-219036272
+	> query:  528-589
+	  target: 219036272-219036333
+	> query:  None
+	  target: 219036333-219038976
+	> query:  589-756
+	  target: 219038976-219039143
+	> query:  None
+	  target: 219039143-219047596
+	> query:  756-1012
+	  target: 219047596-219047852
+	> query:  None
+	  target: 219047852-219049806
+	> query:  1012-1154
+	  target: 219049806-219049948
+	> query:  None
+	  target: 219049948-219052616
+	> query:  1154-1220
+	  target: 219052616-219052682
+	> query:  None
+	  target: 219052682-219055036
+	> query:  1220-1385
+	  target: 219055036-219055201
+	> query:  None
+	  target: 219055201-219058630
+	> query:  1385-1465
+	  target: 219058630-219058710
+	> query:  None
+	  target: 219058710-219061270
+	> query:  1465-1583
+	  target: 219061270-219061388
+	> query:  None
+	  target: 219061388-219068726
+	> query:  1583-1774
+	  target: 219068726-219068917
+	> query:  None
+	  target: 219068917-219070700
+	> query:  1774-1898
+	  target: 219070700-219070824
+	> query:  None
+	  target: 219070824-219070992
+	> query:  1898-2030
+	  target: 219070992-219071124
+	> query:  None
+	  target: 219071124-219082945
+	> query:  2030-2192
+	  target: 219082945-219083107
+	> query:  None
+	  target: 219083107-219102922
+	> query:  2192-2277
+	  target: 219102922-219103007
+	> query:  None
+	  target: 219103007-219107575
+	> query:  2277-2375
+	  target: 219107575-219107673
+	> query:  None
+	  target: 219107673-219119187
+	> query:  2375-2453
+	  target: 219119187-219119265
+	> query:  None
+	  target: 219119265-219119885
+	> query:  2453-2626
+	  target: 219119885-219120058
+	> query:  None
+	  target: 219120058-219122775
+	> query:  2626-2727
+	  target: 219122775-219122876
+	> query:  None
+	  target: 219122876-219126519
+	> query:  2727-2899
+	  target: 219126519-219126691
+	> query:  None
+	  target: 219126691-219131464
+	> query:  2899-3119
+	  target: 219131464-219131684
+	> query:  None
+	  target: 219131684-219133786
+	> query:  3119-3183
+	  target: 219133786-219133850
+	> query:  None
+	  target: 219133850-219135684
+	> query:  3183-3279
+	  target: 219135684-219135780
+	> query:  None
+	  target: 219135780-219141144
+	> query:  3279-3393
+	  target: 219141144-219141258
+srcQCds: 	NM_020164.2:0-1252/- sz: 1254 cds: 536-1213
+srcTCds: 	chr8:62739837-62764840/+ sz: 146274826 cds: 62740364-62764801
+query:  Ugene_clone_id:80804:0-2657/- sz: 2657 cds: None
+target: chr8:62699715-62764892/+ sz: 146274826 cds: 62764785-62764801
+	> query:  0-1041
+	  target: 62699715-62700756
+	> query:  None
+	  target: 62700756-62700757
+	> query:  1041-1677
+	  target: 62700757-62701393
+	> query:  None
+	  target: 62701393-62708795
+	> query:  1677-1722
+	  target: 62708795-62708840
+	> query:  None
+	  target: 62708840-62713059
+	> query:  1722-1779
+	  target: 62713059-62713116
+	> query:  None
+	  target: 62713116-62713434
+	> query:  1779-1818
+	  target: 62713434-62713473
+	> query:  None
+	  target: 62713473-62718000
+	> query:  1818-1851
+	  target: 62718000-62718033
+	> query:  None
+	  target: 62718033-62718498
+	> query:  1851-1899
+	  target: 62718498-62718546
+	> query:  None
+	  target: 62718546-62719057
+	> query:  1899-1956
+	  target: 62719057-62719114
+	> query:  None
+	  target: 62719114-62719712
+	> query:  1956-1989
+	  target: 62719712-62719745
+	> query:  None
+	  target: 62719745-62721862
+	> query:  1989-2118
+	  target: 62721862-62721991
+	> query:  None
+	  target: 62721991-62726162
+	> query:  2118-2193
+	  target: 62726162-62726237
+	> query:  None
+	  target: 62726237-62728680
+	> query:  2193-2286
+	  target: 62728680-62728773
+	> query:  None
+	  target: 62728773-62756080
+	> query:  2286-2355
+	  target: 62756080-62756149
+	> query:  None
+	  target: 62756149-62757551
+	> query:  2355-2400
+	  target: 62757551-62757596
+	> query:  None
+	  target: 62757596-62759151
+	> query:  2400-2550
+	  target: 62759151-62759301
+	> query:  None
+	  target: 62759301-62764785
+	> query:  2550-2657
+	  target: 62764785-62764892  CDS: 62764785-62764801
+srcQCds: 	NM_020164.2:0-1252/- sz: 1254 cds: 536-1213
+srcTCds: 	chr8:62739837-62764840/+ sz: 146274826 cds: 62740364-62764801
+query:  Ugene_clone_id:80812:0-2601/- sz: 2601 cds: None
+target: chr8:62699715-62764892/+ sz: 146274826 cds: 62764785-62764801
+	> query:  0-1041
+	  target: 62699715-62700756
+	> query:  None
+	  target: 62700756-62700757
+	> query:  1041-1677
+	  target: 62700757-62701393
+	> query:  None
+	  target: 62701393-62708795
+	> query:  1677-1722
+	  target: 62708795-62708840
+	> query:  None
+	  target: 62708840-62713059
+	> query:  1722-1779
+	  target: 62713059-62713116
+	> query:  None
+	  target: 62713116-62713434
+	> query:  1779-1818
+	  target: 62713434-62713473
+	> query:  None
+	  target: 62713473-62718000
+	> query:  1818-1851
+	  target: 62718000-62718033
+	> query:  None
+	  target: 62718033-62718498
+	> query:  1851-1899
+	  target: 62718498-62718546
+	> query:  None
+	  target: 62718546-62719712
+	> query:  1899-1932
+	  target: 62719712-62719745
+	> query:  None
+	  target: 62719745-62721862
+	> query:  1932-2061
+	  target: 62721862-62721991
+	> query:  None
+	  target: 62721991-62726162
+	> query:  2061-2136
+	  target: 62726162-62726237
+	> query:  None
+	  target: 62726237-62728680
+	> query:  2136-2229
+	  target: 62728680-62728773
+	> query:  None
+	  target: 62728773-62756080
+	> query:  2229-2298
+	  target: 62756080-62756149
+	> query:  None
+	  target: 62756149-62757551
+	> query:  2298-2343
+	  target: 62757551-62757596
+	> query:  None
+	  target: 62757596-62759151
+	> query:  2343-2493
+	  target: 62759151-62759301
+	> query:  None
+	  target: 62759301-62764785
+	> query:  2493-2557
+	  target: 62764785-62764849  CDS: 62764785-62764801
+	> query:  2557-2558
+	  target: None
+	> query:  2558-2601
+	  target: 62764849-62764892
+srcQCds: 	NM_002859.1:0-3595/- sz: 3595 cds: 1848-3521
+srcTCds: 	chr12:119132639-119187892/+ sz: 132349534 cds: 119134500-119187815
+query:  Ugene_clone_id:82656:0-2699/- sz: 2699 cds: None
+target: chr12:119133651-119187891/+ sz: 132349534 cds: None
+	> query:  0-10
+	  target: 119133651-119133661
+	> query:  None
+	  target: 119133661-119133662
+	> query:  10-1114
+	  target: 119133662-119134766
+	> query:  None
+	  target: 119134766-119136027
+	> query:  1114-1263
+	  target: 119136027-119136176
+	> query:  None
+	  target: 119136176-119136321
+	> query:  1263-1345
+	  target: 119136321-119136403
+	> query:  None
+	  target: 119136403-119137010
+	> query:  1345-1519
+	  target: 119137010-119137184
+	> query:  None
+	  target: 119137184-119137288
+	> query:  1519-1690
+	  target: 119137288-119137459
+	> query:  None
+	  target: 119137459-119137745
+	> query:  1690-1792
+	  target: 119137745-119137847
+	> query:  None
+	  target: 119137847-119143808
+	> query:  1792-1928
+	  target: 119143808-119143944
+	> query:  None
+	  target: 119143944-119144734
+	> query:  1928-2130
+	  target: 119144734-119144936
+	> query:  None
+	  target: 119144936-119145048
+	> query:  2130-2267
+	  target: 119145048-119145185
+	> query:  None
+	  target: 119145185-119145903
+	> query:  2267-2383
+	  target: 119145903-119146019
+	> query:  None
+	  target: 119146019-119146336
+	> query:  2383-2610
+	  target: 119146336-119146563
+	> query:  None
+	  target: 119146563-119187802
+	> query:  2610-2699
+	  target: 119187802-119187891
+srcQCds: 	NM_003037.1:3-1789/- sz: 1789 cds: 649-1656
+srcTCds: 	chr1:158846513-158883493/+ sz: 247249719 cds: 158847162-158883359
+query:  Ugene_clone_id:89673:0-1200/- sz: 1200 cds: None
+target: chr1:158846837-158883391/+ sz: 247249719 cds: None
+	> query:  0-375
+	  target: 158846837-158847212
+	> query:  None
+	  target: 158847212-158848901
+	> query:  375-468
+	  target: 158848901-158848994
+	> query:  None
+	  target: 158848994-158871026
+	> query:  468-753
+	  target: 158871026-158871311
+	> query:  None
+	  target: 158871311-158873604
+	> query:  753-1092
+	  target: 158873604-158873943
+	> query:  None
+	  target: 158873943-158883283
+	> query:  1092-1200
+	  target: 158883283-158883391
+srcQCds: 	NM_003037.1:3-1789/- sz: 1789 cds: 649-1656
+srcTCds: 	chr1:158846513-158883493/+ sz: 247249719 cds: 158847162-158883359
+query:  Ugene_clone_id:89676:0-1285/- sz: 1285 cds: None
+target: chr1:158846837-158883391/+ sz: 247249719 cds: None
+	> query:  0-375
+	  target: 158846837-158847212
+	> query:  None
+	  target: 158847212-158848901
+	> query:  375-468
+	  target: 158848901-158848994
+	> query:  None
+	  target: 158848994-158860509
+	> query:  468-558
+	  target: 158860509-158860599
+	> query:  None
+	  target: 158860599-158871026
+	> query:  558-838
+	  target: 158871026-158871306
+	> query:  None
+	  target: 158871306-158873604
+	> query:  838-1177
+	  target: 158873604-158873943
+	> query:  None
+	  target: 158873943-158883283
+	> query:  1177-1285
+	  target: 158883283-158883391
+srcQCds: 	NM_003037.1:3-1789/- sz: 1789 cds: 649-1656
+srcTCds: 	chr1:158846513-158883493/+ sz: 247249719 cds: 158847162-158883359
+query:  Ugene_clone_id:89689:0-1290/- sz: 1290 cds: None
+target: chr1:158846837-158883391/+ sz: 247249719 cds: None
+	> query:  0-375
+	  target: 158846837-158847212
+	> query:  None
+	  target: 158847212-158848901
+	> query:  375-468
+	  target: 158848901-158848994
+	> query:  None
+	  target: 158848994-158860509
+	> query:  468-558
+	  target: 158860509-158860599
+	> query:  None
+	  target: 158860599-158871026
+	> query:  558-843
+	  target: 158871026-158871311
+	> query:  None
+	  target: 158871311-158873604
+	> query:  843-1182
+	  target: 158873604-158873943
+	> query:  None
+	  target: 158873943-158883283
+	> query:  1182-1290
+	  target: 158883283-158883391
+srcQCds: 	NM_013390.1:0-6147/- sz: 6147 cds: 1848-5999
+srcTCds: 	chr9:73488102-73573228/+ sz: 140273252 cds: 73489933-73555109
+query:  Ugene_clone_id:91040:0-5372/- sz: 5372 cds: None
+target: chr9:73488720-73573122/+ sz: 140273252 cds: None
+	> query:  0-1409
+	  target: 73488720-73490129
+	> query:  None
+	  target: 73490129-73490478
+	> query:  1409-1513
+	  target: 73490478-73490582
+	> query:  None
+	  target: 73490582-73494827
+	> query:  1513-1668
+	  target: 73494827-73494982
+	> query:  None
+	  target: 73494982-73499244
+	> query:  1668-1767
+	  target: 73499244-73499343
+	> query:  None
+	  target: 73499343-73502720
+	> query:  1767-1987
+	  target: 73502720-73502940
+	> query:  None
+	  target: 73502940-73505377
+	> query:  1987-2170
+	  target: 73505377-73505560
+	> query:  None
+	  target: 73505560-73509330
+	> query:  2170-2379
+	  target: 73509330-73509539
+	> query:  None
+	  target: 73509539-73513994
+	> query:  2379-2595
+	  target: 73513994-73514210
+	> query:  None
+	  target: 73514210-73516818
+	> query:  2595-2773
+	  target: 73516818-73516996
+	> query:  None
+	  target: 73516996-73519669
+	> query:  2773-2929
+	  target: 73519669-73519825
+	> query:  None
+	  target: 73519825-73521252
+	> query:  2929-2965
+	  target: 73521252-73521288
+	> query:  None
+	  target: 73521288-73522683
+	> query:  2965-3097
+	  target: 73522683-73522815
+	> query:  None
+	  target: 73522815-73527162
+	> query:  3097-3186
+	  target: 73527162-73527251
+	> query:  None
+	  target: 73527251-73530316
+	> query:  3186-3315
+	  target: 73530316-73530445
+	> query:  None
+	  target: 73530445-73534580
+	> query:  3315-3385
+	  target: 73534580-73534650
+	> query:  None
+	  target: 73534650-73534783
+	> query:  3385-3591
+	  target: 73534783-73534989
+	> query:  None
+	  target: 73534989-73535474
+	> query:  3591-3767
+	  target: 73535474-73535650
+	> query:  None
+	  target: 73535650-73537086
+	> query:  3767-3937
+	  target: 73537086-73537256
+	> query:  None
+	  target: 73537256-73539541
+	> query:  3937-4126
+	  target: 73539541-73539730
+	> query:  None
+	  target: 73539730-73544798
+	> query:  4126-4296
+	  target: 73544798-73544968
+	> query:  None
+	  target: 73544968-73549753
+	> query:  4296-4858
+	  target: 73549753-73550315
+	> query:  None
+	  target: 73550315-73550936
+	> query:  4858-4999
+	  target: 73550936-73551077
+	> query:  None
+	  target: 73551077-73554778
+	> query:  4999-5342
+	  target: 73554778-73555121
+	> query:  None
+	  target: 73555121-73573092
+	> query:  5342-5372
+	  target: 73573092-73573122
+srcQCds: 	NM_012314.3:0-1586/+ sz: 1586 cds: 46-960
+srcTCds: 	chr19:60035985-60051835/+ sz: 63811651 cds: 60036031-60051209
+query:  Ugene_clone_id:94110:0-1344/+ sz: 1344 cds: None
+target: chr19:60035942-60051550/+ sz: 63811651 cds: 60036031-60051209
+	> query:  0-123
+	  target: 60035942-60036065  CDS: 60036031-60036065
+	> query:  None
+	  target: 60036065-60038345
+	> query:  123-159
+	  target: 60038345-60038381
+	> query:  None
+	  target: 60038381-60040842
+	> query:  159-459
+	  target: 60040842-60041142
+	> query:  None
+	  target: 60041142-60042694
+	> query:  459-540
+	  target: 60042694-60042775
+	> query:  540-562
+	  target: None
+	> query:  562-753
+	  target: 60042775-60042966
+	> query:  None
+	  target: 60042966-60046134
+	> query:  753-804
+	  target: 60046134-60046185
+	> query:  None
+	  target: 60046185-60050450
+	> query:  804-909
+	  target: 60050450-60050555
+	> query:  None
+	  target: 60050555-60051017
+	> query:  909-962
+	  target: 60051017-60051070
+	> query:  None
+	  target: 60051070-60051168
+	> query:  962-1344
+	  target: 60051168-60051550  CDS: 60051168-60051209

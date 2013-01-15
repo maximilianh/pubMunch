@@ -1,0 +1,13 @@
+
+
+
+
+Issues with make that inspired this package:
+    - composition with make is requires recursive make
+    - recursive makes does play well with multiple thread
+    - syntax difficult
+    - make doesn't support multiple output files for a single execution of a
+      rule
+    - error handling in make is problematic (need pipefile; $(shell ...) does
+      fail
+      - error cleanup of produces files on failed rules is problematic

@@ -1,0 +1,8 @@
+subset	count
+A	2
+B	1
+C	1
+A B	0
+A C	0
+C B	1
+A C B	1

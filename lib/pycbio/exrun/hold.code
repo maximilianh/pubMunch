@@ -1,0 +1,65 @@
+
+from pycbio.sys.Enumeration import Enumeration
+
+        self.event = threading.Event()
+        self.event.wait()  # wait to be scheduled
+        self.event.clear()
+
+        self.chill = False  # don't schedule more tasks
+
+
+    # FIXME:
+    def removeTask(self, task):
+        "remove a task from the ready queue"
+        assert(task.group == self)
+        assert(not self.running)
+        with self.lock:
+            self.ready.remove(task)
+            task.group = self
+
+    def moveTask(self, task):
+        "move a task to this group"
+
+        
+
+    def removeTask(self, task):
+        "remove a task from this group"
+        if task in self.running:
+            self.running.remove(task)
+        elif task in self.ready:
+            self.ready.remove(task)
+        else:
+            raise Exception("task not in group") # FIXME: specific except?
+
+
+    def __getOldestProdTime(self):
+        "get oldest produces time"
+        pOldest = posInf
+        for p in self.produces:
+            t = p.getTime()
+            if t < 0.0:
+                return True  # doesn't exist
+            pOldest = min(pOldest, t)
+        return pOldest
+
+---------------------------------------
+    def __productionCheck(self):
+        """check that all productions with exist or have a rule to build them.
+        By check this up front, it prevents file from being created as
+        side-affects that are not encoded in the graph"""
+        noRuleFor = set()
+        for prod in self.productions:
+            if (prod.producedBy == None) and (prod.getLocalTime() < 0.0):
+                noRuleFor.add(prod)
+        if (len(noRuleFor) > 0):
+            raise ExRunException("No rule to build production(s): " + ", ".join([str(r) for r in noRuleFor]))
+
+    def __ruleCheck(self):
+        "check that there are no loose rules without productions"
+        noProdFor = set()
+        for rule in self.rules:
+            if len(rule.produces) == 0:
+                noProdFor.add(rule)
+        if len(noProdFor) > 0:
+            raise ExRunException("Loose rules without production(s): " + ", ".join([str(p) for p in noProdFor]))
+

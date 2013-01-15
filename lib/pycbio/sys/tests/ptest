@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+# Copyright 2006-2012 Mark Diekhans
+import sys,time
+from optparse import OptionParser
+
+class CmdOpts(object):
+    usage="""%prog [options] name [fifo]
+    
+    ptrial test process
+
+"""
+    def __init__(self):
+        parser = OptionParser(usage=CmdOpts.usage)
+        parser.add_option("--stdoutCnt", dest="stdoutCnt", action="store", type="int", default=None,
+                          help="write this many records to stdout")
+        parser.add_option("--stdinCnt", dest="stdinCnt", action="store", type="int", default=None,
+                          help="read this many records from stdin")
+        parser.add_option("--fifoWrCnt", dest="fifoWrCnt", action="store", type="int", default=None,
+                          help="write this many records to fifo")
+        parser.add_option("--fifoRdCnt", dest="fifoRdCnt", action="store", type="int", default=None,
+                          help="read this many records from fifo")
+        parser.add_option("--sleep", dest="sleepTime", action="store", type="float", default=None,
+                          help="sleep this many seconds before doing anything")
+        (opts, args) = parser.parse_args()
+        self.__dict__.update(opts.__dict__)
+        self.fifo = None
+        if (len(args) < 1) or (len(args) > 2):
+            parser.error("wrong number of arguments")
+        elif len(args) > 1:
+            self.fifo = args[1]
+        self.name = args[0]
+        if (self.fifoWrCnt != None) and (self.fifo == None):
+            parser.error("must specify fifo with --fifoWrCnt")
+        if (self.fifoRdCnt != None) and (self.fifo == None):
+            parser.error("must specify fifo with --fifoRdCnt")
+        if (self.fifoWrCnt != None) and (self.fifoRdCnt != None) and (self.fifo == None):
+            parser.error("can't specify both --fifoWrCnt and --fifoRdCnt")
+
+def mkLine(num):
+    return "line " + str(num)
+
+def rdLines(fh, rdCnt):
+    cnt = 0
+    while True:
+        got = fh.readline()
+        if len(got) == 0:
+            break
+        cnt += 1
+        if cnt > rdCnt:
+            raise Exception("missing EOF, got " + str(cnt) + " expect " + str(drdCnt))
+        got = got[:-1]
+        exp = mkLine(cnt-1)
+        if got != exp:
+            raise Exception("unexpected line, got >" + got + "< expect >" + exp + "<")
+    if cnt != rdCnt:
+        raise Exception("unexpected EOF, got " + str(cnt) + " expect " + str(rdCnt))
+            
+def wrLines(fh, wrCnt):
+    for cnt in xrange(wrCnt):
+        fh.write(mkLine(cnt))
+        fh.write("\n")
+        fh.flush()
+
+def err(name, msg, ex):
+    sys.stderr.write(name + ": " + msg + ": " + str(ex) + "\n")
+    sys.exit(1)
+            
+opts = CmdOpts()
+
+if opts.sleepTime != None:
+    time.sleep(opts.sleepTime)
+
+if opts.stdinCnt != None:
+    try:
+        rdLines(sys.stdin, opts.stdinCnt)
+    except Exception, ex:
+        err(opts.name, "error reading stdin", ex)
+
+if opts.stdoutCnt != None:
+    try:
+        wrLines(sys.stdout, opts.stdoutCnt)
+    except Exception, ex:
+        err(opts.name, "error writing stdout", ex)
+
+if opts.fifoRdCnt != None:
+    try:
+        fh = file(opts.fifo)
+        rdLines(fh, opts.fifoRdCnt)
+        fh.close()
+    except Exception, ex:
+        err(opts.name, "error reading " + opts.fifo, ex)
+
+if opts.fifoWrCnt != None:
+    try:
+        fh = file(opts.fifo, "w")
+        wrLines(fh, opts.fifoWrCnt)
+        fh.close()
+    except Exception, ex:
+        err(opts.name, "error writing " + opts.fifo, ex)
