@@ -161,11 +161,11 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     stdout, stderr, ret = runCommandTimeout(cmdLine, bufSize=10000000, timeout=30)
     if len(stdout)!=0:
         logging.debug("stdout: %s" % stdout)
-    msgCount = len([match for match in re.finditer(re.escape("a4 is redefined"), stderr)])
     if len(stderr)!=0:
-        if len(stderr)>1000 or msgCount>10:
-            logging.debug("not showing stderr, too big or too many identical messages")
+        if len(stderr) > 1000 or "a4 is redefined" in stderr:
+            logging.debug("not showing stderr, too big or containes annoying message")
         else:
+            logging.debug("Size of stderr: %d" % len(stderr))
             logging.debug("stderr: %s" % stderr)
     asciiData = None
 

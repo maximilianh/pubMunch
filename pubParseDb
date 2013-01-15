@@ -347,6 +347,18 @@ def parseDbRefs(entryEl):
         
     return result
 
+def splitAndResolve(disName, disCodes, splitWord):
+    subDises = disName.split(splitWord)
+    newDises = []
+    for subDis in subDises:
+        subDis = subDis.strip()
+        if subDis in disCodes:
+            newDises.append(disCodes[subDis])
+        else:
+            newDises.append(subDis)
+    disName = "|".join(newDises)
+    return disName
+
 def parseFeatDesc(text, disCodes):
     """ return tuple: (disease name, dbSnpId)
     >>> parseFeatDesc("In sporadic cancers; somatic mutation; dbSNP:rs11540654.", {})
@@ -361,19 +373,15 @@ def parseFeatDesc(text, disCodes):
     disName = ""
     for part in parts:
         part = part.replace("a patient with", "")
+        part = part.replace("in a ", "in ")
         partLow = part.lower()
         if partLow.startswith("in ") and "dbSNP" not in part and "allele" not in part:
             disName = " ".join(part.split()[1:])
             # some entries contain two disease names
             if " and " in disName:
-                subDises = disName.split(" and ")
-                newDises = []
-                for subDis in subDises:
-                    if subDis in disCodes:
-                        newDises.append(disCodes[subDis])
-                    else:
-                        newDises.append(subDis)
-                disName = ",".join(newDises)
+                disName = splitAndResolve(disName, disCodes, " and ")
+            #if "," in disName:
+                #disName = splitAndResolve(disName, disCodes, ",")
                     
     if disName in disCodes:
         disName = disCodes[disName]
@@ -440,13 +448,7 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids):
 
             disCode = disRefs[evidId]
             disName, snpId = parseFeatDesc(desc, disCodes)
-            #print disCode
-            #if not disCode in desc:
-                #print entryEl.find("accession").text
-                #print disCode,"not in ", desc
-                #continue
 
-            #disName = disCode.values()
             if not evidId in evidPmids:
                 logging.debug("No PMID for this evidence")
                 continue
@@ -455,6 +457,11 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids):
             pmid = list(pmids)[0]
             mut = MutRec(acc, varId, position, orig, variant, snpId, disName, pmid)
             logging.debug("Accepted variant: %s" % str(mut))
+
+            if disName=="":
+                logging.debug("No disease name, not writing an accepted variant")
+                continue
+
             yield mut
 
 def parseEvidence(entryEl):
@@ -579,27 +586,44 @@ def readIsoforms(inDir):
     return result, len(set(seqNames))
 
 
+def writeFaSeq(entry, faFiles):
+    " write main sequence to faFile with the right taxonId "
+    #seqIds = entry.isoIds.split("|")
+    seq = entry.isoSeqs.split("|")[0]
+    taxonId = entry.taxonId
+    ofh = faFiles[taxonId]
+    #for seqId, seq in zip(seqIds, seqs):
+        #ofh.write(">%s\n%s\n" % (seqId, seq))
+    ofh.write(">%s\n%s\n" % (entry.acc, seq))
+
 def parseUniprot(inDir, outDir, taxonIds):
-    " parse uniprot to records and refs subdirs of outdir "
+    " parse uniprot, write records and refs to outdir "
 
     if options.parse:
         fname = options.parse
         logging.info("Debug parse of %s" % fname)
         xmlFile = open(fname)
         isoSeqs, recCount = {}, 1
-        entryOf = openOutTabFile(".", "temp.tab", entryHeaders)
-        refOf = openOutTabFile(".", "temp.refs.tab", refHeaders)
-        mutOf = openOutTabFile(".", "temp.mut.tab", mutHeaders)
+        outDir = "."
+        outPrefix = "temp"
     else:
         isoSeqs, recCount = readIsoforms(inDir)
         xmlFile = gzip.open(join(inDir, "uniprot_sprot.xml.gz"))
         logging.info("Parsing main XML file %s" % xmlFile.name)
-        entryOf = openOutTabFile(outDir, "uniprot.tab", entryHeaders)
-        refOf = openOutTabFile(outDir, "uniprot.refs.tab", refHeaders)
-        mutOf = openOutTabFile(outDir, "uniprot.mut.tab", mutHeaders)
+        outPrefix = "uniprot"
+
+    entryOf = openOutTabFile(outDir, outPrefix+".tab", entryHeaders)
+    refOf = openOutTabFile(outDir, outPrefix+".refs.tab", refHeaders)
+    mutOf = openOutTabFile(outDir, outPrefix+".mut.tab", mutHeaders)
+
+    faFiles = {}
+    for taxonId in taxonIds:
+        taxonId = str(taxonId)
+        faFname = join(outDir, outPrefix+"."+taxonId+".fa")
+        faFiles[taxonId] = open(faFname, "w")
+        logging.info("Writing fasta seqs for taxon %s to %s" % (taxonId, faFname))
 
     emptyEntry = dict(zip(entryHeaders, len(entryHeaders)*[""]))
-
 
     pm = maxCommon.ProgressMeter(550000)
     for _, entryEl in etree.iterparse(xmlFile, tag='{http://uniprot.org/uniprot}entry'):
@@ -612,6 +636,7 @@ def parseUniprot(inDir, outDir, taxonIds):
             continue
 
         entryRow = parseRecInfo(entryEl, entry, isoSeqs)
+        writeFaSeq(entryRow, faFiles)
 
         entryOf.write("\t".join(entryRow)+"\n")
         recName = entryRow.name
