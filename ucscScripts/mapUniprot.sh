@@ -42,4 +42,4 @@ ssh swarm "cd `pwd`/upMap/work && para make jobList"
 # pick the right alignments and then pslMap through them
 find upMap/work/aligns -name '*.psl' | xargs cat | pslSelect -qtPairs=upMap/work/ucscUniProt.pairs stdin stdout | sort -k 14,14 -k 16,16n -k 17,17n > upMap/work/uniProtVsUcscMRna.psl
 pslMap upMap/work/uniProtVsUcscMRna.psl upMap/work/ucscMRna.psl upMap/work/uniProtVsGenome.psl
-cp upMap/work/uniProtVsGenome.psl ./
+sort -k10,10 upMap/work/uniProtVsGenome.psl | pslCDnaFilter stdin -globalNearBest=0  -bestOverlap -filterWeirdOverlapped stdout | sort | uniq > ./uniProtVsGenomes.psl

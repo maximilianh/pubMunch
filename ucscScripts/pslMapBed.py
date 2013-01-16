@@ -30,7 +30,7 @@ class PslMapBedMaker(object):
         self.strand = None
         self.thickStart = None
         self.thickEnd = None
-        self.itemRgb = ""
+        self.itemRgb = "0"
         self.blockCount = 0
         self.blockSizes = []
         self.blockStarts = []
@@ -63,11 +63,13 @@ class PslMapBedMaker(object):
         self.thickEnd = self.chromEnd
         self.score = sum(self.blockSizes)
         blockSizeStr = ",".join([str(x) for x in self.blockSizes])
+
         chromStart = self.chromStart
         blockStartStr = ",".join([str(x-chromStart) for x in self.blockStarts])
+
         bedRow = [self.chrom, self.chromStart, self.chromEnd, self.name, \
                 self.score, self.strand, self.thickStart, self.thickEnd, \
-                self.itemRgb, blockSizeStr, blockStartStr]
+                self.itemRgb, len(self.blockSizes), blockSizeStr, blockStartStr]
         bedRow = [str(x) for x in bedRow]
         return bedRow
 
@@ -96,4 +98,4 @@ if __name__ == '__main__':
                 ofh.write("\t".join(newBed)+"\n")
             mapper.clear()
 
-print("output written to %s" % outBedFname)
+    print("output written to %s" % outBedFname)
