@@ -11,23 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 logging.info("preprocessing dict")
 dictFname = sys.argv[1]
-idTermList = []
-if dictFname.endswith(".gz"):
-    ifh = gzip.open(dictFname)
-else:
-    ifh = open(dictFname)
 
-for line in ifh:
-    if not "\t" in line:
-        id = None
-        term = line.strip("\n")
-    else:
-        id, term = line.strip("\n").split("\t")
-    idTermList.append( (id, [term]) )
+fastFind.prepDict(dictFname)
 
-dictBase = basename(dictFname).split(".")[0]
-lex = fastFind.constructLex(idTermList)
-str = marshal.dumps(lex)
-binFile = gzip.open(dictBase+".marshal.gz", "wb")
-binFile.write(str)
-logging.info("written preprocessed dict to %s" % binFile.name)
+logging.info("written preprocessed dict to %s" % fname)

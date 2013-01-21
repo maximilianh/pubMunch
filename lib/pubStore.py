@@ -211,6 +211,17 @@ def utf8GzWriter(fname):
     fh = reader(zf)
     return fh
 
+def removeTabNl(var):
+    " remove tab and all forms (!) of newline characters from string "
+    # RAHHH! CRAZY UNICODE LINEBREAKS
+    # the following would not work because of python's interpretation of unicode
+    #newDict[key] = val.replace("\t", " ").replace("\n", " ")
+    # so we do this
+    cleanString = " ".join(unicode(var).splitlines()).replace("\t", " ")
+    #logging.debug("cleaned string is %s" % repr(newStr))
+    return cleanString
+
+
 class PubWriterFile:
     """ 
     a class that stores article and file data into tab-sep files
@@ -257,11 +268,9 @@ class PubWriterFile:
 
     def _removeSpecChar(self, lineDict):
         " remove tab and NL chars from values of dict "
-        #newDict[key] = val.replace("\t", " ").replace("\n", " ")
-        # RAHHH! CRAZY UNICODE LINEBREAKS:
         newDict = {}
         for key, val in lineDict.iteritems():
-            newDict[key] = "\n".join(unicode(val).splitlines())
+            newDict[key] = removeTabNl(val)
         return newDict
         
     def writeFile(self, articleId, fileId, fileDict, externalId=""):

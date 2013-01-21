@@ -1,8 +1,4 @@
-# exmaple file for pubtools
-# illustrates how to search for text, going over words and output
-
-# we need the regular expressions module to split text into words
-# (unicode-awareness) and gzip
+# search for 
 import re, gzip, os
 
 # global variable

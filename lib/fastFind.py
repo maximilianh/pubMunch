@@ -1,6 +1,6 @@
 # fast search for combination of words using dictionaries
 
-import doctest, types, re, gzip, marshal, optparse, sys, codecs
+import doctest, types, re, gzip, marshal, optparse, sys, codecs, logging
 from os.path import *
 
 def recursiveAdd(dict, wordList, id):
@@ -27,6 +27,7 @@ def constructLex(keywordList):
     """
     wordDict = {}
     for id, stringList in keywordList:
+        #print id, stringList
         for wordString in stringList:
             words = wordString.split(" ")
             recursiveAdd(wordDict, words, id)
@@ -78,10 +79,9 @@ def splitText(text, wordRegex):
     return words
 
 
-def fastFind(text, lex, wordRegex="[\\w'[\]()-]+"):
+def fastFind(text, lex, wordRegex="[\\w'[\]()-]+", toLower=False):
     """ find matches of keyword strings in text by splitting text first and then matching
         with dictionaries. For overlaps, returns only longest match.
-        Case matters!
     >>> lex = constructLex([("p1", ["how are"]), ("p2", ["you doing", "are you"]), ("p3", ["how are you"])])
     >>> test = "how   are  you doing?"
     >>> fastFind (test, lex)
@@ -93,10 +93,30 @@ def fastFind(text, lex, wordRegex="[\\w'[\]()-]+"):
     >>> fastFind ("Pichia pastoris .", lex)
     [(0, 15, 'p1')]
     >>> fastFind ("pichia pastoris .", lex)
+    []
     >>> lex = constructLex([("p1", ["alzheimer's disease"]), ("p2", ["pig"])])
+
+    # apostrophes are part of the default word
     >>> fastFind ("alzheimer's disease", lex)
     [(0, 19, 'p1')]
+
+    # flanking brackets can be a problem if they are defined to be part of a word
+    >>> fastFind ("(alzheimer's disease)", lex, wordRegex=r"[\w'-()]+")
+    []
+
+    # flanking brackets are no problem
+    >>> fastFind ("(alzheimer's disease)", lex, wordRegex=r"[\w'-]+")
+    [(1, 20, 'p1')]
+
+    We ignore non-word characters
+    >>> fastFind ("(alzheimer's **disease)", lex, wordRegex=r"[\w'-]+")
+    [(1, 22, 'p1')]
+
+    >>> fastFind ("(AlzHEImer's **Disease)", lex, wordRegex=r"[\w'-]+", toLower=True)
+    [(1, 22, 'p1')]
     """
+    if toLower:
+        text = text.lower()
     words = splitText(text, wordRegex)
 
     matches = []
@@ -104,7 +124,7 @@ def fastFind(text, lex, wordRegex="[\\w'[\]()-]+"):
         recursiveFind(words, i, lex, matches)
     return matches
 
-def _lexIter(fileObj):
+def _lexIter(fileObj, toLower=False):
     """ parse a tab-sep file (identifier<tab>name1|name2|name3|...) 
     and yield as a list of tuples [(name1, identifier), ...]
     """
@@ -117,27 +137,28 @@ def _lexIter(fileObj):
             id, nameString = fields[0], fields[0]
         else:
             id, nameString = fields
+        if toLower:
+            nameString = nameString.lower()
         names = nameString.split("|")
-        for name in names:
-            yield (name, id)
+        #for name in names:
+        yield (id, names)
 
-def parseLex(fileObj):
+def loadLex(fname):
+    " load compiled dictionary (=gziped marshalled file) "
+    data = gzip.open(fname).read()
+    lex = marshal.loads(data)
+    return lex
+
+def parseDict(fname, toLower=False):
     """
     reads file (identifier<tab>name1|name2|name3|...) 
     and return as nested dictionaries for fastFind()
-
-    can also read *.marshal.gz files (faster to load)
     """ 
-    if isinstance(fileObj, str):
-        if fileObj.endswith(".marshal.gz"):
-            data = gzip.open(fileObj).read()
-            lex = marshal.loads(data)
-            return lex
-        elif fileObj.endswith(".gz"):
-            fileObj = gzip.open(fileObj)
-        else:
-            fileObj = open(fileObj)
-    return constructLex(_lexIter(fileObj))
+    if fname.endswith(".gz"):
+        fileObj = gzip.open(fname)
+    else:
+        fileObj = open(fname)
+    return constructLex(_lexIter(fileObj, toLower))
 
 def test():
     """
@@ -184,3 +205,17 @@ if __name__ == "__main__":
                 print line.encode("utf8")
 
 
+def writeLex(lex, fname):
+    "  write dictionary as marshalled data to fname "
+    #lex = constructLex(idTermList)
+    str = marshal.dumps(lex)
+    binFile = gzip.open(fname, "wb")
+    binFile.write(str)
+    logging.info("Wrote compiled dictionary to %s" % fname)
+
+def compileDict(dictFname, toLower=False):
+    " convert dictionary file to memory data structure and write to gzipped marshalled file "
+    lex = parseDict(dictFname, toLower)
+    dictBase = basename(dictFname).split(".")[0]
+    fname = dictBase+".marshal.gz"
+    writeLex(lex, fname)

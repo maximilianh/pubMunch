@@ -14,8 +14,10 @@ table bed12UniProtMut
     int[blockCount] blockSizes; "Comma separated list of block sizes"
     int[blockCount] chromStarts; "Start positions relative to chromStart"
     lstring disease;       "Diseases"
-    lstring mutation;       "Coding sequence mutation"
-    lstring variationLink;       "UniProt variant identifiers"
+    lstring mutation;       "Coding seq. mutation"
+    lstring comments;       "Comment"
+    lstring variationLink;       "UniProt variant"
+    lstring dbSnpId;       "dbSNP"
     lstring uniProtLink;       "UniProt record"
-    lstring pubmedLink;       "Source articles"
+    lstring pubmedLink;       "Source articles (PubMed)"
     )

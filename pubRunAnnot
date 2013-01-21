@@ -46,15 +46,16 @@ parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. pmid or doi. can be used several times")
 parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs")
 parser.add_option("-c", "--concat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
+parser.add_option("-k", "--keepOldFiles", dest="keepOldFiles", action="store_true", help="do not wipe the output dir before running the annotators")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
-def checkCleanDir(outDir):
+def checkCleanDir(outDir, keepOldFiles):
     if not isdir(outDir):
         logging.info("Creating dir %s" % outDir)
         os.makedirs(outDir)
     oldGzFiles = os.listdir(outDir)
-    if len(oldGzFiles)>0:
+    if len(oldGzFiles)>0 and not keepOldFiles:
         logging.info("Directory %s contains %d .gz files" % (outDir, len(oldGzFiles)))
         logging.info("Waiting for 3 secs, then deleting them")
         time.sleep(3)
@@ -110,7 +111,7 @@ else:
     if options.realTest:
         runner = None
     else:
-        checkCleanDir(outName)
+        checkCleanDir(outName, options.keepOldFiles)
         maxJobs = None
         if options.limitJobs:
             maxJobs = options.limitJobs

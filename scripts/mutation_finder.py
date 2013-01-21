@@ -442,7 +442,6 @@ class MutationFinder(MutationExtractor):
             if mutation.WtResidue == mutation.MutResidue:
                 del mutations[mutation]
 
-
     def __call__(self,raw_text):
         """ Extract point mutations mentions from raw_text and return them in a dict
              
@@ -809,13 +808,18 @@ def startup(paramDict):
     #regexFname = "regex2.txt"
     mutFinder = mutation_finder_from_regex_filepath(regexFname)
 
+blackList = set(["E24377A"])
+
 def annotateFile(article, file):
     text = file.content
     rows = []
     for mut, spans in mutFinder(text).iteritems():
         #print repr(mutations)
         for start, end in spans:
-            print str(mut)
+            #print str(mut)
+            word = text[start:end]
+            if word in blackList:
+                continue
             row = [start, end, mut.regexNum, mut._get_wt_residue(), str(mut.Position), mut._get_mut_residue()]
             yield row
         #print row

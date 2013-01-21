@@ -5,8 +5,8 @@ from os.path import *
 pubsDataDir = '/hive/data/inside/pubs'
 
 # DB PARSER SETTINGS ================================================
-# directory for files with pubs references for each DB, e.g. uniprot or pdb
-dbRefDir = '/hive/data/inside/pubs/dbRef'
+# directory for files with parsed DBs each DB, e.g. uniprot or pdb
+dbRefDir = '/hive/data/inside/pubs/parsedDbs'
 
 # directories with a local copy of PDB or uniprot
 uniProtBaseDir = '/hive/data/outside/uniProtCurrent'

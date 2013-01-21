@@ -66,11 +66,13 @@ if __name__ == '__main__':
         pmids = set([mut.pmid for mut in muts])
         diseases = list(set([mut.disease for mut in muts]))
         acc = muts[0].acc
+        comments = [mut.comment for mut in muts]
+        dbSnpIds = [mut.dbSnpId for mut in muts]
 
         # create shorter disease name
         firstDis = diseases[0].split("|")[0].replace("-", " ").replace(" type", "")
         disWords = firstDis.split()
-        if disWords[2]=="of":
+        if len(disWords)==3 and disWords[2]=="of":
             disWords = disWords[:4]
         else:
             disWords = disWords[:3]
@@ -80,7 +82,9 @@ if __name__ == '__main__':
         bed.append(",".join(diseases))
         bed.append("position %s, amino acid %s changed to %s" % \
             (mut.position, mut.origAa, mut.mutAa))
+        bed.append(", ".join(comments))
         bed.append(htmlLink('var', varIds))
+        bed.append(", ".join(dbSnpIds))
         bed.append(htmlLink('uniProt', [acc]))
         bed.append(htmlLink('pubmed', pmids))
         bed[5] = "."

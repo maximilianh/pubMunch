@@ -207,7 +207,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
                 inBase = splitext(basename(inFile))[0]
                 inBase = basename(inDir)+"_"+inBase
                 outFullname = join(outDir, inBase)+outExt
-                mustNotExist(outFullname)
+                #mustNotExist(outFullname) # should not hurt to avoid this check...
                 command = "%s %s %s %s %s {check out exists %s} %s" % \
                     (sys.executable, __file__ , algName, algMethod, inFile, outFullname, paramFname)
                 runner.submit(command)
@@ -388,12 +388,12 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
                     fields.append(section)
                 fields.append(snippet)
             #fields = [unicode(x).encode("utf8") for x in fields]
-            fields = [unicode(x) for x in fields]
+            fields = [pubStore.removeTabNl(unicode(x)) for x in fields]
                 
             line = "\t".join(fields)
             outFh.write(line+"\n")
             annotCount+=1
-            assert(annotCount<10**annotDigits)
+            assert(annotCount<10**annotDigits) # can only store 100.000 annotations
     return annotCount
 
 def writeHeaders(alg, outFh, doSectioning, addFields):

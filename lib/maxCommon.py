@@ -1,5 +1,5 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib, socket
+    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO
 from types import *
 
 def errAbort(text):
@@ -161,8 +161,8 @@ def iterTsvGroups(fileObject, **kwargs):
 
     file needs to be sorted on this field!
     parameters:
-        groupFieldNumber: the index (int) of the field to group on
-        useChar: only use these chars of the groupField
+        groupFieldNumber: number, the index (int) of the field to group on
+        useChar: number, only use the first X chars of the groupField
 
     return:
         (groupId, list of namedtuples)
@@ -191,6 +191,40 @@ def iterTsvGroups(fileObject, **kwargs):
             lastId = id
     yield id, group
     
+def iterTsvJoin(files, **kwargs):
+    r"""
+    iterate over two sorted tab sep files, join lines by some field and yield as namedtuples
+    files need to be sorted on the field!
+
+    parameters:
+        groupFieldNumber: number, the index (int) of the field to group on
+        useChar: number, only use the first X chars of the groupField
+
+    return:
+        yield tuples (groupId, [file1Recs, file2Recs])
+    >>> f1 = StringIO.StringIO("id\ttext\n1\tyes\n2\tunpaired middle\n3\tno\n5\tnothing either\n")
+    >>> f2 = StringIO.StringIO("id\ttext\n0\tnothing\n1\tvalid\n3\tnot valid\n")
+    >>> files = [f1, f2]
+    >>> list(iterTsvJoin(files, groupFieldNumber=0))
+    [(1, [[tsvRec(id='1', text='yes')], [tsvRec(id='1', text='valid')]]), (3, [[tsvRec(id='3', text='no')], [tsvRec(id='3', text='not valid')]])]
+    """
+    assert(len(files)==2)
+    f1, f2 = files
+    iter1 = iterTsvGroups(f1, **kwargs)
+    iter2 = iterTsvGroups(f2, **kwargs)
+    groupId1, recs1 = iter1.next()
+    groupId2, recs2 = iter2.next()
+    while True:
+        groupId1, groupId2 = int(groupId1), int(groupId2)
+        if groupId1 < groupId2:
+            groupId1, recs1 = iter1.next()
+        elif groupId1 > groupId2:
+            groupId2, recs2 = iter2.next()
+        else:
+            yield groupId1, [recs1, recs2]
+            groupId1, recs1 = iter1.next()
+            groupId2, recs2 = iter2.next()
+
 def runCommand(cmd, ignoreErrors=False, verbose=False):
     """ run command in shell, exit if not successful """
     msg = "Running shell command: %s" % cmd
@@ -290,7 +324,7 @@ def parseConfig(f):
 
 def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
     """ wrap urlopen in try...except clause and repeat
-    >>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
+    #>>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
     """
     
     def handleEx(ex, count):
@@ -333,6 +367,6 @@ def sendEmail(address, subject, text):
     os.system(cmd)
 
 if __name__=="__main__":
-    test()
+    #test()
     import doctest
     doctest.testmod()

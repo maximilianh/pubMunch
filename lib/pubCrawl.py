@@ -356,9 +356,11 @@ def resolvePmidWithSfx(sfxServer, pmid):
     urlEls = soup.findAll("url")
     if len(urlEls)==0 or urlEls==None:
         return None
+    if urlEls[0]==None:
+        return None
     urls = [x.string for x in urlEls]
     logging.debug("SFX returned (using only first of these): %s" % urls)
-    if urlEls[0]==None:
+    if urls[0]==None:
         return None
     url = urls[0].encode("utf8")
     return url
