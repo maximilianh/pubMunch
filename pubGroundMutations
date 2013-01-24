@@ -1,0 +1,174 @@
+#!/usr/bin/env python2.7
+
+# load default python packages
+import logging, optparse, sys, glob, gzip
+from os.path import join, basename, isfile, dirname, abspath
+from collections import defaultdict, Counter
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, maxCommon, pubConf, maxbio
+
+
+# ==== FUNCTIONS =====
+def iterCommonFiles(inDirs, mask="*.tab.gz"):
+    """ 
+    yield lists of filenames that have the same name in all indirs 
+    Doesn't really check if all dirs are identical.
+    """
+    fmask = join(inDirs[0], mask)
+    for fname in glob.glob(fmask):
+        base = basename(fname)
+        flist = []
+        for i in inDirs:
+            dirFname = join(i, base)
+            assert(isfile(dirFname))
+            flist.append(dirFname)
+        yield flist
+
+def parseUniProt(inDir):
+    " parse uniprot fa files and return as acc -> list of (isoformId, sequence) "
+    faName = join(inDir, "uniprot.9606.var.fa.gz")
+    seqs = maxbio.parseFastaAsDict(gzip.open(faName))
+
+    result = defaultdict(list)
+    for seqId, seq in seqs.iteritems():
+        acc = seqId.split("-")[0]
+        result[acc].append( (seqId, seq) )
+    return result
+
+def indexMuts(mutAnnots):
+    mutCounts = Counter()
+    mutToAnnots = defaultdict(list)
+    for mut in mutAnnots:
+        mutName = (int(mut.pos), mut.wtRes)
+        #mutName = "".join((mut.wtRes, mut.pos, mut.mutRes))
+        mutCounts.update([mutName])
+        mutToAnnots[mutName].append(mut)
+        extId = mut.externalId
+        pmid = mut.pmid
+    return extId, pmid, mutCounts, mutToAnnots
+
+def indexGenes(upAnnots):
+    """ given rows from annotation file, return extId, counts of uniprot accession and 
+      dict with uniprot accession to list of annotations """
+    upCounts = Counter()
+    accToAnnots = defaultdict(list)
+    #print geneAnnots
+    assert(len(upAnnots)>0)
+    extId = None
+    for up in upAnnots:
+        #print "UP", up
+        upCounts.update([up.uniProtAcc])
+        accToAnnots[up.uniProtAcc].append(up)
+        extId = up.externalId
+    return extId, upCounts, accToAnnots
+
+def findSeqs(seqs, accs, pos, res):
+    " return all uniprot accessions from accs with at least one variant with residue at pos "
+    matchSeqs = []
+    for acc in accs:
+        isoSeqs = seqs[acc]
+        for seqId, seq in isoSeqs:
+            if pos < len(seq) and seq[pos]==res:
+                matchSeqs.append(seqId)
+                break
+    return matchSeqs
+
+def someSnippets(idCounts, idToAnnots, isGene=False):
+    """ create a list of descriptions for all ids in idCounts 
+    also return a dict with id -> name
+    """
+    descs = []
+    names = {}
+    for id, count in idCounts.iteritems():
+        annots = idToAnnots[id]
+        annot = annots[0]
+        if isGene:
+            name = annot.word
+        else:
+            name = annot.wtRes+annot.pos+annot.mutRes
+        names[id] = name
+        descs.append("%s (%s, %d times): %s" % (id, name, count, annot.snippet))
+    return descs, names
+
+def main(args, options):
+    if options.test:
+        import doctest
+        doctest.testmod()
+        sys.exit(0)
+
+    pubGeneric.setupLogging("", options)
+
+    annotDir, outFname = args
+    seqs = parseUniProt(pubConf.dbRefDir)
+    mutDir = join(annotDir, "mutations")
+    geneDir = join(annotDir, "genes")
+    refDir = pubConf.dbRefDir
+    ofh = open(outFname, "w")
+
+    for fNames in iterCommonFiles([geneDir, mutDir]):
+        logging.debug( fNames )
+        print fNames
+        for fileId, rows in maxCommon.iterTsvJoin(fNames, groupFieldNumber=0, useChars=13):
+            articleId = str(fileId)[:10]
+            geneAnnots = rows[0]
+            mutAnnots  = rows[1]
+            extId1, pmid, mutCounts, mutToAnnots = indexMuts(mutAnnots)
+            extId2, upCounts, upToAnnots = indexGenes(geneAnnots)
+            assert(extId1==extId2)
+            extId = extId1
+            print
+            print "Article: %s article %s file %s" % (extId, articleId, fileId)
+
+            #print extId, mutCounts.most_common()
+            print "- genes:"
+            geneDescs, geneNames = someSnippets(upCounts, upToAnnots, isGene=True)
+            print "\n".join(geneDescs)
+            print "- mutations:"
+            mutDescs, mutNames = someSnippets(mutCounts, mutToAnnots)
+            print "\n".join(mutDescs)
+            #print extId, upCounts.most_common()
+            #print mutAnnots
+
+            rows = []
+            outLines = []
+            for posInfo, count in mutCounts.iteritems():
+                pos, origAa = posInfo
+                zeroPos = pos-1 # python is 0-based
+                mutName = str(pos)+origAa
+
+                matchSeqs = findSeqs(seqs, upCounts, zeroPos, origAa)
+
+                if len(matchSeqs)==0:
+                    #rows.append(["NOMATCH", str(articleId), extId, mutName])
+                    pass
+                else:
+                    geneDesc = ",".join(["%s/%s" % (s, geneNames[s.split("-")[0]]) for s in matchSeqs])
+                    rows.append([str(articleId), extId, mutName, geneDesc])
+
+                    for uniprotId in matchSeqs:
+                        outLines.append("\t".join([pmid, uniprotId+"/"+str(pos)]))
+
+            print "Resolved mutations:"
+            print "\n".join(["\t".join(row) for row in rows])
+            if len(outLines)!=0:
+                ofh.write("\n".join(outLines)+"\n")
+            #for row in r1:
+                #print row
+            #print rows
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] annotDir - read geneSearcher and mutation_finderoutput, guess the gene for each mutation, and place onto uniprot sequences""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
+(options, args) = parser.parse_args()
+
+if args==[] and not options.test:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

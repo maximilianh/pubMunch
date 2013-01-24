@@ -1,0 +1,108 @@
+#!/usr/bin/env python2.7
+
+# first load the standard libraries from python
+# we require at least python 2.5
+#from sys import *
+import sys
+if sys.version_info[0]==2 and not sys.version_info[1]>=7:
+    print "Sorry, this program requires at least python 2.7"
+    exit(1)
+
+# load default python packages
+import logging, optparse, os, glob, zipfile, types, gzip, shutil
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
+
+# === CONSTANTS ===================================
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <datasetList> <pmidListFile> <datasetOut> - filter text files with a list of PMIDs, create a new dataset
+
+example:
+pubFilter pmc,elsevier,crawler uniprotPmids.txt uniProtText
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
+#parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+def filterOneChunk(inFname, pmidFname, outFname):
+    """ 
+    filter one chunk
+    """ 
+    pmids = set([int(l.strip()) for l in open(pmidFname)])
+    reader = pubStore.PubReaderFile(inFname)
+    store  = pubStore.PubWriterFile(outFname)
+    for article, files in reader.iterArticlesFileList():
+        if article.pmid=="" or int(article.pmid) not in pmids:
+            logging.debug("skipping %s, no PMID or not in filter file" % article.pmid)
+            continue
+        store.writeArticle(article.articleId, article._asdict())
+        for fileRow in files:
+            store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
+    store.close()
+
+def submitJobs(inDirs, pmidFname, outDir):
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
+
+    pmidFname = os.path.abspath(pmidFname)
+
+    for inDir in inDirs:
+        inFnames = glob.glob(join(inDir, "*.articles.gz"))
+        for inFname in inFnames:
+            outFname = join(outDir, basename(inFname))
+            command = "%s %s {check in exists %s} %s %s" % (sys.executable, __file__, inFname, pmidFname, outFname)
+            runner.submit(command)
+    runner.finish(wait=True)
+
+    #reader = pubStore.PubReaderFile(inFname)
+    #artCount = 0
+    #chunkCount = 0
+    #logging.debug("Writing to %s" % outFname)
+    #store = pubStore.PubWriterFile(join(outDir, "0_00000.articles.gz"))
+        #print "Directory: %s" % inDir
+        #pm = maxCommon.ProgressMeter(len(inFnames))
+                #artCount += 1
+                #if artCount % pubConf.chunkArticleCount == 0:
+                    #store.close()
+                    #chunkCount += 1
+                    #store = pubStore.PubWriterFile(join(outDir, "0_%05d.articles.gz" % chunkCount))
+
+                #logging.info("Accepting %s, %d files" % (article.externalId, len(files)))
+
+                #store.writeArticle(article.articleId, article._asdict())
+                #for fileRow in files:
+                    #store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
+            #pm.taskCompleted()
+    #store.close()
+
+
+# ----------- MAIN --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+# normal operation
+pubGeneric.setupLogging(progFile, options)
+
+inSpec, pmidFname, outSpec = args
+if isfile(inSpec):
+    # if indir is a file, we got called on the cluster by ourself
+    filterOneChunk(inSpec, pmidFname, outSpec)
+else:
+    # otherwise got called from command line by user
+    inDirs = pubConf.resolveTextDirs(inSpec)
+    outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
+    assert(outDir!=None)
+    maxCommon.mustBeEmptyDir(outDir)
+    submitJobs(inDirs, pmidFname, outDir)
