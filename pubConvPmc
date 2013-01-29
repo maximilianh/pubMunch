@@ -439,10 +439,15 @@ def extractTgz(baseDir, fname):
         return None
 
     logging.log(5, "Opening tarfile %s" % tarfname)
-    tarObject = tarfile.open(tarfname)
+    try:
+        tarObject = tarfile.open(tarfname)
+    except tarfile.ReadError:
+        logging.error("Could not open %s, broken tarfile" % tarfname)
+        return None
 
+    # is this necessary? why doesn't tarfile always throw an exception?
     if tarObject==None:
-        logging.warn("Could not open file %s, data corruption error?\n" % tarfname)
+        logging.error("No results when opening file %s, data corruption error?" % tarfname)
         return None
 
     fileData = {}

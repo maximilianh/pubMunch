@@ -24,7 +24,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import maxRun, pubStore, pubConf, pubGeneric, t2gDnaDetect, orgDetect, protDetect, pubAlg
+import maxRun, pubStore, pubConf, pubGeneric, t2gDnaDetect, orgDetect, pubAlg
 from maxCommon import *
 
 ANNOTDIGITS=5 # number of digits to use for annotation ID 

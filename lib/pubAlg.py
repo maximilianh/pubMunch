@@ -10,7 +10,7 @@ import logging, sys, os, shutil, glob, cPickle, optparse, copy, types, string, p
 from os.path import *
 from maxCommon import *
 
-import protDetect, unifyAuthors, pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
+import protSearch, unifyAuthors, pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
 
 # extension of map output files
 MAPREDUCEEXT = ".pickle.gz"
@@ -77,9 +77,9 @@ def getAlg(algName, defClass=None):
     """
     logging.debug("Creating algorithm object for %s " % (algName))
     if algName=="upcaseCount":
-        alg = protDetect.UpcaseCounter()
+        alg = protSearch.UpcaseCounter()
     elif algName=="ProteinDetect":
-        alg = protDetect.ProteinDetect()
+        alg = protSearch.ProteinDetect()
     elif algName=="unifyAuthors":
         alg = unifyAuthors.UnifyAuthors()
     elif algName=="getFileDesc":

@@ -108,7 +108,7 @@ def parsePdb(pdbDir, outDir):
 # UNIPROT PARSING 
 
 # main record info
-entryHeaders = ["dataset", "acc", "orgName", "orgCommon", "taxonId", "name", "accList", \
+entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId", "name", "accList", \
     "protFullNames", "protShortNames", "protAltNames", "geneName", "geneSynonyms", "isoNames", \
     "geneOrdLocus", "geneOrf", \
     "hugo", "refSeq", "ncbiGene", "ensemblGene", "ensemblProt", "embl", "pdb", "uniGene", "omim",\
@@ -116,7 +116,7 @@ entryHeaders = ["dataset", "acc", "orgName", "orgCommon", "taxonId", "name", "ac
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
-mutHeaders = ["acc", "varId", "position", "origAa", "mutAa", "dbSnpId", "disease", "pmid", "comment"]
+mutHeaders = ["acc", "mainIsoAcc", "varId", "position", "origAa", "mutAa", "dbSnpId", "disease", "pmid", "comment"]
 MutRec = collections.namedtuple("mutrec", mutHeaders)
 
 # references from record
@@ -412,7 +412,7 @@ def parseFeatDesc(text, disCodes):
     return disName, snpId, "; ".join(comments)
 
 
-def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids):
+def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
     " go over features and yield mutation records "
 
     acc = entryEl.find("accession").text
@@ -470,7 +470,7 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids):
             pmids = evidPmids[evidId]
             assert(len(pmids)<=1)
             pmid = list(pmids)[0]
-            mut = MutRec(acc, varId, position, orig, variant, snpId, disName, pmid, comments)
+            mut = MutRec(acc, mainIsoAcc, varId, position, orig, variant, snpId, disName, pmid, comments)
             logging.debug("Accepted variant: %s" % str(mut))
 
             if disName=="":
@@ -495,7 +495,7 @@ def parseEvidence(entryEl):
                 result[evidCode].append(pmid)
     return result
     
-def parseVariants(entryEl):
+def parseVariants(entryEl, mainIsoAcc):
     " return MutRecs with disease associated variants "
     disRefs, disCodes = parseDiseaseComment(entryEl)
 
@@ -506,7 +506,7 @@ def parseVariants(entryEl):
     logging.debug("Diseases in %s" % acc)
 
     evidPmids = parseEvidence(entryEl)
-    mutRecs = list(parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids))
+    mutRecs = list(parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc))
     return mutRecs
 
 def parseRecInfo(entryEl, entry, isoSeqs):
@@ -537,6 +537,7 @@ def parseRecInfo(entryEl, entry, isoSeqs):
     mainSeq = entryEl.find("sequence").text
     isoIds, isoNames, seqs = parseIsoforms(entry["acc"], mainSeq, entryEl, isoSeqs)
     dbRefs = parseDbRefs(entryEl)
+    entry["mainIsoAcc"] = isoIds[0]
 
     entry["hugo"] = dbRefs.get("hgncGene", "")
     entry["refSeq"] = dbRefs.get("refseqNucl", "")
@@ -686,7 +687,7 @@ def parseUniprot(inDir, outDir, taxonIds):
         for refRow in refRows:
             refOf.write("\t".join(refRow)+"\n")
 
-        mutRecs = parseVariants(entryEl)
+        mutRecs = parseVariants(entryEl, entryRow.mainIsoAcc)
         for mutRow in mutRecs:
             logging.debug("writing row %s" % str(mutRow))
             mutOf.write("\t".join(mutRow)+"\n")

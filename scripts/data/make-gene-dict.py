@@ -8,11 +8,12 @@ from os.path import join
 # - one with all accession numbers (refseq, embl, etc), prefixed with "*"
 # - one with all other names (hugo, etc)
 
-def appendAll(idList, inList, prefix=""):
-    " all all non-empty parts to list, optionally prefixed by prefix "
+def appendAll(idList, inList, prefixList=[""]):
+    " all all non-empty parts to list, optionally prefixed by prefixes "
     for part in inList:
-        if part!="":
-            idList.add(prefix+part)
+        for prefix in prefixList:
+            if part!="":
+                idList.add(prefix+part)
     return idList
 
 notGenes = set(["ok", "ko", "ii", "c0", "ct", "ms", "mri", "zip", "waf", "cip", "oct", "apr", "sep", "nov", "dec", "jan", "feb", "top", "fop", "flash", 'nhs', 'sds', 'vip', 'nsf', 'pdf', 'cd','rom','cad','cam','rh', 'hr','ct','h9', 'sms', "for", "age", "anova", "med", "soc", "tris", "eng", "proc", "appl", "acta", "dis", "engl", "exp", "rec", "nuc", "nsf", "comp", "prot", "ctrl", "dtd", "cit", "gov"])
@@ -24,6 +25,10 @@ problematicGenes = set([
 "sch", #found only one match in scholar
 "jun", # also a gene, but can also be a month
 "ca2", # calcium
+"neb", # a company
+"mim", # =OMIM
+"prism", # 
+"CAS", # chemical abstracts
 "mg2" # magnesium
 ])
 
@@ -73,7 +78,7 @@ def prepSymbols(stringList, bncWords):
             continue
 
         # ignore symbols that contain only ACTG letters (e.g. CAT)
-        if len(set(lowS).difference(nucl))==0:
+        if len(set(list(lowS)).difference(nucl))==0:
             ignoredWords.append(s)
             debug("ignored: looks like DNA")
             continue
@@ -148,7 +153,7 @@ for row in maxCommon.iterTsvRows(uniprotFname):
     accs = appendAll(accs, row.embl.split("|"))
     accs = appendAll(accs, row.pdb.split("|"))
     accs = appendAll(accs, row.uniGene.split("|"))
-    accs = appendAll(accs, row.omim.split("|"), prefix="omim ")
+    accs = appendAll(accs, row.omim.split("|"), prefixList=["omim ", "OMIM ", "MIM "])
     accs = list(set(accs))
     for delChar in ["*", ",", ".", "/", "(", ")"]: 
         accs = [acc.replace(delChar," ").replace("  ", " ") for acc in accs]
@@ -174,6 +179,7 @@ for row in maxCommon.iterTsvRows(uniprotFname):
 
 print "Wrote to %s" % (dictFh.name)
 #fastFind.compileDict(dictFh.name, toLower=True)
+print "Compiling dict to gzipped marshal file"
 fastFind.compileDict(dictFh.name)
 ignoredWords = list(set(ignoredWords))
 ignoredWords.sort()

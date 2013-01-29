@@ -177,6 +177,7 @@ def iterTsvGroups(fileObject, **kwargs):
 
     lastId = None
     group = []
+    id = None
     for rec in iterTsvRows(fileObject, **kwargs):
         id = rec[groupFieldNumber]
         if useChars:
@@ -189,7 +190,8 @@ def iterTsvGroups(fileObject, **kwargs):
             yield lastId, group
             group = [rec]
             lastId = id
-    yield id, group
+    if id!=None:
+        yield id, group
     
 def iterTsvJoin(files, **kwargs):
     r"""

@@ -25,7 +25,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import maxRun, pubStore, pubConf, pubGeneric, protDetect, pubAlg, maxCommon
+import maxRun, pubStore, pubConf, pubGeneric, pubAlg, maxCommon
 from maxCommon import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===

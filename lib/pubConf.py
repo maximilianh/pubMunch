@@ -165,6 +165,7 @@ identifierStart = {
     "genbank"  : 4000000000,
     "imgt"     : 4300000000,
     "pdfDir"   : 4400000000,
+    "yif"      : 4500000000,
     "crawler"  : 5000000000
 }
 # commands to convert various filetypes to ascii text 
@@ -388,7 +389,7 @@ def getMaxBinFileSize():
 def getMaxTxtFileSize():
     return MAXTXTFILESIZE
 
-def resolveTextDir(dataDir):
+def resolveTextDir(dataDir, makeDir=False):
     " check if dataDir exists, if not: try if subdir of textDir exists and return "
     if os.path.isfile(dataDir):
         return dataDir
@@ -397,6 +398,17 @@ def resolveTextDir(dataDir):
         if os.path.isdir(dataDir2):
             dataDir = dataDir2
         else:
-            logging.error("Neither %s not %s are directories" % (dataDir, dataDir2))
-            dataDir = None
+            if makeDir:
+                logging.info("Creating directory %s" % dataDir2)
+                os.makedirs(dataDir2)
+            else:
+                logging.error("Neither %s not %s are directories" % (dataDir, dataDir2))
+                dataDir = None
     return dataDir
+
+def resolveTextDirs(dataString):
+    " like resolveTextDir but accepts comma-sep strings and yields many "
+    for dataSpec in dataString.split(","):
+        yield resolveTextDir(dataSpec)
+        
+

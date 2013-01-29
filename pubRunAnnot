@@ -25,11 +25,16 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import maxRun, pubStore, pubConf, pubGeneric, protDetect, pubAlg, maxCommon
+import maxRun, pubStore, pubConf, pubGeneric, pubAlg, maxCommon
 from maxCommon import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <algorithmName> <in> <out> <opt1>=<val1> <opt2>=<val2> ...- run an algorithm on a directory of fulltext files and write results to out directory
+
+<algorithmName> can be a script from the scripts directory, like "protSearch.py". (Extension optional)
+By default, only a variable "headers" and a function "annotateFile" is needed in the script. If
+the script contains classes to separate different functions, you need to add the class name, separated by
+a ":", like "dnaSearch.py:Annotate"
 
 <in> can be a directory or dataset name:
 - search <in> for fulltext chunks (*.articles.gz and *.files.gz)

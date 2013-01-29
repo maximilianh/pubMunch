@@ -800,7 +800,7 @@ if __name__ == "__main__":
     # All done, exit cleanly
     exit(0)
 
-headers = ["start", "end", "regexId", "wtRes", "pos", "mutRes"]
+headers = ["start", "end", "pmid", "regexId", "wtRes", "pos", "mutRes"]
 mutFinder = None
 def startup(paramDict):
     global mutFinder
@@ -820,7 +820,7 @@ def annotateFile(article, file):
             word = text[start:end]
             if word in blackList:
                 continue
-            row = [start, end, mut.regexNum, mut._get_wt_residue(), str(mut.Position), mut._get_mut_residue()]
+            row = [start, end, article.pmid, mut.regexNum, mut._get_wt_residue(), str(mut.Position), mut._get_mut_residue()]
             yield row
         #print row
 

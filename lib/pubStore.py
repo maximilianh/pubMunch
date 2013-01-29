@@ -286,6 +286,9 @@ class PubWriterFile:
             #logging.info("truncating file %s, too big" % fileId)
             #fileDict["content"] = fileDict["content"][:pubConf.MAXTXTFILESIZE]
 
+        if "externalId" not in fileDict:
+            fileDict["externalId"] = fileDict["articleId"]
+
         if len(fileDict)!=len(fileDataFields):
             logging.error("column counts between file dict and file objects don't match")
             dictFields = fileDict.keys()
@@ -373,7 +376,7 @@ def createPseudoFile(articleData):
 
 class PubReaderFile:
     """ 
-    read articles from tab-sep files, optionally compressed 
+    read articles from compressed tab-sep files
     """
     def __init__(self, fname):
         " fname can end in .articles.gz, reader will still read both articles and files "

@@ -120,7 +120,7 @@ def main(args, options):
             assert(extId1==extId2)
             extId = extId1
             print
-            print "Article: %s article %s file %s" % (extId, articleId, fileId)
+            print "Article: %s PMID %s article %s file %s" % (extId, pmid, articleId, fileId)
 
             #print extId, mutCounts.most_common()
             print "- genes:"
