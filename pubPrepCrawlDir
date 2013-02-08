@@ -291,8 +291,7 @@ def groupPublishersByName(journals):
     # if KEY is part of publisher name, publisher is grouped into VAL
     pubReplaceDict = {
         "Academic Press" : "Elsevier",
-        "Wiley":"Wiley",
-        "Elsevier":"Elsevier", \
+        "Elsever":"Elsevier", \
         "Nature":"NPG", \
         "Thieme":"Thieme", \
         "Springer":"Springer", \
@@ -310,7 +309,7 @@ def groupPublishersByName(journals):
         "Chicago" : "University Of Chicago",
         "Mosby" : "Elsevier",
         "Masson" : "Elsevier",
-        "Elsevier" : "Elsever", \
+        "Cell" : "Elsevier",
         "Churchill" : "Elsevier",
         "cambridge" : "Cambridge Univ. Press",
         "karger" : "Karger",
@@ -330,6 +329,7 @@ def groupPublishersByName(journals):
         "Churchill Livingstone" : "Churchill Livingstone",
         "Portland" : "Portland",
         "lancet" : "Elsevier",
+        "WB Saunders" : "Elsevier",
         "schattauer" : "FK Schattauer",
         "Future" : "Future Science",
         "Expert Reviews" : "Future Science"
@@ -408,7 +408,7 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
         if prefix:
             pubGroup=prefix+" "+pubGroup
         row = [str(journalCount), pubGroup, u"|".join(syns), "|".join(titles), "|".join(servers), \
-            "|".join(jIds), "|".join(jIssns), "|".join(uids), "|".join(countries)]
+            "|".join(jIds), "|".join(jIssns), "|".join(uids), "|".join(countries), "|".join(languages)]
         ofh.write("%s\n" % "\t".join(row))
 
 def findBestGroupForServer(pubGroups):
@@ -708,8 +708,8 @@ def main(args, options):
 parser = optparse.OptionParser("""usage: %prog [publishers|issns|pmids|all] <outDir> - prepare the base directory for the crawler by parsing the NLM Catalog and other journal lists into publishers and ISSNs. 
 
 commands:
-    %prog publishers <outDir> - import journal lists and group into publishers.
-                                Creates the _journalData dir in outDir.
+    %prog publishers          - import journal lists and group into publishers.
+                                Creates files in pubConf.journalDataDir
     %prog issns <outDir>      - create subdirectories under outDir and fill them 
                                 with issn.tab files
     %prog pmids <outDir>      - retrieve the PMIDs from Pubmed for all ISSNs in outDir

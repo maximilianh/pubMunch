@@ -108,6 +108,8 @@ def main(args, options):
     refDir = pubConf.dbRefDir
     ofh = open(outFname, "w")
 
+    resolvCount = 0
+    mutCount = 0
     for fNames in iterCommonFiles([geneDir, mutDir]):
         logging.debug( fNames )
         print fNames
@@ -129,6 +131,7 @@ def main(args, options):
             print "- mutations:"
             mutDescs, mutNames = someSnippets(mutCounts, mutToAnnots)
             print "\n".join(mutDescs)
+            mutCount += len(set(mutNames))
             #print extId, upCounts.most_common()
             #print mutAnnots
 
@@ -153,11 +156,14 @@ def main(args, options):
 
             print "Resolved mutations:"
             print "\n".join(["\t".join(row) for row in rows])
+            resolvCount += len(rows)
             if len(outLines)!=0:
                 ofh.write("\n".join(outLines)+"\n")
             #for row in r1:
                 #print row
             #print rows
+    print "Total mutation descriptions found: %d" % mutCount
+    print "Total resolved mutations found: %d" % resolvCount
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] annotDir - read geneSearcher and mutation_finderoutput, guess the gene for each mutation, and place onto uniprot sequences""")

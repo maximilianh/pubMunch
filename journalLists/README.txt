@@ -3,6 +3,8 @@ These data are needed to find out which ISSNs are published by a given
 publisher. The ISSNs are then used to query PubMed for the PMIDs linked
 of an ISSN (the NLM has no notion of a publisher at all).
 
+These lists are the input for pubPrepCrawlDir, it will parse them to tables.
+
 If you want to update these lists:
 
 * NLM Catalog:
