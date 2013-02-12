@@ -558,6 +558,10 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
     else:
         alg = algName
 
+    if "map" not in dir(alg):
+        logging.error("There is not map() function in %s" % algName)
+        sys.exit(1)
+
     if "startup" in dir(alg):
         alg.startup(paramDict, {})
 
@@ -658,6 +662,11 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
     for algName in algNames:
         logging.debug("Testing algorithm %s startup" % algName)
         alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
+
+        if "annotateFile" not in dir(alg):
+            logging.error("Could not find an annotate() function in %s" % algName)
+            sys.exit(1)
+
         if "startup" in dir(alg):
             alg.startup(paramDict) # to check if startup works
 
