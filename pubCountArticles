@@ -1,0 +1,352 @@
+#!/usr/bin/env python2.7
+
+# this script collects the data about publishers from medline and from what we have on disk
+# it's terrible but it's only used here at UCSC
+
+from os.path import *
+import os, sys, optparse, logging, marshal, zlib, unicodedata, gc, cPickle, shutil, random
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "..", "lib")
+sys.path.insert(0, pubToolsLibDir)
+import maxCommon, collections, pubGeneric, pubConf
+import sqlite3 as s
+
+from collections import defaultdict
+
+parser = optparse.OptionParser("""usage: %prog [options] <step> - count relevant articles per publisher per year and write to outfiles
+
+steps are:
+"journals" - create a table with journalUid -> articleCount from medline
+"pubs" - create a table with publishers, their post-2000 article counts and how many we have on disk
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
+(options, args) = parser.parse_args()
+pubGeneric.setupLogging(__file__, options)
+
+steps = args
+
+journalFname = join(pubConf.journalDataDir, "journals.tab")
+publisherFname = join(pubConf.journalDataDir, "publishers.tab")
+finalCountFname = join(pubConf.journalDataDir, "pubCounts.tab")
+
+MEDLINEDIR = pubConf.resolveTextDir("medline")
+
+# MEDLINE: table with journal UID -> count of articles in Medline
+COUNTFNAME = join(pubConf.journalDataDir, "mlJournalCounts.tab")
+
+# MEDLINE: sqlite db with a table journal uid -> pmids
+PMIDFNAME = join(pubConf.journalDataDir,"mlJournalPmids.db")
+
+# datasets: just the count of all articles in all datasets
+articleCountFname = join(pubConf.journalDataDir, "articleCount.txt")
+# datasets: count of all articles, by eIssn and articleType
+issnCountFname = join(pubConf.journalDataDir, "issnCounts.marshal")
+
+# table with information on journals, coverage, eISSN, etc.
+journalCoverageFname = join(pubConf.journalDataDir, "journalCoverage.tab")
+# datasets to collect PMIDs from
+datasets = "elsevier,crawler,pmc"
+
+minYear = 2000
+minCount = 50 # minimum number of articles in any journal
+minGeneProtCount = 1 # minimum number of articles with gene or protein in the abstract
+
+minPubCount = 20000 # minimum number of articles per publisher
+minPubGeneCount = 500 # minimum number of articles with gene/prot in abstract per publisher
+minPubGeneProtRatio = 0.01 # minimum number of articles of a journal that mention "gene" or "protein"
+
+# file with all pmids we have here on disk
+herePmidFname = join(pubConf.journalDataDir, "herePmids.txt")
+
+def parseCounts(fname):
+    res = {}
+    for row in maxCommon.iterTsvRows(fname):
+        total = int(row.total)
+        geneProtCount = int(row.geneProtCount)
+
+        res[row.uid] = (total, geneProtCount)
+    logging.info("Found counts for %d journals" % (len(res)))
+    return res
+
+def getTargetJournals(journalFname):
+    " get english journals with eIssn "
+    data = {}
+    for row in maxCommon.iterTsvRows(journalFname):
+        if row.language=="eng" and row.eIssn!="":
+            #data.add(row.uniqueId)
+            data[row.uniqueId] = row
+    logging.info("Found %d journals with eIssn and english" % len(data))
+    return data
+    
+if len(steps)==0:
+    print("You need to specify a step to run")
+    sys.exit(0)
+
+# process medline:
+# make table with journalId -> number of articles
+# and db with uid -> list of pmids
+if "journals" in steps:
+    #cmd = "mv %s pubTable/counts.tab.old; mv %s pubTable/pmids.db.old; mkdir -p pubTable" % (COUNTFNAME, PMIDFNAME)
+    #os.system(cmd)
+
+    counts = {}
+    names = {}
+    pmids = defaultdict(list)
+    issnCounts = defaultdict(int)
+    count = 0
+    noYear = 0
+    noAuthor = 0
+    noAbstract = 0
+    recCount = 0
+    for row in maxCommon.iterTsvDir(MEDLINEDIR, ext="articles.gz"):
+        counts.setdefault(row.journalUniqueId, collections.defaultdict(int))
+        recCount += 1
+
+        if row.year=='' or int(row.year)<minYear:
+            noYear +=1
+            continue
+        if row.authors=='':
+            noAuthor +=1
+            continue
+        if len(row.abstract)<= 40:
+            noAbstract +=1
+            continue
+
+        counts[row.journalUniqueId]["total"] += 1
+        names[row.journalUniqueId] = row.journal
+        pmids[row.journalUniqueId].append(int(row.pmid))
+        if row.eIssn!="":
+            issnCounts[row.eIssn] +=1
+        abs = row.abstract.lower()
+        if " gene " in abs or " protein " in abs:
+            counts[row.journalUniqueId]["geneProt"] += 1
+        count += 1
+
+    logging.info("Total number of records was %d" % (recCount))
+    logging.info("Ignored: No year %d, no author %d, no abstract %d" % (noYear, noAuthor, noAbstract))
+    logging.info("Read %d pubmed records from %d journals" % (count, len(pmids)))
+    logging.info("Writing PMIDs to sqlite DB")
+
+    con = s.connect(PMIDFNAME+".new", isolation_level=None)
+    cur = con.cursor()
+    cur.execute("PRAGMA synchronous=OFF") # recommended by
+    cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sql
+    cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FA
+    cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
+    cur.execute("PRAGMA temp_store=memory") 
+    con.commit()
+
+    cur.execute("create table pmids (uniqueId text, pmids blob);")
+    for uniqueId, pmids in pmids.iteritems():
+        pmidStr = ",".join([str(x) for x in pmids])
+        pmidStr = buffer(zlib.compress(pmidStr))
+        row = (uniqueId, pmidStr)
+        cur.execute("INSERT INTO pmids Values (?, ?)", row)
+    con.commit()
+    cur.execute("CREATE INDEX uidIdx ON pmids(uniqueId);")
+    con.commit()
+
+    logging.info("Writing journal PMID counts")
+    ofh = open(COUNTFNAME+".new", "w")
+    ofh.write("uid\tname\ttotal\tgeneProtCount\n")
+    for uniqueId, dataDict in counts.iteritems():
+        if uniqueId not in names:
+            # journal has no article with year > 1990
+            continue
+        name = names[uniqueId]
+        row = [uniqueId, name, str(dataDict["total"]), str(dataDict["geneProt"])]
+        line = "\t".join(row)+"\n"
+        line = line.encode("utf8")
+        ofh.write(line)
+
+    shutil.move(COUNTFNAME+".new", COUNTFNAME)
+    shutil.move(PMIDFNAME+".new", PMIDFNAME)
+
+
+# get english journals with more than x gene/protein abstracts
+
+elif "pubs" in steps:
+    # create table with number of post-minYear articles per publisher
+    # counts only for journals that fulill minimum requirements
+    #journalToCount = parseCounts(COUNTFNAME, minCount, minGeneProtCount)
+
+    journalCounts = parseCounts(COUNTFNAME)
+    targetIds = getTargetJournals(journalFname)
+    ofh = open(join(pubConf.TEMPDIR, "pubCounts.tab"), "w")
+
+    headers = ["publisher", "articleCount", "geneProtArticleCount", "genePercent", "medlinePmidCount", "herePmidCount", "journalUids", "journalEIssns"]
+    ofh.write("\t".join(headers)+"\n")
+
+    totalArtCount = 0
+    filtArtCount = 0
+
+    logging.info("Parsing PMIDs we have here from %s" % herePmidFname)
+    herePmids = set([int(x.strip()) for x in open(herePmidFname).readlines() if len(x)>3])
+
+    # open journal info file
+    jfh = open(journalCoverageFname+".new", "w")
+    headers = ["pubName", "relevant", "journal", "publisher", "uid", "eIssn", "language", "country", "pmidCount", "hereCount", "notHerePmids"]
+    jfh.write("\t".join(headers)+"\n")
+
+    logging.info("iterating over publishers, counting how many articles in medline they have")
+    removedUids = []
+    removedPublishers = []
+    for row in maxCommon.iterTsvRows(publisherFname):
+        pubName = row.pubName
+        if not row.pubName.startswith("NLM"):
+            continue
+        languages = set(row.languages.split("|"))
+        if "eng" not in languages:
+            logging.debug("%s: No single english journal for this publisher" % row.pubName)
+            removedPublishers.append(pubName)
+            continue
+
+        uids = set(row.uid.split("|"))
+        pubCount = 0
+        pubGeneProtCount = 0
+        pubUids = []
+
+        con = s.connect(PMIDFNAME)
+        cur = con.cursor()
+        pubPmids = []
+
+        #sanePub = unicodedata.normalize('NFKD', pubName).encode('ascii','ignore').replace(" ", "_").replace("NLM_","").replace("/","-")
+        #jfh = open("pubTable/journals/"+sanePub, "w")
+        #logging.info("%s" % jfh.name)
+
+        for uid in uids:
+            relevant = True
+            if uid not in journalCounts:
+                logging.warn("No pmids for uid %s (no eIssn or not english)" % uid)
+                relevant = False
+                continue
+            if uid not in targetIds:
+                logging.debug("Uid %s is not english/has no eIssn" % uid)
+                removedUids.append(uid)
+                relevant = False
+                continue
+
+            logging.debug("UID %s" % uid)
+            jTotal, jGeneProt = journalCounts[uid]
+            pubUids.append(uid)
+            if relevant:
+                pubCount += jTotal
+                pubGeneProtCount += jGeneProt
+                totalArtCount += jTotal
+
+            # get pmids for this uid in medline
+            pmidCur = cur.execute("select pmids from pmids where uniqueId=:uid",locals())
+            pmidStrRow = pmidCur.fetchone()
+            if pmidStrRow!=None:
+                pmidStr = pmidStrRow[0]
+                jPmids = [int(x) for x in zlib.decompress(pmidStr).split(",")]
+                pubPmids.extend(jPmids)
+            else:
+                logging.warn("No pmids in medline for uid %s" % uid)
+
+            # write row to journal file
+            hereCount = len(herePmids.intersection(jPmids))
+            jInfo = targetIds[uid]
+            notHerePmids = list(set(jPmids).difference(herePmids))[:10]
+            notHerePmidStr = ",".join([str(x) for x in notHerePmids])
+
+            jRow = [pubName, str(relevant), jInfo.title, jInfo.publisher, uid, jInfo.eIssn, jInfo.language, jInfo.country, len(jPmids), hereCount, notHerePmidStr]
+            jRow = [unicode(x) for x in jRow]
+            jfh.write(u"\t".join(jRow).encode("utf8")+"\n")
+    
+        if pubCount < minPubCount:
+            logging.debug( "Removing publisher %s : count too low" % pubName)
+            removedPublishers.append(pubName)
+            continue
+
+        if pubGeneProtCount < minPubGeneCount:
+            logging.debug( "Removing publisher %s : gene/protein count too low" % pubName)
+            removedPublishers.append(pubName)
+            continue
+
+        # count how many we have here by intersect medline's with our PMIDs
+        pubPmids = set(pubPmids)
+        pubHerePmidCount = len(herePmids.intersection(pubPmids))
+
+        geneProtRatio = float(pubGeneProtCount) / float(pubCount)
+        if geneProtRatio < minPubGeneProtRatio:
+            logging.debug( "Removing %s : ratio too low: count %d, gene count %d" % (pubName, pubCount, pubGeneProtCount))
+            removedPublishers.append(pubName)
+            continue
+
+        filtArtCount += pubCount
+
+        geneProtRatioStr = "%02.2f" % geneProtRatio
+        uidStr= ",".join(pubUids)
+        eIssnStr = row.journalEIssns
+        if eIssnStr=="|":
+            eIssnStr = ""
+        #pubName = pubName.replace("NLM ", "")
+        row = [pubName, str(pubCount), str(pubGeneProtCount), geneProtRatioStr, str(len(pubPmids)), str(pubHerePmidCount), uidStr, row.journalEIssns]
+        ofh.write(u"\t".join(row).encode("utf8")+"\n")
+    logging.info("Removed %d publishers because of too few journals/too few genes" % len(removedPublishers))
+    logging.info("Removed %d journals because not English/no eIssn" % len(removedUids))
+    logging.info("Total articles post-%s: %d" % (minYear, totalArtCount))
+    logging.info("Total articles after filtering: %d" % filtArtCount)
+    ofh.close()
+    cmd = "cp %s %s" % (ofh.name, finalCountFname)
+    os.system(cmd)
+
+    shutil.move(journalCoverageFname+".new", journalCoverageFname)
+    logging.info("Wrote results to %s and %s" % (finalCountFname, journalCoverageFname))
+
+elif "here" in steps:
+    dataDirs = pubConf.resolveTextDirs(datasets)
+    pmids = []
+    articleCount = 0
+    issnCounts = {}
+
+    for dataDir in dataDirs:
+        logging.info("Reading articles from %s" % dataDir)
+        for row in maxCommon.iterTsvDir(dataDir, ext=".articles.gz"):
+            pmids.append(row.pmid)
+            articleCount +=1
+            if row.printIssn!="":
+                issnCounts.setdefault(row.printIssn, {})
+                issnCounts[row.printIssn].setdefault(row.articleType, 0)
+                issnCounts[row.printIssn][row.articleType] += 1
+                if row.pmid=="":
+                    issnCounts[row.printIssn].setdefault("noPmidUrls", []).append(row.fulltextUrl)
+            # DEBUG
+            #if articleCount ==10000:
+                #break
+        #if articleCount ==10000:
+            #break
+
+    # keep only 10 random urls
+    for issn, counts in issnCounts.iteritems():
+        if "noPmidUrls" not in counts:
+            counts["noPmidUrls"] = []
+        else:
+            urls = counts["noPmidUrls"]
+            random.shuffle(urls)
+            urls = urls[:10]
+            counts["noPmidUrls"] = urls
+
+    pmids = set(pmids)
+    ofh = open(herePmidFname+".new", "w")
+    for pmid in pmids:
+        ofh.write("%s\n" % pmid)
+
+    ofh = open(articleCountFname+".new", "w")
+    ofh.write("%d" % articleCount)
+    ofh.close()
+
+    #cPickle.dump(eIssnCounts, issnCountFname)
+    marshal.dump(issnCounts, open(issnCountFname, "w"))
+
+    shutil.move(herePmidFname+".new", herePmidFname)
+    shutil.move(articleCountFname+".new", articleCountFname)
+    logging.info("Created %s and %s and %s" % (herePmidFname, articleCountFname, issnCountFname))
+
+else:
+    assert("No valid step-command specified")

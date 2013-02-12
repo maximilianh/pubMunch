@@ -30,7 +30,7 @@ def urlStringToServers(urlString):
         parts = urlparse.urlsplit(url)
         server = parts[1]
         server = server.replace("www.", "").strip()
-        if server!="":
+        if server!="" and not "pubmedcentral" in server:
             servers.add(server)
     return servers
 
@@ -235,7 +235,7 @@ def journalToBestWebserver(journals):
 
 def groupPublishersByServer(journals):
     """ given a list of journal records, group similar ones based on webserver name
-    return dict groupName -> (count, list of names)
+    return dict serverName -> (count, list of names)
 
     """
     # count journals per webserver
@@ -247,7 +247,6 @@ def groupPublishersByServer(journals):
 
     # assign journal to most popular server
     # + some special cases to correct obivous error by the NLM
-
     replaceServerDict = {
     "springer" : "springerlink.com",
     "wiley.com" : "onlinelibrary.wiley.com",
@@ -292,7 +291,7 @@ def groupPublishersByName(journals):
     pubReplaceDict = {
         "Academic Press" : "Elsevier",
         "Elsever":"Elsevier", \
-        "Nature":"NPG", \
+        "Nature":"Nature Publishing Group", \
         "Thieme":"Thieme", \
         "Springer":"Springer", \
         "blackwell":"Wiley",
@@ -300,30 +299,30 @@ def groupPublishersByName(journals):
         "humana":"Springer",
         "hindawi" : "Hindawi",
         "sage" : "Sage",
-        "Kluwer" : "Kluwer",
+        "Kluwer" : "Wolters Kluwer",
         "Adis" : "ADIS",
         "ADIS" : "ADIS",
         "adis" : "ADIS",
-        "de Gruyter" : "Gruyter",
-        "Williams and Wilkins" : "Kluwer",
+        "de Gruyter" : "de Gruyter",
+        "Williams and Wilkins" : "Wolters Kluwer",
         "Chicago" : "University Of Chicago",
         "Mosby" : "Elsevier",
         "Masson" : "Elsevier",
-        "Cell" : "Elsevier",
+        "Cell Press" : "Elsevier",
         "Churchill" : "Elsevier",
         "cambridge" : "Cambridge Univ. Press",
         "karger" : "Karger",
         "pergamon" : "Elsevier",
-        "british medical" : "British Med. Assoc.",
-        "lippincott" : "Kluwer",
+        "british medical" : "BMJ Group",
+        "lippincott" : "Wolters Kluwer",
         "Royal Society of Medicine" : "Royal Soc of Medicine",
         "VCH Verlag" : "Wiley",
-        "taylor" : "Taylor & Francis",
-        "american physical society" : "American Physical Soc",
+        "taylor" : "Informa",
+        "american physical society" : "American Physical Society",
         "ieee" : "IEEE",
-        "bmj" : "British Med. Assoc.",
-        "oxford university" : "OUP",
-        "oxford journals" : "OUP",
+        "bmj" : "BMJ Group",
+        "oxford university" : "Oxford University Press",
+        "oxford journals" : "Oxford University Press",
         "saunders" : "WB Saunders",
         "American Institute of Physics" : "American Institute of Physics",
         "Churchill Livingstone" : "Churchill Livingstone",
@@ -335,40 +334,60 @@ def groupPublishersByName(journals):
         "Expert Reviews" : "Future Science"
     }
 
+    serverAssignDict = {
+        "sciencedirect" : "Elsevier",
+        "wiley.com" : "Wiley",
+        "jstage.jst.go.jp" : "Jstage"
+    }
+
     # group publishers together
     pubDict = {}
     for journal in journals:
         publisher = journal.publisher
-        found = False
-
-        pubGroup = publisher.strip()
-        pubGroup = pubGroup.replace(" &"," and").replace(",","").replace(".","").replace("-", " ")
-        pubGroup = pubGroup.replace("Assn", "Association")
-        pubGroup = pubGroup.replace("Of", "of")
-        pubGroup = pubGroup.replace("Dept", "Department")
-        pubGroup = pubGroup.replace("U S ", "US")
-        pubGroup = pubGroup.replace("Univ ", "University ")
-        pubGroup = pubGroup.replace("Univ. ", "University ")
-        pubGroup = pubGroup.replace('"', "")
-
-        # first try with manual groupings
         resolved = False
-        for pubShort, pubName in pubReplaceDict.iteritems():
-            if pubShort.lower() in pubGroup.lower():
-                pubGroup = pubName
-                resolved = True
+
+        # first try to use the urls to map to publishers
+        jServers = urlStringToServers(journal.urls)
+        #print journal.publisher, jServers
+        for jServer in jServers:
+            for server, serverPub in serverAssignDict.iteritems():
+                #print jServer, server, serverPub
+                if server in jServer:
+                    #print "found", server, serverPub
+                    pubGroup = serverPub
+                    resolved = True
+                    break
+            if resolved:
                 break
 
-        # if this doesn't work, remove some words and try manual groupings again
         if not resolved:
-            for word in removeWords:
-                pubGroup = re.sub("(^| )%s($| )" % word, " ", pubGroup)
-                pubGroup = pubGroup.strip(" ,.;[]()")
+            pubGroup = publisher.strip()
+            pubGroup = pubGroup.replace(" &"," and").replace(",","").replace(".","").replace("-", " ")
+            pubGroup = pubGroup.replace("Assn", "Association")
+            pubGroup = pubGroup.replace("Of", "of")
+            pubGroup = pubGroup.replace("Dept", "Department")
+            pubGroup = pubGroup.replace("U S ", "US")
+            pubGroup = pubGroup.replace("Univ ", "University ")
+            pubGroup = pubGroup.replace("Univ. ", "University ")
+            pubGroup = pubGroup.replace('"', "")
 
+            # first try with manual groupings
             for pubShort, pubName in pubReplaceDict.iteritems():
                 if pubShort.lower() in pubGroup.lower():
                     pubGroup = pubName
+                    resolved = True
                     break
+
+            # if this doesn't work, remove some words and try manual groupings again
+            if not resolved:
+                for word in removeWords:
+                    pubGroup = re.sub("(^| )%s($| )" % word, " ", pubGroup)
+                    pubGroup = pubGroup.strip(" ,.;[]()")
+
+                for pubShort, pubName in pubReplaceDict.iteritems():
+                    if pubShort.lower() in pubGroup.lower():
+                        pubGroup = pubName
+                        break
 
         pubDict.setdefault(pubGroup, []).append(journal)
 
@@ -412,7 +431,7 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
         ofh.write("%s\n" % "\t".join(row))
 
 def findBestGroupForServer(pubGroups):
-    " create mapping server -> best pubGroup (best= most journals)"
+    " create mapping server -> best publisher (best= most journals)"
     # mapping server -> set of groups
     serverToGroups = collections.defaultdict(set)
     for groupName, journals in pubGroups.iteritems():
@@ -444,7 +463,6 @@ def regroupByServer(pubGroups, serverToBestGroup):
         for j in journals:
             jServers = urlStringToServers(j.urls)
             servers.update(jServers)
-
 
         if len(servers)==1:
             server = servers.pop()
@@ -494,7 +512,7 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
     headers = writeJournals(journals, journalFname, source="NLM")
     pubGroups = groupPublishersByName(journals)
     serverToBestGroup = findBestGroupForServer(pubGroups)
-    #pubGroups = groupPublishersByServer(publishers)
+    # = groupPublishersByServer(journals)
     pubGroups = regroupByServer(pubGroups, serverToBestGroup)
     writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), prefix="NLM")
 

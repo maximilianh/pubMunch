@@ -55,10 +55,12 @@ errorPageUrls = ["http://status.nature.com"]
 # crawl configuration: for each website, define how to crawl the pages
 pubsCrawlCfg = { "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
+    # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
     # 
     {
         "hostnames" : ["www.nature.com"],
         "landingPage_stopPhrases": ["make a payment", "purchase this article"],
+        "landingPage_acceptNoPdf": True,
         "landingUrl_isFulltextKeyword" : "full",
         "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
         "landingPage_mainLinkTextREs" : ["Download PDF"],
@@ -113,6 +115,21 @@ pubsCrawlCfg = { "npg" :
         #"landingUrl_suppListUrl_replace" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
         "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
         "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
+    },
+    # 
+    # 21159627 http://cancerres.aacrjournals.org/content/70/24/10024.abstract has suppl file
+    "aacr" :
+    {
+        "hostnames" : ["aacrjournals.org"],
+        "landingUrl_templates" : {"0008-5472" : "http://cancerres.aacrjournals.org/content/%(vol)s/%(issue)s/%(firstPage)s.long"},
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
+        "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
     },
     # 1995 PMID 7816814 
     # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
@@ -1159,25 +1176,26 @@ def crawlForFulltext(landingPage, crawlConfig):
 
     # search for main PDF on landing page
     pdfUrl = findMainFileUrl(landingPage, crawlConfig)
-    if pdfUrl==None:
-        logging.debug("Could not find PDF on landing page")
-        raise pubGetError("Could not find main PDF", "notFoundMainPdf")
-
-    pdfPage = delayedWget(pdfUrl)
-    if pdfPage["mimeType"] != "application/pdf":
-        pdfPage = parseHtml(pdfPage)
-        if "pdfDocument" in pdfPage["iframes"]:
-            logging.debug("found framed PDF, requesting inline pdf")
-            pdfPage2  = delayedWget(pdfPage["iframes"]["pdfDocument"])
-            if pdfPage2!=None and pdfPage2["mimeType"]=="application/pdf":
-                pdfPage = pdfPage2
+    if pdfUrl==None :
+        if not crawlConfig.get("landingPage_acceptNoPdf", False):
+            logging.debug("Could not find PDF on landing page")
+            raise pubGetError("Could not find main PDF", "notFoundMainPdf")
+    else:
+        pdfPage = delayedWget(pdfUrl)
+        if pdfPage["mimeType"] != "application/pdf":
+            pdfPage = parseHtml(pdfPage)
+            if "pdfDocument" in pdfPage["iframes"]:
+                logging.debug("found framed PDF, requesting inline pdf")
+                pdfPage2  = delayedWget(pdfPage["iframes"]["pdfDocument"])
+                if pdfPage2!=None and pdfPage2["mimeType"]=="application/pdf":
+                    pdfPage = pdfPage2
+                else:
+                    raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
             else:
-                raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
-        else:
-            raise pubGetError("putative PDF link has not PDF mimetype", "MainPdfWrongMime_InlineNotFound")
-    if noLicensePage(pdfPage, crawlConfig):
-        raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
-    fulltextData["main.pdf"] = pdfPage
+                raise pubGetError("putative PDF link has not PDF mimetype", "MainPdfWrongMime_InlineNotFound")
+        if noLicensePage(pdfPage, crawlConfig):
+            raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
+        fulltextData["main.pdf"] = pdfPage
 
     # find suppl list and then get suppl files of specified types
     suppListUrl  = findSuppListUrl(landingPage, crawlConfig)
@@ -1619,6 +1637,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
 
             if consecErrorCount > maxConSecError:
                 logging.error("Too many consecutive errors, stopping crawl")
+                e.longMsg = "Crawl stopped after too many consecutive errors / "+e.longMsg
                 raise
             if pause:
                 raw_input("Press Enter...")

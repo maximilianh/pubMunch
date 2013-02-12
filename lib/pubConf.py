@@ -40,7 +40,8 @@ crawlPubIds = {
 # all ISSNs that wiley gave us go into the subdir wiley
 "WILEY Wiley" : "wiley",
 # we don't have ISSNs for NPG directly, so we use grouped data from NLM
-"NLM NPG" : "npg",
+"NLM Nature Publishing Group" : "npg",
+"NLM American Association for Cancer Research" : "aacr",
 # rockefeller university press
 "HIGHWIRE The Rockefeller University" : "rupress",
 "HIGHWIRE American Society for Microbiology" : "asm",
@@ -206,7 +207,7 @@ MIMEMAP = {
 # chunkCount = 2000 # XXX  not used 
 # when creating chunks, how many files should go into one chunk?
 # used by pubConvCrawl
-chunkArticleCount = 200
+chunkArticleCount = 400
 
 # for conversion jobs: how many cluster jobs should we run in parallel ?
 # can be used to limit I/O and be nice to other cluster users
