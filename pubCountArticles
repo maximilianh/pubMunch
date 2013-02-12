@@ -19,6 +19,7 @@ parser = optparse.OptionParser("""usage: %prog [options] <step> - count relevant
 steps are:
 "journals" - create a table with journalUid -> articleCount from medline
 "pubs" - create a table with publishers, their post-2000 article counts and how many we have on disk
+"here" - determine which documents of publishers we have here
 
 """)
 
@@ -53,11 +54,12 @@ datasets = "elsevier,crawler,pmc"
 
 minYear = 2000
 minCount = 50 # minimum number of articles in any journal
-minGeneProtCount = 1 # minimum number of articles with gene or protein in the abstract
+minGeneProtCount = 50 # minimum number of articles with gene or protein in the abstract
+minGeneProtRatio = 0.01 # minimum number of articles of a journal that mention "gene" or "protein"
 
 minPubCount = 20000 # minimum number of articles per publisher
 minPubGeneCount = 500 # minimum number of articles with gene/prot in abstract per publisher
-minPubGeneProtRatio = 0.01 # minimum number of articles of a journal that mention "gene" or "protein"
+minPubGeneProtRatio = 0.01 # minimum number of articles of a publisher that mention "gene" or "protein"
 
 # file with all pmids we have here on disk
 herePmidFname = join(pubConf.journalDataDir, "herePmids.txt")
@@ -208,6 +210,7 @@ elif "pubs" in steps:
         uids = set(row.uid.split("|"))
         pubCount = 0
         pubGeneProtCount = 0
+        filteredJournalCount = 0
         pubUids = []
 
         con = s.connect(PMIDFNAME)
@@ -234,9 +237,15 @@ elif "pubs" in steps:
             jTotal, jGeneProt = journalCounts[uid]
             pubUids.append(uid)
             if relevant:
-                pubCount += jTotal
-                pubGeneProtCount += jGeneProt
-                totalArtCount += jTotal
+                if float(jGeneProt)/float(jTotal) > minGeneProtRatio and \
+                    jTotal > minCount and jGeneProt > minGeneProtCount:
+                    passedFilter = True
+                    pubCount += jTotal
+                    pubGeneProtCount += jGeneProt
+                    totalArtCount += jTotal
+                else:
+                    filteredJournalCount += 1
+                    passedFilter = False
 
             # get pmids for this uid in medline
             pmidCur = cur.execute("select pmids from pmids where uniqueId=:uid",locals())
@@ -254,7 +263,7 @@ elif "pubs" in steps:
             notHerePmids = list(set(jPmids).difference(herePmids))[:10]
             notHerePmidStr = ",".join([str(x) for x in notHerePmids])
 
-            jRow = [pubName, str(relevant), jInfo.title, jInfo.publisher, uid, jInfo.eIssn, jInfo.language, jInfo.country, len(jPmids), hereCount, notHerePmidStr]
+            jRow = [pubName, str(passedFilter), jInfo.title, jInfo.publisher, uid, jInfo.eIssn, jInfo.language, jInfo.country, len(jPmids), hereCount, notHerePmidStr]
             jRow = [unicode(x) for x in jRow]
             jfh.write(u"\t".join(jRow).encode("utf8")+"\n")
     
@@ -290,6 +299,7 @@ elif "pubs" in steps:
         ofh.write(u"\t".join(row).encode("utf8")+"\n")
     logging.info("Removed %d publishers because of too few journals/too few genes" % len(removedPublishers))
     logging.info("Removed %d journals because not English/no eIssn" % len(removedUids))
+    logging.info("Removed %d journals because not enough articles, not enough genes" % filteredJournalCount)
     logging.info("Total articles post-%s: %d" % (minYear, totalArtCount))
     logging.info("Total articles after filtering: %d" % filtArtCount)
     ofh.close()
@@ -316,21 +326,29 @@ elif "here" in steps:
                 issnCounts[row.printIssn][row.articleType] += 1
                 if row.pmid=="":
                     issnCounts[row.printIssn].setdefault("noPmidUrls", []).append(row.fulltextUrl)
+                else:
+                    issnCounts[row.printIssn].setdefault("herePmids", []).append(row.pmid)
             # DEBUG
             #if articleCount ==10000:
                 #break
         #if articleCount ==10000:
             #break
 
-    # keep only 10 random urls
+    # keep only 10 random urls / PMIDs
     for issn, counts in issnCounts.iteritems():
         if "noPmidUrls" not in counts:
             counts["noPmidUrls"] = []
         else:
             urls = counts["noPmidUrls"]
             random.shuffle(urls)
-            urls = urls[:10]
-            counts["noPmidUrls"] = urls
+            counts["noPmidUrls"] = urls[:10]
+
+        if "herePmids" not in counts:
+            counts["herePmids"] = []
+        else:
+            pmids = counts["herePmids"]
+            random.shuffle(pmids)
+            counts["herePmids"] = pmids[:10]
 
     pmids = set(pmids)
     ofh = open(herePmidFname+".new", "w")

@@ -15,7 +15,7 @@ except ImportError:
 # http://www.elsevier.com/framework_authors/DTDs/ja50_tagbytag5.pdf
 # format:
 # (article-type, True if this type is parsed / False to ignore it 
-# WE IGNORE: indexes, glossaries and bibliographies!
+# WE IGNORE: indexes and bibliographies!
 ELSEVIER_ARTICLE_TAGS = [
         ("converted-article", True),
         ("article", True),

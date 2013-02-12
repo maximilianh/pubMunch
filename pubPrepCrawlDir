@@ -35,7 +35,8 @@ def urlStringToServers(urlString):
     return servers
 
 def recIter(tree):
-    for rec in tree.findall("NLMCatalogRecord"):
+    for rec in tree.findall("NCBICatalogRecord/NLMCatalogRecord"):
+        #print rec
         #serial = rec.find("Serial")
         data = {}
         data["uniqueId"] = rec.find("NlmUniqueID").text
@@ -60,22 +61,25 @@ def recIter(tree):
         data["publisher"] = ""
         data["country"] = ""
         if pubInfo != None:
+            # we assuem that the last publisher or imprint is the current one
             publishers = pubInfo.findall("Publisher")
-            if publishers!=None:
-                pubDict = {}
-                for publisher in publishers:
-                    pubStr = publisher.text.strip(",. ;").replace("[etc.]","").strip(",. ;")
-                    pubDict[publisher.attrib.get("ImprintType")] = pubStr
+            print data["uniqueId"]
+            print publishers
+            if publishers==None or len(publishers)==0:
+                imprints = pubInfo.findall("Imprint")
+                if len(imprints)==0 or imprints!=None:
+                    for imprintEl in imprints:
+                        publishers = imprintEl.findall("Entity")
+                    if publishers==None or len(publishers)==0:
+                        for imprintEl in imprints:
+                            publishers = imprintEl.findall("ImprintFull")
 
-                if "Current" in pubDict:
-                    data["publisher"] = pubDict["Current"]
-                elif "Original" in pubDict:
-                    data["publisher"] = pubDict["Original"]
-                else:
-                    if len(pubDict)!=0:
-                        data["publisher"] = pubDict.values()[0]
-                    else:
-                        data["publisher"] = "unknown"
+            if publishers!=None and len(publishers)!=0:
+                publisher = publishers[-1]
+                pubStr = publisher.text.strip(",. ;").replace("[etc.]","").strip(",. ;")
+                data["publisher"] = pubStr
+            else:
+                data["publisher"] = "unknown"
 
                 if data["publisher"].lower() in ["the association", "the society", "the institute", "the college", "the federation", "the department"]:
                     data["publisher"]=data["author"]
@@ -194,7 +198,7 @@ def parseNlmCatalog(inFname):
         data = open(inFname).read()
         
     logging.info("Parsing XML file %s into memory" % inFname)
-    data = "<nlm>"+data+"</nlm>"
+    #data = "<nlm>"+data+"</nlm>"
     tree = etree.fromstring(data)
     journals = list(recIter(tree))
     return journals
@@ -337,6 +341,7 @@ def groupPublishersByName(journals):
     serverAssignDict = {
         "sciencedirect" : "Elsevier",
         "wiley.com" : "Wiley",
+        "royalsocietypublishing.org" : "Royal Society",
         "jstage.jst.go.jp" : "Jstage"
     }
 
@@ -535,7 +540,8 @@ def initJournalDir(journalDataDir):
     logging.info("importing journal info from %s" % listDir)
 
     if not options.nlmCatalog:
-        nlmCatalogFname = join(listDir, "nlmCatalog.currentlyIndexed.xml.gz")
+        #nlmCatalogFname = join(listDir, "nlmCatalog.currentlyIndexed.xml.gz")
+        nlmCatalogFname = join(listDir, "nlmCatalog.English.xml.gz")
     else:
         nlmCatalogFname = options.nlmCatalog
 
