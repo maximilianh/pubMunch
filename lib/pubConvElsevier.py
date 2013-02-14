@@ -59,6 +59,7 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkCo
 
     numId = minId
     i = 0
+    donePiis = set()
     for fname in zipFilenames:
         zipFilename = join(inDir, fname)
         logging.info("Indexing %s, %d files left" % (zipFilename, len(zipFilenames)-i))
@@ -71,6 +72,12 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkCo
 
         zipRelName = basename(zipFilename)
         for fileName in zipNames:
+            # do not import a PII twice
+            pii = splitext(basename(fileName))[0]
+            if pii in donePiis:
+                logging.warn("Already seen PII %s before" % pii)
+            donePiis.add(pii)
+
             if chunkCount==None:
                 chunkId = ((numId-minId) / chunkSize)
             else:

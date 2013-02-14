@@ -15,7 +15,7 @@ BLATBASE=/hive/data/inside/pubs/blat
 MEDLINEDOWNLOADDIR=${DOWNBASE}/medline
 ELSDOWNLOADDIR=${DOWNBASE}/ElsevierConsyn
 PMCDOWNLOADDIR=${DOWNBASE}/PubMedCentral
-CRAWLDIR=/hive/users/max/projects/pubs/crawlDir/
+CRAWLDIR=/hive/data/inside/pubs/crawlDir/
 
 MEDLINECONVDIR=${TEXTBASE}/medline
 ELSCONVDIR=${TEXTBASE}/elsevier

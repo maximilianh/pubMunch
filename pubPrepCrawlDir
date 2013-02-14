@@ -15,7 +15,7 @@ import xml.etree.cElementTree as etree
 
 # ===== FUNCTIONS =======
 
-headers = "source,eIssn,pIssn,title,publisher,urls,uniqueId,linkIssn,medlineTA,majMeshList,author,language,country"
+headers = "source,pIssn,eIssn,linkIssn,title,publisher,correctPublisher,urls,uniqueId,medlineTA,majMeshList,author,language,country"
 Rec = collections.namedtuple("NLMRec", headers)
 
 PUBLISHERTAB = 'publishers.tab'
@@ -63,8 +63,8 @@ def recIter(tree):
         if pubInfo != None:
             # we assuem that the last publisher or imprint is the current one
             publishers = pubInfo.findall("Publisher")
-            print data["uniqueId"]
-            print publishers
+            #print data["uniqueId"]
+            #print publishers
             if publishers==None or len(publishers)==0:
                 imprints = pubInfo.findall("Imprint")
                 if len(imprints)==0 or imprints!=None:
@@ -140,8 +140,11 @@ def recIter(tree):
                 if issn.attrib.get("IssnType", None)=="Print":
                     data["pIssn"]=issn.text
 
+        if "E-only" in data["pIssn"]:
+            data["pIssn"] = data["eIssn"]
+
         data["linkIssn"] = ""
-        issnLink = rec.find("IssnLinking")
+        issnLink = rec.find("ISSNLinking")
         if issnLink!=None:
             data["linkIssn"]=issnLink.text
         else:
@@ -149,11 +152,12 @@ def recIter(tree):
             data["linkIssn"]=""
             
         data["source"] = "NLM"
+        data["correctPublisher"] = ""
         row = Rec(**data)
         logging.debug("parsed XML as %s",  data)
         yield row
 
-def writeJournals(journals, outFname, headers=None, append=False, source=None):
+def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
     """ write list of records to file. If headers is specified, 
     reformat to fit into tab-sep headers. Optionally set the field source to some value."""
     logging.info("Exporting to tab-sep file %s" % outFname)
@@ -162,30 +166,33 @@ def writeJournals(journals, outFname, headers=None, append=False, source=None):
         openMode = "a"
     outFh = open(outFname, openMode)
     if headers==None:
-        headers = journals[0]._fields
+        #headers = journals[0]._fields
+        headers = pubGroups.values()[0][0]._fields
     if not append:
         outFh.write("\t".join(headers)+"\n")
     skipCount = 0
     Rec = collections.namedtuple("JRec", headers)
-    for rec in journals:
-        #if rec.eIssn=="":
-            #skipCount+=1
-            #continue
-        if headers!=None:
-            recDict = rec._asdict()
-            # create a new dict with all defined fields and 
-            # all required fields set to "", drop all non-reqired fields
-            filtRecDict = {}
-            for d in recDict:
-                if d in headers:
-                    filtRecDict[d] = recDict[d]
-            for h in headers:
-                if h not in filtRecDict:
-                    filtRecDict[h] = ""
-            if source:
-                filtRecDict["source"] = source
-            rec = Rec(**filtRecDict)
-        outFh.write((u"\t".join(rec)).encode("utf8")+"\n")
+    for pubGroup, journals in pubGroups.iteritems():
+        for rec in journals:
+            #if rec.eIssn=="":
+                #skipCount+=1
+                #continue
+            if headers!=None:
+                recDict = rec._asdict()
+                # create a new dict with all defined fields and 
+                # all required fields set to "", drop all non-reqired fields
+                filtRecDict = {}
+                for d in recDict:
+                    if d in headers:
+                        filtRecDict[d] = recDict[d]
+                for h in headers:
+                    if h not in filtRecDict:
+                        filtRecDict[h] = ""
+                filtRecDict["correctPublisher"] = pubGroup
+                if source:
+                    filtRecDict["source"] = source
+                rec = Rec(**filtRecDict)
+            outFh.write((u"\t".join(rec)).encode("utf8")+"\n")
 
     return rec._fields
     #logging.info("Skipped %d journals without eIssn" % skipCount)
@@ -299,6 +306,7 @@ def groupPublishersByName(journals):
         "Thieme":"Thieme", \
         "Springer":"Springer", \
         "blackwell":"Wiley",
+        "Wiley":"Wiley",
         "munksgaard":"Wiley",
         "humana":"Springer",
         "hindawi" : "Hindawi",
@@ -514,12 +522,12 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
 
     # process NLM xml file
     journals = parseNlmCatalog(nlmCatalogFname)
-    headers = writeJournals(journals, journalFname, source="NLM")
     pubGroups = groupPublishersByName(journals)
     serverToBestGroup = findBestGroupForServer(pubGroups)
     # = groupPublishersByServer(journals)
     pubGroups = regroupByServer(pubGroups, serverToBestGroup)
     writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), prefix="NLM")
+    headers = writeJournals(pubGroups, journalFname, source="NLM")
 
     # integrate tab-sep files received from other publishers
     for tabSepFname in tabSepFnames:
@@ -528,7 +536,7 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
         pubGroups = groupPublishersByName(journals)
         writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), \
                 prefix=datasetName, append=True)
-        writeJournals(journals, journalFname, headers, append=True, source=datasetName)
+        writeJournals(pubGroups, journalFname, headers, append=True, source=datasetName)
 
 def initJournalDir(journalDataDir):
     " fill the journal data dir pubConf.journalData with two tab sep files "
@@ -720,10 +728,9 @@ def main(args, options):
         writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
     elif command=="pmids":
         getPmidsForIssns(outDir, minYear)
-    elif command=="all":
-        initJournalDir(journalDataDir)
-        writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
-        getPmidsForIssns(outDir, minYear)
+    #elif command=="all":
+        #writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
+        #getPmidsForIssns(outDir, minYear)
     else:
         raise Exception("Unknown command %s" % command)
 
@@ -736,8 +743,7 @@ commands:
                                 Creates files in pubConf.journalDataDir
     %prog issns <outDir>      - create subdirectories under outDir and fill them 
                                 with issn.tab files
-    %prog pmids <outDir>      - retrieve the PMIDs from Pubmed for all ISSNs in outDir
-    %prog all <outDir>        - run all three steps on outDir
+    %prog pmids <outDir>      - retrieve the PMIDs from Pubmed Eutils for all ISSNs in outDir
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")

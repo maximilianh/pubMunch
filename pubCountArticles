@@ -143,8 +143,8 @@ if "journals" in steps:
     con.commit()
 
     cur.execute("create table pmids (uniqueId text, pmids blob);")
-    for uniqueId, pmids in pmids.iteritems():
-        pmidStr = ",".join([str(x) for x in pmids])
+    for uniqueId, uidPmids in pmids.iteritems():
+        pmidStr = ",".join([str(x) for x in uidPmids])
         pmidStr = buffer(zlib.compress(pmidStr))
         row = (uniqueId, pmidStr)
         cur.execute("INSERT INTO pmids Values (?, ?)", row)
@@ -168,6 +168,63 @@ if "journals" in steps:
     shutil.move(COUNTFNAME+".new", COUNTFNAME)
     shutil.move(PMIDFNAME+".new", PMIDFNAME)
 
+
+elif "here" in steps:
+    dataDirs = pubConf.resolveTextDirs(datasets)
+    pmids = []
+    articleCount = 0
+    issnCounts = {}
+
+    for dataDir in dataDirs:
+        logging.info("Reading articles from %s" % dataDir)
+        for row in maxCommon.iterTsvDir(dataDir, ext=".articles.gz"):
+            pmids.append(row.pmid)
+            articleCount +=1
+            if row.printIssn!="":
+                issnCounts.setdefault(row.printIssn, {})
+                issnCounts[row.printIssn].setdefault(row.articleType, 0)
+                issnCounts[row.printIssn][row.articleType] += 1
+                if row.pmid=="":
+                    issnCounts[row.printIssn].setdefault("noPmidUrls", []).append(row.fulltextUrl)
+                else:
+                    issnCounts[row.printIssn].setdefault("herePmids", []).append(row.pmid)
+            # DEBUG
+            #if articleCount ==10000:
+                #break
+        #if articleCount ==10000:
+            #break
+
+    # keep only 10 random urls / PMIDs
+    for issn, counts in issnCounts.iteritems():
+        if "noPmidUrls" not in counts:
+            counts["noPmidUrls"] = []
+        else:
+            urls = counts["noPmidUrls"]
+            random.shuffle(urls)
+            counts["noPmidUrls"] = urls[:10]
+
+        if "herePmids" not in counts:
+            counts["herePmids"] = []
+        else:
+            issnPmids = counts["herePmids"]
+            random.shuffle(issnPmids)
+            counts["herePmids"] = issnPmids[:10]
+
+    pmids = set(pmids)
+    ofh = open(herePmidFname+".new", "w")
+    for pmid in pmids:
+        ofh.write("%s\n" % pmid)
+
+    ofh = open(articleCountFname+".new", "w")
+    ofh.write("%d" % articleCount)
+    ofh.close()
+
+    #cPickle.dump(eIssnCounts, issnCountFname)
+    marshal.dump(issnCounts, open(issnCountFname, "w"))
+
+    shutil.move(herePmidFname+".new", herePmidFname)
+    shutil.move(articleCountFname+".new", articleCountFname)
+    logging.info("Created %s and %s and %s" % (herePmidFname, articleCountFname, issnCountFname))
 
 # get english journals with more than x gene/protein abstracts
 
@@ -308,63 +365,6 @@ elif "pubs" in steps:
 
     shutil.move(journalCoverageFname+".new", journalCoverageFname)
     logging.info("Wrote results to %s and %s" % (finalCountFname, journalCoverageFname))
-
-elif "here" in steps:
-    dataDirs = pubConf.resolveTextDirs(datasets)
-    pmids = []
-    articleCount = 0
-    issnCounts = {}
-
-    for dataDir in dataDirs:
-        logging.info("Reading articles from %s" % dataDir)
-        for row in maxCommon.iterTsvDir(dataDir, ext=".articles.gz"):
-            pmids.append(row.pmid)
-            articleCount +=1
-            if row.printIssn!="":
-                issnCounts.setdefault(row.printIssn, {})
-                issnCounts[row.printIssn].setdefault(row.articleType, 0)
-                issnCounts[row.printIssn][row.articleType] += 1
-                if row.pmid=="":
-                    issnCounts[row.printIssn].setdefault("noPmidUrls", []).append(row.fulltextUrl)
-                else:
-                    issnCounts[row.printIssn].setdefault("herePmids", []).append(row.pmid)
-            # DEBUG
-            #if articleCount ==10000:
-                #break
-        #if articleCount ==10000:
-            #break
-
-    # keep only 10 random urls / PMIDs
-    for issn, counts in issnCounts.iteritems():
-        if "noPmidUrls" not in counts:
-            counts["noPmidUrls"] = []
-        else:
-            urls = counts["noPmidUrls"]
-            random.shuffle(urls)
-            counts["noPmidUrls"] = urls[:10]
-
-        if "herePmids" not in counts:
-            counts["herePmids"] = []
-        else:
-            pmids = counts["herePmids"]
-            random.shuffle(pmids)
-            counts["herePmids"] = pmids[:10]
-
-    pmids = set(pmids)
-    ofh = open(herePmidFname+".new", "w")
-    for pmid in pmids:
-        ofh.write("%s\n" % pmid)
-
-    ofh = open(articleCountFname+".new", "w")
-    ofh.write("%d" % articleCount)
-    ofh.close()
-
-    #cPickle.dump(eIssnCounts, issnCountFname)
-    marshal.dump(issnCounts, open(issnCountFname, "w"))
-
-    shutil.move(herePmidFname+".new", herePmidFname)
-    shutil.move(articleCountFname+".new", articleCountFname)
-    logging.info("Created %s and %s and %s" % (herePmidFname, articleCountFname, issnCountFname))
 
 else:
     assert("No valid step-command specified")

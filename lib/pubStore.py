@@ -875,7 +875,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     if len(toLoadFnames)==0:
         logging.debug("No files to load")
     else:
-        indexedFields = ["pmid", "pmcId","printIssn", "eIssn", "year"]
+        indexedFields = ["pmid", "pmcId","printIssn", "eIssn", "year", "doi", "extId"]
         intFields = ["pmid", "pmcId","year"]
         maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
             primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False)
