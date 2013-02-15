@@ -98,8 +98,9 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkCo
     #lastChunkId = max([int(x) for x in chunkIds])
     #return lastChunkId, lastArticleId
 
-def submitJobs(splitDir, outDir, maxJob):
-    runner = maxRun.Runner(delayTime=3, maxJob=maxJob)
+def submitJobs(runner, splitDir, outDir):
+    #runner = maxRun.Runner(delayTime=3, maxJob=maxJob)
+    #runner = maxRun.Runner(delayTime=3, maxJob=maxJob)
     chunkIds = os.listdir(splitDir)
     for chunkId in chunkIds:
         chunkFname = join(splitDir, chunkId)
@@ -168,6 +169,8 @@ def sanitizeYear(yearStr):
 
 def findYear(line):
     " go over all words and search for likely year "
+    if line==None:
+        return ""
     for word in line.split():
         if word.isdigit():
             num = int(word)
@@ -414,7 +417,7 @@ def convertOneChunk(inIndexFile, outFile):
     logging.info("Converted %d files" % convCount)
     store.close()
 
-def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxJobs):
+def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, runner):
     """ convert Consyn ZIP files from inDir to outDir 
         split files into chunks and submit chunks to cluster system
     """
@@ -443,7 +446,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxJobs):
     maxArticleId  = createIndexFile(inDir, processFiles, indexFilename, updateId, minId, chunkCount, chunkSize)
     indexSplitDir = indexFilename+".tmp.split"
     pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
-    submitJobs(indexSplitDir, outDir, maxJobs)
+    submitJobs(runner, indexSplitDir, outDir)
 
     pubStore.moveFiles(outDir, finalOutDir)
     shutil.rmtree(outDir)

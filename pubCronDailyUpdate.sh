@@ -2,7 +2,7 @@
 # script for daily updates of all pub data on UCSC's hgwdev
 
 # SETUP
-set -o errexit                        # stop on errors
+#set -o errexit                        # stop on errors
 export PATH=$PATH:/cluster/bin/x86_64 # for hgLoadSqlTab
 
 # VARIABLES

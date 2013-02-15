@@ -248,7 +248,7 @@ elif "pubs" in steps:
 
     # open journal info file
     jfh = open(journalCoverageFname+".new", "w")
-    headers = ["pubName", "relevant", "journal", "publisher", "uid", "eIssn", "language", "country", "pmidCount", "hereCount", "notHerePmids"]
+    headers = ["pubName", "relevant", "journal", "publisher", "uid", "pIssn", "eIssn", "language", "country", "pmidCount", "hereCount", "notHerePmids"]
     jfh.write("\t".join(headers)+"\n")
 
     logging.info("iterating over publishers, counting how many articles in medline they have")
@@ -320,7 +320,7 @@ elif "pubs" in steps:
             notHerePmids = list(set(jPmids).difference(herePmids))[:10]
             notHerePmidStr = ",".join([str(x) for x in notHerePmids])
 
-            jRow = [pubName, str(passedFilter), jInfo.title, jInfo.publisher, uid, jInfo.eIssn, jInfo.language, jInfo.country, len(jPmids), hereCount, notHerePmidStr]
+            jRow = [pubName, str(passedFilter), jInfo.title, jInfo.publisher, uid, jInfo.pIssn, jInfo.eIssn, jInfo.language, jInfo.country, len(jPmids), hereCount, notHerePmidStr]
             jRow = [unicode(x) for x in jRow]
             jfh.write(u"\t".join(jRow).encode("utf8")+"\n")
     

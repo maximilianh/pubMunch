@@ -1426,6 +1426,11 @@ def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig):
 def parseIdStatus(fname):
     " parse crawling status file, return as dict status -> count "
     res = {}
+    if not os.path.isfile(fname):
+        print "%s does not exist" % fname
+        res["OK"] = []
+        return res
+
     for line in open(fname):
         pmid, status = line.strip().split()[:2]
         status = status.split("\\")[0]

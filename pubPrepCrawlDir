@@ -302,6 +302,7 @@ def groupPublishersByName(journals):
     pubReplaceDict = {
         "Academic Press" : "Elsevier",
         "Elsever":"Elsevier", \
+        "Elsevier":"Elsevier", \
         "Nature":"Nature Publishing Group", \
         "Thieme":"Thieme", \
         "Springer":"Springer", \
