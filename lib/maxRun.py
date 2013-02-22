@@ -35,6 +35,7 @@ class Runner:
         self.batchDir = batchDir
         self.runNow = runNow 
         self.maxRam = maxRam
+        self.jobCount = 0
         if not os.path.isdir(batchDir):
             logging.debug("creating dir %s" % batchDir)
             os.makedirs(batchDir)
@@ -88,6 +89,8 @@ class Runner:
         
         """
 
+        self.jobCount += 1
+
         if type(command)==types.ListType:
             command = " ".join(command)
 
@@ -139,6 +142,7 @@ class Runner:
 
     def finish(self, wait=False, cleanUp=False):
         """ submit joblist to parasol, do nothing on SGE """
+        assert(self.jobCount > 0)
         if self.clusterType=="parasol":
             self.jobListFh.close()
             logging.info("Running batch from file '%s'" % self.jobListFh.name)

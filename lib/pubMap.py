@@ -1,20 +1,12 @@
 import sys, logging, optparse, os, collections, tempfile,\
-    shutil, glob, array, codecs, string, re, gzip, time, socket
+    shutil, glob, array, codecs, string, re, gzip, time, socket, subprocess
 
 import maxRun, pubStore, pubConf, pubGeneric, maxCommon, bigBlat, pubAlg, unidecode
-import maxbio, tabfile, maxMysql, maxTables, util
+import maxbio, tabfile, maxMysql, maxTables, util, pubMapProp
 from collections import defaultdict
 from os.path import *
 
 progFile = os.path.abspath(sys.argv[0])
-
-# name of marker counts file
-MARKERCOUNTSBASE = "markerCounts.tab"
-MARKERDIR = "markerBeds"
-
-# pseudo class, for data storage
-class C:
-    pass
 
 # a bed12 feature with one added field
 BedxClass = collections.namedtuple("bedx", \
@@ -22,78 +14,8 @@ BedxClass = collections.namedtuple("bedx", \
     "thickEnd", "itemRgb", "blockCount", "blockSizes", "blockStarts", "tSeqTypes"])
 
 # these are needed almost everywhere
-publisher = None # e.g. pmc
+dataset = None # e.g. pmc
 baseDir = None # e.g. /hive/data/inside/pubs/pmc
-
-def appendBatchProgress(d, updateIds, step):
-    " add a new line to steps.tab "
-    if not isfile(d.stepProgressFname):
-        batchFh = open(d.stepProgressFname, "w")
-        headers = "batchId,updateIds,step,date".split(",")
-        batchFh.write("\t".join(headers)+"\n")
-    else:
-        batchFh = open(d.stepProgressFname, "a")
-
-    row = [d.batchId, ",".join(d.updateIds), step, time.asctime()]
-    batchFh.write("\t".join(row)+"\n")
-
-def findUnprocBatch(stepFname, allSteps):
-    """ return a batchId that is not yet at the tables step and
-    as tuple (batchId, missingSteps).
-    return (None, None) if all batches are at tables
-    """
-    # parse steps.tab
-    batchIds = []
-    batchSteps = {}
-
-    if not isfile(stepFname):
-        logging.debug("File %s does not exist, batchId = 0" % stepFname)
-        return None, []
-
-    # parse batch info into dict batchId -> set of steps
-    tp = maxTables.TableParser(stepFname)
-    for row in tp.lines():
-        batchSteps.setdefault(row.batchId, set()).add(row.step)
-
-    # find batches without tables steps
-    incompBatchIds = []
-    for batchId, doneSteps in batchSteps.iteritems():
-        if "tables" not in doneSteps:
-            incompBatchIds.append(batchId)
-    assert(len(incompBatchIds)<=1)
-
-    if len(incompBatchIds)==0:
-        return None, None
-
-    incompBatchId = incompBatchIds[0]
-    doneSteps = batchSteps[incompBatchId]
-    for step in allSteps:
-        if step not in doneSteps:
-            todoSteps = allSteps[allSteps.find(step):]
-            logging.debug("incomplete batch ids: %s, todoSteps %s" % (incompBatchIds, todoSteps))
-            return incompBatchIds, todoSteps
-    
-def findUnprocUpdateIds(stepProgressFname, textDir, baseDir):
-    """ 
-    compare batches and <baseDir>/updates/ to find 
-    all updateIds that have not been processed by the
-    'annot' step in any batch.
-
-    """
-    # parse tracking file and get all updateIds
-    logging.debug("Parsing tracking file %s and getting all updateIds" % stepProgressFname)
-    doneUpdateIds = set()
-    if isfile(stepProgressFname):
-        tp = maxTables.TableParser(stepProgressFname)
-        for row in tp.lines():
-            if row.step=="annot":
-                doneUpdateIds = row.updateIds.split(",")
-
-    # parse
-    allUpdateIds = pubStore.listAllUpdateIds(textDir)
-    unprocIds = allUpdateIds.difference(doneUpdateIds)
-    logging.info("Updates that have not been annotated yet: %s" % unprocIds)
-    return unprocIds
 
 def findProcessedBatches(mainBaseDir, step, currentBatchId=None):
     " get batchIds of batches that have completed a given step, removing current batchId "
@@ -109,24 +31,9 @@ def findProcessedBatches(mainBaseDir, step, currentBatchId=None):
     logging.debug("Read batchIds from %s with '%s' completed: %s" % (stepProgressFname, step, oldBatchIds))
     return oldBatchIds
 
-    #def findUnprocessedBatches(mainBaseDir, step1, step2):
-    #""" get all annotated batchIds from steps.tab that 
-    #had step1 run on them but not step2 """
-    #stepProgressFname = join(mainBaseDir, "steps.tab")
-    #step1Ids = set()
-    #step2Ids = set()
-    #for row in maxCommon.iterTsvRows(stepProgressFname):
-        #updateIds = row.updateIds.split(",")
-        #if row.step=="step1":
-            #step1Ids.update(updateIds)
-        #if row.step=="load":
-            #step2Ids.update(updateIds)
-    #
-    #unprocIds = step1Ids.difference(step2Ids)
-    #return unprocIds
 
-def countUpcaseWords(baseDir, wordCountBase, textDir, updateIds):
-    " submit map-reduce-style job to count uppercase words "
+def countUpcaseWords(runner, baseDir, wordCountBase, textDir, updateIds):
+    " submit map-reduce-style job to count uppercase words if we don't already have a list"
     mapTmpDir = join(baseDir, "mapReduceTmp")
     if isdir(mapTmpDir):
         logging.info("Deleting old directory %s" % mapTmpDir)
@@ -135,8 +42,7 @@ def countUpcaseWords(baseDir, wordCountBase, textDir, updateIds):
     wordFile = join(baseDir, wordCountBase) # updates use the baseline word file
     if not isfile(wordFile): # if baseline has no wordfile, recreate it
         logging.info("Counting upcase words for protein search to %s" % wordFile)
-        runner = pubGeneric.makeClusterRunner("pubMap-upcaseCount-"+basename(textDir))
-        pubAlg.mapReduce("upcaseCount", textDir, {}, wordFile, \
+        pubAlg.mapReduce("protSearch.py:UpcaseCounter", textDir, {}, wordFile, \
             tmpDir=mapTmpDir, updateIds=updateIds, runTest=False, runner=runner)
     else:
         logging.info("Not counting words, file %s found" % wordFile)
@@ -145,9 +51,6 @@ def countUpcaseWords(baseDir, wordCountBase, textDir, updateIds):
 
 def runStepRange(d, allSteps, fromStep, toStep, args, options):
     """ run a range of steps, from-to, given the list of all steps
-        
-        parses d.baseDir/steps.tab and will only run steps that have not been 
-        run before.
     """
 
     if fromStep not in allSteps:
@@ -159,12 +62,12 @@ def runStepRange(d, allSteps, fromStep, toStep, args, options):
 
     startIdx = allSteps.index(fromStep)
     endIdx   = allSteps.index(toStep)
+    nowSteps = allSteps[startIdx:endIdx+1]
 
-    for stepName in allSteps[startIdx:endIdx+1]:
+    logging.info("Running steps %s " % (nowSteps))
+    for stepName in nowSteps:
         logging.info("=== RUNNING STEP %s ===" % stepName)
-        runStep(d.publisher, stepName, d)
-        appendBatchProgress(d, d.updateIds, stepName)
-
+        runStep(d.dataset, stepName, d, options)
 
 def parseSteps(command):
     " parse the 'steps' command "
@@ -178,25 +81,7 @@ def parseSteps(command):
             stepFrom, stepTo = fromTo.split("-")
     return stepFrom, stepTo
 
-def lastBatchUpdateIds(stepProgressFname, textDir, baseDir):
-    """ parse last line from step file and return batchId and updateIds as tuple
-    batchId = ID of run of pipeline (e.g. once per week)
-    updateIds = IDs of data updates in text dir (e.g. one new one every day)
-    """
-    lastRow = None
-    if isfile(stepProgressFname):
-        for row in maxCommon.iterTsvRows(stepProgressFname):
-            lastRow = row
-        logging.debug("stepProgressFile %s found, batchId %s, updateIds %s" % \
-            (stepProgressFname, lastRow.batchId, lastRow.updateIds))
-        return lastRow.batchId, lastRow.updateIds.split(",")
-    else:
-        updateIds = findUnprocUpdateIds(stepProgressFname, textDir, baseDir)
-        logging.debug("stepProgressFile %s not found, batchId 0, updateIds %s" % \
-            (stepProgressFname, updateIds))
-        return "-1", updateIds
-
-def initDirs(publisher, pipelineSteps):
+def initDirs(dataset, pipelineSteps):
     """ define all directories that are relevant for jobs and the updateIds 
         that need processing
 
@@ -204,18 +89,14 @@ def initDirs(publisher, pipelineSteps):
         batch-relevant directories and updateIds. This is something like
         a global runtime config object.
     """
-    dbList = pubConf.alignGenomeOrder
-    textDir = pubConf.resolveTextDir(publisher)
+    textDir = pubConf.resolveTextDir(dataset)
     if textDir==None:
-        raise Exception("publisher %s can not be resolved to a directory" % publisher)
+        raise Exception("dataset %s can not be resolved to a directory" % dataset)
 
     maxCommon.mustExistDir(pubConf.pubMapBaseDir, makeDir=True)
 
-    d = C() # pseudo object, blame Guido, not me
-
-    d = defineBatchDirectories(d, pubConf.pubMapBaseDir, publisher, textDir)
+    d = pubMapProp.PipelineConfig(pubConf.pubMapBaseDir, dataset, textDir)
     d.pipelineSteps = pipelineSteps
-    d.textDir = textDir
     return d
 
 def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None):
@@ -320,6 +201,7 @@ def indexFilesByTypeDb(faDir, blatOptions):
     e.g. dbFaFiles["short"]["hg19"] = list of hg19 fa files 
     """
     dbFaFiles = {}
+    fCount = 0
     for seqType in blatOptions:
         seqTypeDir = join(faDir, seqType)
         faFiles = glob.glob(join(seqTypeDir, "*.fa"))
@@ -328,20 +210,14 @@ def indexFilesByTypeDb(faDir, blatOptions):
         for faName in faFiles:
             if getsize(faName)==0:
                 continue
+            fCount += 1 
             db = basename(faName).split(".")[0]
             dbFaFiles[seqType].setdefault(db, [])
             dbFaFiles[seqType][db].append(faName)
+    assert(fCount>0)
     return dbFaFiles
 
-def getRunner():
-    " configure the cluster batch submission system and return an runner object "
-    batchDir = join(baseDir, "parasol")
-    if not isdir(batchDir):
-        logging.info("Creating %s for parasol" % batchDir)
-        os.makedirs(batchDir)
-    return maxRun.Runner(batchDir=batchDir)
-
-def submitBlatJobs(faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqTypeOptions, noOocFile=False):
+def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqTypeOptions, noOocFile=False):
     """ read .fa files from faDir and submit blat jobs that write to pslDir 
         dbs are taken from pubConf, but can be overwritten with onlyDbs 
     """
@@ -351,7 +227,6 @@ def submitBlatJobs(faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqTypeOptio
 
     # shred genomes/cdna and blat fasta onto these
     dbFaFiles = indexFilesByTypeDb(faDir, blatOptions)
-    runner = getRunner()
     for seqType, dbFiles in dbFaFiles.iteritems():
         for db, faNames in dbFiles.iteritems():
             logging.debug("seqtype %s, db %s, query file file count %d" % (seqType, db, len(faNames)))
@@ -383,14 +258,15 @@ def clusterCmdLine(method, inFname, outFname, checkIn=True, checkOut=True):
     if checkIn:
         inFname = "{check in exists %s}" % inFname
     if checkOut:
-        outFname = "{check out exists %s}" % inFname
+        outFname = "{check out exists %s}" % outFname
 
     cmd = "%s %s %s %s %s" % (sys.executable, __file__, method, inFname, outFname)
     return cmd
 
-def submitSortPslJobs(sortCmd, inDir, outDir, dbList, addDirs=None):
+def submitSortPslJobs(runner, sortCmd, inDir, outDir, dbList, addDirs=None):
     """ submit jobs to sort psl files, one for each db"""
     #maxCommon.mustBeEmptyDir(outDir)
+    logging.info("Sorting psls, mapping to genome coord system and prefixing with db")
     maxCommon.makedirs(outDir, quiet=True)
     if addDirs:
         for addDir in addDirs:
@@ -401,13 +277,11 @@ def submitSortPslJobs(sortCmd, inDir, outDir, dbList, addDirs=None):
                 logging.info("Adding data from directory %s, this seems to be the 2nd pass")
                 inDir +=","+addDir
 
-    runner = getRunner()
     for db in dbList:
         dbOutDir = join(outDir, db)
         maxCommon.makedirs(dbOutDir, quiet=True)
         dbOutFile = join(dbOutDir, db+".psl")
         cmd = clusterCmdLine(sortCmd, inDir, dbOutFile, checkIn=False)
-        #cmd = "%s %s %s %s {check out line %s}" % (sys.executable, progFile, sortCmd, inDir, dbOutFile)
         runner.submit(cmd)
     runner.finish(wait=True)
     logging.info("If batch went through: output can be found in %s" % dbOutFile)
@@ -445,15 +319,41 @@ def sortDb(pslBaseDir, pslOutFile, tSeqType=None, pslMap=False):
         logging.debug("Adding cdna data dir %s to psl dirs" % cdnaDbDir)
         allPslInDirs.append(cdnaDbDir)
     logging.debug("Found psl dirs: %s" % allPslInDirs)
-    pslInDirStr = " ".join(allPslInDirs)
+
+    pslInFnames = []
+    for pslDir in allPslInDirs:
+        for fname in glob.glob(join(pslDir, "*.psl")):
+            pslInFnames.append(fname)
+
+    if len(pslInFnames)==0:
+        logging.warn("Cannot find any input psl files %s, not doing any sorting" % pslInFnames)
+        open(pslOutFile, "w").write("") # for parasol
+        return
+        
+    # create tmp dir
     tmpDir = pubConf.getTempDir()
     tmpDir = join(tmpDir, "pubMap-pslSort-"+db)
     if isdir(tmpDir):
         shutil.rmtree(tmpDir)
     os.makedirs(tmpDir)
 
+    # concat all files into temp file first
+    unsortedPslFname = join(tmpDir, "unsorted.psl")
+    usfh = open(unsortedPslFname, "w")
+    for fn in pslInFnames:
+        usfh.write(open(fn).read())
+        #usfh.write("\n")
+    usfh.close()
+
+    # sort
+    #cmd = """pslSort dirs -nohead stdout %(tmpDir)s %(pslInDirStr)s | pslCDnaFilter stdin stdout -globalNearBest=0 -filterWeirdOverlapped -ignoreIntrons %(addCommand)s | uniq > %(pslOutFile)s """ % (locals())
+    sortedPslFname = join(tmpDir, "sorted.psl")
+    sortCmd = ["sort", "-T%s" % tmpDir, "-t\t", "-k10,10", unsortedPslFname, "-o%s" % sortedPslFname]
+    logging.debug("Sorting command is %s" % sortCmd)
+    subprocess.check_call(sortCmd)
+
     addCommand = ""
-    # we're on cdna level, need to map to genome coords from mrna coords
+    # if we're on cdna level, need to map to genome coords from mrna coords
     if pslMap:
         cdnaTargetBaseDir = pubConf.cdnaDir
         pslMapFile = join(cdnaTargetBaseDir, db, "cdna.psl")
@@ -465,7 +365,7 @@ def sortDb(pslBaseDir, pslOutFile, tSeqType=None, pslMap=False):
     # add the db in front of the tName field in psl
     addCommand += """| gawk '{OFS="\\t"; if (length($0)!=0) {$14="%s,"$14",%s"; print}}' """ % (db, tSeqType)
 
-    cmd = """pslSort dirs -nohead stdout %(tmpDir)s %(pslInDirStr)s | pslCDnaFilter stdin stdout -globalNearBest=0 -filterWeirdOverlapped -ignoreIntrons %(addCommand)s | uniq > %(pslOutFile)s """ % (locals())
+    cmd = """pslCDnaFilter %(sortedPslFname)s stdout -globalNearBest=0 -filterWeirdOverlapped -ignoreIntrons %(addCommand)s | uniq > %(pslOutFile)s """ % (locals())
     maxCommon.runCommand(cmd)
     shutil.rmtree(tmpDir)
     logging.info("Output written to %s" % pslOutFile)
@@ -746,7 +646,7 @@ def writePslsFuseOverlaps(pslList, outFh):
         outFh.write("\t".join(psl))
         outFh.write("\n")
 
-def chainPslToBed(tmpPslFname, oneOutFile, dbList, maxDist, tmpDir):
+def chainPslToBed(tmpPslFname, oneOutFile, maxDist, tmpDir):
     """ read psls, chain and convert to bed 
     output is spread over many files, one per db, at basename(oneOutFile).<db>.bed
 
@@ -808,7 +708,7 @@ def removeEmptyDirs(dirList):
             filteredList.append(dir)
     return filteredList
             
-def mergeSplitChain(textDir, inDir, splitDir, bedDir, maxDbMatchCount, dbList, updateIds, addDirs=None):
+def submitMergeSplitChain(runner, textDir, inDir, splitDir, bedDir, maxDbMatchCount, dbList, updateIds, addDirs=None):
     " join all psl files from each db into one big PSL for all dbs, keep best matches and re-split "
     maxCommon.mustBeEmptyDir(bedDir, makeDir=True)
     maxCommon.mustBeEmptyDir(splitDir, makeDir=True)
@@ -818,13 +718,15 @@ def mergeSplitChain(textDir, inDir, splitDir, bedDir, maxDbMatchCount, dbList, u
 
     filteredDirs = removeEmptyDirs(inDirs)
     if len(filteredDirs)==0:
-        return
+        raise Exception("Nothing to do, %s are empty" % inDirs)
 
+    # merge/sort/filter psls into one file and split them again for chaining
     mergedPslFilename = mergeFilterPsls(filteredDirs)
     articleToChunk = pubGeneric.readArticleChunkAssignment(textDir, updateIds)
     splitPsls(mergedPslFilename, splitDir, articleToChunk, maxDbMatchCount)
     os.remove(mergedPslFilename)
-    submitChainFileJobs(splitDir, bedDir, dbList)
+
+    submitChainFileJobs(runner, splitDir, bedDir, list(dbList))
 
 def mergeFilterPsls(inDirs):
     """ merge/sort/filter all psls (separated by db) in inDir into a temp file with all
@@ -852,18 +754,27 @@ def splitPsls(inPslFile, outDir, articleToChunk, maxDbMatchCount):
     articleDigits = pubConf.ARTICLEDIGITS
     groupIterator = maxCommon.iterTsvGroups(inPslFile, format="psl", groupFieldNumber=9, useChars=articleDigits)
 
-    chunkFiles = {} 
+    chunkFiles = {}
+    chunkId = 0
+    articleIdCount = 0
     for articleId, pslList in groupIterator:
         articleId = int(articleId)
-        chunkId = articleToChunk[articleId]
+        articleIdCount += 1
+        # try to derive the current chunkId from the index files
+        # if that doesn't work, just create one chunk for each X
+        # articleIds
+        if articleToChunk:
+            chunkId  = articleToChunk[int(articleId)] / pubConf.chunkDivider
+        else:
+            chunkId  = articleIdCount / pubConf.chunkArticleCount
         logging.debug("articleId %s, %d matches" % (articleId, len(pslList)))
         if len(pslList) >= maxDbMatchCount:
             logging.debug("Skipping %s: too many total matches" % str(pslList[0].qName))
             continue
 
-        chunkId  = "%.5d" % (articleToChunk[int(articleId)]/pubConf.chunkDivider)
+        chunkIdStr  = "%.5d" % chunkId
         if not chunkId in chunkFiles:
-            chunkFname = join(outDir, chunkId+".psl")
+            chunkFname = join(outDir, chunkIdStr+".psl")
             outFile = open(chunkFname, "w")
             chunkFiles[chunkId]= outFile
         else:
@@ -872,22 +783,22 @@ def splitPsls(inPslFile, outDir, articleToChunk, maxDbMatchCount):
         for psl in pslList:
             pslString = "\t".join([str(x) for x in psl])+"\n"
             outFile.write(pslString)
+
+        articleIdCount += 1
     logging.info("Finished writing to %d files in directory %s" % (len(chunkFiles), outDir))
 
-def submitChainFileJobs(pslDir, bedDir, dbList):
+def submitChainFileJobs(runner, pslDir, bedDir, dbList):
     """ submit jobs, one for each psl file in pslDir, to chain psls and convert to bed """
     maxCommon.makedirs(bedDir, quiet=True)
     pslFiles = glob.glob(join(pslDir, "*.psl"))
     logging.debug("Found psl files: %s" % str(pslFiles))
-    runner = getRunner()
+    #runner = d.getRunner()
     for pslFname in pslFiles:
         chunkId = splitext(basename(pslFname))[0]
         # we can only check out one single output file
-        # the chainFile command will write the others
+        # altough the chainFile command will write the others
         outFile = join(bedDir, chunkId+"."+dbList[0]+".bed")
         cmd = clusterCmdLine("chainFile", pslFname, outFile)
-        #cmd = "%s %s job:chainFile {check in exists %s} {check out line %s}" % \
-            #(sys.executable, progFile, pslFname, outFile)
         runner.submit(cmd)
     runner.finish(wait=True)
     logging.info("if batch ok: results written to %s" % bedDir)
@@ -1641,26 +1552,23 @@ def loadTables(baseDirs, dbList, markerCountBasename, markerOutDir, userTablePre
     # update tracking table with filenames
     appendFilenamesToSqlTable(fileDicts, trackingDb, trackingTable, tempMarkerDir)
 
-def submitFilterJobs(inDirs, chunkNames, outDirs):
+def submitFilterJobs(runner, chunkNames, inDir, outDir, isProt=False):
     """ submit jobs to clear annotation file from duplicate sequences"""
     logging.info("Filtering sequences: Removing duplicates and short sequences")
-    for outDir in outDirs:
-        maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    maxCommon.mustBeEmptyDir(outDir, makeDir=True)
 
-    runner = getRunner()
-    for inDir, outDir in zip(inDirs, outDirs):
-        logging.info("Reading from %s, writing to %s" % (inDir, outDir))
-        #logging.debug("Found %d files in %s" % (len(inFiles), inDir))
-        for chunkName in chunkNames:
-            inFname = join(inDir, chunkName, ".tab.gz")
-            #inBase = basename(inFname).replace(".gz","")
-            outFname = join(outDir, chunkName, ".tab")
-            #cmd = "%s %s job:filterSeqFile {check in exists %s} {check out exists %s}" % (sys.executable, progFile, inFname, outFname)
-            cmd = clusterCmdLine("filterSeqFile", inFname, outFname)
-            runner.submit(cmd)
-    runner.finish(wait=True)
+    filterCmd = "filterSeqFile"
+    if isProt:
+        filterCmd = "filterProtSeqFile"
+
+    logging.info("Reading from %s, writing to %s" % (inDir, outDir))
+    for chunkName in chunkNames:
+        inFname = join(inDir, chunkName+".tab.gz")
+        outFname = join(outDir, chunkName+".tab")
+        cmd = clusterCmdLine(filterCmd, inFname, outFname)
+        runner.submit(cmd)
         
-def filterSeqFile(inFname, outFname):
+def filterSeqFile(inFname, outFname, isProt=False):
     " skip annotation lines if sequence has been seen for same article "
     alreadySeenSeq = {} # to ignore duplicated sequences
     outFh = codecs.open(outFname, "w", encoding="utf8")
@@ -1668,13 +1576,17 @@ def filterSeqFile(inFname, outFname):
     headerLine = gzip.open(inFname).readline()
     outFh.write(headerLine)
 
+    minLen = pubConf.minSeqLen
+    if isProt:
+        minLen = pubConf.minProtSeqLen
+
     logging.debug("Filtering file %s" % inFname)
     for row in maxCommon.iterTsvRows(inFname, encoding="utf8"):
         articleId, dummy1, dummy2 = splitAnnotId(row.annotId)
         alreadySeenSeq.setdefault(articleId, set())
         if row.seq in alreadySeenSeq[articleId]:
             continue
-        if len(row.seq) < pubConf.minSeqLen:
+        if len(row.seq) < minLen:
             continue
         alreadySeenSeq[articleId].add(row.seq)
         outFh.write(u"\t".join(row))
@@ -1785,98 +1697,6 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
     for markerId, count in markerCounts.iteritems():
         markerCountFh.write("%s\t%d\n" % (markerId, count))
         
-def writeChunkNames(chunkNames, path):
-    " write list of chunknames to file "
-    logging.info("Writing names of %d chunks to %s" % (len(chunkNames), path))
-    chunkNameFh = open(path, "w")
-    chunkNameFh.write("chunkName\n")
-    for chunkName in chunkNames:
-        chunkNameFh.write(basename(chunkName)+"\n")
-
-def iterChunkNames(path):
-    " yield chunknames from path "
-    for row in maxCommon.iterTsvRows(path):
-        yield row.chunkName
-
-def defineBatchDirectories(d, pubMapBase, publisher, textDir, newBatchId=None):
-    " add attributes for all input and output directories to object d"
-
-    " DEFINE DIRECTORIES "
-
-    logging.debug("Defining batch directories for %s" % pubMapBase)
-    # base dir for publisher
-    d.baseDir = join(pubMapBase, publisher)
-    global baseDir
-    baseDir = d.baseDir
-
-    # pipeline progress table file
-    d.batchBasename = "steps.tab"
-    d.stepProgressFname = join(d.baseDir, d.batchBasename)
-
-    # read current batch id from progress file if not supplied
-    if newBatchId==None:
-        d.batchId, d.updateIds = lastBatchUpdateIds(d.stepProgressFname, textDir, d.baseDir)
-    else:
-        d.updateIds = findUnprocUpdateIds(d.stepProgressFname, textDir, baseDir)
-        d.batchId = newBatchId
-
-    # define batch dir
-    batchDir = join(d.baseDir, "batches", d.batchId)
-    logging.info("batchDir directory is %s" % batchDir)
-    d.batchDir = batchDir
-    d.publisher = publisher
-
-    # * now define all other directories relative to batchId
-
-    # list of textfiles that were processed in batch
-    d.chunkListFname = join(batchDir, "annotatedTextChunks.tab")
-
-    # directories for text annotations
-    #d.dnaAnnotDir    = join(pubConf.annotDir, "dna") # all sequences on all articles, includes tiny seqs&duplicates
-    #d.protAnnotDir   = join(pubConf.annotDir, "prot") # same for proteins
-    #d.markerAnnotDir = join(pubConf.annotDir, "markers") # same for markers
-    d.dnaAnnotDir    = join(batchDir, "annots", "dna") # all sequences on all articles, includes tiny seqs&duplicates
-    d.protAnnotDir   = join(batchDir, "annots", "prot") # same for proteins
-    d.markerAnnotDir = join(batchDir, "annots", "markers") # same for markers
-
-    d.tableDir     = join(batchDir, "tables") # tables for genome browser
-
-    # non-blat files
-    d.fileDescFname      = join(batchDir, "files.tab") # file descriptions for browser tables
-    #d.displayIdFname     = join(batchDir, "authors.tab") # unique author IDs
-    d.markerArticleFile  = join(batchDir, "markerArticles.tab") # articleIds associated to any marker
-    d.markerCountFile    = join(batchDir, MARKERCOUNTSBASE) # number of articles per marker, for base and all updates
-    d.markerDir          = join(batchDir, MARKERDIR) # filtered marker beds, annotated with article count
-
-    d.textConfigFname = join(batchDir, "textDir.conf") # directory where text files are stored
-
-    # genome blat directories
-    genomeBlatDir = "blatGenome"
-    d.seqDir         = join(batchDir, genomeBlatDir, "seq") # unique sequences per article, dups removed
-    d.fastaDir       = join(batchDir, genomeBlatDir, "fasta") # like seq, but in fa format
-    d.pslDir         = join(batchDir, genomeBlatDir, "psl") # blat output
-    d.pslSortedDir   = join(batchDir, genomeBlatDir, "sortedPsl") # sorted blat output
-    d.pslSplitDir    = join(batchDir, genomeBlatDir, "splitSortedPsl") # split blat output, for chaining
-    d.bedDir         = join(batchDir, genomeBlatDir, "bed") # chained sorted blat output
-
-    # cdna blat directories
-    cdnaBlatDir    = "blatCdna"
-    #d.cdnaSeqDir       = join(batchDir, cdnaBlatDir, "seq") # unique sequences per article, dups removed
-    #d.cdnaFastaDir     = join(batchDir, cdnaBlatDir, "fasta") # like seq, but in fa format
-    d.cdnaPslDir       = join(batchDir, cdnaBlatDir, "psl") # blat output
-    d.cdnaPslSortedDir = join(batchDir, cdnaBlatDir, "cdnaSortedPsl") # sorted blat output
-
-    # protein blat directories
-    protBlatDir    = "blatProt"
-    d.protSeqDir       = join(batchDir, protBlatDir, "seq") # unique sequences per article, dups removed
-    d.protFastaDir     = join(batchDir, protBlatDir, "fasta") # like seq, but in fa format
-    d.protPslDir       = join(batchDir, protBlatDir, "psl") # blat output
-    d.protPslSortedDir = join(batchDir, protBlatDir, "sortedPsl") # sorted blat output
-    d.protPslSplitDir  = join(batchDir, protBlatDir, "splitSortedPsl") # sorted blat output
-    d.protBedDir       = join(batchDir, protBlatDir, "protBed") # chained output
-
-    return d
-
 def switchOver():
     """ For all databases: drop all pubsBakX, rename pubsX to pubsBakX, rename pubsDevX to pubsX
     """
@@ -1903,7 +1723,7 @@ def switchOver():
     maxMysql.renameTables("hg19", devTables, prodTables)
 
 def annotToFasta(dataset, useExtArtId=False):
-    """ export one or more publishers to fasta files 
+    """ export one or more dataset to fasta files 
 
     output is writtent pubConf.faDir
     
@@ -1951,90 +1771,143 @@ def annotToFasta(dataset, useExtArtId=False):
                 pm.taskCompleted()
         logging.info("Output written to %s" % outFname)
 
-def runStepSsh(host, publisher, step):
+def runStepSsh(host, dataset, step):
     " run one step of pubMap on a different machine "
     opts = " ".join(sys.argv[3:])
     python = sys.executable
     mainProg = sys.argv[0]
     mainProgPath = join(os.getcwd(), mainProg)
 
-    cmd = "ssh %(host)s %(python)s %(mainProgPath)s %(publisher)s %(step)s %(opts)s" % locals()
+    cmd = "ssh %(host)s %(python)s %(mainProgPath)s %(dataset)s %(step)s %(opts)s" % locals()
     logging.info("Executing command %s" % cmd)
     ret = os.system(cmd)
     if ret!=0:
         logging.info("error during SSH")
         sys.exit(1)
 
-def runStep(publisher, command, d):
+def runAnnotStep(d):
+    """ 
+    run jobs to annotate the text files, directory names for this are 
+    stored as attributed on the object d
+    """
+    # if the old batch is not over tables yet, squirk and die
+    if d.batchId!=None and not d.batchIsPastStep("tables"):
+        raise Exception("Found one batch in %s that is not at the tables step yet. "
+            "It might have crashed. You can try rm -rf %s to restart this batch" % (d.stepProgressFname, d.batchDir))
+
+    d.createNewBatch()
+    # the new batch must not be over annot yet
+    if d.batchIsPastStep("annot"):
+        raise Exception("Annot was already run on this batch, see %s. Stopping." % d.stepProgressFname)
+
+    # find updates to annotate
+    d.updateUpdateIds()
+    if d.updateIds==None or len(d.updateIds)==0:
+        maxCommon.errAbort("All data files have been processed. Skipping all steps.")
+
+    # get common uppercase words for protein filter
+    maxCommon.mustExistDir(d.dnaAnnotDir, makeDir=True)
+    maxCommon.mustExistDir(d.protAnnotDir, makeDir=True)
+    maxCommon.mustExistDir(d.markerAnnotDir, makeDir=True)
+    wordCountBase = "wordCounts.tab"
+    runner = d.getRunner("upcaseCount")
+    wordFile = countUpcaseWords(runner, d.baseDir, wordCountBase, d.textDir, d.updateIds)
+
+    # submit jobs to batch system to run the annotators on the text files
+    # use the startAnnoId parameter to avoid duplicate annotation IDs
+    aidOffset = pubConf.specDatasetAnnotIdOffset.get(d.dataset, 0) # special case for e.g. yif
+
+    outDirs = "%s,%s,%s" % (d.markerAnnotDir, d.dnaAnnotDir, d.protAnnotDir)
+    options = {"wordFile":wordFile, \
+        "startAnnotId.dnaSearch":0+aidOffset, "startAnnotId.protSearch":15000+aidOffset, \
+        "startAnnotId.markerSearch" : 30000+aidOffset }
+    runner = pubGeneric.makeClusterRunner("pubMap-annot-"+d.dataset)
+    chunkNames = pubAlg.annotate(
+        "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py",
+        d.textDir, options, outDirs, updateIds=d.updateIds, \
+        cleanUp=True, runNow=True, runner=runner)
+
+    d.writeChunkNames(chunkNames)
+    d.writeUpdateIds()
+    d.appendBatchProgress("annot")
+
+def runTablesStep(d, options):
+    " generate mysql table files "
+    if not options.skipConvert:
+        maxCommon.mustBeEmptyDir(d.tableDir, makeDir=True)
+    # this step creates tables in batchDir/tables
+    logging.info("Reading file descriptions")
+    # reformat bed and sequences
+    if not options.skipConvert:
+        fileDescs  = tabfile.slurpdict(d.fileDescFname, doNotCheckLen=True, encoding="utf8")
+        rewriteFilterBedFiles([d.bedDir], d.tableDir, d.dbList)
+        rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, d.markerArticleFile, d.markerCountFile)
+        articleDbs, annotLinks = parseBeds([d.tableDir])
+        # read now from tableDir, not bedDir/protBedDir
+        writeSeqTables(articleDbs, [d.seqDir, d.protSeqDir], d.tableDir, d.dbList, fileDescs, annotLinks)
+    else:
+        articleDbs, annotLinks = parseBeds([d.tableDir])
+
+    articleDbs = addHumanForMarkers(articleDbs, d.markerArticleFile)
+    # format articles
+    writeArticleTables(articleDbs, d.textDir, d.tableDir, d.dbList, d.updateIds)
+    d.appendBatchProgress("tables")
+
+def runBlatProtStep(d, options):
+    " run pipeline step to blat proteins onto available cdnas "
+    logging.info("Blattting protein sequences on translated cDNA sequences")
+    #if options.forceDbs:
+        #cdnaDbs = options.forceDbs
+    #else:
+    cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+    logging.info("These DBs have cDNA data in %s: %s" % (pubConf.cdnaDir, cdnaDbs))
+    maxCommon.mustBeEmptyDir(d.protPslDir, makeDir=True)
+    if not options.skipConvert:
+        splitSizes = pubConf.cdnaFaSplitSizes
+        pubToFasta(d.protSeqDir, d.protFastaDir, pubConf.speciesNames, splitSizes, 0, forceDbs=cdnaDbs)
+    runner = d.getRunner("blatProt")
+    submitBlatJobs(runner, d.protFastaDir, d.protPslDir, cdnaDir=pubConf.cdnaDir, \
+        blatOptions=pubConf.protBlatOptions, noOocFile=True)
+
+def runStep(dataset, command, d, options):
     " run one step of the pubMap pipeline with pipeline directories in d "
 
-    stepHost = pubConf.stepHosts.get(command, pubConf.stepHosts["default"])
-    if stepHost!='localhost':
-        myHost = socket.gethostname()
-        if myHost!=stepHost:
-            logging.info("hostname is %s, step host name is %s -> running %s via SSH" % \
-                (myHost, stepHost, command))
-            runStepSsh(stepHost, publisher, command)
-            return
+    #stepHost = pubConf.stepHosts.get(command, pubConf.stepHosts["default"])
+    #if stepHost!='localhost':
+        #myHost = socket.gethostname()
+        #if myHost!=stepHost:
+            #logging.info("hostname is %s, step host name is %s -> running %s via SSH" % \
+                #(myHost, stepHost, command))
+            #runStepSsh(stepHost, dataset, command)
+            #return
         
+    logging.info("Running step %s" % command)
+
     if command=="annot":
-        # make sure that all batches are finished
-        incompBatchId, todoSteps = findUnprocBatch(d.stepProgressFname, d.pipelineSteps)
-        if incompBatchId!=None:
-            raise Exception("There is a batch in %s that is not at the tables step yet. Cannot continue" 
-                % d.stepProgressFname)
-
-        d.batchId = str(int(d.batchId)+1)
-        d = defineBatchDirectories(d, pubConf.pubMapBaseDir, publisher, \
-            d.textDir, newBatchId=d.batchId)
-        if isdir(d.batchDir):
-            if not len(os.listdir(d.batchDir))==0:
-                raise Exception("%s contains files, is this really a new run?" % d.batchDir)
-        else:
-            os.makedirs(d.batchDir)
-
-        # find updates to annotate
-        d.updateIds = findUnprocUpdateIds(d.stepProgressFname, d.textDir, d.baseDir)
-        if d.updateIds==None or len(d.updateIds)==0:
-            maxCommon.errAbort("All data files have been processed. Skipping all steps.")
-
-        # get common uppercase words for protein filter
-        maxCommon.mustExistDir(d.dnaAnnotDir, makeDir=True)
-        maxCommon.mustExistDir(d.protAnnotDir, makeDir=True)
-        maxCommon.mustExistDir(d.markerAnnotDir, makeDir=True)
-        wordCountBase = "wordCounts.tab"
-        wordFile = countUpcaseWords(d.baseDir, wordCountBase, d.textDir, d.updateIds)
-
-        # submit jobs to batch system to run the annotators on the text files
-        # use startAnnoId parameters to avoid clashes of annotation IDs
-        outDirs = "%s,%s,%s" % (d.markerAnnotDir, d.dnaAnnotDir, d.protAnnotDir)
-        options = {"wordFile":wordFile, \
-            "startAnnotId.SeqScraper":0, "startAnnotId.ProteinDetect":15000, \
-            "startAnnotId.MarkerAnnotate" : 30000 }
-        runner = pubGeneric.makeClusterRunner("pubMap-annot-"+d.publisher)
-        chunkNames = pubAlg.annotate(
-            "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py",
-            d.textDir, options, outDirs, updateIds=d.updateIds, \
-            cleanUp=True, runNow=True, runner=runner)
-
-        writeChunkNames(chunkNames, d.chunkListFname)
+        runAnnotStep(d)
 
     elif command=="filter":
         # remove duplicates & short sequence
-        chunkNames = list(iterChunkNames(d.chunkListFname))
-        submitFilterJobs([d.dnaAnnotDir, d.protAnnotDir], chunkNames, [d.seqDir])
+        runner = d.getRunner(command)
+        submitFilterJobs(runner, d.chunkNames, d.dnaAnnotDir, d.seqDir)
+        submitFilterJobs(runner, d.chunkNames, d.protAnnotDir, d.protSeqDir, isProt=True)
+        runner.finish(wait=True)
         
     elif command=="blatGenome":
         # convert to fasta and submit blat jobs
         maxCommon.mustBeEmptyDir(d.pslDir, makeDir=True)
         if not options.skipConvert:
-            pubToFasta(d.seqDir, d.fastaDir, d.dbList, pubConf.queryFaSplitSize, \
-                pubConf.shortSeqCutoff, forceDbs=options.forceDbs)
-        submitBlatJobs(d.fastaDir, d.pslDir, blatOptions=pubConf.seqTypeOptions)
+            pubToFasta(d.seqDir, d.fastaDir, pubConf.speciesNames, pubConf.queryFaSplitSize, \
+                pubConf.shortSeqCutoff)
+        runner = d.getRunner(command)
+        submitBlatJobs(runner, d.fastaDir, d.pslDir, blatOptions=pubConf.seqTypeOptions)
 
     # ==== CDNA COMMANDS, similar to above
     elif command=="blatCdna":
         maxCommon.mustBeEmptyDir([d.cdnaPslDir], makeDir=True)
+        runner = d.getRunner(command)
+        submitBlatJobs(runner, d.fastaDir, d.cdnaPslDir, cdnaDir=pubConf.cdnaDir)
+        runner.finish(wait=True)
         #if not options.skipConvert:
             #maxCommon.mustBeEmptyDir([d.cdnaSeqDir], makeDir=True)
             #logging.info("Searching for sequences that match genome directly")
@@ -2044,89 +1917,57 @@ def runStep(publisher, command, d):
                 #pubConf.shortSeqCutoff, forceDbs=options.forceDbs)
             #pubToFasta(d.seqDir, d.fastaDir, d.dbList, pubConf.cdnaFaSplitSizes, \
                 #pubConf.shortSeqCutoff, forceDbs=options.forceDbs)
-        submitBlatJobs(d.fastaDir, d.cdnaPslDir, cdnaDir=pubConf.cdnaDir)
 
     elif command=="sortCdna":
         # lift and sort the cdna blat output into one file per organism-cdna 
-        submitSortPslJobs("sortDbCdna", d.cdnaPslDir, d.cdnaPslSortedDir, d.dbList)
+        runner = d.getRunner(command)
+        submitSortPslJobs(runner, "sortDbCdna", d.cdnaPslDir, d.cdnaPslSortedDir, pubConf.speciesNames)
 
     # ==== PROTEIN MAPPING COMMANDS, similar to above
     elif command=="blatProt":
-        logging.info("Blattting protein sequences on translated cDNA sequences")
-        if options.forceDbs:
-            cdnaDbs = options.forceDbs
-        else:
-            cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
-        logging.info("These DBs have cDNA data in %s: %s" % (pubConf.cdnaDir, cdnaDbs))
-        maxCommon.mustBeEmptyDir(d.protPslDir, makeDir=True)
-        if not options.skipConvert:
-            splitSizes = pubConf.cdnaFaSplitSizes
-            pubToFasta(d.protSeqDir, d.protFastaDir, d.dbList, splitSizes, 0, forceDbs=cdnaDbs)
-        submitBlatJobs(d.protFastaDir, d.protPslDir, cdnaDir=pubConf.cdnaDir, \
-            blatOptions=pubConf.protBlatOptions, noOocFile=True)
+        runBlatProtStep(d, options)
 
     elif command=="sortProt":
         # sort the cdna blat output into one file per organism-cdna
-        logging.info("Sorting protein psls, mapping to genome coord system and prefixing with db")
         cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
-        submitSortPslJobs("sortDbProt", d.protPslDir, d.protPslSortedDir, cdnaDbs)
-
-    #elif command=="chainProt":
-        #logging.info("Sorting protein matches from all dbs into one file, splitting it, chaining on cluster")
-        #mergeSplitChain(d.textDir, d.protPslSortedDir, d.protPslSplitDir, d.protBedDir, pubConf.maxDbMatchCount, dbList, d.updateIds)
+        runner = d.getRunner(command)
+        submitSortPslJobs(runner, "sortDbProt", d.protPslDir, d.protPslSortedDir, cdnaDbs)
 
     # ==== cDNA/Genome MAPPING COMMANDS ======
     elif command=="sortGenome":
         # sort the sorted cdna, sorted prot and unsorted genome blat output into one file per organism
-        submitSortPslJobs("sortDbGenome", d.pslDir, d.pslSortedDir, d.dbList)
+        runner = d.getRunner(command)
+        submitSortPslJobs(runner, "sortDbGenome", d.pslDir, d.pslSortedDir, pubConf.speciesNames)
 
     elif command=="chain":
         # join all psl files from each db into one big one for all dbs, filter and re-split
-        cdnaPslDirs = glob.glob(join(d.cdnaPslSortedDir, "*"))
-        protPslDirs = glob.glob(join(d.protPslSortedDir, "*"))
-        addPslDirs = cdnaPslDirs
-        addPslDirs.extend(protPslDirs)
+        addPslDirs = []
+        addPslDirs.extend ( glob.glob(join(d.cdnaPslSortedDir, "*")) )
+        addPslDirs.extend ( glob.glob(join(d.protPslSortedDir, "*")) )
 
-        mergeSplitChain(d.textDir, d.pslSortedDir, d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, d.dbList, d.updateIds, addDirs=addPslDirs)
+        runner = d.getRunner(command)
+        submitMergeSplitChain(runner, d.textDir, d.pslSortedDir, \
+            d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, \
+            pubConf.speciesNames.keys(), d.updateIds, addDirs=addPslDirs)
 
     # ==== COMMANDS TO PREP OUTPUT TABLES FOR BROWSER
 
     elif command=="identifiers":
         # this step creates two files, authors.tab and files.tab in the
         # base output directory
-        batchIds = findProcessedBatches(d.baseDir, "identifiers", d.batchId)
-        paramDict = {"batchIds" : batchIds, "baseDir" : d.baseDir}
+        # batchIds = findProcessedBatches(d.baseDir, "identifiers", d.batchId)
+        # paramDict = {"batchIds" : batchIds, "baseDir" : d.baseDir}
 
-        #pubAlg.mapReduce("unifyAuthors", d.textDir, paramDict, d.displayIdFname, cleanUp=True, runTest=False, skipMap=options.skipConvert, updateIds=d.updateIds)
-        pubAlg.mapReduce("getFileDesc", d.textDir, {}, d.fileDescFname, cleanUp=True, runTest=False, skipMap=options.skipConvert, updateIds=d.updateIds)
+        pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, {}, d.fileDescFname, cleanUp=True, runTest=True, skipMap=options.skipConvert, updateIds=d.updateIds)
         logging.info("Results written to %s" % (d.fileDescFname))
-        appendBatchProgress(d.baseDir, d.batchId, d.updateIds, "identifiers")
+        d.appendBatchProgress("identifiers")
 
     elif command=="tables":
-        if not options.skipConvert:
-            maxCommon.mustBeEmptyDir(d.tableDir, makeDir=True)
-        # this step creates tables in batchDir/tables
-        logging.info("Reading file descriptions")
-        # reformat bed and sequences
-        if not options.skipConvert:
-            fileDescs  = tabfile.slurpdict(d.fileDescFname, doNotCheckLen=True, encoding="utf8")
-            rewriteFilterBedFiles([d.bedDir], d.tableDir, d.dbList)
-            rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, d.markerArticleFile, d.markerCountFile)
-            articleDbs, annotLinks = parseBeds([d.tableDir])
-            # read now from tableDir, not bedDir/protBedDir
-            writeSeqTables(articleDbs, [d.seqDir, d.protSeqDir], d.tableDir, d.dbList, fileDescs, annotLinks)
-        else:
-            articleDbs, annotLinks = parseBeds([d.tableDir])
-
-        articleDbs = addHumanForMarkers(articleDbs, d.markerArticleFile)
-        # format articles
-        writeArticleTables(articleDbs, d.textDir, d.tableDir, d.dbList, d.updateIds)
-        appendBatchProgress(d.baseDir, d.batchId, d.updateIds, "tables")
-
+        runTablesStep(d, options)
     # ===== COMMANDS TO LOAD STUFF FROM THE batches/{0,1,2,3...}/tables DIRECTORIES INTO THE BROWSER
     elif command=="load":
         inDirs = []
-        for pub in pubConf.loadPublishers:
+        for pub in pubConf.loadDatasets:
             inDir = join(pubConf.pubMapBaseDir, pub)
             assert(isdir(inDir))
             inDirs.append(inDir)
@@ -2135,7 +1976,7 @@ def runStep(publisher, command, d):
         #userTablePrefix = "Dev"
         #if options.finalLoad==True:
             #userTablePrefix = ""
-        loadTables(inDirs, d.dbList, MARKERCOUNTSBASE, MARKERDIR, "", options.skipConvert)
+        loadTables(inDirs, pubConf.speciesNames, d.markerCountsBase, d.markerDirBase, "", options.skipConvert)
 
     elif command==("switchOver"):
         switchOver()
@@ -2148,7 +1989,7 @@ def runStep(publisher, command, d):
 
     # ======== OTHER COMMANDS 
     elif command=="expFasta":
-        annotToFasta(publisher, useExtArtId=True)
+        annotToFasta(dataset, useExtArtId=True)
 
     else:
         maxCommon.errAbort("unknown command: %s" % command)
@@ -2157,13 +1998,19 @@ def runStep(publisher, command, d):
 
 if __name__ == "__main__":
     parser = optparse.OptionParser("module is calling itself on cluster machines, not meant to be used from cmdline")
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
     (options, args) = parser.parse_args()
+    pubGeneric.setupLogging(__file__, options)
 
     command, inName, outName = args
 
     if command=="filterSeqFile":
         # called internally from "filter"
         filterSeqFile(inName, outName)
+
+    elif command=="filterProtSeqFile":
+        # called internally from "filter"
+        filterSeqFile(inName, outName, isProt=True)
 
     elif command=="sortDbCdna":
         # called internally by submitSortPslJobs (cdna version)
@@ -2179,5 +2026,5 @@ if __name__ == "__main__":
 
     elif command=="chainFile":
         # called by submitChainFileJobs
-        chainPslToBed(inName, outName, pubConf.dbList, pubConf.maxChainDist, pubConf.getTempDir())
+        chainPslToBed(inName, outName, pubConf.maxChainDist, pubConf.getTempDir())
 

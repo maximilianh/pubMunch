@@ -330,7 +330,13 @@ def readArticleChunkAssignment(inDir, updateIds):
         inFiles = []
         for updateId in updateIds:
             updateId = str(updateId)
-            inFiles.append(os.path.join(inDir, "%s_index.tab" % updateId))
+            indexFname = "%s_index.tab" % updateId
+            if isfile(indexFname):
+                inFiles.append(os.path.join(inDir, indexFname))
+
+    if len(inFiles)==0:
+        logging.warn("No article chunk assignment")
+        return None
 
     logging.debug("Input files for article -> chunk assignment: %s" % inFiles)
 
@@ -382,13 +388,19 @@ def recursiveSubmit(runner, parameterString):
     cmd = "%(python)s %(progFile)s %(parameterString)s" % locals()
     runner.submit(cmd)
 
-def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None):
+def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None):
     " create a default runner to submit jobs to cluster system "
     scriptBase = splitext(basename(scriptName))[0]
     batchDir = join(pubConf.clusterBatchDir, scriptBase)
+    if not isdir(batchDir):
+        logging.debug("Creating dir %s" % batchDir)
+        os.makedirs(batchDir)
     clusterType = pubConf.clusterType
-    headNode = pubConf.clusterHeadNode
+    if headNode==None:
+        headNode = pubConf.clusterHeadNode
     logging.info("Preparing cluster run, batchDir %(batchDir)s, type %(clusterType)s, headNode %(headNode)s" % locals())
+    if headNode=="localhost":
+        clusterType="local"
     runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
         headNode=headNode, batchDir = batchDir, runNow=runNow)
     return runner

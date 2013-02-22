@@ -70,6 +70,17 @@ pubsCrawlCfg = { "npg" :
     # Review process file for EMBO, see http://www.nature.com/emboj/journal/v30/n13/suppinfo/emboj2011171as1.html
     },
 
+    # PMID 22017543
+    # http://online.liebertpub.com/doi/full/10.1089/nat.2011.0311
+    "mal" :
+    {
+        "hostnames" : ["online.liebertpub.com"],
+        "landingUrl_templates" : {"any" : "http://online.liebertpub.com/doi/full/%(doi)s"},
+        "landingUrl_fulltextUrl_replace" : {"/abs/" : "/full/" },
+        "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
+        "landingPage_suppListTextREs" : ["Supplementary materials.*"]
+    },
+
     # https://www.jstage.jst.go.jp/article/circj/75/4/75_CJ-10-0798/_article
     # suppl file download does NOT work: strange javascript links
     "jstage" :
@@ -1163,7 +1174,8 @@ def crawlForFulltext(landingPage, crawlConfig):
         fulltextData["main.pdf"] = landingPage
         fulltextData["status"] = "LandingOnPdf_NoSuppl"
         return fulltextData
-    # other landing pages contain the full article directly as html
+
+    # some landing pages contain the full article directly as html
     elif crawlConfig.get("landingUrl_isFulltextKeyword", False) and \
            crawlConfig["landingUrl_isFulltextKeyword"] in landUrl:
                 logging.debug("URL suggests that landing page is same as article html")
@@ -1180,6 +1192,8 @@ def crawlForFulltext(landingPage, crawlConfig):
         if not crawlConfig.get("landingPage_acceptNoPdf", False):
             logging.debug("Could not find PDF on landing page")
             raise pubGetError("Could not find main PDF", "notFoundMainPdf")
+        else:
+            logging.debug("No PDF found, but we accept this case for this publisher")
     else:
         pdfPage = delayedWget(pdfUrl)
         if pdfPage["mimeType"] != "application/pdf":
@@ -1408,13 +1422,19 @@ def highwireDelay():
 def ignoreCtrlc(signum, frame):
     logging.info('Signal handler called with signal %s' % str (signum))
 
-def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig):
+def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig, testMode):
     " write all paper data to status and fulltext output files in outDir "
+    if testMode:
+        for suffix, pageDict in fulltextData.iteritems():
+            logging.info("Got file: Suffix %s, url %s, mime %s, content %s" % \
+                (suffix, pageDict["url"], pageDict["mimeType"], repr(pageDict["data"][:10])))
+        return
+
     oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c
     #pubmedMeta = storeFiles(pmid, pubmedMeta, fulltextData, outDir)
     pubmedMeta = storeFilesNoZip(pmid, pubmedMeta, fulltextData, outDir)
     writeMeta(outDir, pubmedMeta, fulltextData)
-    addStatus=""
+    addStatus = ""
         
     if "status" in fulltextData:
         addStatus = fulltextData["status"]
@@ -1621,10 +1641,9 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
             fulltextData = crawlForFulltext(landingPage, crawlConfig)
 
             # write results to output files
-            if not testPmid:
-                writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig)
-            else:
-                logging.info("Test-mode, not saving anything")
+            writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig, testPmid)
+            #else:
+                #logging.info("Test-mode, not saving anything")
 
             if pause:
                 raw_input("Press Enter...")

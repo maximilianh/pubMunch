@@ -291,7 +291,7 @@ class ProgressMeter:
         self.quiet = quiet
         #print "".join(9*["."])
 
-    def taskCompleted(self):
+    def taskCompleted(self, count=1):
         if self.quiet and self.taskCount<=5:
             return
         #logging.debug("task completed called, i=%d, tasksPerMsg=%d" % (self.i, self.tasksPerMsg))
@@ -300,7 +300,7 @@ class ProgressMeter:
             #print "".join(5*[chr(8)]),
             print ("%.2d%% " % donePercent),
             sys.stdout.flush()
-        self.i+=1
+        self.i += count
         if self.i==self.taskCount:
             print ""
 

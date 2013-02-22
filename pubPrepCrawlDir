@@ -81,8 +81,10 @@ def recIter(tree):
             else:
                 data["publisher"] = "unknown"
 
-                if data["publisher"].lower() in ["the association", "the society", "the institute", "the college", "the federation", "the department"]:
-                    data["publisher"]=data["author"]
+            if data["publisher"].lower() in \
+                ["the association", "the society", "the institute", \
+                 "the college", "the federation", "the department"]:
+                data["publisher"]=data["author"]
             country = pubInfo.find("Country")
             if country !=None:
                 data["country"] = country.text
@@ -328,7 +330,7 @@ def groupPublishersByName(journals):
         "pergamon" : "Elsevier",
         "british medical" : "BMJ Group",
         "lippincott" : "Wolters Kluwer",
-        "Royal Society of Medicine" : "Royal Soc of Medicine",
+        "Royal Society of Medicine" : "Royal Society of Medicine",
         "VCH Verlag" : "Wiley",
         "taylor" : "Informa",
         "american physical society" : "American Physical Society",
@@ -339,7 +341,8 @@ def groupPublishersByName(journals):
         "saunders" : "WB Saunders",
         "American Institute of Physics" : "American Institute of Physics",
         "Churchill Livingstone" : "Churchill Livingstone",
-        "Portland" : "Portland",
+        "Portland" : "Portland Press",
+        "Rockefeller University" : "Rockefeller University Press",
         "lancet" : "Elsevier",
         "WB Saunders" : "Elsevier",
         "schattauer" : "FK Schattauer",

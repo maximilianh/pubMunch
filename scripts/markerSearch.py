@@ -128,7 +128,9 @@ def parseKwDicts(markerTypes):
         else:
             markerDict = {}
             logging.info("Reading %s" % markerFname)
-            for id, nameString in fastFind._lexIter(gzip.open(markerFname)):
+            for id, nameList in fastFind._lexIter(gzip.open(markerFname)):
+                assert(len(nameList)==1)
+                nameString = nameList[0]
                 markerDict.setdefault(nameString, []).append((id))
             logging.info("Finished reading")
         kwDictList.append((markerType, markerRe, markerDict))

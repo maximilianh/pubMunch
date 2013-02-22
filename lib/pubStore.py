@@ -316,7 +316,7 @@ class PubWriterFile:
         """ appends data to current chunk """
         articleDict["articleId"]=articleId
         articleDict = self._removeSpecChar(articleDict)
-        #logging.log(5, "appending metaInfo %s to %s" % (str(articleDict), path))
+        logging.log(5, "appending article info to %s: %s" % (self.articleFh.name, str(articleDict)))
         if len(articleDict)!=len(articleFields):
             logging.error("column counts between article dict and article objects don't match")
             dictFields = articleDict.keys()
@@ -325,9 +325,8 @@ class PubWriterFile:
             expFields = articleFields
             expFields.sort()
             logging.error("expected columns are %s" % str(expFields))
-            sys.exit(1)
+            raise("Error")
 
-        self.articlesWritten += 1
         articleTuple = ArticleRec(**articleDict)
 
         # convert all fields to utf8 string, remove \n and \t
@@ -335,6 +334,8 @@ class PubWriterFile:
 
         line = "\t".join(articleTuple)
         self.articleFh.write(line+"\n")
+        self.articlesWritten += 1
+        logging.verbose("%d articles written" % self.articlesWritten)
         
     def _gzipAndMove(self, fname, finalName):
         " gzip fname and move to finalName "
@@ -351,10 +352,13 @@ class PubWriterFile:
         close the 3 files, copy them over to final targets and  delete the
         temps 
         """ 
-        logging.debug("Copying local tempfiles over to files on server")
+        logging.debug("Copying local tempfiles over to files on server %s" % self.finalArticleName)
         assert(self.fileFh.name.endswith(".files"))
 
         self.fileFh.close()
+        if self.articlesWritten==0:
+            logging.warn("No articles received, not writing anything")
+            
         if self.filesWritten > 0 or keepEmpty:
             self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
 
@@ -720,7 +724,11 @@ def listAllUpdateIds(textDir):
     updateIds = set()
     if not isfile(inFname):
 	logging.info("Could not find %s" % inFname)
-        return None
+        inNames = glob.glob(join(textDir, "*.articles.gz"))
+        updateIds = set([basename(x).split("_")[0] for x in inNames])
+	logging.info("Found update ids from filenames: %s" % updateIds)
+        return updateIds
+
     for row in maxTables.TableParser(inFname).lines():
         updateIds.add(row.updateId)
     return updateIds
@@ -886,6 +894,54 @@ def getArtDbPath(datasetName):
     dataDir = pubConf.resolveTextDir(datasetName)
     dbPath = join(dataDir, "articles.db")
     return dbPath
+
+def openArticleDb(datasetName):
+    path = getArtDbPath(datasetName)
+    con, cur = maxTables.openSqlite(path)
+    con.row_factory = sqlite3.Row
+    cur = con.cursor()
+    return con, cur
+
+def lookupArticle(con, cur, column, val):
+    " uses sqlite db, returns a dict with info we have locally about article, None if not found "
+    #logging.debug("Trying PMID lookup with local medline copy")
+    #medlineDb = pubStore.getArtDbPath("medline")
+    #if not isfile(medlineDb):
+        #logging.warn("%s does not exist, no local medline lookups, need to use eutils" % medlineDb)
+        #return None
+
+    #con, cur = maxTables.openSqlite(medlineDb)
+    #con.row_factory = sqlite3.Row
+    #cur = con.cursor()
+
+    rows = None
+    tryCount = 60
+
+    while rows==None and tryCount>0:
+        try:
+            rows = list(cur.execute("SELECT * from articles where %s=?" % column, (val, )))
+        except sqlite3.OperationalError:
+            logging.info("Database is locked, waiting for 60 secs")
+            time.sleep(60)
+            tryCount -= 1
+
+    if rows == None:
+        raise Exception("database was locked for more than 60 minutes")
+        
+    if len(rows)==0:
+        logging.info("No info in local db for %s %s" % (column, val))
+        return None
+    # the last entry should be the newest one
+    lastRow = rows[-1]
+
+    # convert sqlite object to normal dict with strings
+    result = {}
+    for key, val in zip(lastRow.keys(), lastRow):
+        result[key] = unicode(val)
+
+    #result["source"] = ""
+    #result["origFile"] = ""
+    return result
 
 if __name__=="__main__":
     import doctest

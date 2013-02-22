@@ -33,27 +33,42 @@ parser = optparse.OptionParser("""usage: %prog : download mrna alignments, seque
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("", "--db", dest="db", action="store", help="run only on this db, e.g. hg19") 
+parser.add_option("", "--onlyMissing", dest="onlyMissing", action="store_true", help="get only the missing databases") 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONS =====
-def prepCdnaDir():
+def prepCdnaDir(db, onlyMissing):
     " config targetdir for blatCdna "
     tmpDir    = join(pubConf.getTempDir() , "pubBlatCdna")
-    dbList    = pubConf.alignGenomeOrder
+    if db==None:
+        dbList    = pubConf.alignGenomeOrder
+    else:
+        dbList = [db]
     targetDir = pubConf.cdnaDir
     pslTable  = pubConf.cdnaTable
 
     for db in dbList:
         dbDir = join(targetDir, db)
+        if onlyMissing and isdir(dbDir):
+            logging.info("dir %s already exists, skipping" % dbDir)
+            continue
         maxCommon.mustBeEmptyDir(dbDir, makeDir=True)
         logging.info("db is %s" % db)
 
         logging.info("getting psl from mysql")
         pslFile    = join(targetDir, db, "cdna.psl")
         cmd = "hgsql %s -NB -e 'select * from %s' | cut -f2- > %s" % (db, pslTable, pslFile)
+        hadError = False
         try:
             maxCommon.runCommand(cmd)
         except Exception:
+            hadError = True
+
+        if os.path.getsize(pslFile)==0:
+            hadError = True
+
+        if hadError:
             logging.warn("Cannot find table %s for db %s, skipping this genome" % (pslTable, db))
             shutil.rmtree(dbDir)
             continue
@@ -150,4 +165,4 @@ if len(args)!=0:
     exit(1)
 
 pubGeneric.setupLogging(progFile, options)
-prepCdnaDir()
+prepCdnaDir(options.db, options.onlyMissing)

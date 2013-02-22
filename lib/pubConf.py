@@ -107,14 +107,14 @@ consynRssUrl = "YOURURL"
 # used for other defitions in here: basedir for many other dirs
 _pubsDir = "/hive/data/inside/pubs"
 
-# which publishers should be loaded by the "load" step in pubMap ?
-loadPublishers = ["elsevier", "pmc", "crawler"]
+# which dataset should be loaded by the "load" step in pubMap ?
+loadDatasets = ["elsevier", "pmc", "crawler"]
 
 TEMPDIR = "/scratch/tmp/pubTools" # local filesystem on cluster nodes
 
 maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
-minTxtFileSize = 500 # minimum filesize of any file after conversion to ASCII
+minTxtFileSize = 1000 # minimum filesize of any file after conversion to ASCII
 mapReduceTmpDir = _pubsDir + "/mapReduceTemp" # cluster-wide directory to collect results
 
 # parasol batches dir
@@ -138,7 +138,7 @@ scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
 
 # assignment of pubMap pipeline steps to cluster machines
 # pubMap will ssh into a machine to run these steps
-stepHosts = {'default' : 'swarm.cse.ucsc.edu', 'tables' : 'localhost', 'expFasta' : 'localhost' }
+stepHosts = {"sortCdna" : "localhost", "sortProt" : "localhost", "sortGenome" : "localhost", "blatProt" : "localhost"}
 
 # email for ncbi eutil requests and error email by pubCrawl
 email = "YOUREMAIL"
@@ -230,7 +230,7 @@ genbankMaxRefCount = 50
 
 # DNA MAPPING / GENOME BLATTING SETTINGS ============================
 
-pubMapBaseDir = "/hive/data/inside/pubs/blat/"
+pubMapBaseDir = "/hive/data/inside/pubs/map/"
 
 # this is the genbank mapping config file by Mark Diekhans' pipeline
 # it is required for genome partitioning 
@@ -245,32 +245,46 @@ GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 # for which a keyword has been found
 
 speciesNames = {
-'dm3' : [' fruitfly ', ' flies ', 'melanogaster', 'Drosophilids', ' fruitflies '],
-'mm9' : ['mouse', 'musculus', 'rodent'],
 'hg19' : ['human', 'sapiens', ' homo ', ' Homo ', 'patient', 'cell line','cell culture'],
-'danRer6' : ['zebrafish', 'rerio', 'Danio'],
+'mm9' : ['mouse', 'musculus', 'rodent'],
 'rn4' : [' rat ', 'novegicus', 'rodent'],
 'xenTro2' : [' xenopus', 'Xenopus', 'tropicalis', 'laevis'],
+'danRer7' : ['zebrafish', 'rerio', 'Danio'],
+'susScr3' : [' swine ', ' swines ', ' pigs ', ' pig ', ' porcine ', ' scrofa '],
+'bosTau7' : [' cattle ', ' cows ', ' cow ', ' bovine ', ' beef ', ' bovis '],
+'galGal4' : [' chicken ', ' poultry ', ' chickens ', ' gallus '],
 'oryLat2' : ['medaka', 'Medaka', 'latipes', 'Oryzias'],
+'dm3' : [' fruitfly ', ' flies ', 'melanogaster', 'Drosophilids', ' fruitflies '],
+'ce10' : ['elegans', 'Caenorhabditis', 'nematode', ' worms'],
 'ci2' : ['ascidian', 'intestinalis', 'chordates', 'Ciona'],
-'ce6' : ['elegans', 'Caenorhabditis', 'nematode', ' worms'],
 'sacCer2' : ['cerevisiae', 'Saccharomyces', 'yeast'],
 }
-#'bac' : ['bacteria', 'bacterial', 'prokaryot'] 
 
 # these genomes are used if no species name matches are found
-defaultGenomes = ["hg19", "mm9", "rn4", "dm3"]
+defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10"]
+
+# for some genomes we don't have refseq data
+noCdnaDbs = ["sacCer2"]
+
+# some text datasets are just variants of others
+# for these, to avoid annotation id overlaps with the main dataset
+# we add some offset to their annotation IDs
+specDatasetAnnotIdOffset = {"yif" : 12000 }
 
 # During best-genome filtering, sometimes two genomes score equally
 # if this is the case, pick the best one, in this order:
 # the first one has highest priority
-alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'danRer6', 'dm3', 'xenTro2', 'oryLat2', 'ci2', 'ce6', 'sacCer2']
+alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'danRer7', 'dm3', 
+'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2']
 
 # each species in alignGenomeOrder has to be in speciesNames
 assert(len(set(alignGenomeOrder).intersection(speciesNames))==len(speciesNames))
+assert(len(set(defaultGenomes).intersection(speciesNames))==len(defaultGenomes))
 
-# minimum size of sequence to be considered for blatting
+# minimum size of dna sequence to be considered for blatting
 minSeqLen=17
+# minimum size of protein sequence to be considered for blatting
+minProtSeqLen=7
 
 # maximum size of sequence to be considered "short", sequences can be "short" or "long"
 shortSeqCutoff = 35
@@ -324,8 +338,10 @@ minChainCoverage=21
 # not very informative
 maxChainLength=3000000
 
-# when splitting the big psl file, how many pieces should be fused into one?
-# this is only to separate the big psl file onto smaller cluster jobs
+# when splitting the big psl file, how many chunks should be fused into one?
+# this is used to separate the big psl file onto smaller cluster jobs
+# e.g. when this is 10 and we have 2000 total chunks, the chaining 
+# will run on 200 pieces 
 chunkDivider = 10
 
 # which alignment table shall we use for cdna mapping?

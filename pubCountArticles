@@ -3,6 +3,8 @@
 # this script collects the data about publishers from medline and from what we have on disk
 # it's terrible but it's only used here at UCSC
 
+# TODO: add index by pISSN to "here" 
+
 from os.path import *
 import os, sys, optparse, logging, marshal, zlib, unicodedata, gc, cPickle, shutil, random
 progFile = os.path.abspath(sys.argv[0])
@@ -17,9 +19,9 @@ from collections import defaultdict
 parser = optparse.OptionParser("""usage: %prog [options] <step> - count relevant articles per publisher per year and write to outfiles
 
 steps are:
-"journals" - create a table with journalUid -> articleCount from medline
+"journals" - create a table with journalUid -> articleCount from medline, pubCounts.tab
+"here" - determine which documents of publishers we have here, in the form of pmids.txt
 "pubs" - create a table with publishers, their post-2000 article counts and how many we have on disk
-"here" - determine which documents of publishers we have here
 
 """)
 
@@ -57,7 +59,7 @@ minCount = 50 # minimum number of articles in any journal
 minGeneProtCount = 50 # minimum number of articles with gene or protein in the abstract
 minGeneProtRatio = 0.01 # minimum number of articles of a journal that mention "gene" or "protein"
 
-minPubCount = 20000 # minimum number of articles per publisher
+minPubCount = 1000 # minimum number of articles per publisher
 minPubGeneCount = 500 # minimum number of articles with gene/prot in abstract per publisher
 minPubGeneProtRatio = 0.01 # minimum number of articles of a publisher that mention "gene" or "protein"
 
@@ -325,14 +327,14 @@ elif "pubs" in steps:
             jfh.write(u"\t".join(jRow).encode("utf8")+"\n")
     
         if pubCount < minPubCount:
-            logging.debug( "Removing publisher %s : count too low" % pubName)
+            logging.debug( "Removing publisher %s : count %d too low" % (pubName, pubCount))
             removedPublishers.append(pubName)
             continue
 
-        if pubGeneProtCount < minPubGeneCount:
-            logging.debug( "Removing publisher %s : gene/protein count too low" % pubName)
-            removedPublishers.append(pubName)
-            continue
+        #if pubGeneProtCount < minPubGeneCount:
+            #logging.debug( "Removing publisher %s : gene/protein count too low" % pubName)
+            #removedPublishers.append(pubName)
+            #continue
 
         # count how many we have here by intersect medline's with our PMIDs
         pubPmids = set(pubPmids)
@@ -340,7 +342,7 @@ elif "pubs" in steps:
 
         geneProtRatio = float(pubGeneProtCount) / float(pubCount)
         if geneProtRatio < minPubGeneProtRatio:
-            logging.debug( "Removing %s : ratio too low: count %d, gene count %d" % (pubName, pubCount, pubGeneProtCount))
+            logging.debug( "Removing %s : gene/prot ratio too low: count %d, gene count %d" % (pubName, pubCount, pubGeneProtCount))
             removedPublishers.append(pubName)
             continue
 

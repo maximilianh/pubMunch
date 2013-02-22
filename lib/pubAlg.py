@@ -10,7 +10,7 @@ import logging, sys, os, shutil, glob, cPickle, optparse, copy, types, string, p
 from os.path import *
 from maxCommon import *
 
-import unifyAuthors, pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
+import pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
 
 # extension of map output files
 MAPREDUCEEXT = ".pickle.gz"
@@ -76,27 +76,16 @@ def getAlg(algName, defClass=None):
     defaultClass can be "Annotate" or "Map"
     """
     logging.debug("Creating algorithm object for %s " % (algName))
-    #if algName=="upcaseCount":
-        #alg = protSearch.UpcaseCounter()
-    #elif algName=="ProteinDetect":
-        #alg = protSearch.ProteinDetect()
-    if algName=="unifyAuthors":
-        alg = unifyAuthors.UnifyAuthors()
-    elif algName=="getFileDesc":
-        alg = unifyAuthors.GetFileDesc()
+    if ":" in algName:
+        filename, className = algName.split(":")
     else:
-        if ":" in algName:
-            filename, className = algName.split(":")
-        else:
-            filename, className = algName, None
-        if filename.endswith(".pyc"):
-            filename = filename.replace(".pyc", "")
-        if not filename.endswith(".py"):
-            filename = filename+".py"
-        alg = loadPythonObject(filename, className, defClass=defClass)
-    #else:
-        #logging.error("algorithm name %s is unknown" % algName)
-        #sys.exit(1)
+        filename, className = algName, None
+    if filename.endswith(".pyc"):
+        filename = filename.replace(".pyc", "")
+    if not filename.endswith(".py"):
+        filename = filename+".py"
+    alg = loadPythonObject(filename, className, defClass=defClass)
+    alg.algName = getAlgName(algName)
     return alg
 
 def writeParamDict(paramDict, paramDictName):
@@ -151,7 +140,7 @@ def findArticleBasenames(dataset, updateIds=None):
     logging.debug("Found %s basenames for %s: " % (len(baseNames), dataset))
     return baseNames
 
-def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict, runNow=False, cleanUp=False, updateIds=None, batchDir=".", runner=None, prefixDataset = False, addFields=None):
+def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict, runNow=False, cleanUp=False, updateIds=None, batchDir=".", runner=None, addFields=None):
     """ find data zip files and submit one map job per zip file
         Jobs call pubAlg.pyc and then run the algMethod-method of algName
 
@@ -188,6 +177,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
         paramDir = runner.batchDir
 
     algCount = 0
+    outNames = set()
     for algName, outDir in zip(algNames, outDirs):
         for inDir in inDirs:
             logging.debug("input directory %s" % inDir)
@@ -206,6 +196,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
             for inFile in baseNames:
                 inBase = splitext(basename(inFile))[0]
                 inBase = basename(inDir)+"_"+inBase
+                outNames.add(inBase)
                 outFullname = join(outDir, inBase)+outExt
                 #mustNotExist(outFullname) # should not hurt to avoid this check...
                 command = "%s %s %s %s %s {check out exists %s} %s" % \
@@ -216,7 +207,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
     runner.finish(wait=runNow, cleanUp=cleanUp)
     if cleanUp:
         os.remove(paramFname)
-    return baseNames
+    return list(outNames)
     
 #def getDataIterator(alg, reader):
 #    """ depending on the field "runOn" return the right
@@ -421,23 +412,31 @@ def writeHeaders(alg, outFh, doSectioning, addFields):
     logging.debug("Writing headers %s to %s" % (headers, outFh.name))
     outFh.write("\t".join(headers)+"\n")
 
-def getAlgName(alg):
+def getAlgName(algName):
     " return name of algorithm: either name of module or name of class "
-    algName = alg.__class__.__name__
-    if algName=="module":
-        algName = alg.__name__
+    algName = algName.split(":")[0]
+    algName = algName.split(".")[0]
+    algName = basename(algName)
+    #logging.debug("alg is %s" % dir(alg))
+    #logging.debug("alg is %s" % dir(alg.__name__))
+    #algName = alg.__class__.__name__
+    #if algName=="module":
+        #algName = alg.__name__
+    logging.debug("Algorithm name is %s" % algName)
     return algName
 
 def getAnnotId(alg, paramDict):
     """ return annotId configured by paramDict with parameter startAnnotId.<algName>, 
     remove parameter from paramDict
     """
-    algName = getAlgName(alg)
+    algName = alg.algName
     paramName = "startAnnotId."+algName
+    logging.debug("Start annotId can be defined with parameter %s" % paramName)
 
     annotIdAdd = int(paramDict.get(paramName, 0))
     if paramDict.get(paramName, None):
         del paramDict[paramName]
+    logging.debug("Start annotId is %d" % annotIdAdd)
     return annotIdAdd
 
 def makeLocalTempFile():
@@ -747,7 +746,7 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
         logging.info("Now submitting to cluster/running on all files")
         if not skipMap:
             findFilesSubmitJobs(algName, "map", textDirs, tmpDir, MAPREDUCEEXT, paramDict,\
-                runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner, prefixDataset=True)
+                runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
         runReduce(algName, paramDict, tmpDir, outFilename)
 
     if deleteDir and not skipMap:

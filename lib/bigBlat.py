@@ -72,7 +72,7 @@ class GenomeSplitter(genbank.GenomePartition.GenomePartition):
             unplacedChroms = genbank.GenomePartition.UnplacedChroms(unSpecs)
         
         self.twoBitFname = conf.getDbStr(db, "clusterGenome")
-        assert(self.twoBitFname.endswith(".2bit")) # I need fixing to work for genomes with only nib files
+        assert(self.twoBitFname.endswith(".2bit")) # we don't support old genomes with only nib files
         genbank.GenomePartition.GenomePartition.__init__(self, db, self.twoBitFname,
                                  int(params.get("window", 80000000)),
                                  int(params.get("overlap", 3000000)),
@@ -108,7 +108,8 @@ def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterO
     if isinstance(targetList, str): # targetList can be a string
         targetList = targetList.split(",")
 
-    progDir = dirname(sys.argv[0]) # assume that jobscript is in same dir as we are
+    #progDir = dirname(sys.argv[0]) # assume that jobscript is in same dir as we are
+    progDir = dirname(__file__) # assume that jobscript is in same dir as we are
     bigBlatPath = join(progDir, bigBlatJobSrc)
 
     assert(isfile(bigBlatPath)) # job python script for cluster jobs must exist

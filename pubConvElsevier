@@ -79,7 +79,7 @@ maxCommon.mustExist(inDir)
 
 minId = options.minId
 chunkCount = options.chunkCount
-maxSubmit = options.maxSubmit
+#maxSubmit = options.maxSubmit
 
 if not os.path.isdir(inDir):
     print "first parameter must be a directory"
@@ -89,7 +89,7 @@ if options.cluster:
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
 else:
     runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
-pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, chunkCount, maxSubmit, runner)
+pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, chunkCount, runner)
 
 tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
 dbPath = join(outDir, "articles.db")

@@ -133,7 +133,7 @@ def main(args, options):
         # this is the list of steps for steps:all
         pubMap.runStepRange(d, allSteps, stepFrom, stepTo, args, options)
     else:
-        pubMap.runStep(publisher, command, d)
+        pubMap.runStep(publisher, command, d, options)
 
 def removeLock():
     global lockFname
@@ -152,7 +152,7 @@ def checkCreateLock(outDir):
     atexit.register(removeLock) # register handler that is executed on program exit
 
 # ----------- MAIN --------------
-if len(args)<1:
+if len(args)<2:
     parser.print_help()
     exit(1)
 

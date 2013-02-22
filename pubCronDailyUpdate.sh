@@ -24,7 +24,6 @@ CRAWLCONVDIR=${TEXTBASE}/crawler
 BLATDIR=${BLATBASE}/elsevier
 CLUSTER=swarm
 
-CRAWLDIR=/cluster/home/max/projects/pubs/crawlDir
 JOBDIR=/hive/data/inside/pubs/cronjob_runs/`date +%m-%d-%y_%H:%M`
 
 mkdir -p $JOBDIR

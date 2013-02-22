@@ -120,17 +120,19 @@ class UnifyAuthors:
 
 class GetFileDesc:
     """ 
-    map-reduce algorithm to get the description of each file
+    map-reduce algorithm to get the description and url of each file
     """
     def __init__(self):
-        self.headers = ["fileId", "desc"]
+        self.headers = ["fileId", "desc", url]
         self.runOn = "files"
 
     def map(self, articleData, fileData, text, result):
         desc   = fileData.desc
         fileId = fileData.fileId
-        result[fileId] = [desc]
+        url = fileData.url
+        result[fileId] = [(desc, url)]
 
-    def reduce(self, fileId, descList):
-        yield (fileId, descList[0])
+    def reduce(self, fileId, valList):
+        desc, url = valList[0]
+        yield (fileId, desc, url)
 
