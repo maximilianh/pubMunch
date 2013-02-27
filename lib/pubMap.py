@@ -17,21 +17,6 @@ BedxClass = collections.namedtuple("bedx", \
 dataset = None # e.g. pmc
 baseDir = None # e.g. /hive/data/inside/pubs/pmc
 
-def findProcessedBatches(mainBaseDir, step, currentBatchId=None):
-    " get batchIds of batches that have completed a given step, removing current batchId "
-    stepProgressFname = join(mainBaseDir, "steps.tab")
-    logging.debug("Parsing %s" % stepProgressFname)
-    oldBatchIds = set()
-    for row in maxCommon.iterTsvRows(stepProgressFname):
-        if step==None or row.step==step:
-            oldBatchIds.add(row.batchId)
-
-    if currentBatchId!=None and currentBatchId in oldBatchIds:
-        oldBatchIds.remove(currentBatchId)
-    logging.debug("Read batchIds from %s with '%s' completed: %s" % (stepProgressFname, step, oldBatchIds))
-    return oldBatchIds
-
-
 def countUpcaseWords(runner, baseDir, wordCountBase, textDir, updateIds):
     " submit map-reduce-style job to count uppercase words if we don't already have a list"
     mapTmpDir = join(baseDir, "mapReduceTmp")
@@ -80,24 +65,6 @@ def parseSteps(command):
         else:
             stepFrom, stepTo = fromTo.split("-")
     return stepFrom, stepTo
-
-def initDirs(dataset, pipelineSteps):
-    """ define all directories that are relevant for jobs and the updateIds 
-        that need processing
-
-        return them as an one object, d, that has attributes for all 
-        batch-relevant directories and updateIds. This is something like
-        a global runtime config object.
-    """
-    textDir = pubConf.resolveTextDir(dataset)
-    if textDir==None:
-        raise Exception("dataset %s can not be resolved to a directory" % dataset)
-
-    maxCommon.mustExistDir(pubConf.pubMapBaseDir, makeDir=True)
-
-    d = pubMapProp.PipelineConfig(pubConf.pubMapBaseDir, dataset, textDir)
-    d.pipelineSteps = pipelineSteps
-    return d
 
 def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None):
     """ create <db>.<long|short>.fa files in faDir and fill them with data from
@@ -858,7 +825,7 @@ def constructArticleFileId(articleId, fileId):
     articleFileId = (articleId*(10**(pubConf.FILEDIGITS)))+fileId
     return articleFileId
 
-def writeSeqTables(articleDbs, seqDirs, tableDir, dbList, fileDescs, annotLinks):
+def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
     """  
         write sequences to a <tableDir>/hgFixed.sequences.tab file
         articleDbs is a dict articleId(int) -> list of dbs
@@ -967,7 +934,7 @@ def firstAuthor(string):
     string = unidecode.unidecode(string)
     return string
 
-def writeArticleTables(articleDbs, textDir, tableDir, dbList, updateIds):
+def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
     """ 
         create the articles table based on articleDbs, display Ids and 
         the zipped text file directory.
@@ -1281,30 +1248,7 @@ def filterBedAddCounts(oldBed, newBed, counts):
         writeCount += 1
     logging.info("Kept %d features out of %d features" % (writeCount, readCount))
     
-def countMarkers(baseDirs, markerCountFname):
-    """ go over all base dirs and all batches therein and count how often a marker appears 
-    uses markerCountFname, a table with <marker>tab<count> created by the 'tables' step
-    """
-    counts = defaultdict(int)
-    for baseDir in baseDirs:
-        logging.info("Reading counts from %s" % baseDir)
-        # names of marker files
-        markerCountNames = []
-        batchIds = findProcessedBatches(baseDir, "tables")
-        for batchId in batchIds:
-            fname = join(baseDir, "batches", batchId, markerCountFname)
-            if isfile(fname):
-                logging.debug("Found %s" % fname)
-                markerCountNames.append(fname)
-            else:
-                logging.warn("Not found: %s" % fname)
-
-        # parse marker count files
-        for markerCountName in markerCountNames:
-            counts = addCounts(counts, markerCountName) # e.g. {"rs123231":13, "TP53":5000}
-    return counts
-
-def findRewriteMarkerBeds(db, baseDirs, markerCountFname, markerDbDir, markerOutDir, skipSnps, tableSuffix=""):
+def findRewriteMarkerBeds(db, dirs, markerCountFname, markerDbDir, markerOutDir, skipSnps, tableSuffix=""):
     """
     search baseDir and updates for markerCounts.tab to get a list of counts for each
     marker. Use this dictionary to filter the bed files in markerDbDir, add the counts an
@@ -1491,31 +1435,30 @@ def appendFilenamesToSqlTable(fileDicts, trackDb, trackingTable, ignoreDir):
                     fileSize = os.path.getsize(fname)
                     maxMysql.insertInto(trackDb, trackingTable, ["fileName","size"], [fname, fileSize])
 
-def checkBaseDirsExist(baseDirs):
-    " check if all baseDirs exist, is they don't exist, try <pubMapBaseDir>/<baseDir> "
-    if len(baseDirs)==0:
-        logging.error("You have not specified a single baseDir to load data from")
-        sys.exit(1)
-        
-    newDirs = []
-    for baseDir in baseDirs:
-        if not isdir(baseDir):
-            baseDir2 = baseDir
-            baseDir  = join(pubConf.pubMapBaseDir, baseDir)
-            if not isdir(baseDir):
-                raise Exception("Cannot find directory %s nor %s" % (baseDir, baseDir2))
-        newDirs.append(baseDir)
-    logging.debug("BaseDirs for input tables are %s" % newDirs)
-    return newDirs
 
+def isIdenticalOnDisk(loadedFiles):
+    """
+    check if files on disk have same size as files in the DB. return true if they are.
+    """
+    for fname, sizeDate in loadedFiles.iteritems():
+        size, date = sizeDate
+        size = int(size)
+        if not isfile(fname):
+            logging.error("File %s does not exist on disk but is loaded in DB" % fname)
+            return False
+        diskSize = getsize(fname)
+        if diskSize!=size:
+            logging.error("File %s has size %d on disk but the version in the DB has size %d" % (diskSize, size))
+            return False
+    return True
 
-def loadTables(baseDirs, dbList, markerCountBasename, markerOutDir, userTablePrefix, skipSnps):
+def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTablePrefix, skipSnps):
     """ 
         Loads files that are NOT yet in hgFixed.pubLoadedFile
-
-        This script is not using the rename+load scheme of Markd's genbank pipeline.
-        If anything fails, the tables have to be all loaded again.
     """
+
+    datasets = datasetList.split(",")
+
     tablePrefix = "pubs"
     tablePrefix = tablePrefix + userTablePrefix
 
@@ -1524,23 +1467,27 @@ def loadTables(baseDirs, dbList, markerCountBasename, markerOutDir, userTablePre
     trackingTable   = tablePrefix+"LoadedFiles"
     trackingDb      = "hgFixed"
     loadedFilenames = getLoadedFiles(trackingDb, trackingTable)
+    filesMatch      = isIdenticalOnDisk(loadedFilenames)
+    if not filesMatch:
+        raise Exception("Old files already loaded into DB (%s.%s) are different "
+            "from the ones on disk" % (trackingDb, trackingTable))
     append          = (len(loadedFilenames) != 0) # only append if there is already old data
-    baseDirs        = checkBaseDirsExist(baseDirs)
 
     # first create the marker bed files (for all basedirs) and load them
     # this is separate because we pre-calculate the counts for all marker beds
     # instead of doing this in hgTracks on the fly
+    datasetDirs = [pubMapProp.PipelineConfig(dataset) for dataset in datasets]
     tempMarkerDir = "markerBedTemp"
-    markerFileDict = findRewriteMarkerBeds("hg19", baseDirs, markerCountBasename, \
+    markerFileDict = findRewriteMarkerBeds(datasetDirs, "hg19", markerCountBasename, \
         markerDbDir, tempMarkerDir, skipSnps)
     markerTables = loadTableFiles(tablePrefix, markerFileDict, dbList, sqlDir, append, dropFirst=True)
 
     fileDicts = [markerFileDict]
     tableNames = set(markerTables)
     # now load non-marker data from each basedir
-    for baseDir in baseDirs:
+    for dataset in datasets:
         # find name of table files
-        batchIds = findProcessedBatches(baseDir, "tables")
+        batchIds = d.findBatchesAtStep(baseDir, "tables")
         fileDict = findTableFiles(baseDir, batchIds, loadedFilenames)
         fileDicts.append(fileDict)
 
@@ -1644,8 +1591,6 @@ def liftCdna(inDir, outDir):
         
         cmd = "pslMap %s %s %s" % (pslFile, mapPsl, outFile)
         maxCommon.runCommand(cmd)
-
-    
     
 def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFile, markerCountFile):
     " reformat marker annot tables for mysql, write articleIds to file "
@@ -1672,8 +1617,8 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
             snippet = pubStore.prepSqlString(row.snippet)
             markerCounts
             newRow = [articleId, fileId, annotId, unicode(fileDescs.get(fullFileId, "")), \
-                row.type, row.id, row.section, unicode(snippet)]
-            fileMarkerArticles[row.id].add(articleId)
+                row.type, row.markerId, row.section, unicode(snippet)]
+            fileMarkerArticles[row.markerId].add(articleId)
 
             outFile.write(u'\t'.join(newRow))
             outFile.write('\n')
@@ -1832,25 +1777,28 @@ def runAnnotStep(d):
     d.appendBatchProgress("annot")
 
 def runTablesStep(d, options):
-    " generate mysql table files "
+    " generate table files for mysql "
+    # this step creates tables in batchDir/tables
     if not options.skipConvert:
         maxCommon.mustBeEmptyDir(d.tableDir, makeDir=True)
-    # this step creates tables in batchDir/tables
+
     logging.info("Reading file descriptions")
-    # reformat bed and sequences
+    # reformat bed and sequence files
     if not options.skipConvert:
         fileDescs  = tabfile.slurpdict(d.fileDescFname, doNotCheckLen=True, encoding="utf8")
-        rewriteFilterBedFiles([d.bedDir], d.tableDir, d.dbList)
-        rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, d.markerArticleFile, d.markerCountFile)
+        rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames)
+        rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, \
+            d.markerArticleFile, d.markerCountFile)
         articleDbs, annotLinks = parseBeds([d.tableDir])
         # read now from tableDir, not bedDir/protBedDir
-        writeSeqTables(articleDbs, [d.seqDir, d.protSeqDir], d.tableDir, d.dbList, fileDescs, annotLinks)
+        writeSeqTables(articleDbs, [d.seqDir, d.protSeqDir], d.tableDir, fileDescs, annotLinks)
     else:
         articleDbs, annotLinks = parseBeds([d.tableDir])
 
     articleDbs = addHumanForMarkers(articleDbs, d.markerArticleFile)
-    # format articles
-    writeArticleTables(articleDbs, d.textDir, d.tableDir, d.dbList, d.updateIds)
+
+    # reformat articles
+    writeArticleTables(articleDbs, d.textDir, d.tableDir, d.updateIds)
     d.appendBatchProgress("tables")
 
 def runBlatProtStep(d, options):
@@ -1868,6 +1816,16 @@ def runBlatProtStep(d, options):
     runner = d.getRunner("blatProt")
     submitBlatJobs(runner, d.protFastaDir, d.protPslDir, cdnaDir=pubConf.cdnaDir, \
         blatOptions=pubConf.protBlatOptions, noOocFile=True)
+    d.appendBatchProgress("blatProt")
+
+def runIdentifierStep(d, options):
+    runner = d.getRunner("identifiers")
+    pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, {}, d.fileDescFname, \
+        cleanUp=True, runTest=True, skipMap=options.skipConvert, \
+        updateIds=d.updateIds, runner=runner)
+    logging.info("Results written to %s" % (d.fileDescFname))
+    d.appendBatchProgress("identifiers")
+
 
 def runStep(dataset, command, d, options):
     " run one step of the pubMap pipeline with pipeline directories in d "
@@ -1922,6 +1880,7 @@ def runStep(dataset, command, d, options):
         # lift and sort the cdna blat output into one file per organism-cdna 
         runner = d.getRunner(command)
         submitSortPslJobs(runner, "sortDbCdna", d.cdnaPslDir, d.cdnaPslSortedDir, pubConf.speciesNames)
+        d.appendBatchProgress("blatProt")
 
     # ==== PROTEIN MAPPING COMMANDS, similar to above
     elif command=="blatProt":
@@ -1932,12 +1891,14 @@ def runStep(dataset, command, d, options):
         cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
         runner = d.getRunner(command)
         submitSortPslJobs(runner, "sortDbProt", d.protPslDir, d.protPslSortedDir, cdnaDbs)
+        d.appendBatchProgress("sortProt")
 
     # ==== cDNA/Genome MAPPING COMMANDS ======
     elif command=="sortGenome":
         # sort the sorted cdna, sorted prot and unsorted genome blat output into one file per organism
         runner = d.getRunner(command)
         submitSortPslJobs(runner, "sortDbGenome", d.pslDir, d.pslSortedDir, pubConf.speciesNames)
+        d.appendBatchProgress("sortGenome")
 
     elif command=="chain":
         # join all psl files from each db into one big one for all dbs, filter and re-split
@@ -1949,34 +1910,26 @@ def runStep(dataset, command, d, options):
         submitMergeSplitChain(runner, d.textDir, d.pslSortedDir, \
             d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, \
             pubConf.speciesNames.keys(), d.updateIds, addDirs=addPslDirs)
+        d.appendBatchProgress("chain")
 
     # ==== COMMANDS TO PREP OUTPUT TABLES FOR BROWSER
 
     elif command=="identifiers":
-        # this step creates two files, authors.tab and files.tab in the
+        # this step creates files.tab in the
         # base output directory
-        # batchIds = findProcessedBatches(d.baseDir, "identifiers", d.batchId)
-        # paramDict = {"batchIds" : batchIds, "baseDir" : d.baseDir}
-
-        pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, {}, d.fileDescFname, cleanUp=True, runTest=True, skipMap=options.skipConvert, updateIds=d.updateIds)
-        logging.info("Results written to %s" % (d.fileDescFname))
-        d.appendBatchProgress("identifiers")
+        runIdentifierStep(d, options)
 
     elif command=="tables":
         runTablesStep(d, options)
+
     # ===== COMMANDS TO LOAD STUFF FROM THE batches/{0,1,2,3...}/tables DIRECTORIES INTO THE BROWSER
     elif command=="load":
-        inDirs = []
-        for pub in pubConf.loadDatasets:
-            inDir = join(pubConf.pubMapBaseDir, pub)
-            assert(isdir(inDir))
-            inDirs.append(inDir)
-        logging.info("Input is loaded from directories: %s" % inDirs)
+        tablePrefix = "Dev"
+        if options.loadFinal:
+            tablePrefix = ""
 
-        #userTablePrefix = "Dev"
-        #if options.finalLoad==True:
-            #userTablePrefix = ""
-        loadTables(inDirs, pubConf.speciesNames, d.markerCountsBase, d.markerDirBase, "", options.skipConvert)
+        runLoadStep(dataset, pubConf.speciesNames, d.markerCountsBase, \
+            d.markerDirBase, tablePrefix, options.skipConvert)
 
     elif command==("switchOver"):
         switchOver()

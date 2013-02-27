@@ -23,7 +23,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, pubAlg, maxCommon, tabfile, pubMap
+import pubConf, pubGeneric, pubAlg, maxCommon, tabfile, pubMap, pubMapProp
 
 # GLOBAL: filename of lockfile
 lockFname = None
@@ -113,27 +113,27 @@ parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true"
 #parser.add_option("-n", "--dontRunNow", dest="dontRunNow", action="store_true", help="if parasol: do not push cluster jobs immediately but let user run para push commands") 
 #parser.add_option("-f", "--forceDbs", dest="forceDbs", action="append", help="force blatting on only this list of dbs (comma-sep), e.g. hg19,mm9", default=None) 
 parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubMap.<date>.log", default=False) 
-#parser.add_option("", "--finalLoad", dest="finalLoad", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.", default="") 
+parser.add_option("", "--loadFinal", dest="loadFinal", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.") 
 ###parser.add_option("-r", "--reload", dest="reload", action="store_true", help="by default, the tables step", default=None) 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
 def main(args, options):
 
-    publisher, command = args
+    dataset, command = args
 
     allSteps = ["annot", "filter", "blatGenome", "sortGenome", "blatCdna", \
         "sortCdna", "blatProt", "sortProt", "chain", \
         "identifiers", "tables", "load"]
 
-    d = pubMap.initDirs(publisher, allSteps)
+    dirs = pubMapProp.PipelineConfig(dataset)
 
     if command.startswith("steps:"):
         stepFrom, stepTo = pubMap.parseSteps(command)
         # this is the list of steps for steps:all
-        pubMap.runStepRange(d, allSteps, stepFrom, stepTo, args, options)
+        pubMap.runStepRange(dirs, allSteps, stepFrom, stepTo, args, options)
     else:
-        pubMap.runStep(publisher, command, d, options)
+        pubMap.runStep(dataset, command, dirs, options)
 
 def removeLock():
     global lockFname

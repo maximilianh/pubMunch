@@ -5,7 +5,7 @@
 
 # module will call itself on the compute nodes if run on a cluster (->findFileSubmitJobs)
 
-import logging, sys, os, shutil, glob, cPickle, optparse, copy, types, string, pipes, gzip, doctest, marshal
+import logging, sys, os, shutil, glob, optparse, copy, types, string, pipes, gzip, doctest, marshal
 
 from os.path import *
 from maxCommon import *
@@ -13,7 +13,7 @@ from maxCommon import *
 import pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
 
 # extension of map output files
-MAPREDUCEEXT = ".pickle.gz"
+MAPREDUCEEXT = ".marshal.gz"
 
 def loadClass(aMod, className, quiet=False):
     " try to find class in a module and return it if found, otherwise None "
@@ -530,8 +530,7 @@ def runMap(reader, alg, paramDict, outFname):
         for fileData in fileDataList:
             logging.debug("Running on file id %s" % fileData.fileId)
             text = fileData.content
-
-        alg.map(articleData, fileData, text, results)
+            alg.map(articleData, fileData, text, results)
 
     if "end" in dir(alg):
         results = alg.end(results)
@@ -670,9 +669,6 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
             alg.startup(paramDict) # to check if startup works
 
     logging.debug("Testing successful, submitting jobs")
-    #if concat:
-        #outFnames = copy.copy(outDirs)
-        #outDirs = [d+".jobOutput" for d in outDirs]
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \
         ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, \
         batchDir=batchDir, runner=runner, addFields=addFields)
@@ -712,7 +708,9 @@ def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=F
     #os.remove(tmpRedOut)
     logging.info("test output written to file %s, file not deleted" % tmpRedOut)
 
-def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=False, tmpDir=None, deleteDir=True, updateIds=None, runTest=True, batchDir=".", headNode=None, runner=None, onlyTest=False):
+def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=False, \
+        tmpDir=None, updateIds=None, runTest=True, batchDir=".", headNode=None, \
+        runner=None, onlyTest=False):
     """ 
     submit jobs to batch system to:
     create tempDir, map textDir into this directory with alg,
@@ -749,7 +747,7 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
                 runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
         runReduce(algName, paramDict, tmpDir, outFilename)
 
-    if deleteDir and not skipMap:
+    if cleanUp and not skipMap:
         logging.info("Deleting directory %s" % tmpDir)
         shutil.rmtree(tmpDir)
 
