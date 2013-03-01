@@ -253,8 +253,41 @@ class PipelineConfig:
         self.updateIds = set(allUpdateIds).difference(doneUpdateIds)
         logging.info("Updates that have not been annotated yet: %s" % self.updateIds)
 
+    def findTableFiles(self, ignoreFilenames):
+        """ find all table files across all batches in batchDir, find all files.
+            create fileDict as (tableName, fileExt) -> dict of db -> list of files
+            return fileDict. 
+
+        >>> findTableFiles("/hive/data/inside/literature/blat/miniEls", ["0"])
+        """
+        fileDict = {}
+        logging.debug("Searching for all table files in %s" % baseDir)
+        batchIds = self.findBatchesAtStep("tables")
+        for batchId in batchIds:
+            tableDir = join(baseDir, "batches", batchId, "tables")
+            for tableFname in os.listdir(tableDir):
+                tablePath = join(tableDir, tableFname)
+                if tablePath in ignoreFilenames:
+                    logging.debug("file %s has already been loaded, skipping" % tablePath)
+                    continue
+                if os.path.getsize(tablePath)==0:
+                    logging.debug("file %s has 0 size, skipping" % tablePath)
+                    continue
+                fields = tableFname.split(".")
+                if len(fields)!=3:
+                    logging.debug("file %s has wrong file format (not db.table.ext), skipping " % tablePath)
+                    continue
+                db, table, ext = fields
+                fileDict.setdefault((table, ext), {})
+                fileDict[(table, ext)].setdefault(db, [])
+                fileDict[(table, ext)][db].append(tablePath)
+
+        logging.debug("Found these files: %s" % fileDict)
+        return fileDict
+
     def findFileInAllBatchesAtStep(self, fname, step):
-        batchIds = self.findBatchesAtStep(self, step)
+        " return list of file with name X in all batches that have completed a step "
+        batchIds = self.findBatchesAtStep(step)
         res = []
         for batchId in batchIds:
             fname = join(self.baseDir, "batches", batchId, fname)
@@ -274,32 +307,37 @@ class PipelineConfig:
 
         okBatchIds = []
         for bid in batchIds:
-            batchProgressDir = join(self.baseDirBatches, bid)
-            if isfile(join(batchProgressDir, step)):
+            progressFname = join(self.baseDirBatches, bid, self.progressDir, step)
+            logging.info("checking if %s exists" % progressFname)
+            if isfile(progressFname):
                 okBatchIds.append(bid)
         logging.debug("batchIds in %s with '%s' done: %s" % (self.baseDirBatches, step, okBatchIds))
         return okBatchIds
 
-    def readMarkerCounts(dirs, markerCountFname):
-        """ go over all base dirs and all batches therein and count how often a marker appears 
+    def readMarkerCounts(self, counts):
+        """ 
+        go over all batches and get the total count for all markers in all updates
         uses markerCountFname, a table with <marker>tab<count> created by the 'tables' step
         """
-        counts = defaultdict(int)
-        for baseDir in baseDirs:
-            logging.info("Reading counts from %s" % baseDir)
-            # names of marker files
-            markerCountNames = dirs.findFileInAllBatchesAtStep("markerCounts.tab")
-            batchIds = dirs.findBatchesAtStep("tables")
-            for batchId in batchIds:
-                fname = join(baseDir, "batches", batchId, markerCountFname)
-                if isfile(fname):
-                    logging.debug("Found %s" % fname)
-                    markerCountNames.append(fname)
-                else:
-                    logging.warn("Not found: %s" % fname)
+        logging.info("Reading counts from %s" % baseDir)
+        # names of marker files
+        markerCountNames = self.findFileInAllBatchesAtStep(MARKERCOUNTSBASE, "tables")
+        # parse marker count files
+        if len(markerCountNames)==0:
+            logging.warn("No marker files found with counts")
+            return counts
 
-            # parse marker count files
-            for markerCountName in markerCountNames:
-                counts = addCounts(counts, markerCountName) # e.g. {"rs123231":13, "TP53":5000}
+        for markerCountName in markerCountNames:
+            counts = addCounts(counts, markerCountName) # e.g. {"rs123231":13, "TP53":5000}
         return counts
+
+def addCounts(countDict, fname):
+    " parse line of file with format <id>tab<count>, add counts to dict, return dict "
+    logging.debug("Parsing %s" % fname)
+    for line in open(fname):
+        line = line.strip()
+        id, count = line.split("\t")
+        count = int(count)
+        countDict[id]+=count
+    return countDict
 

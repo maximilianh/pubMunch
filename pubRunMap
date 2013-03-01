@@ -24,7 +24,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import maxRun, pubStore, pubConf, pubGeneric, t2gDnaDetect, orgDetect, pubAlg
+import maxRun, pubStore, pubConf, pubGeneric, pubAlg
 from maxCommon import *
 
 ANNOTDIGITS=5 # number of digits to use for annotation ID 
@@ -43,6 +43,7 @@ If <in> and <out> are files:
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("-r", "--reduce", dest="reduceFile", action="store", metavar="OUTFILE", help="do not only submit the jobs, but shove them through parasol, continue until all jobs are done, then run reducer and write to output file")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="do not run on cluster")
 (options, args) = parser.parse_args()
 
 # ==== MAIN =======
@@ -61,7 +62,12 @@ def main(args, options):
 
     if not "map" in args:
         mustBeEmptyDir(outName, makeDir=True)
-        pubAlg.findFilesSubmitJobs(algName, "map", inName, outName, ".pickle", paramDict, runNow=options.reduceFile)
+        if options.test:
+            runner=None
+        else:
+            runner = pubGeneric.makeClusterRunner(__file__, algName=basename(inName)+"-map")
+        pubAlg.findFilesSubmitJobs(algName, "map", inName, outName, ".marshal.gz", \
+            paramDict, runNow=options.reduceFile, runner=runner)
         if options.reduceFile:
             outFilename = options.reduceFile
             pubAlg.runReduce(algName, outName, outFilename)

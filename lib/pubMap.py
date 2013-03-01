@@ -855,6 +855,7 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
     for fname in seqFiles:
         for annot in maxCommon.iterTsvRows(fname):
             articleId, fileId, seqId = splitAnnotId(annot.annotId)
+            annotId = int(annot.annotId)
             dbs = articleDbs.get(articleId, None)
             if not dbs:
                 logging.debug("article %d is not mapped to any genome, not writing any sequence" % articleId)
@@ -863,9 +864,9 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
             inRowCount += 1
 
             # lookup file description
-            annotId = int(annot.annotId)
             articleFileId = constructArticleFileId(articleId, fileId)
-            fileDesc = fileDescs.get(str(articleFileId), "")
+            #fileDesc, fileUrl = fileDescs.get(str(articleFileId), ("", ""))
+            fileDesc, fileUrl = fileDescs[articleFileId]
 
             # prep data for output table
             annotLinkList   = annotLinks.get(annotId, None)
@@ -879,7 +880,7 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
             if fileDesc == "" or fileDesc==None:
                 logging.debug("Cannot find file description for file id %d" % articleFileId)
                 noDescCount += 1
-            newRow = [ unicode(articleId), unicode(fileId), unicode(seqId), annot.annotId, pubStore.prepSqlString(fileDesc), annot.seq, snippet, annotLinkString]
+            newRow = [ unicode(articleId), unicode(fileId), unicode(seqId), annot.annotId, pubStore.prepSqlString(fileDesc), pubStore.prepSqlString(fileUrl), annot.seq, snippet, annotLinkString]
 
             # write new sequence row
             seqFh.write(string.join(newRow, "\t"))
@@ -939,12 +940,13 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
         create the articles table based on articleDbs, display Ids and 
         the zipped text file directory.
 
-        also create processArticles.tab for JSON elsevier script to distinguish between
+        also create processedArticles.tab for JSON elsevier script to distinguish between
         processed and no-sequence articles.
 
     """
 
     logging.info("- Formatting article information to genome browser format")
+    logging.debug("- dbs %s, textDir %s, tableDir %s, updateIds %s" % (articleDbs, textDir, tableDir, updateIds))
     # prepare output files
     artFiles = {}
 
@@ -1216,16 +1218,6 @@ def loadTable(db, tableName, fname, sqlName, fileType, tableSuffix, appendMode):
 
     return tableName
 
-def addCounts(countDict, fname):
-    " parse line of file with format <id>tab<count>, add counts to dict, return dict "
-    logging.debug("Parsing %s" % fname)
-    for line in open(fname):
-        line = line.strip()
-        id, count = line.split("\t")
-        count = int(count)
-        countDict[id]+=count
-    return countDict
-
 def upcaseFirstLetter(string):
     return string[0].upper() + string[1:] 
 
@@ -1248,13 +1240,25 @@ def filterBedAddCounts(oldBed, newBed, counts):
         writeCount += 1
     logging.info("Kept %d features out of %d features" % (writeCount, readCount))
     
-def findRewriteMarkerBeds(db, dirs, markerCountFname, markerDbDir, markerOutDir, skipSnps, tableSuffix=""):
+def getMarkers(markerDbDir):
+    " return a list of (markerType, db, bedFname) with a list of all markers we have on disk "
+    res = []
+    markerBeds = glob.glob(join(markerDbDir, "*.bed"))
+    for markerFname in markerBeds:
+        db, markerType, ext = basename(markerFname).split(".")
+        res.append( (db, markerType, markerFname) )
+        assert("hg19" != markerType)
+    return res
+
+def findRewriteMarkerBeds(dirs, markerDbDir, markerOutDir, skipSnps, tableSuffix=""):
     """
-    search baseDir and updates for markerCounts.tab to get a list of counts for each
-    marker. Use this dictionary to filter the bed files in markerDbDir, add the counts an
-    extended bed field, write beds to <baseName>/markerBeds/<db>.marker<type>.bed 
+    dirs is a list of PipelineConfig objects.
+
+    search all batches for markerCounts.tab to get a list of counts for each
+    marker. Use this dictionary to filter the bed files in markerDbDir, add the counts as an
+    extended bed field, write beds to <markerOutDir>/<db>.marker<type>.bed 
     
-    return fileDict as ["marker"<type>]["hgFixed"] -> file name
+    return fileDict as ["marker"<type>][db] -> file name
     """
     logging.info("Writing marker bed files to %s, adding counts of matching articles" % markerOutDir)
     if not isdir(markerOutDir):
@@ -1265,24 +1269,26 @@ def findRewriteMarkerBeds(db, dirs, markerCountFname, markerDbDir, markerOutDir,
             shutil.rmtree(markerOutDir)
             os.mkdir(markerOutDir)
 
-    counts = countMarkers(baseDirs, markerCountFname)
+    counts = collections.defaultdict(int)
+    for datasetDir in dirs:
+        counts = datasetDir.readMarkerCounts(counts)
+    if len(counts)==0:
+        raise Exception("No counts found for any markers and all datasets")
 
-    markerBeds = glob.glob(join(markerDbDir, "*.bed"))
-    markerTypes = [splitext(basename(x))[0] for x in markerBeds] # e.g. ["band", "snp"]
+    markerTypes = getMarkers(markerDbDir)
 
     fileDict = {}
-    for markerType in markerTypes:
+    for db, markerType, inputBedFname in markerTypes:
         if skipSnps and markerType=="snp":
             logging.info("Skipping SNPs to gain speed")
             continue
-        upMarkerType = upcaseFirstLetter(markerType) # e.g. Band
-        oldBed = join(markerDbDir, markerType+".bed") 
-        newBed = join(markerOutDir, db+".marker%s.bed" % upMarkerType)
-        filterBedAddCounts(oldBed, newBed, counts)
+        upMarkerType = upcaseFirstLetter(markerType) # e.g. snp -> Snp
+        newBedFname = join(markerOutDir, db+".marker%s.bed" % upMarkerType)
+        filterBedAddCounts(inputBedFname, newBedFname, counts)
 
         tableName = "marker"+upMarkerType # e.g. markerBand
         fileDict[(tableName, "bed")] = {}
-        fileDict[(tableName, "bed")][db] = [newBed]
+        fileDict[(tableName, "bed")][db] = [newBedFname]
     return fileDict
 
 def findUpdates(baseDir, updateId):
@@ -1356,36 +1362,6 @@ def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, suffix="
     logging.debug("Loaded these tables: %s" % dbTables)
     return dbTables
         
-def findTableFiles(baseDir, batchIds, ignoreFilenames):
-    """ find all bed/tab/psl files for blat matches. add to fileDict as (tableName, fileExt) -> 
-        dict of db -> list of files, then return fileDict. 
-
-    >>> findTableFiles("/hive/data/inside/literature/blat/miniEls", ["0"])
-    """
-    fileDict = {}
-    logging.debug("Searching for all table files in %s" % baseDir)
-    for batchId in batchIds:
-        tableDir = join(baseDir, "batches", batchId, "tables")
-        for tableFname in os.listdir(tableDir):
-            tablePath = join(tableDir, tableFname)
-            if tablePath in ignoreFilenames:
-                logging.debug("file %s has already been loaded, skipping" % tablePath)
-                continue
-            if getsize(tablePath)==0:
-                logging.debug("file %s has 0 size, skipping" % tablePath)
-                continue
-            fields = tableFname.split(".")
-            if len(fields)!=3:
-                logging.debug("file %s has wrong file format (not db.table.ext), skipping " % tablePath)
-                continue
-            db, table, ext = fields
-            fileDict.setdefault((table, ext), {})
-            fileDict[(table, ext)].setdefault(db, [])
-            fileDict[(table, ext)][db].append(tablePath)
-
-    logging.debug("Found these files: %s" % fileDict)
-    return fileDict
-
 def queryLoadedFnames(db, table):
     """ connect to mysql db and read loaded filenames from table pubsLoadedFile, 
         return as dict fname => (fsize (int) , time) """
@@ -1448,9 +1424,18 @@ def isIdenticalOnDisk(loadedFiles):
             return False
         diskSize = getsize(fname)
         if diskSize!=size:
-            logging.error("File %s has size %d on disk but the version in the DB has size %d" % (diskSize, size))
+            logging.error("File %s has size %d on disk but the version in the DB has size %d" % \
+                (fname, diskSize, size))
             return False
     return True
+
+def initTempDir(dirName):
+    " create temp dir with dirName and delete all contents "
+    tempMarkerDir = join(pubConf.TEMPDIR, "pubMapLoadTempFiles")
+    if isdir(tempMarkerDir):
+        shutil.rmtree(tempMarkerDir)
+    os.makedirs(tempMarkerDir)
+    return tempMarkerDir
 
 def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTablePrefix, skipSnps):
     """ 
@@ -1477,18 +1462,23 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
     # this is separate because we pre-calculate the counts for all marker beds
     # instead of doing this in hgTracks on the fly
     datasetDirs = [pubMapProp.PipelineConfig(dataset) for dataset in datasets]
-    tempMarkerDir = "markerBedTemp"
-    markerFileDict = findRewriteMarkerBeds(datasetDirs, "hg19", markerCountBasename, \
-        markerDbDir, tempMarkerDir, skipSnps)
+    tempMarkerDir = initTempDir("pubMapLoadTemp")
+
+    markerFileDict = findRewriteMarkerBeds(datasetDirs, markerDbDir, tempMarkerDir, skipSnps)
     markerTables = loadTableFiles(tablePrefix, markerFileDict, dbList, sqlDir, append, dropFirst=True)
 
     fileDicts = [markerFileDict]
     tableNames = set(markerTables)
+
     # now load non-marker data from each basedir
-    for dataset in datasets:
+    # but only those that are not yet in the DB
+    for datasetDir in datasetDirs:
         # find name of table files
-        batchIds = d.findBatchesAtStep(baseDir, "tables")
-        fileDict = findTableFiles(baseDir, batchIds, loadedFilenames)
+        batchIds = datasetDir.findBatchesAtStep("tables")
+        if len(batchIds)==0:
+            logging.info("No completed batches for dataset %s, skipping it" % datasetDir.dataset)
+            continue
+        fileDict = datasetDir.findTableFiles(loadedFilenames)
         fileDicts.append(fileDict)
 
         # load tables into mysql
@@ -1615,8 +1605,10 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
             articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
             fullFileId = articleId+fileId
             snippet = pubStore.prepSqlString(row.snippet)
-            markerCounts
-            newRow = [articleId, fileId, annotId, unicode(fileDescs.get(fullFileId, "")), \
+            #fileDesc, fileUrl = unicode(fileDescs.get(fullFileId, ("", "")))
+            fileAnnot = fileDescs[int(fullFileId)]
+            fileDesc, fileUrl = fileAnnot
+            newRow = [articleId, fileId, annotId, fileDesc, fileUrl, \
                 row.type, row.markerId, row.section, unicode(snippet)]
             fileMarkerArticles[row.markerId].add(articleId)
 
@@ -1634,8 +1626,8 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
         meter.taskCompleted()
     logging.info("Wrote %d rows to %s for %d markers" % (outRowCount, tmpFname, len(markerCounts)))
 
-    # sort table by markerId = field 6 
-    util.sortTable(tmpFname, outFname, 6)
+    # sort table by markerId = field 7 
+    util.sortTable(tmpFname, outFname, 7)
     os.remove(tmpFname)
 
     logging.info("Writing marker counts")
@@ -1776,6 +1768,12 @@ def runAnnotStep(d):
     d.writeUpdateIds()
     d.appendBatchProgress("annot")
 
+def parseFileDescs(fname):
+    res = {}
+    for row in maxCommon.iterTsvRows(fname):
+        res[int(row.fileId)] = (row.desc, row.url)
+    return res
+        
 def runTablesStep(d, options):
     " generate table files for mysql "
     # this step creates tables in batchDir/tables
@@ -1785,7 +1783,7 @@ def runTablesStep(d, options):
     logging.info("Reading file descriptions")
     # reformat bed and sequence files
     if not options.skipConvert:
-        fileDescs  = tabfile.slurpdict(d.fileDescFname, doNotCheckLen=True, encoding="utf8")
+        fileDescs  = parseFileDescs(d.fileDescFname)
         rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames)
         rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, \
             d.markerArticleFile, d.markerCountFile)

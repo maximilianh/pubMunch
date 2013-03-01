@@ -55,7 +55,9 @@ pubGeneric.setupLogging(progFile, options)
 
 algName, inDir, outFilename = args[:3]
 parameters = args[3:]
-paramDict = cPickle.load(open("mapReduceParam.pickle"))
+#paramDict = cPickle.load(open("mapReduceParam.pickle"))
+paramList = args[3:]
+paramDict = pubGeneric.stringListToDict(paramList)
 
 #alg = pubAlg.getAlg(algName) 
 

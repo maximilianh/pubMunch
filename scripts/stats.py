@@ -2,38 +2,38 @@ import tabfile
 # example file for pubtools map/reduce framework
 # illustrates how to map/reduce article meta data
 
-# this scripts reads the file doi.tab and outputs all article IDs with a DOI
-# from this file
 
-# this variable indicates that we only want to read article meta data
-# NOT the fulltext files (will speed up the jobs, they will not touch 
-# the ".files" table
-#skipFiles = True
+# reports file sizes and file counts
 
 headers = ["object", "size"]
 
 # this method is called ONCE on each cluster node
 def startup(paramDict, resultDict):
-    #doiSet = set(tabfile.slurplist("doi.tab"))
-    #for doi in doiSet:
-        #resultDict[doi]=set()
-    pass
+    resultDict.setdefault("articleCount", set())
 
 # this method is called for each article
 # resultDict is the output dictionary: write all your results to this dictionary
 def map(article, file, text, resultDict):
-    " check if doi is in doiSet, add to result dictionary"
+    " "
     keys = ["totalSize", "journalBytes:"+article.journal, "journalFiles:"+article.journal, 
             "fileCount", "mimeTypeFiles:"+file.mimeType, "mimeTypeBytes:"+file.mimeType,
-            "articleTypeFiles:"+article.articleType, "abstractBytes"]
+            "articleTypeFiles:"+article.articleType, "abstractBytes", "totalSizeMain", "totalSizeSupp"]
     for key in keys:
         resultDict.setdefault(key, 0)
 
-    resultDict.setdefault("articleCount", set())
     resultDict.setdefault("articleCount_"+article.year, set())
     resultDict.setdefault("articleCountWithAbstract_"+article.year, set())
+    resultDict.setdefault("maxMainSize", {})
 
     resultDict["totalSize"] += len(text)
+    if file.fileType=="supp":
+        resultDict["totalSizeSupp"] += len(text)
+    elif file.fileType=="main":
+        resultDict["totalSizeMain"] += len(text)
+        maxMainDict = resultDict["maxMainSize"]
+        oldSize = maxMainDict.get(article.articleId, 0)
+        maxMainDict[article.articleId] = max(oldSize, len(text))
+
     resultDict["fileCount"] += 1
     resultDict["articleCount"].add(int(article.articleId))
     resultDict["articleCount_"+article.year].add(int(article.articleId))
@@ -51,5 +51,7 @@ def map(article, file, text, resultDict):
 def reduce(key, valList):
     if key.startswith("articleCount"):
         yield key, len(valList)
+    elif key=="maxMainSize":
+        yield key, max(valList)
     else:
         yield key, sum(valList)
