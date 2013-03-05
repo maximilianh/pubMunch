@@ -243,13 +243,16 @@ GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 # for all of these keywords
 # pubMap will then blat sequences from a textfile only on genomes
 # for which a keyword has been found
+# ALL SPECIES that the pipeline needs to blat on need to be defined here
+# even if no species recognition for them is performed
 
 speciesNames = {
 'hg19' : ['human', 'sapiens', ' homo ', ' Homo ', 'patient', 'cell line','cell culture'],
 'mm9' : ['mouse', 'musculus', 'rodent'],
 'rn4' : [' rat ', 'novegicus', 'rodent'],
-'xenTro2' : [' xenopus', 'Xenopus', 'tropicalis', 'laevis'],
+'nonUcsc_archaea' : [],
 'danRer7' : ['zebrafish', 'rerio', 'Danio'],
+'xenTro2' : [' xenopus', 'Xenopus', 'tropicalis', 'laevis'],
 'susScr3' : [' swine ', ' swines ', ' pigs ', ' pig ', ' porcine ', ' scrofa '],
 'bosTau7' : [' cattle ', ' cows ', ' cow ', ' bovine ', ' beef ', ' bovis '],
 'galGal4' : [' chicken ', ' poultry ', ' chickens ', ' gallus '],
@@ -258,28 +261,44 @@ speciesNames = {
 'ce10' : ['elegans', 'Caenorhabditis', 'nematode', ' worms'],
 'ci2' : ['ascidian', 'intestinalis', 'chordates', 'Ciona'],
 'sacCer2' : ['cerevisiae', 'Saccharomyces', 'yeast'],
+'nonUcsc_arabidopsisTair10' : ['arabidopsis', 'Arabidopsis', 'thaliana', 'thale cress'],
+'ensg17-PlasmodiumFalciparium-ASM276v1' : ['plasmodium', 'falciparium', 'malaria']
 }
 
+# During best-genome filtering, sometimes two genomes score equally
+# if this is the case, pick the best one, in this order:
+# the first one has highest priority
+alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
+'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2', 
+'nonUcsc_arabidopsisTair10', 'ensg17-PlasmodiumFalciparium-ASM276v1']
+
 # these genomes are used if no species name matches are found
-defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10"]
+defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10", "nonUcsc_archaea"]
+
+# these genomes are always added, no matter which species names are found
+# human might not be recognized as a name for cell lines
+# bacteria have so many names that we don't recognize them
+alwaysUseGenomes = ["hg19", "nonUcsc_archaea"]
+
+# path for genome files that start with 'nonUcsc_'
+# this directory has to contain a geneBank.conf file
+# in UCSC format to define parameters for these
+# assemblies
+nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
+
 
 # for some genomes we don't have refseq data
-noCdnaDbs = ["sacCer2"]
+noCdnaDbs = ["sacCer2", "nonUcsc_archaea", "nonUcsc_arabidopsisTair10"]
 
 # some text datasets are just variants of others
 # for these, to avoid annotation id overlaps with the main dataset
 # we add some offset to their annotation IDs
 specDatasetAnnotIdOffset = {"yif" : 12000 }
 
-# During best-genome filtering, sometimes two genomes score equally
-# if this is the case, pick the best one, in this order:
-# the first one has highest priority
-alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'danRer7', 'dm3', 
-'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2']
-
 # each species in alignGenomeOrder has to be in speciesNames
 assert(len(set(alignGenomeOrder).intersection(speciesNames))==len(speciesNames))
 assert(len(set(defaultGenomes).intersection(speciesNames))==len(defaultGenomes))
+assert(len(set(alwaysUseGenomes).intersection(defaultGenomes))==len(alwaysUseGenomes))
 
 # minimum size of dna sequence to be considered for blatting
 minSeqLen=17

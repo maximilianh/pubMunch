@@ -63,7 +63,10 @@ class GenomeSplitter(genbank.GenomePartition.GenomePartition):
     "object to store info about genome and partition it into windows"
 
     def __init__(self, db, conf, params):
-        liftFile = conf.getDbStrNo(db, "lift")
+        #liftFile = conf.getDbStrNo(db, "lift")
+        liftFile = conf.getDbStrNone(db, "lift")
+        if liftFile!=None and liftFile.strip()=="no":
+            liftFile=None
         unplacedChroms = None
         unSpecs = conf.getDbWordsNone(db, "align.unplacedChroms")
         if unSpecs != None:
@@ -71,16 +74,23 @@ class GenomeSplitter(genbank.GenomePartition.GenomePartition):
                 raise Exception(db + ".align.unplacedChroms requires " + db + ".lift")
             unplacedChroms = genbank.GenomePartition.UnplacedChroms(unSpecs)
         
-        self.twoBitFname = conf.getDbStr(db, "clusterGenome")
+        if not db.endswith("2bit"):
+            self.twoBitFname = conf.getDbStr(db, "clusterGenome")
+        else:
+            self.twoBitFname = db
+
         assert(self.twoBitFname.endswith(".2bit")) # we don't support old genomes with only nib files
-        genbank.GenomePartition.GenomePartition.__init__(self, db, self.twoBitFname,
+
+        genbank.GenomePartition.GenomePartition.__init__(self, 
+                                 db,
+                                 self.twoBitFname,
                                  int(params.get("window", 80000000)),
                                  int(params.get("overlap", 3000000)),
                                  int(params.get("maxGap", 3000000)),
                                  int(params.get("minUnplacedSize", 900)),
                                  liftFile, unplacedChroms)
 
-def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterOpt=None, splitTarget=True, noOocFile=False):
+def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterOpt=None, splitTarget=True, noOocFile=False, altGenbankDir=None):
     """ get individual job command lines for big Blat job.
 
     faQuery can be a list of fasta filenames, a directory with .fa files or a single fa filename
@@ -91,7 +101,7 @@ def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterO
     outDir must be an empty directory
     psl results go to outDir/<basename(query)>/<db>/
 
-    configuration to find 2bit files will be read from GENBANKDIR
+    configuration to find 2bit files will be read from GENBANKDIR or from altGenbankDir
 
     params is a dictionary with keys "window", "overlap", "maxGap" and "minUnplacedSize" and integer values
     for each parameter, see /cluster/genbank/genbank/etc/genbank.conf for details. Defaults are:
@@ -141,11 +151,34 @@ def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterO
                     twoBitSpec = splitter.twoBitFname+":"+win.getSpec()
                     chrom, startPos = win.seq.id, win.start
                     splitSpecs.append( (twoBitSpec, chrom, startPos) )
-                oocFile = conf.getDbStrNo(target, "ooc")
+
+                # try to get ooc file from config file
+                oocFile = conf.getDbStrNone(target, "ooc")
+                if oocFile=="no":
+                    oocFile = None
+
+                # try various other paths to find ooc file
+                if oocFile==None:
+                    oocFile = join(dirname(splitter.twoBitFname), "11.ooc")
+                    logging.debug("%s not found" % oocFile)
+                    if not isfile(oocFile):
+                        oocFile = splitext(splitter.twoBitFname)[0]+".11.ooc"
+                        logging.debug("%s not found" % oocFile)
+                        if not isfile(oocFile):
+                            oocFile = join(splitter.twoBitFname+".ooc")
+                            if not isfile(oocFile):
+                                logging.debug("%s not found" % oocFile)
+                                raise Exception("no ooc statement in gbconf and %s not found" % (oocFile))
+
             else:
                 if isfile(target):
                     twoBitFname = target
                     oocFile = join(dirname(target), "11.ooc")
+                    if not isfile(oocFile):
+                        baseNoExt = splitext(basename(target))[0]
+                        oocFile = join(dirname(target), baseNoExt+".ooc")
+                        if not isfile(oocFile):
+                            raise Exception("could not find %s nor 11.ooc in same dir" % oocFile)
                 else:
                     if conf==None:
                         conf = genbank.Config.Config(GBCONFFILE) 
@@ -154,6 +187,7 @@ def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterO
                 splitSpecs = [ (twoBitFname, "all", 0) ]
             if noOocFile:
                 oocFile=None
+            assert(oocFile!="no")
 
             #for win in windows:
             for twoBitSpec, chrom, startPos in splitSpecs:

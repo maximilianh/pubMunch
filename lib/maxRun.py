@@ -142,7 +142,11 @@ class Runner:
 
     def finish(self, wait=False, cleanUp=False):
         """ submit joblist to parasol, do nothing on SGE """
-        assert(self.jobCount > 0)
+        if self.jobCount==0:
+            logging.warn("No jobs submitted, not running anything")
+            return
+
+        #assert(self.jobCount > 0)
         if self.clusterType=="parasol":
             self.jobListFh.close()
             logging.info("Running batch from file '%s'" % self.jobListFh.name)

@@ -89,9 +89,11 @@ def submitJobs(inDir, outDir, minId, idStep, useCluster):
     chunkArticleId = firstArticleId
     chunkId = 0
     newFiles = set()
+    fCount = 0
     for medlineFname in medlineFnames:
         if basename(medlineFname) in doneFiles:
             continue
+        fCount += 1
         outFname = os.path.join(outDir, "%d_%05d.articles.gz" % (updateId, chunkId))
         maxCommon.mustNotExist(outFname)
         command = "%s %s {check in exists %s} {check out exists+ %s} %d" % (sys.executable, progFile, medlineFname, outFname, chunkArticleId)
@@ -99,6 +101,11 @@ def submitJobs(inDir, outDir, minId, idStep, useCluster):
         chunkArticleId += idStep
         chunkId += 1
         newFiles.add(basename(medlineFname))
+
+    if fCount==0:
+        logging.info("All files were already converted, nothing done")
+        return 
+
     runner.finish(wait=True)
     pubStore.appendToUpdatesTxt(outDir, updateId, chunkArticleId, newFiles)
 

@@ -87,6 +87,7 @@ def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None)
                 dbs = pubConf.defaultGenomes
             else:
                 dbs = dbs.split(',')
+                dbs.extend(pubConf.alwaysUseGenomes)
 
         for db in dbs:
             annotId = int(row.annotId)
@@ -150,14 +151,19 @@ def createOutFiles(faDir, dbList, maxSizes):
     return outDict
         
 def pubToFasta(inDir, outDir, dbList, maxSizes, seqLenCutoff, forceDbs=None):
-    " convert sequences from tab format to fasta"
+    """ convert sequences from tab format to fasta, 
+        distribute over species: create one fa per db 
+    """
     maxCommon.mustBeEmptyDir(outDir, makeDir=True)
     logging.info("Converting tab files in %s to fasta in %s" % (inDir, outDir))
     inFiles = glob.glob(join(inDir, "*.tab"))
     outFileObjects = createOutFiles(outDir, dbList, maxSizes)
     pm = maxCommon.ProgressMeter(len(inFiles))
     logging.debug("Running on %d input files" % len(inFiles))
-    for count, inFile in enumerate(inFiles):
+    inCountFiles = list(enumerate(inFiles))
+    if len(inCountFiles)==0:
+        raise Exception("no input files in dir %s" % inDir)
+    for count, inFile in inCountFiles:
         logging.debug("parsing %d of %d input files" % (count, len(inFiles)))
         appendAsFasta(inFile, outFileObjects, maxSizes, seqLenCutoff, forceDbs=forceDbs)
         pm.taskCompleted()
@@ -181,7 +187,9 @@ def indexFilesByTypeDb(faDir, blatOptions):
             db = basename(faName).split(".")[0]
             dbFaFiles[seqType].setdefault(db, [])
             dbFaFiles[seqType][db].append(faName)
-    assert(fCount>0)
+    #assert(fCount>0)
+    if fCount==0:
+        raise Exception("no files found in %s" % faDir)
     return dbFaFiles
 
 def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqTypeOptions, noOocFile=False):
@@ -201,6 +209,7 @@ def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqT
             pslTypeDir = maxCommon.joinMkdir(pslDir, seqType, db)
             logging.info("creating blat jobs: db %s, query count %d, output to %s" \
                 % (db, len(faNames), pslDir))
+            # in cdna mode, we lookup our own 2bit files
             if cdnaDir:
                 targetMask =join(cdnaDir, db, "*.2bit")
                 targets = glob.glob(targetMask)
@@ -209,14 +218,21 @@ def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqT
                     logging.warn("Skipping db %s, no target cdna file found" % (db))
                     continue
                 splitTarget = False
+            # for non ucsc genomes, we need to find the 2bit files
+            elif db.startswith("nonUcsc"):
+                dbName = db.replace("nonUcsc_", "")
+                dbPath = join(pubConf.nonUcscGenomesDir, dbName+".2bit")
+                targets = [dbPath]
+                splitTarget = True
+            # for UCSC genome DBs: use genbank.conf parameters
             else:
                 targets = [db]
                 splitTarget = True
-            jobLines = list(bigBlat.getJoblines(targets, faNames, pslTypeDir, splitParams, blatOpt, filterOpt, splitTarget=splitTarget, noOocFile=noOocFile))
+            jobLines = list(bigBlat.getJoblines(targets, faNames, pslTypeDir, \
+                splitParams, blatOpt, filterOpt, splitTarget=splitTarget, noOocFile=noOocFile))
             logging.info("Scheduling %d jobs" % len(jobLines))
             for line in jobLines:
                 runner.submit(line)
-    runner.finish(wait=True)
 
 def clusterCmdLine(method, inFname, outFname, checkIn=True, checkOut=True):
     """ generate a cmdLine for batch system that calls this module
@@ -250,7 +266,6 @@ def submitSortPslJobs(runner, sortCmd, inDir, outDir, dbList, addDirs=None):
         dbOutFile = join(dbOutDir, db+".psl")
         cmd = clusterCmdLine(sortCmd, inDir, dbOutFile, checkIn=False)
         runner.submit(cmd)
-    runner.finish(wait=True)
     logging.info("If batch went through: output can be found in %s" % dbOutFile)
         
 def sortDb(pslBaseDir, pslOutFile, tSeqType=None, pslMap=False):
@@ -1799,23 +1814,6 @@ def runTablesStep(d, options):
     writeArticleTables(articleDbs, d.textDir, d.tableDir, d.updateIds)
     d.appendBatchProgress("tables")
 
-def runBlatProtStep(d, options):
-    " run pipeline step to blat proteins onto available cdnas "
-    logging.info("Blattting protein sequences on translated cDNA sequences")
-    #if options.forceDbs:
-        #cdnaDbs = options.forceDbs
-    #else:
-    cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
-    logging.info("These DBs have cDNA data in %s: %s" % (pubConf.cdnaDir, cdnaDbs))
-    maxCommon.mustBeEmptyDir(d.protPslDir, makeDir=True)
-    if not options.skipConvert:
-        splitSizes = pubConf.cdnaFaSplitSizes
-        pubToFasta(d.protSeqDir, d.protFastaDir, pubConf.speciesNames, splitSizes, 0, forceDbs=cdnaDbs)
-    runner = d.getRunner("blatProt")
-    submitBlatJobs(runner, d.protFastaDir, d.protPslDir, cdnaDir=pubConf.cdnaDir, \
-        blatOptions=pubConf.protBlatOptions, noOocFile=True)
-    d.appendBatchProgress("blatProt")
-
 def runIdentifierStep(d, options):
     runner = d.getRunner("identifiers")
     pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, {}, d.fileDescFname, \
@@ -1843,67 +1841,50 @@ def runStep(dataset, command, d, options):
         runAnnotStep(d)
 
     elif command=="filter":
-        # remove duplicates & short sequence
-        runner = d.getRunner(command)
-        submitFilterJobs(runner, d.chunkNames, d.dnaAnnotDir, d.seqDir)
-        submitFilterJobs(runner, d.chunkNames, d.protAnnotDir, d.protSeqDir, isProt=True)
-        runner.finish(wait=True)
-        
-    elif command=="blatGenome":
-        # convert to fasta and submit blat jobs
-        maxCommon.mustBeEmptyDir(d.pslDir, makeDir=True)
+        # remove duplicates & short sequence & convert to fasta
         if not options.skipConvert:
-            pubToFasta(d.seqDir, d.fastaDir, pubConf.speciesNames, pubConf.queryFaSplitSize, \
-                pubConf.shortSeqCutoff)
+            runner = d.getRunner(command)
+            submitFilterJobs(runner, d.chunkNames, d.dnaAnnotDir, d.seqDir)
+            submitFilterJobs(runner, d.chunkNames, d.protAnnotDir, d.protSeqDir, isProt=True)
+            runner.finish(wait=True)
+
+        # convert to fasta
+        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+        logging.info("These DBs have cDNA data in %s: %s" % (pubConf.cdnaDir, cdnaDbs))
+        pubToFasta(d.seqDir, d.fastaDir, pubConf.speciesNames, pubConf.queryFaSplitSize, \
+            pubConf.shortSeqCutoff)
+        splitSizes = pubConf.cdnaFaSplitSizes
+        pubToFasta(d.protSeqDir, d.protFastaDir, pubConf.speciesNames, splitSizes, 0, forceDbs=cdnaDbs)
+        
+    elif command=="blat":
+        # convert to fasta and submit blat jobs
+        # make sure that directories are empty before we start this
+        maxCommon.mustBeEmptyDir([d.pslDir, d.cdnaPslDir, d.protPslDir], makeDir=True)
         runner = d.getRunner(command)
+        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+
         submitBlatJobs(runner, d.fastaDir, d.pslDir, blatOptions=pubConf.seqTypeOptions)
-
-    # ==== CDNA COMMANDS, similar to above
-    elif command=="blatCdna":
-        maxCommon.mustBeEmptyDir([d.cdnaPslDir], makeDir=True)
-        runner = d.getRunner(command)
         submitBlatJobs(runner, d.fastaDir, d.cdnaPslDir, cdnaDir=pubConf.cdnaDir)
+        submitBlatJobs(runner, d.protFastaDir, d.protPslDir, cdnaDir=pubConf.cdnaDir, \
+            blatOptions=pubConf.protBlatOptions, noOocFile=True)
         runner.finish(wait=True)
-        #if not options.skipConvert:
-            #maxCommon.mustBeEmptyDir([d.cdnaSeqDir], makeDir=True)
-            #logging.info("Searching for sequences that match genome directly")
-            #mappedIds = parseAnnotationIds(d.pslSortedDir)
-            #writeUnmappedSeqs(mappedIds, d.seqDir, d.cdnaSeqDir)
-            #pubToFasta(d.cdnaSeqDir, d.cdnaFastaDir, d.dbList, pubConf.cdnaFaSplitSizes, \
-                #pubConf.shortSeqCutoff, forceDbs=options.forceDbs)
-            #pubToFasta(d.seqDir, d.fastaDir, d.dbList, pubConf.cdnaFaSplitSizes, \
-                #pubConf.shortSeqCutoff, forceDbs=options.forceDbs)
+        d.appendBatchProgress(command)
 
-    elif command=="sortCdna":
-        # lift and sort the cdna blat output into one file per organism-cdna 
+    elif command=="sort":
+        # lift and sort the cdna and protein blat output into one file per organism-cdna 
         runner = d.getRunner(command)
         submitSortPslJobs(runner, "sortDbCdna", d.cdnaPslDir, d.cdnaPslSortedDir, pubConf.speciesNames)
-        d.appendBatchProgress("blatProt")
-
-    # ==== PROTEIN MAPPING COMMANDS, similar to above
-    elif command=="blatProt":
-        runBlatProtStep(d, options)
-
-    elif command=="sortProt":
-        # sort the cdna blat output into one file per organism-cdna
-        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
-        runner = d.getRunner(command)
-        submitSortPslJobs(runner, "sortDbProt", d.protPslDir, d.protPslSortedDir, cdnaDbs)
-        d.appendBatchProgress("sortProt")
-
-    # ==== cDNA/Genome MAPPING COMMANDS ======
-    elif command=="sortGenome":
-        # sort the sorted cdna, sorted prot and unsorted genome blat output into one file per organism
-        runner = d.getRunner(command)
         submitSortPslJobs(runner, "sortDbGenome", d.pslDir, d.pslSortedDir, pubConf.speciesNames)
-        d.appendBatchProgress("sortGenome")
+        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+        submitSortPslJobs(runner, "sortDbProt", d.protPslDir, d.protPslSortedDir, cdnaDbs)
+        runner.finish(wait=True)
+        d.appendBatchProgress(command)
 
     elif command=="chain":
         # join all psl files from each db into one big one for all dbs, filter and re-split
         addPslDirs = []
         addPslDirs.extend ( glob.glob(join(d.cdnaPslSortedDir, "*")) )
-        addPslDirs.extend ( glob.glob(join(d.protPslSortedDir, "*")) )
-
+        addPslDirs.extend ( glob.glob(join(d.protPslSortedDir, "*")) ) 
         runner = d.getRunner(command)
         submitMergeSplitChain(runner, d.textDir, d.pslSortedDir, \
             d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, \

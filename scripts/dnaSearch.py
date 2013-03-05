@@ -100,6 +100,28 @@ def replaceWithSpaces(regex, string):
         return "".join([" "]*(matchObject.end(0) - matchObject.start(0)))
     return regex.sub(toSpaces, string) 
 
+def removePolyA(seq):
+    """ remove poly-A tails with len >= 7 from string 
+    >>> removePolyA("CGCGAGCGAAAAAAAAAAAAAAAAA")
+    'CGCGAGCG'
+    >>> removePolyA("ACTGTGACTGTAC")
+    'ACTGTGACTGTAC'
+    >>> removePolyA("ACTGTGACTGTACAAAAA")
+    'ACTGTGACTGTACAAAAA'
+    >>> removePolyA("AAAAAAA")
+    ''
+    """
+    i = len(seq)-1
+    while i >= 0:
+        if seq[i].lower() != "a":
+            break
+        i -= 1
+    nonAPos = i
+    if len(seq)-nonAPos >= 7:
+        seq = seq[0:nonAPos+1]
+    return seq
+        
+
 def removeOneRestrSite(seq):
     """ remove the first matching restr site from start or end of string 
     >>> removeOneRestrSite("CCCGGG")
@@ -173,6 +195,8 @@ class MatchStack:
 
         if len(nuclString) < conf.RESTRCLEANMAXLEN:
             nuclString         = removeOneRestrSite(nuclString)
+
+        nuclString = removePolyA(nuclString)
 
         partCount  = len(self.strings)
         return NucleotideOccurrence(self.start, self.end, nuclString, partCount, self.tainted)

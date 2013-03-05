@@ -70,12 +70,20 @@ pubsCrawlCfg = { "npg" :
     # Review process file for EMBO, see http://www.nature.com/emboj/journal/v30/n13/suppinfo/emboj2011171as1.html
     },
 
+    # with suppl
     # PMID 22017543
     # http://online.liebertpub.com/doi/full/10.1089/nat.2011.0311
+    # with html
+    # PMID 22145933
+    # http://online.liebertpub.com/doi/abs/10.1089/aid.2011.0232
+    # no html
+    # PMID 7632460
+    # http://online.liebertpub.com/doi/abs/10.1089/aid.1995.11.443
     "mal" :
     {
         "hostnames" : ["online.liebertpub.com"],
         "landingUrl_templates" : {"any" : "http://online.liebertpub.com/doi/full/%(doi)s"},
+        "landingUrl_isFulltextKeyword" : "/full/",
         "landingUrl_fulltextUrl_replace" : {"/abs/" : "/full/" },
         "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
         "landingPage_suppListTextREs" : ["Supplementary materials.*"]
@@ -418,6 +426,10 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
         logging.debug("firstPage %s" % articleData["firstPage"])
         urlTemplates = crawlConfig.get("landingUrl_templates", {})
         urlTemplate = urlTemplates.get(issn, None)
+        # if the ISSN is not in, try the "any" template
+        if urlTemplate==None and "any" in urlTemplates:
+            urlTemplate = urlTemplates.get("any", None)
+
         if urlTemplate==None:
             logging.debug("No template found for issn %s" % issn)
         else:
@@ -626,6 +638,10 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
         fh = open(filePath, "wb")
         fh.write(fileData)
         fh.close()
+
+    # "," in urls? this happened 2 times in 1 million files
+    suppFnames = [s.replace(",", "") for s in suppFnames]
+    suppUrls = [s.replace(",", "") for s in suppUrls]
 
     metaData["suppFiles"] = ",".join(suppFnames)
     metaData["suppUrls"] = ",".join(suppUrls)

@@ -106,28 +106,32 @@ class PipelineConfig:
 
         self.textConfigFname = join(batchDir, "textDir.conf") # directory where text files are stored
 
-        # genome blat directories
-        genomeBlatDir = "blatGenome"
-        self.seqDir         = join(batchDir, genomeBlatDir, "seq") # unique sequences per article, dups removed
-        self.fastaDir       = join(batchDir, genomeBlatDir, "fasta") # like seq, but in fa format
-        self.pslDir         = join(batchDir, genomeBlatDir, "psl") # blat output
-        self.pslSortedDir   = join(batchDir, genomeBlatDir, "sortedPsl") # sorted blat output
-        self.pslSplitDir    = join(batchDir, genomeBlatDir, "splitSortedPsl") # split blat output, for chaining
-        self.bedDir         = join(batchDir, genomeBlatDir, "bed") # chained sorted blat output
+        # filter step
 
-        # cdna blat directories
-        cdnaBlatDir    = "blatCdna"
-        self.cdnaPslDir       = join(batchDir, cdnaBlatDir, "psl") # blat output
-        self.cdnaPslSortedDir = join(batchDir, cdnaBlatDir, "cdnaSortedPsl") # sorted blat output
+        filterDir = "filter"
+        # unique sequences per article, dups removed
+        self.seqDir           = join(batchDir, filterDir, "tab")
+        self.protSeqDir       = join(batchDir, filterDir, "protTab")
+        # like seqDir and protSeqDir, but in fasta format, one file per target genome
+        self.fastaDir         = join(batchDir, filterDir, "fasta")
+        self.protFastaDir     = join(batchDir, filterDir, "protFasta")
 
-        # protein blat directories
-        protBlatDir    = "blatProt"
-        self.protSeqDir       = join(batchDir, protBlatDir, "seq") # unique sequences per article, dups removed
-        self.protFastaDir     = join(batchDir, protBlatDir, "fasta") # like seq, but in fa format
-        self.protPslDir       = join(batchDir, protBlatDir, "psl") # blat output
-        self.protPslSortedDir = join(batchDir, protBlatDir, "sortedPsl") # sorted blat output
-        self.protPslSplitDir  = join(batchDir, protBlatDir, "splitSortedPsl") # sorted blat output
-        self.protBedDir       = join(batchDir, protBlatDir, "protBed") # chained output
+        # blat ouput directories
+        blatDir = "blat"
+        self.pslDir           = join(batchDir, blatDir, "genome") # blat output
+        self.cdnaPslDir       = join(batchDir, blatDir, "cdna") # blat output
+        self.protPslDir       = join(batchDir, blatDir, "prot") # blat output
+
+        # chain output directories
+        chainDir = "chain"
+        self.pslSortedDir     = join(batchDir, chainDir, "genome", "sortedPsl")
+        self.pslSplitDir      = join(batchDir, chainDir, "genome", "splitSortedPsl")
+        self.cdnaPslSortedDir = join(batchDir, chainDir, "cdna", "sortedPsl")
+        self.protPslSortedDir = join(batchDir, chainDir, "prot", "sortedPsl")
+        self.protPslSplitDir  = join(batchDir, chainDir, "prot", "splitSortedPsl")
+
+        # bed step
+        self.bedDir           = join(batchDir, "bed") # chained sorted blat output
 
     def getRunner(self, step):
         " return a runner object for the current dataset and pipelineStep"

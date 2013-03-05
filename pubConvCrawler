@@ -280,10 +280,14 @@ def convertOneChunk(inFname, outFname, outArtFname):
 
         # convert supplemental files
         if row.suppFiles!="":
-            suppUrls = row.suppUrls.split(",")
+            suppUrls = row.suppUrls
+            # special case for a dozen AACR urls
+            if ",_" in suppUrls:
+                suppUrls = suppUrls.replace(",_","_")
+            suppUrls = suppUrls.split(",")
             suppFnames = row.suppFiles.split(",")
             if len(suppUrls)!=len(suppFnames):
-                logging.info("error: %s not good, %s neither" % \
+                logging.info("error: %s unequal number of commas, compared to %s " % \
                     (suppUrls, suppFnames))
                 assert(False)
 

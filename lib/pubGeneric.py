@@ -391,7 +391,11 @@ def recursiveSubmit(runner, parameterString):
 def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None):
     " create a default runner to submit jobs to cluster system "
     scriptBase = splitext(basename(scriptName))[0]
-    batchDir = join(pubConf.clusterBatchDir, scriptBase+'-'+algName)
+    if algName!=None:
+        batchDir = join(pubConf.clusterBatchDir, scriptBase+'-'+algName)
+    else:
+        batchDir = join(pubConf.clusterBatchDir, scriptBase)
+
     if not isdir(batchDir):
         logging.debug("Creating dir %s" % batchDir)
         os.makedirs(batchDir)
