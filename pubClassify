@@ -188,7 +188,7 @@ def convertSvmlResults(dIdFname, classDir, categoryFname):
     a format that is easier to parse: docId<tab>dbs (comma-sep) 
     """
     logging.info("Reading document identifiers from %s" % dIdFname)
-    docIds = [int(l.strip()) for l in open(dIdFname).readlines()]
+    docIds = [l.strip() for l in open(dIdFname).readlines()]
     dbCounts = defaultdict(int)
 
     docClasses = defaultdict(list)
@@ -203,9 +203,11 @@ def convertSvmlResults(dIdFname, classDir, categoryFname):
     logging.info("Got class info for %d articles" % len(docClasses))
 
     # write result to out file
-    ofh = open(categoryFname, "w")
+    ofh = gzip.open(categoryFname, "w")
+    ofh.write("articleId\texternalId\tclasses\n")
     for docId, classes in docClasses.iteritems():
-        ofh.write("%d\t%s\n" % (docId, ",".join(classes)))
+        artId, extId = docId.split("/")
+        ofh.write("%s\t%s\t%s\n" % (artId, extId, ",".join(classes)))
     ofh.close()
     logging.info("Wrote class info to %s" % categoryFname)
     for db, dbCount in dbCounts.iteritems():
@@ -234,11 +236,16 @@ def main(args, options):
         svmlLearn(svmlBinDir, svmlDir, modelDir, alphaDir)
 
     if "dmatrix" in steps:
+        assert(len(textDirs)==1)
         pubExpMatrix.runMatrixJobs(dMatrixFname, textDirs, wordListFname, None, None, \
                 options.skipMap, "svml", options.test)
 
     if "classify" in steps:
-        svmlClassify(svmlBinDir, dMatrixFname, modelDir, classDir)
+        #svmlClassify(svmlBinDir, dMatrixFname, modelDir, classDir)
+
+        assert(len(textDirs)==1)
+        textDir = textDirs[0]
+        categoryFname = join(textDir, "docClasses.tab.gz")
         convertSvmlResults(dIdFname, classDir, categoryFname)
 
 # ----------- MAIN --------------

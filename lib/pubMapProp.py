@@ -61,10 +61,12 @@ class PipelineConfig:
             self.batchId = None
             return
 
-        self.batchId = 0
-        while self.batchIsPastStep("tables", progressDir=\
-                join(self.baseDirBatches, str(self.batchId), "progress") ):
-            self.batchId += 1
+        for batchId in self._batchIds():
+            progressDir = join(self.baseDirBatches, str(batchId), "progress")
+            if not self.batchIsPastStep("tables", progressDir=progressDir):
+                break
+
+        self.batchId = int(batchId)
         logging.info("First valid batchId is %d" % (self.batchId))
 
         self.batchDir = join(self.baseDirBatches, str(self.batchId))
@@ -79,6 +81,7 @@ class PipelineConfig:
         # updateIds as part of this batch
         self.updateIdFile = join(self.batchDir, "updateIds.txt")
         self.updateIds = readList(self.updateIdFile)
+        logging.debug("UpdateIds: %s" % self.updateIds)
 
         # list of textfiles that were processed in batch
         self.chunkListFname = join(batchDir, "annotatedTextChunks.tab")
@@ -95,6 +98,7 @@ class PipelineConfig:
 
         # non-blat files
         self.fileDescFname      = join(batchDir, "files.tab") # file descriptions for browser tables
+        self.artDescFname       = join(batchDir, "articles.tab") # article descriptions for browser tables
         # articleIds associated to any marker
         self.markerArticleFile  = join(batchDir, "markerArticles.tab")
         # number of articles per marker, for base and all updates
@@ -168,6 +172,11 @@ class PipelineConfig:
             logging.debug("Creating dir %s" % self.batchDir)
             os.makedirs(self.batchDir)
 
+    def _batchIds(self):
+        subDirs = os.listdir(self.baseDirBatches)
+        subDirs = [s for s in subDirs if s.isdigit()]
+        return subDirs
+
     def _anyBatchSetup(self):
         " return if batches have been setup "
         # no if there is not yet any batch yet at all
@@ -175,11 +184,9 @@ class PipelineConfig:
         if not isdir(self.baseDirBatches):
             return False
 
-        # nothing if batches dir does not contain any numbered directories, there is no old
+        # no, if batches dir does not contain any numbered directories, there is no old
         # batch yet
-        subDirs = os.listdir(self.baseDirBatches)
-        subDirs = [s for s in subDirs if s.isdigit()]
-        if len(subDirs)==0:
+        if len(self._batchIds())==0:
             return False
 
         return True
@@ -206,13 +213,13 @@ class PipelineConfig:
         if not self._anyBatchSetup():
             return False
 
-        logging.debug("Checking if %s is at %s" % (progressDir, stepName))
         progressFname = join(progressDir, stepName)
-        if isfile(progressFname):
+        if isfile(progressFname)==True:
+            logging.debug("%s exists, step was completed" % (progressFname))
+            return True
+        else:
             logging.debug("No progress file, not at %s yet" % stepName)
             return False
-        else:
-            return True
         
     def getAllUpdateIds(self):
         """ 

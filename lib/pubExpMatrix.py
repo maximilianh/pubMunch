@@ -240,7 +240,7 @@ class MatrixMaker:
             
         if (self.posPmids==None and self.negPmids==None) or \
                 (len(self.posPmids)==0 and len(self.negPmids)==0) :
-            docId = article.articleId
+            docId = article.articleId+"/"+article.externalId
         else:
             if article.pmid=="":
                 logging.info("no PMID in article")
@@ -319,7 +319,6 @@ class MatrixMaker:
 
     def reduce(self, pmid, termIdList):
         " output vectors and document identifiers "
-        pmid = int(pmid)
         pmidAsClass = False
         if self.outFormat=="pmidsvml":
             pmidAsClass = True
@@ -328,6 +327,7 @@ class MatrixMaker:
             (len(self.posPmids)==0 and len(self.negPmids)==0):
             isPos = None
         else:
+            pmid = int(pmid)
             isPos = pmid in self.posPmids
 
         termIdSet = set(termIdList)

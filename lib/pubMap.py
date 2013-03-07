@@ -1079,7 +1079,6 @@ def stripArticleIds(hitListString):
         parts = matchStr.split(":")
         seqIds.append(parts[0])
         matchRanges.append(parts[1])
-
     return articleId, ",".join(seqIds), ",".join(matchRanges)
 
 def findBedPslFiles(bedDirs):
@@ -1113,7 +1112,6 @@ def readReformatBed(bedFname):
         bedLine = "\t".join(fields) 
         bedLines.setdefault(articleIdInt, []).append(bedLine)
     return bedLines
-
 
 def openBedPslOutFiles(basenames, dbList, tableDir):
     """ open two file handles for each basename like /path/path2/0000.hg19.bed
@@ -1739,12 +1737,14 @@ def runAnnotStep(d):
     # if the old batch is not over tables yet, squirk and die
     if d.batchId!=None and not d.batchIsPastStep("tables"):
         raise Exception("Found one batch in %s that is not at the tables step yet. "
-            "It might have crashed. You can try rm -rf %s to restart this batch" % (d.stepProgressFname, d.batchDir))
+            "It might have crashed. You can try rm -rf %s to restart this batch" % \
+                (d.progressDir, d.batchDir))
 
     d.createNewBatch()
     # the new batch must not be over annot yet
     if d.batchIsPastStep("annot"):
-        raise Exception("Annot was already run on this batch, see %s. Stopping." % d.stepProgressFname)
+        raise Exception("Annot was already run on this batch, see %s. Stopping." % \
+            d.progressDir)
 
     # find updates to annotate
     d.updateUpdateIds()
@@ -1783,6 +1783,12 @@ def parseFileDescs(fname):
         res[int(row.fileId)] = (row.desc, row.url)
     return res
         
+def parseArtDescs(fname):
+    res = {}
+    for r in maxCommon.iterTsvRows(fname):
+        res[int(row.articleId)] = (r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
+    return res
+
 def runTablesStep(d, options):
     " generate table files for mysql "
     # this step creates tables in batchDir/tables
@@ -1793,6 +1799,7 @@ def runTablesStep(d, options):
     # reformat bed and sequence files
     if not options.skipConvert:
         fileDescs  = parseFileDescs(d.fileDescFname)
+        artDescs  = parseArtDescs(d.artDescName)
         rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames)
         rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, \
             d.markerArticleFile, d.markerCountFile)
@@ -1810,12 +1817,13 @@ def runTablesStep(d, options):
 
 def runIdentifierStep(d, options):
     runner = d.getRunner("identifiers")
-    pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, {}, d.fileDescFname, \
+    paramDict = {}
+    paramDict["artDescFname"] = d.artDescFname
+    pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, paramDict, d.fileDescFname, \
         cleanUp=True, runTest=True, skipMap=options.skipConvert, \
         updateIds=d.updateIds, runner=runner)
     logging.info("Results written to %s" % (d.fileDescFname))
     d.appendBatchProgress("identifiers")
-
 
 def runStep(dataset, command, d, options):
     " run one step of the pubMap pipeline with pipeline directories in d "

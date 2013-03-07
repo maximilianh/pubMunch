@@ -118,21 +118,60 @@ class UnifyAuthors:
                 self.oldIds.add(uniqueId)
                 yield (articleId, uniqueId)
 
+def getFirstAuthor(string):
+    """ get first author family name and remove all special chars from it
+    
+    XX terribly hacky way to get output from two tables.
+    XX this was propped on very late and should be redone one day in a cleaner way
+    
+    """
+    string = string.split(" ")[0].split(",")[0].split(";")[0]
+    string = "\n".join(string.splitlines()) # get rid of crazy unicode linebreaks
+    string = string.replace("\m", "") # old mac text files
+    string = string.replace("\n", "")
+    string = unidecode.unidecode(string)
+    return string
+
 class GetFileDesc:
     """ 
     map-reduce algorithm to get the description and url of each file
+    and basic article information, like pmid, doi, issn, title, first author, year
     """
     def __init__(self):
         self.headers = ["fileId", "desc", "url"]
-        self.runOn = "files"
+        self.runOn   = "files"
 
     def map(self, articleData, fileData, text, result):
         fileId = fileData.fileId
         desc   = fileData.desc
         url    = fileData.url
-        result[fileId] = [(desc, url)]
+        result["f"+fileId] = [ (desc, url) ]
 
-    def reduce(self, fileId, valList):
-        desc, url = valList[0]
-        yield (fileId, desc, url)
+        a = articleData
+        firstAuthor = getFirstAuthor(a.authors)
+        #title = unidecode.unidecode(a.title)
+        # ff and chrome seem to show unicode in mouseovers just fine
+        title = a.title
+        artRow = [ (a.externalId, a.pmid, a.doi, a.printIssn, title, firstAuthor, a.year) ]
+        result["a"+articleData.articleId] = artRow
+
+    def reduceStartup(self, resultDict, paramDict, outFh):
+        self.artFh = open(paramDict["artDescFname"], "w")
+        headers = ["articleId", "externalId", "pmid", "doi", \
+            "printIssn", "title", "firstAuthor", "year"]
+        self.artFh.write("\t".join(headers))
+        self.artFh.write("\n")
+
+    def reduce(self, docId, valList):
+        if docId.startswith("f"):
+            desc, url = valList[0]
+            fileId = docId.strip('f')
+            yield (fileId, desc, url)
+        elif docId.startswith("a"):
+            row = valList[0]
+            line = docId.strip("a")+"\t"+u'\t'.join(row)+"\n"
+            self.artFh.write(line)
+        else:
+            assert(False)
+
 
