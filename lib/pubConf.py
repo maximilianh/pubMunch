@@ -395,6 +395,8 @@ mysqlDb = 'publications'
 # only convert records with one of these taxon Ids
 uniProtTaxonIds = [9606, 10090, 10116, 7955]
 
+# CLASSIFICATION ==============================
+svmlBinDir = "/hive/data/inside/pubs/svmlight"
 # ACCESS METHODS (convenience) ============================
 
 import sys, logging, os.path, time, random
@@ -438,13 +440,18 @@ def resolveTextDir(dataDir, makeDir=False):
                 logging.info("Creating directory %s" % dataDir2)
                 os.makedirs(dataDir2)
             else:
-                logging.error("Neither %s not %s are directories" % (dataDir, dataDir2))
+                raise Exception("Neither %s not %s are directories" % (dataDir, dataDir2))
                 dataDir = None
     return dataDir
 
 def resolveTextDirs(dataString):
     " like resolveTextDir but accepts comma-sep strings and yields many "
+    dirs = []
     for dataSpec in dataString.split(","):
-        yield resolveTextDir(dataSpec)
+        dirs.append( resolveTextDir(dataSpec) )
+    return dirs
         
-
+def getStaticDataDir():
+    """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
+    """
+    return join(dirname(__file__), "..", "data")

@@ -720,6 +720,7 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
     if updateIds is set, will only run on files like <updateId>_*, otherwise on all files
     """
 
+    logging.debug("Running map/reduce on text directories %s" % textDirs)
     alg = getAlg(algName, defClass="Map") # just to check if algName is valid
 
     if isinstance(textDirs, basestring):

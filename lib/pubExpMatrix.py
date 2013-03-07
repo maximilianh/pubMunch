@@ -37,23 +37,32 @@ def parseTerms(termFname):
     assert(len(termList)==len(termSet))
     return termList
 
-def runMatrixJobs(outFname, datasets, wordListFname, posPmidFname, negPmidFname, skipMap, outFormat, onlyTest):
+def runMatrixJobs(outFname, datasets, wordListFname, posPmidFname, negPmidFname, \
+        skipMap, outFormat, onlyTest, posPmids=None, negPmids=None, runner=None):
+    """ run jobs to convert the articles to a bag-of-words matrix """
+
+    assert (outFormat in ["svml", "arff", "pmidsvml"])
 
     if isinstance(datasets, basestring):
         datasets = [datasets]
 
-    batchDir = join(pubConf.clusterBatchDir, "pubExpMatrix-matrix")
-    cluster = pubGeneric.makeClusterRunner(__file__)
+    if runner==None:
+        runner = pubGeneric.makeClusterRunner(__file__)
 
-    posPmids = parsePmids(posPmidFname)
-    negPmids = parsePmids(negPmidFname)
+    logging.debug("pos and neg pmid fnames are: %s, %s" % (posPmidFname, negPmidFname))
+    if posPmidFname!=None:
+        posPmids = parsePmids(posPmidFname)
+    if negPmidFname!=None:
+        negPmids = parsePmids(negPmidFname)
+
     termList = parseTerms(wordListFname)
 
-    paramDict = {"termList": termList, "posPmids" : posPmids, "negPmids" : negPmids, "outFormat" : outFormat }
-    paramDict["pmidOutFile"] = splitext(outFname)[0]+".pmids"
+    paramDict = {"termList" : termList, "posPmids"  : posPmids, \
+                 "negPmids" : negPmids, "outFormat" : outFormat }
+    paramDict["docIdOutFname"] = splitext(outFname)[0]+".docIds"
 
     pubAlg.mapReduce(__file__+":MatrixMaker", datasets, paramDict, \
-        outFname, skipMap=skipMap, deleteDir=False, runTest=True, runner=cluster, onlyTest=onlyTest)
+        outFname, skipMap=skipMap, runTest=True, runner=runner, onlyTest=onlyTest)
 
 def expData(inDirs, pmidListFname, outBase):
     logging.info("Reading %s" % pmidListFname)
@@ -82,12 +91,9 @@ def expData(inDirs, pmidListFname, outBase):
                     text = text.replace("\a", " ")
                     ofh.write("%s\t%s\t%s\n" % (article.pmid, txtClass, text))
 
-def buildWordList(datasets, skipMap):
-    outFname = "./wordFreq.tab"
-    batchDir = join(pubConf.clusterBatchDir, "pubExpMatrix-wordCount")
-    clusterRun = maxRun.Runner(batchDir=batchDir, headNode="swarm.cse.ucsc.edu", clusterType="parasol")
+def buildWordList(runner, datasets, skipMap, outFname):
     pubAlg.mapReduce(__file__+":WordCounter", datasets, {}, outFname, skipMap=skipMap, \
-        deleteDir=False, runTest=False, cleanUp=False, runner=clusterRun)
+        runTest=False, cleanUp=True, runner=runner)
 
 def runChunkMatrix(outDir, datasets):
     batchDir = join(pubConf.clusterBatchDir, "pubExpMatrix")
@@ -148,7 +154,7 @@ def iterWords(text):
 
 class WordCounter:
     """ 
-    map-reduce algorithm to count number of articles where word occurs
+    map-reduce algorithm to create a list of words and count number of articles where word occurs
     """
     def __init__(self):
         self.wordCounts = {}
@@ -216,8 +222,13 @@ class MatrixMaker:
         for termId, term in enumerate(self.termList):
             self.termToId[term] = termId
 
-        self.posPmids = set(paramDict["posPmids"])
-        self.negPmids = set(paramDict["negPmids"])
+        if paramDict["posPmids"]!=None:
+            self.posPmids = set(paramDict["posPmids"])
+            self.negPmids = set(paramDict["negPmids"])
+        else:
+            self.posPmids = []
+            self.negPmids = []
+
         self.outFormat = paramDict["outFormat"]
         self.pmidCount = 0
 
@@ -227,14 +238,19 @@ class MatrixMaker:
             logging.info("not main")
             return
             
-        if article.pmid=="":
-            logging.info("no PMID in article")
-            return
+        if (self.posPmids==None and self.negPmids==None) or \
+                (len(self.posPmids)==0 and len(self.negPmids)==0) :
+            docId = article.articleId
+        else:
+            if article.pmid=="":
+                logging.info("no PMID in article")
+                return
 
-        pmid = int(article.pmid)
-        if pmid not in self.negPmids and pmid not in self.posPmids:
-            logging.debug("neither in pos nor in neg set")
-            return
+            docId = int(article.pmid)
+            pmid = docId
+            if self.posPmids!=None and pmid not in self.negPmids and pmid not in self.posPmids:
+                logging.debug("neither in pos nor in neg set")
+                return
             
         termRow = []
         for term in iterWords(text):
@@ -242,14 +258,13 @@ class MatrixMaker:
                 termId = self.termToId[term]
                 termRow.append(termId)
 
-        #results[pmid] = array.array('L', termRow)
-        results[pmid] = termRow
+        results[docId] = termRow
         logging.info(" ".join([article.articleId, article.externalId, file.fileType, file.mimeType]))
 
     def reduceStartup(self, resultDict, paramDict, outFh):
         " called before reducer starts "
-        if self.outFormat=="svml":
-            self.headers = ["#noHeader"]
+        if self.outFormat in ["svml", "pmidsvml"]:
+            self.headers = ["#"]
         else:
             self.headers = ["% "]
             outFh.write("@RELATION pubExpMatrix\n")
@@ -258,7 +273,11 @@ class MatrixMaker:
             outFh.write("@ATTRIBUTE class {pos,neg}\n")
             outFh.write("@DATA\n")
 
-        self.pmidOfh = open(paramDict["pmidOutFile"], "w")
+        if self.outFormat == "pmidsvml":
+            self.docIdOfh = None
+        else:
+            self.docIdOfh = open(paramDict["docIdOutFname"], "w")
+        
         self.pmidCount = 0
 
     def _termsToArff(self, pmid, isPos, termIdSet):
@@ -281,9 +300,13 @@ class MatrixMaker:
         line = ",".join(termRow)
         return line
 
-    def _termsToSvmLight(self, pmid, isPos, termIdSet):
+    def _termsToSvmLight(self, pmid, isPos, termIdSet, pmidAsClass):
         " return a string in svmlight format "
-        if isPos:
+        if pmidAsClass:
+            target = str(pmid)
+        elif isPos==None:
+            target = "0"
+        elif isPos==True:
             target = "+1"
         else:
             target = "-1"
@@ -295,18 +318,29 @@ class MatrixMaker:
         return line
 
     def reduce(self, pmid, termIdList):
-        " called once per cluster run after all nodes are finished. output vectors "
+        " output vectors and document identifiers "
         pmid = int(pmid)
-        isPos = pmid in self.posPmids
+        pmidAsClass = False
+        if self.outFormat=="pmidsvml":
+            pmidAsClass = True
+
+        if (self.posPmids==None and self.negPmids==None) or \
+            (len(self.posPmids)==0 and len(self.negPmids)==0):
+            isPos = None
+        else:
+            isPos = pmid in self.posPmids
+
         termIdSet = set(termIdList)
         if len(termIdSet)!=0:
-            if self.outFormat=="svml":
-                lineStr = self._termsToSvmLight(pmid, isPos, termIdSet)
+            if self.outFormat.endswith("svml"):
+                lineStr = self._termsToSvmLight(pmid, isPos, termIdSet, pmidAsClass)
             elif self.outFormat=="arff":
                 lineStr = self._termsToArff(pmid, isPos, termIdSet)
             else:
                 assert(False)
 
-            self.pmidOfh.write(str(self.pmidCount)+"\t"+str(pmid)+"\n")
+            if self.docIdOfh!=None:
+                #self.docIdOfh.write(str(self.pmidCount)+"\t"+str(pmid)+"\n")
+                self.docIdOfh.write(str(pmid)+"\n")
             self.pmidCount+=1
             yield [lineStr]

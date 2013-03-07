@@ -1,0 +1,249 @@
+#!/usr/bin/env python2.7
+
+# script to run the various steps of the text classification pipeline
+
+# first load the standard libraries from python
+# we require at least python 2.5
+#from sys import *
+import sys
+if sys.version_info[0]==2 and not sys.version_info[1]>=7:
+    print "Sorry, this program requires at least python 2.7"
+    sys.exit(1)
+
+# load default python packages
+import logging, optparse, os, glob, zipfile, types, gzip, shutil, subprocess, itertools
+from os.path import *
+from collections import defaultdict
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, maxRun, pubConf, maxCommon, pubExpMatrix
+
+# === CONSTANTS ===================================
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <datasetList> <step> - script to run the various steps of the article classification pipeline
+
+steps:
+wordCount = create document-frequency list of words, needs to be filtered with 
+            google/BNC to be useful
+            writes to data/wordList/wordList.raw.txt
+tmatrix   = create training matrix from document collection (map/reduce)
+            reads pmid lists from data/classify/pmids
+            writes to <pubBase>/classify/tmatrix.tab
+            rewrite training matrix to one file per biological database
+            and train svmlight models
+            writes to data/classify/models
+dmatrix   = create big document matrix from document collection, by default
+            runs only on 
+            reads from article datasets
+            writes to <pubBase>/classify/docMatrix.svml 
+classify  = run models onto docMatrix and write to <pubBase>/classify/docClasses.tab
+
+example:
+pubFilter pmc,elsevier,crawler dmatrix
+
+""")
+
+#parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
+#parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
+parser.add_option("", "--skipMap", dest="skipMap", action="store_true", help="skip all map steps")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="only run the test, nothing else")
+parser = pubGeneric.addLogOptions(parser)
+(options, args) = parser.parse_args()
+pubGeneric.setupLogging(progFile, options)
+
+# ==== FILE NAMES ====
+
+# set up two main dirs: one for static data from UCSC and one for local data
+dataDir = pubConf.getStaticDataDir()
+statClassDir = join(dataDir, "classify") # static data, part of code repo
+varDir  = pubConf.pubsDataDir
+varClassDir = join(varDir, "classify") # pipeline data, like temporary files and output
+
+rawWordListFname = join(statClassDir, "wordList.raw.txt")
+wordListFname    = join(statClassDir, "wordList.txt.gz")
+
+pmidListDir      = join(statClassDir, "trainPmids")
+
+mapRedDir        = join(varClassDir, "mapReduceTemp")
+tMatrixFname     = join(varClassDir, "allTrain.pmidsvml")
+svmlDir         = join(statClassDir, "svmlInput")
+modelDir         = join(statClassDir, "svmlModels")
+alphaDir         = join(statClassDir, "svmlAlphas")
+svmlBinDir      = pubConf.svmlBinDir
+
+dMatrixFname     = join(varClassDir, "docs.svml")
+dIdFname         = join(varClassDir, "docs.docIds")
+categoryFname    = join(varClassDir, "docClasses.tab")
+
+classDir         = join(varClassDir, "svmlClasses")
+
+if not isdir(varClassDir):
+    os.makedirs(varClassDir)
+
+# ==== FUNCTIONs =====
+def parsePmids(inDir):
+    """ parse pmids from dir and return as a set of all PMIDs and as a dict
+        db -> list of (class, pmid) tuples, class is either "+1" or "-1"
+    """
+    logging.info("Parsing PMIDs")
+    allPmids = set()
+    pmidDbs = {}
+    dbs = set()
+    inFnames = glob.glob(join(inDir, "*.txt"))
+    for inFname in inFnames:
+        base = basename(inFname)
+        if not (base.startswith("pos") or base.startswith("neg")):
+            continue
+        pmidClass, db = base.split(".")[:2]
+        dbs.add(db)
+        if pmidClass=="pos":
+            svmlClass = "+1"
+        else:
+            svmlClass = "-1"
+
+        logging.debug("Parsing %s" % inFname)
+        for line in open(inFname):
+            pmid = line.strip()
+            pmid = int(pmid)
+            allPmids.add(pmid)
+            pmidDbs.setdefault(pmid, []).append( (svmlClass, db) )
+    logging.info("Read %d PMIDs from %s" % (len(allPmids), inDir))
+    return allPmids, dbs, pmidDbs
+
+def mkEmptyDir(dir):
+    " make sure dir exists and is empty "
+    if isdir(dir):
+        shutil.rmtree(dir)
+    if not isdir(dir):
+        os.makedirs(dir)
+
+def splitSvml(tMatrixFname, dbs, pmidDbs, svmlDir):
+    """ create one svml output file in svmlDir per db in dbPmids and distribute the svml lines from
+        tMatrixFname to the right files in svmlDir
+    """
+    dbOfh = {}
+    fnames = []
+    mkEmptyDir(svmlDir)
+
+    for db in dbs:
+        ofname = join(svmlDir, db+".svml")
+        dbOfh[db] = open(ofname, "w")
+        fnames.append(ofname)
+
+    logging.debug("Rewriting %s" % tMatrixFname)
+    for line in open(tMatrixFname):
+        pmid, featVec = line.split(" ", 1)
+        pmid = int(pmid)
+        for svmlClass, db in pmidDbs[pmid]:
+            dbOfh[db].write(svmlClass+" ")
+            dbOfh[db].write(featVec)
+
+    logging.info("Wrote SVML files: %s" % " ".join(fnames))
+
+def svmlLearn(svmlBinDir, svmlDir, modelDir, alphaDir):
+    " run svml_learn on all .svml files in svmlDir "
+    binPath = join(svmlBinDir, "svm_learn")
+    if not isfile(binPath):
+        raise Exception("%s does not exist" % binPath)
+    mkEmptyDir(modelDir)
+    mkEmptyDir(alphaDir)
+
+    logging.info("Using SVML files in dir %s" % svmlDir)
+    for svmlFname in glob.glob(join(svmlDir, "*.svml")):
+        db = splitext(basename(svmlFname))[0]
+        modelFname = join(modelDir, db+".model")
+        alphaFname = join(alphaDir, db+".alpha")
+        logging.info("Running SVMlight for db %s" % db)
+        cmd = [binPath, svmlFname, modelFname, "-a", alphaFname]
+        subprocess.check_call(cmd)
+    logging.info("alphaput written to %s and %s" % (modelDir, alphaDir))
+
+def svmlClassify(svmlBinDir, svmlFname, modelDir, classDir):
+    " run svml on all models from modelDir "
+    mkEmptyDir(classDir)
+    binPath = join(svmlBinDir, "svm_classify")
+    if not isfile(binPath):
+        raise Exception("%s does not exist" % binPath)
+
+    logging.info("Classifying with SVMLight, feature file %s" % svmlFname)
+    runner = pubGeneric.makeClusterRunner(__file__, algName="svmlClassify")
+    for modelFname in glob.glob(join(modelDir, "*.model")):
+        db = splitext(basename(modelFname))[0]
+        outFname = join(classDir, db+".classes")
+        logging.info("Running on %s" % modelFname)
+        cmd = [binPath, svmlFname, modelFname, "{check out line+ %s}" % outFname]
+        cmd = " ".join(cmd)
+        #logging.debug("command is %s" % cmd)
+        runner.submit(cmd)
+    runner.finish(wait=True)
+
+def convertSvmlResults(dIdFname, classDir, categoryFname):
+    """ combine svml output and article ids and write categories in 
+    a format that is easier to parse: docId<tab>dbs (comma-sep) 
+    """
+    logging.info("Reading document identifiers from %s" % dIdFname)
+    docIds = [int(l.strip()) for l in open(dIdFname).readlines()]
+    dbCounts = defaultdict(int)
+
+    docClasses = defaultdict(list)
+    for classFname in glob.glob(join(classDir, "*.classes")):
+        logging.info("Reading class assignment from %s" % classFname)
+        classValues = [float(l.strip()) for l in open(classFname).readlines()]
+        db = splitext(basename(classFname))[0]
+        for docId, classValue in itertools.izip(docIds, classValues):
+            if classValue>0.0:
+                docClasses[docId].append(db)
+                dbCounts[db]+=1
+    logging.info("Got class info for %d articles" % len(docClasses))
+
+    # write result to out file
+    ofh = open(categoryFname, "w")
+    for docId, classes in docClasses.iteritems():
+        ofh.write("%d\t%s\n" % (docId, ",".join(classes)))
+    ofh.close()
+    logging.info("Wrote class info to %s" % categoryFname)
+    for db, dbCount in dbCounts.iteritems():
+        logging.info("%s: %d assigned documents" % (db, dbCount))
+
+def main(args, options):
+    datasets, stepsString = args
+    steps = stepsString.split(',')
+    textDirs = pubConf.resolveTextDirs(datasets)
+    
+    if "wordCount" in steps:
+        runner = pubGeneric.makeClusterRunner(__file__, "pubClassify-wordCount")
+        pubExpMatrix.buildWordList(runner, datasets, options.skipMap, wordListFname)
+        logging.info("raw word list created, use your own command now to reduce it to something smaller")
+        logging.info("e.g. cat %s | gawk '($2<50000) && ($2>100)' | cut -f1 | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/google-ngrams/fiction/top100k.tab  | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/bnc/bnc.txt > %s" % (rawWordListFname, wordListFname))
+
+    if "tmatrix" in steps:
+        runner = pubGeneric.makeClusterRunner(__file__, "pubClassify-tMatrix")
+        pmids, dbs, dbPmids = parsePmids(pmidListDir)
+        pubExpMatrix.runMatrixJobs(tMatrixFname, textDirs, wordListFname, None, None, \
+                options.skipMap, "pmidsvml", options.test, posPmids=pmids, negPmids=[])
+        logging.info("output matrix written to %s" % tMatrixFname)
+        splitSvml(tMatrixFname, dbs, dbPmids, svmlDir)
+
+    if "train" in steps:
+        svmlLearn(svmlBinDir, svmlDir, modelDir, alphaDir)
+
+    if "dmatrix" in steps:
+        pubExpMatrix.runMatrixJobs(dMatrixFname, textDirs, wordListFname, None, None, \
+                options.skipMap, "svml", options.test)
+
+    if "classify" in steps:
+        svmlClassify(svmlBinDir, dMatrixFname, modelDir, classDir)
+        convertSvmlResults(dIdFname, classDir, categoryFname)
+
+# ----------- MAIN --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

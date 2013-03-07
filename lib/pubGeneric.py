@@ -104,7 +104,13 @@ def verboseFunc(message):
     " we add this to logging "
     logging.log(5, message)
 
-def setupLogging(PROGNAME, options, logFileName=False, debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
+def addLogOptions(parser):
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+    return parser
+
+def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
+        debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
     if options==None:
         stdoutLevel=logging.DEBUG

@@ -74,9 +74,7 @@ def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None)
     seq table but instead search all sequences against all dbs in the list
     of dbs
     """
-    #fileIdCnt = collections.Counter()
-    #fileIdCnt[fileId]+=1
-    #logging.debug("Parsing sequences from %s" % inFilename)
+    logging.debug("Parsing sequences from %s" % inFilename)
 
     for row in maxCommon.iterTsvRows(inFilename):
         if forceDbs!=None:
@@ -91,9 +89,7 @@ def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None)
 
         for db in dbs:
             annotId = int(row.annotId)
-            #fileId = annotId / 100000
             fileId = annotId / (10**pubConf.ANNOTDIGITS)
-            #articleId = fileId / 1000
             articleId = fileId / (10**pubConf.FILEDIGITS)
             seq = row.seq
 
@@ -328,7 +324,6 @@ def sortDb(pslBaseDir, pslOutFile, tSeqType=None, pslMap=False):
     usfh.close()
 
     # sort
-    #cmd = """pslSort dirs -nohead stdout %(tmpDir)s %(pslInDirStr)s | pslCDnaFilter stdin stdout -globalNearBest=0 -filterWeirdOverlapped -ignoreIntrons %(addCommand)s | uniq > %(pslOutFile)s """ % (locals())
     sortedPslFname = join(tmpDir, "sorted.psl")
     sortCmd = ["sort", "-T%s" % tmpDir, "-t\t", "-k10,10", unsortedPslFname, "-o%s" % sortedPslFname]
     logging.debug("Sorting command is %s" % sortCmd)
@@ -714,16 +709,15 @@ def mergeFilterPsls(inDirs):
     """ merge/sort/filter all psls (separated by db) in inDir into a temp file with all
     psls for all dbs, split into chunked pieces and write them to outDir 
     """
-    tmpFile, tmpPslFname = maxCommon.makeTempFile(tmpDir=pubConf.getTempDir(), ext=".psl", prefix = "pubMap_split")
+    tmpFile, tmpPslFname = maxCommon.makeTempFile(tmpDir=pubConf.getTempDir(), \
+                ext=".psl", prefix = "pubMap_split")
     tmpFile.close()
     logging.debug("Merging into tmp file %s" % tmpPslFname)
-    #tmpFile, tmpPslFname = open("temp.psl", "w"), "temp.psl"
     pslSortTmpDir = join(pubConf.getTempDir(), "pubMap-sortSplitPsls")
     if isdir(pslSortTmpDir):
         shutil.rmtree(pslSortTmpDir)
     os.makedirs(pslSortTmpDir)
     logging.info("Sorting psls in %s to temp file %s" % (str(inDirs), pslSortTmpDir))
-    #inDirs = glob.glob(join(inDir, "*"))
     inDirString = " ".join(inDirs)
     cmd = "pslSort dirs -nohead stdout %(pslSortTmpDir)s %(inDirString)s | pslCDnaFilter stdin %(tmpPslFname)s -minAlnSize=19 -globalNearBest=0" % locals()
     maxCommon.runCommand(cmd)
