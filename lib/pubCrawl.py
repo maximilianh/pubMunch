@@ -1634,7 +1634,8 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
             maxConSecError = MAXCONSECERR
 
         try:
-            wgetCache = {}
+            global wgetCache
+            wgetCache.clear()
             pubmedMeta = readLocalMedline(pmid)
             if pubmedMeta==None:
                 pubmedMeta = downloadPubmedMeta(pmid)

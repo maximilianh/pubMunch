@@ -121,18 +121,21 @@ class PipelineConfig:
         self.protFastaDir     = join(batchDir, filterDir, "protFasta")
 
         # blat ouput directories
-        blatDir = "blat"
-        self.pslDir           = join(batchDir, blatDir, "genome") # blat output
-        self.cdnaPslDir       = join(batchDir, blatDir, "cdna") # blat output
-        self.protPslDir       = join(batchDir, blatDir, "prot") # blat output
+        blatDir = join(batchDir, "blat")
+        self.pslDir           = join(blatDir, "genome") # blat output
+        self.cdnaPslDir       = join(blatDir, "cdna") # blat output
+        self.protPslDir       = join(blatDir, "prot") # blat output
+
+        # sort output directories
+        self.sortBaseDir = join(batchDir, "sort")
+        self.pslSortedDir     = join(self.sortBaseDir, "genome")
+        self.cdnaPslSortedDir = join(self.sortBaseDir, "cdna")
+        self.protPslSortedDir = join(self.sortBaseDir, "prot")
 
         # chain output directories
-        chainDir = "chain"
-        self.pslSortedDir     = join(batchDir, chainDir, "genome", "sortedPsl")
-        self.pslSplitDir      = join(batchDir, chainDir, "genome", "splitSortedPsl")
-        self.cdnaPslSortedDir = join(batchDir, chainDir, "cdna", "sortedPsl")
-        self.protPslSortedDir = join(batchDir, chainDir, "prot", "sortedPsl")
-        self.protPslSplitDir  = join(batchDir, chainDir, "prot", "splitSortedPsl")
+        self.chainBaseDir = join(batchDir, "chain")
+        self.pslSplitDir      = join(self.chainBaseDir, "genome")
+        self.protPslSplitDir  = join(self.chainBaseDir, "prot")
 
         # bed step
         self.bedDir           = join(batchDir, "bed") # chained sorted blat output

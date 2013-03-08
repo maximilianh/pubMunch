@@ -1,5 +1,5 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO
+    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess
 from types import *
 
 def errAbort(text):
@@ -233,7 +233,12 @@ def runCommand(cmd, ignoreErrors=False, verbose=False):
     logging.debug(msg)
     if verbose:
         logging.info(msg)
-    ret = os.system(cmd)
+
+    if type(cmd)==types.StringType:
+        ret = os.system(cmd)
+    elif type(cmd)==types.ListType:
+        ret = subprocess.call(cmd)
+
     if ret!=0:
         if ignoreErrors:
             logging.info("Could not run command %s" % cmd)

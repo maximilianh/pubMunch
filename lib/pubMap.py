@@ -202,7 +202,8 @@ def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqT
         for db, faNames in dbFiles.iteritems():
             logging.debug("seqtype %s, db %s, query file file count %d" % (seqType, db, len(faNames)))
             blatOpt, filterOpt = blatOptions[seqType]
-            pslTypeDir = maxCommon.joinMkdir(pslDir, seqType, db)
+            #pslTypeDir = maxCommon.joinMkdir(pslDir, seqType, db)
+            pslTypeDir = maxCommon.joinMkdir(pslDir, db, seqType)
             logging.info("creating blat jobs: db %s, query count %d, output to %s" \
                 % (db, len(faNames), pslDir))
             # in cdna mode, we lookup our own 2bit files
@@ -242,110 +243,37 @@ def clusterCmdLine(method, inFname, outFname, checkIn=True, checkOut=True):
     cmd = "%s %s %s %s %s" % (sys.executable, __file__, method, inFname, outFname)
     return cmd
 
-def submitSortPslJobs(runner, sortCmd, inDir, outDir, dbList, addDirs=None):
+def getJobScript(name):
+    " return full path to cluster job script "
+    dir = dirname(__file__)
+    return join(dir, "jobScripts", name)
+
+def submitSortPslJobs(runner, seqType, inDir, outDir, dbList):
     """ submit jobs to sort psl files, one for each db"""
-    #maxCommon.mustBeEmptyDir(outDir)
     logging.info("Sorting psls, mapping to genome coord system and prefixing with db")
     maxCommon.makedirs(outDir, quiet=True)
-    if addDirs:
-        for addDir in addDirs:
-            if not isdir(addDir):
-                logging.warn("Directory %s does not exist so this is the first pass")
-                logging.warn("Make sure to run 'sort' again once you have run sortCdna")
-            else:
-                logging.info("Adding data from directory %s, this seems to be the 2nd pass")
-                inDir +=","+addDir
-
+    jobScript = getJobScript("mapSortFilterPsl")
     for db in dbList:
-        dbOutDir = join(outDir, db)
-        maxCommon.makedirs(dbOutDir, quiet=True)
-        dbOutFile = join(dbOutDir, db+".psl")
-        cmd = clusterCmdLine(sortCmd, inDir, dbOutFile, checkIn=False)
+        dbInDir = join(inDir, db)
+        maxCommon.makedirs(outDir, quiet=True)
+        dbOutFile = join(outDir, db+".psl")
+        cmd = jobScript + " %(dbInDir)s %(dbOutFile)s %(db)s %(seqType)s" % locals()
+        if seqType in "gp":
+            cmd += " --cdnaDir " + pubConf.cdnaDir
         runner.submit(cmd)
     logging.info("If batch went through: output can be found in %s" % dbOutFile)
         
-def sortDb(pslBaseDir, pslOutFile, tSeqType=None, pslMap=False):
-    """ 
-        pslBaseDir can be a comma-sep string with two dirs, second one will be added
-        "as is". Otherwise, pslBaseDir will be resolved to <pslBaseDir>/{short,long}/<db>
+def makeTempFile(tmpDir, prefix):
+    " create tempfile in pubtools tempdir dir with given prefix, return object and name "
+    tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=".psl")
+    return tf, tf.name
 
-        Sort psl files from inDir/genomeBlat/{short,long}/<db> to outFile
-        Prefix TSeq field of psl with name of the db (e.g. "hg19,chr1")
-
-        if liftCdna is True: use cdnaDir/<db> to lift from mrna coordinates to genome coords
-    """ 
-
-    db = splitext(basename(pslOutFile))[0]
-    cdnaDir = None
-    genomeLevel = False
-    if "," in pslBaseDir:
-        pslParts   = pslBaseDir.split(",")
-        pslBaseDir = pslParts[0]
-        cdnaDir    = pslParts[1]
-        genomeLevel= True
-
-    allPslInDirs = []
-    for seqType in ["short", "long"]:
-        pslInDir    = join(pslBaseDir, seqType, db)
-        dirFileList = pubGeneric.findFiles(pslInDir, ".psl")
-        pslSubDirs  = set([join(pslInDir, relDir) for relDir,fname in dirFileList])
-        logging.debug("Found %d subdirs with psl files in %s" % (len(pslSubDirs), pslInDir))
-        allPslInDirs.extend(pslSubDirs)
-
-    if cdnaDir!=None:
-        cdnaDbDir = join(cdnaDir, db)
-        logging.debug("Adding cdna data dir %s to psl dirs" % cdnaDbDir)
-        allPslInDirs.append(cdnaDbDir)
-    logging.debug("Found psl dirs: %s" % allPslInDirs)
-
-    pslInFnames = []
-    for pslDir in allPslInDirs:
-        for fname in glob.glob(join(pslDir, "*.psl")):
-            pslInFnames.append(fname)
-
-    if len(pslInFnames)==0:
-        logging.warn("Cannot find any input psl files %s, not doing any sorting" % pslInFnames)
-        open(pslOutFile, "w").write("") # for parasol
-        return
-        
-    # create tmp dir
-    tmpDir = pubConf.getTempDir()
-    tmpDir = join(tmpDir, "pubMap-pslSort-"+db)
-    if isdir(tmpDir):
-        shutil.rmtree(tmpDir)
-    os.makedirs(tmpDir)
-
-    # concat all files into temp file first
-    unsortedPslFname = join(tmpDir, "unsorted.psl")
-    usfh = open(unsortedPslFname, "w")
-    for fn in pslInFnames:
-        usfh.write(open(fn).read())
-        #usfh.write("\n")
-    usfh.close()
-
-    # sort
-    sortedPslFname = join(tmpDir, "sorted.psl")
-    sortCmd = ["sort", "-T%s" % tmpDir, "-t\t", "-k10,10", unsortedPslFname, "-o%s" % sortedPslFname]
-    logging.debug("Sorting command is %s" % sortCmd)
-    subprocess.check_call(sortCmd)
-
-    addCommand = ""
-    # if we're on cdna level, need to map to genome coords from mrna coords
-    if pslMap:
-        cdnaTargetBaseDir = pubConf.cdnaDir
-        pslMapFile = join(cdnaTargetBaseDir, db, "cdna.psl")
-        if not isfile(pslMapFile):
-            logging.warn("Cannot find pslMap file %s, not doing any sorting" % pslMapFile)
-            open(pslOutFile, "w").write("") # for parasol
-            return
-        addCommand += "| pslMap stdin %s stdout" % (pslMapFile)
-    # add the db in front of the tName field in psl
-    addCommand += """| gawk '{OFS="\\t"; if (length($0)!=0) {$14="%s,"$14",%s"; print}}' """ % (db, tSeqType)
-
-    cmd = """pslCDnaFilter %(sortedPslFname)s stdout -globalNearBest=0 -filterWeirdOverlapped -ignoreIntrons %(addCommand)s | uniq > %(pslOutFile)s """ % (locals())
-    maxCommon.runCommand(cmd)
-    shutil.rmtree(tmpDir)
-    logging.info("Output written to %s" % pslOutFile)
+def concatFiles(inFnames, outFile):
+    # concat all files into some file
+    #usfh = open(unsortedPslFname, "w")
+    for fn in inFnames:
+        outFile.write(open(fn).read())
+    outFile.flush() # cannot do close, otherwise temp file will get deleted
 
 def makeBlockSizes(pslList):
     """ generate bed block sizes for a bed from 
@@ -1097,7 +1025,7 @@ def findBedPslFiles(bedDirs):
         len(bedDirs)))
     return basenames
 
-def readReformatBed(bedFname):
+def readReformatBed(bedFname, artDescs):
     " read bed, return as dict, indexed by articleId "
     bedLines = {}
     for line in open(bedFname):
@@ -1109,6 +1037,8 @@ def readReformatBed(bedFname):
         fields.append(seqRangesField)
         fields[5] = "" # remove strand 
         articleIdInt = int(articleId)
+        fields.extend(artDescs[articleIdInt])
+
         bedLine = "\t".join(fields) 
         bedLines.setdefault(articleIdInt, []).append(bedLine)
     return bedLines
@@ -1137,7 +1067,7 @@ def appendPslsWithArticleId(pslFname, articleIds, outFile):
             outFile.write("\t".join(psl))
             outFile.write("\n")
 
-def rewriteFilterBedFiles(bedDirs, tableDir, dbList):
+def rewriteFilterBedFiles(bedDirs, tableDir, dbList, artDescs):
     """ add extended column with annotationIds
     """
     logging.info("- Formatting bed files for genome browser")
@@ -1161,7 +1091,7 @@ def rewriteFilterBedFiles(bedDirs, tableDir, dbList):
 
         logging.debug("Reformatting %s to %s" % (bedFname, outName))
 
-        bedLines = readReformatBed(bedFname)
+        bedLines = readReformatBed(bedFname, artDescs)
         articleIds = set()
         outFh   = outBed[db]
         for articleId, bedLines in bedLines.iteritems():
@@ -1786,7 +1716,7 @@ def parseFileDescs(fname):
 def parseArtDescs(fname):
     res = {}
     for r in maxCommon.iterTsvRows(fname):
-        res[int(row.articleId)] = (r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
+        res[int(r.articleId)] = (r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
     return res
 
 def runTablesStep(d, options):
@@ -1798,9 +1728,10 @@ def runTablesStep(d, options):
     logging.info("Reading file descriptions")
     # reformat bed and sequence files
     if not options.skipConvert:
-        fileDescs  = parseFileDescs(d.fileDescFname)
         artDescs  = parseArtDescs(d.artDescName)
-        rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames)
+        rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames, artDescs)
+
+        fileDescs  = parseFileDescs(d.fileDescFname)
         rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, \
             d.markerArticleFile, d.markerCountFile)
         articleDbs, annotLinks = parseBeds([d.tableDir])
@@ -1874,11 +1805,12 @@ def runStep(dataset, command, d, options):
 
     elif command=="sort":
         # lift and sort the cdna and protein blat output into one file per organism-cdna 
+        maxCommon.mustBeEmptyDir(d.sortBaseDir, makeDir=True)
         runner = d.getRunner(command)
-        submitSortPslJobs(runner, "sortDbCdna", d.cdnaPslDir, d.cdnaPslSortedDir, pubConf.speciesNames)
-        submitSortPslJobs(runner, "sortDbGenome", d.pslDir, d.pslSortedDir, pubConf.speciesNames)
+        submitSortPslJobs(runner, "g", d.pslDir, d.pslSortedDir, pubConf.speciesNames.keys())
         cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
-        submitSortPslJobs(runner, "sortDbProt", d.protPslDir, d.protPslSortedDir, cdnaDbs)
+        submitSortPslJobs(runner, "p", d.protPslDir, d.protPslSortedDir, cdnaDbs)
+        submitSortPslJobs(runner, "c", d.cdnaPslDir, d.cdnaPslSortedDir, cdnaDbs)
         runner.finish(wait=True)
         d.appendBatchProgress(command)
 
@@ -1945,18 +1877,6 @@ if __name__ == "__main__":
     elif command=="filterProtSeqFile":
         # called internally from "filter"
         filterSeqFile(inName, outName, isProt=True)
-
-    elif command=="sortDbCdna":
-        # called internally by submitSortPslJobs (cdna version)
-        sortDb(inName, outName, tSeqType="c", pslMap=True)
-
-    elif command=="sortDbProt":
-        # called by submitSortPslJobs (prot version)
-        sortDb(inName, outName, tSeqType="p", pslMap=True)
-
-    elif command=="sortDbGenome":
-        # called by submitSortPslJobs
-        sortDb(inName, outName, tSeqType="g")
 
     elif command=="chainFile":
         # called by submitChainFileJobs

@@ -53,9 +53,9 @@ pubFilter pmc,elsevier,crawler dmatrix
 #parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("", "--skipMap", dest="skipMap", action="store_true", help="skip all map steps")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="only run the test, nothing else")
-parser = pubGeneric.addLogOptions(parser)
+parser = pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
-pubGeneric.setupLogging(progFile, options)
+pubGeneric.addGeneralOptions(progFile, options)
 
 # ==== FILE NAMES ====
 

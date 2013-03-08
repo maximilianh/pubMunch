@@ -39,33 +39,24 @@ STEPS FOR SCANNING TEXT FOR SEQUENCES:
 
 "annot": extract DNA seqs from text files (annotator)
    example:
-     pubMap pmc seqs
+     pubMap pmc annots
 
 STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
 
 (use pubPrepCdnaDir to build the directory with mRNA sequences)
 
-"filter": remove duplicate and very short DNA/Prot sequences
+"filter": remove duplicate and very short DNA/Prot sequences, convert to fasta files
+   one fasta file per genome
    input: <baseDir>/annot, output: <baseDir>/blatGenome/seq and <baseDir>/blatProt/seq
    example: pubMap pmc filter 
 
-"blatGenome": submit blat jobs of DNA against genomes, converts to split fasta files
-      separates into short/long sequences
-   input: <baseDir>/blatGenome/seq
-   output: <baseDir>/blatGenome/fasta and <baseDir>/blatGenome/psl/{long,short}
+"blat": submit blat jobs of DNA against genomes, cdna, proteins, 
+   separates job into short/long sequences
+   output: <baseDir>/blat/{genome,cdna,prot}
    example: pubMap pmc blat
 
-"sortGenome": sort blat output files and add genome to tName
-   input: <baseDir>/psl/{short,long}   ouput: baseDir/psl/sortedPsl
+"sort": sort all blat output files, map cdna/prot to genome, run pslCDnaFilter
    example: pubMap pmc sort
-
-CDNA-steps (like above, writes to <baseDir>/blatCdna/):
-   "blatCdna": pulls out sequences that do not match any genome, then see "blatGenome"
-   "sortCdna": like "sortGenome", but with cdna matches, adding a pslMap step
-
-Protein-steps:
-   "blatProt":  blat proteins
-   "sortProt":  sort proteins, includes pslMap-lifting
 
 "chain": merge cDNA, genome and protein DNA psl from all species into one file, split and
     chain psls and convert to a raw version of bed (for debugging as custom track)
@@ -107,14 +98,10 @@ OTHER COMMANDS:
     "steps:all" is the same as "steps:annot-tables"
 
 """)
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true", help="do not convert sequences or convert to fasta or sort/chain, only do the second part of the processing for blat, blatCdna or chain. Used for debugging.") 
-#parser.add_option("-n", "--dontRunNow", dest="dontRunNow", action="store_true", help="if parasol: do not push cluster jobs immediately but let user run para push commands") 
-#parser.add_option("-f", "--forceDbs", dest="forceDbs", action="append", help="force blatting on only this list of dbs (comma-sep), e.g. hg19,mm9", default=None) 
-parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubMap.<date>.log", default=False) 
-parser.add_option("", "--loadFinal", dest="loadFinal", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.") 
-###parser.add_option("-r", "--reload", dest="reload", action="store_true", help="by default, the tables step", default=None) 
+parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true", help="do not convert sequences or convert to fasta or sort/chain, only do the second part of the processing for blat, blatCdna or chain. Used for debugging.", default=False)
+parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubMap.<date>.log", default=False)
+parser.add_option("", "--loadFinal", dest="loadFinal", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.")
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -122,9 +109,8 @@ def main(args, options):
 
     dataset, command = args
 
-    allSteps = ["annot", "filter", "blatGenome", "sortGenome", "blatCdna", \
-        "sortCdna", "blatProt", "sortProt", "chain", \
-        "identifiers", "tables", "load"]
+    allSteps = ["annot", "filter", "blat", "sort", 
+        "chain", "identifiers", "tables", "load"]
 
     dirs = pubMapProp.PipelineConfig(dataset)
 

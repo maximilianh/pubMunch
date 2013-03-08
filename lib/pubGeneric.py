@@ -6,6 +6,8 @@ import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, tra
 import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun
 from os.path import *
 
+forceHeadnode = None
+
 # for countBadChars
 all_chars = (unichr(i) for i in xrange(0x110000))
 specCodes = set(range(0,32))
@@ -104,14 +106,20 @@ def verboseFunc(message):
     " we add this to logging "
     logging.log(5, message)
 
-def addLogOptions(parser):
-    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+def addGeneralOptions(parser):
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+    parser.add_option("", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
     return parser
 
 def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
         debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
+    if "cluster" in options.__dict__ and options.cluster!=None:
+        global forceHeadnode 
+        # for makeClusterRunner
+        forceHeadnode = options.cluster
+
     if options==None:
         stdoutLevel=logging.DEBUG
     elif "verbose" in options.__dict__ and options.verbose:
@@ -408,7 +416,13 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
     clusterType = pubConf.clusterType
     if headNode==None:
         headNode = pubConf.clusterHeadNode
+
+    if forceHeadnode!=None:
+        headNode = forceHeadnode
+        logging.info("Headnode forced from command line to %s, ignoring default" % headNode)
+
     logging.info("Preparing cluster run, batchDir %(batchDir)s, type %(clusterType)s, headNode %(headNode)s" % locals())
+
     if headNode=="localhost":
         clusterType="local"
     runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
