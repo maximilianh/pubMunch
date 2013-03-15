@@ -151,7 +151,8 @@ class GetFileDesc:
         firstAuthor = getFirstAuthor(a.authors)
         #title = unidecode.unidecode(a.title)
         # ff and chrome seem to show unicode in mouseovers just fine
-        title = a.title
+        title = pubStore.prepSqlString(a.title)
+
         artRow = [ (a.externalId, a.pmid, a.doi, a.printIssn, title, firstAuthor, a.year) ]
         result["a"+articleData.articleId] = artRow
 
@@ -170,8 +171,14 @@ class GetFileDesc:
         elif docId.startswith("a"):
             row = valList[0]
             line = docId.strip("a")+"\t"+u'\t'.join(row)+"\n"
+            logging.debug("Writing %s" % line)
             self.artFh.write(line)
         else:
             assert(False)
 
-
+    def reduceEnd(self, data):
+        # this solves a very weird bug due to the hackiness of this whole 
+        # solution. The test run will open the file but not close it.
+        # so the main run will write into the same old file.
+        # 
+        self.artFh.close()

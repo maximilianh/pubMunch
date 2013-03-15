@@ -53,7 +53,8 @@ def filterOneChunk(inFname, pmidFname, outFname):
     store.close()
 
 def submitJobs(inDirs, pmidFname, outDir):
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
+    inDirs = pubConf.resolveTextDirs(inSpec)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, algName=inSpec)
 
     pmidFname = os.path.abspath(pmidFname)
 
@@ -101,8 +102,7 @@ if isfile(inSpec):
     filterOneChunk(inSpec, pmidFname, outSpec)
 else:
     # otherwise got called from command line by user
-    inDirs = pubConf.resolveTextDirs(inSpec)
     outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
     assert(outDir!=None)
     maxCommon.mustBeEmptyDir(outDir)
-    submitJobs(inDirs, pmidFname, outDir)
+    submitJobs(inSpec, pmidFname, outDir)

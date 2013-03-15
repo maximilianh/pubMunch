@@ -258,7 +258,7 @@ def submitSortPslJobs(runner, seqType, inDir, outDir, dbList):
         maxCommon.makedirs(outDir, quiet=True)
         dbOutFile = join(outDir, db+".psl")
         cmd = jobScript + " %(dbInDir)s %(dbOutFile)s %(db)s %(seqType)s" % locals()
-        if seqType in "gp":
+        if seqType in ["c", "p"]:
             cmd += " --cdnaDir " + pubConf.cdnaDir
         runner.submit(cmd)
     logging.info("If batch went through: output can be found in %s" % dbOutFile)
@@ -296,6 +296,7 @@ def makeBlockSizes(pslList):
             start = int(start) - minStart
             for pos in range(start, start+size):
                 mask[pos] = 1
+        print psl
 
     blockStarts = []
     blockSizes = []
@@ -313,6 +314,7 @@ def makeBlockSizes(pslList):
             lastStart=None
     if lastStart!=None:
         blockSizes.append(len(mask)-lastStart)
+    print mask
     assert(mask[len(mask)-1]==1)
     blockStarts = [str(x) for x in blockStarts]
     blockSizes = [str(x) for x in blockSizes]
@@ -613,20 +615,18 @@ def removeEmptyDirs(dirList):
             filteredList.append(dir)
     return filteredList
             
-def submitMergeSplitChain(runner, textDir, inDir, splitDir, bedDir, maxDbMatchCount, dbList, updateIds, addDirs=None):
+def submitMergeSplitChain(runner, textDir, inDirs, splitDir, bedDir, maxDbMatchCount, dbList, updateIds):
     " join all psl files from each db into one big PSL for all dbs, keep best matches and re-split "
     maxCommon.mustBeEmptyDir(bedDir, makeDir=True)
     maxCommon.mustBeEmptyDir(splitDir, makeDir=True)
-    inDirs = glob.glob(join(inDir, "*"))
-    if addDirs:
-        inDirs.extend(addDirs)
 
-    filteredDirs = removeEmptyDirs(inDirs)
-    if len(filteredDirs)==0:
-        raise Exception("Nothing to do, %s are empty" % inDirs)
+    logging.info("Reading psls from directories %s" % inDirs)
+    #filteredDirs = removeEmptyDirs(inDirs)
+    #if len(filteredDirs)==0:
+        #raise Exception("Nothing to do, %s are empty" % inDirs)
 
     # merge/sort/filter psls into one file and split them again for chaining
-    mergedPslFilename = mergeFilterPsls(filteredDirs)
+    mergedPslFilename = mergeFilterPsls(inDirs)
     articleToChunk = pubGeneric.readArticleChunkAssignment(textDir, updateIds)
     splitPsls(mergedPslFilename, splitDir, articleToChunk, maxDbMatchCount)
     os.remove(mergedPslFilename)
@@ -1025,8 +1025,10 @@ def findBedPslFiles(bedDirs):
         len(bedDirs)))
     return basenames
 
-def readReformatBed(bedFname, artDescs):
-    " read bed, return as dict, indexed by articleId "
+def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
+    """ read bed, return as dict, indexed by articleId. Special case for a dataset named yif. 
+        (yif = yale image finder). Figures are a class of their own.
+    """
     bedLines = {}
     for line in open(bedFname):
         fields = line.strip("\n").split("\t")
@@ -1037,9 +1039,19 @@ def readReformatBed(bedFname, artDescs):
         fields.append(seqRangesField)
         fields[5] = "" # remove strand 
         articleIdInt = int(articleId)
-        fields.extend(artDescs[articleIdInt])
 
-        bedLine = "\t".join(fields) 
+        artDescFields = artDescs[articleIdInt]
+        issn = artDescFields[2]
+        impact = impacts.get(issn, 0)
+
+        fields.extend(artDescFields)
+        fields.append(str(impact))
+        defaultClass = ""
+        if dataset=="yif":
+            defaultClass="yif"
+        fields.append(artClasses.get(articleIdInt, defaultClass))
+
+        bedLine = "\t".join(fields)
         bedLines.setdefault(articleIdInt, []).append(bedLine)
     return bedLines
 
@@ -1067,7 +1079,7 @@ def appendPslsWithArticleId(pslFname, articleIds, outFile):
             outFile.write("\t".join(psl))
             outFile.write("\n")
 
-def rewriteFilterBedFiles(bedDirs, tableDir, dbList, artDescs):
+def rewriteFilterBedFiles(bedDirs, tableDir, dbList, artDescs, artClasses, impacts, dataset):
     """ add extended column with annotationIds
     """
     logging.info("- Formatting bed files for genome browser")
@@ -1091,7 +1103,7 @@ def rewriteFilterBedFiles(bedDirs, tableDir, dbList, artDescs):
 
         logging.debug("Reformatting %s to %s" % (bedFname, outName))
 
-        bedLines = readReformatBed(bedFname, artDescs)
+        bedLines = readReformatBed(bedFname, artDescs, artClasses, impacts, dataset)
         articleIds = set()
         outFh   = outBed[db]
         for articleId, bedLines in bedLines.iteritems():
@@ -1106,7 +1118,8 @@ def rewriteFilterBedFiles(bedDirs, tableDir, dbList, artDescs):
 
     logging.info("features that were retained")
     for db, count in featCounts.iteritems():
-        logging.info("Db %s: %d features kept, %d feats (%d articles) dropped" % (db, count, dropCounts[db], dropArtCounts[db]))
+        logging.info("Db %s: %d features kept, %d feats (%d articles) dropped" % \
+            (db, count, dropCounts[db], dropArtCounts[db]))
     logging.info("bed output written to directory %s" % (tableDir))
     
 def mustLoadTable(db, tableName, tabFname, sqlName, append=False):
@@ -1284,6 +1297,8 @@ def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, suffix="
     for (tableBaseName, fileType), dbFnames in fileDict.iteritems():
         upTableBase = upcaseFirstLetter(tableBaseName)
         for db, fnames in dbFnames.iteritems():
+            if db.startswith("nonUcsc_"):
+                continue
             for fname in fnames:
                 # find the right .sql file
                 if tableBaseName.startswith("marker") and not tableBaseName.startswith("markerAnnot"):
@@ -1392,7 +1407,8 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
     filesMatch      = isIdenticalOnDisk(loadedFilenames)
     if not filesMatch:
         raise Exception("Old files already loaded into DB (%s.%s) are different "
-            "from the ones on disk" % (trackingDb, trackingTable))
+            "from the ones on disk. You can run hgsql -e 'truncate %s.%s' to reload everything." %\
+                (trackingDb, trackingTable, trackingDb, trackingTable))
     append          = (len(loadedFilenames) != 0) # only append if there is already old data
 
     # first create the marker bed files (for all basedirs) and load them
@@ -1714,9 +1730,37 @@ def parseFileDescs(fname):
     return res
         
 def parseArtDescs(fname):
+    " read article descriptions into memory (can be very big, several gbs) "
+    logging.info("Parsing %s" % fname)
     res = {}
     for r in maxCommon.iterTsvRows(fname):
         res[int(r.articleId)] = (r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
+    return res
+
+def parseImpacts(fname):
+    """ parse file with columns ISSN and impact, return as dict string -> int 
+    impact is coded as a number 0-255, with 255= impact 25
+    """
+    res = {}
+    maxImp = 25.0
+    for row in maxCommon.iterTsvRows(fname):
+        if row.impact.strip()=="":
+            continue
+        impact = float(row.impact)
+        impVal = int(min(impact,maxImp) * (255/maxImp))
+        res[row.ISSN] = impVal
+    return res
+        
+def parseArtClasses(textDir, updateIds):
+    " read article classes into memory."
+    # XX use the updateIds!!
+    fname = join(textDir, "docClasses.tab.gz")
+    if not isfile(fname):
+        return {}
+    logging.info("Parsing article classes from %s" % fname)
+    res = {}
+    for r in maxCommon.iterTsvRows(fname):
+        res[int(r.articleId)] = (r.classes.split(","))
     return res
 
 def runTablesStep(d, options):
@@ -1728,8 +1772,13 @@ def runTablesStep(d, options):
     logging.info("Reading file descriptions")
     # reformat bed and sequence files
     if not options.skipConvert:
-        artDescs  = parseArtDescs(d.artDescName)
-        rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames, artDescs)
+        # load all additional bed+ data into memory
+        artDescs  = parseArtDescs(d.artDescFname)
+        artClasses = parseArtClasses(d.textDir, d.updateIds)
+        impacts = parseImpacts(pubConf.impactFname)
+
+        rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames, \
+            artDescs, artClasses, impacts, d.dataset)
 
         fileDescs  = parseFileDescs(d.fileDescFname)
         rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, \
@@ -1751,7 +1800,7 @@ def runIdentifierStep(d, options):
     paramDict = {}
     paramDict["artDescFname"] = d.artDescFname
     pubAlg.mapReduce("unifyAuthors.py:GetFileDesc", d.textDir, paramDict, d.fileDescFname, \
-        cleanUp=True, runTest=True, skipMap=options.skipConvert, \
+        cleanUp=False, runTest=True, skipMap=options.skipConvert, \
         updateIds=d.updateIds, runner=runner)
     logging.info("Results written to %s" % (d.fileDescFname))
     d.appendBatchProgress("identifiers")
@@ -1807,6 +1856,7 @@ def runStep(dataset, command, d, options):
         # lift and sort the cdna and protein blat output into one file per organism-cdna 
         maxCommon.mustBeEmptyDir(d.sortBaseDir, makeDir=True)
         runner = d.getRunner(command)
+        runner.maxRam = "8g"
         submitSortPslJobs(runner, "g", d.pslDir, d.pslSortedDir, pubConf.speciesNames.keys())
         cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
         submitSortPslJobs(runner, "p", d.protPslDir, d.protPslSortedDir, cdnaDbs)
@@ -1816,13 +1866,11 @@ def runStep(dataset, command, d, options):
 
     elif command=="chain":
         # join all psl files from each db into one big one for all dbs, filter and re-split
-        addPslDirs = []
-        addPslDirs.extend ( glob.glob(join(d.cdnaPslSortedDir, "*")) )
-        addPslDirs.extend ( glob.glob(join(d.protPslSortedDir, "*")) ) 
         runner = d.getRunner(command)
-        submitMergeSplitChain(runner, d.textDir, d.pslSortedDir, \
-            d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, \
-            pubConf.speciesNames.keys(), d.updateIds, addDirs=addPslDirs)
+        pslDirs = [d.pslSortedDir, d.cdnaPslSortedDir, d.protPslSortedDir]
+        dbs = pubConf.speciesNames.keys()
+        submitMergeSplitChain(runner, d.textDir, pslDirs, \
+            d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, dbs, d.updateIds)
         d.appendBatchProgress("chain")
 
     # ==== COMMANDS TO PREP OUTPUT TABLES FOR BROWSER

@@ -230,7 +230,7 @@ class MatrixMaker:
             self.negPmids = []
 
         self.outFormat = paramDict["outFormat"]
-        self.pmidCount = 0
+        self.docIdCount = 0
 
     def map(self, article, file, text, results):
         " called once for each input file. create dict pmid -> list of sorted termIds "
@@ -238,19 +238,19 @@ class MatrixMaker:
             logging.info("not main")
             return
             
-        if (self.posPmids==None and self.negPmids==None) or \
-                (len(self.posPmids)==0 and len(self.negPmids)==0) :
-            docId = article.articleId+"/"+article.externalId
-        else:
+        # if any pmids were provided, ignore non-PMID articles
+        if (self.posPmids!=None and self.negPmids!=None) or \
+                (len(self.posPmids)!=0 and len(self.negPmids)!=0) :
             if article.pmid=="":
                 logging.info("no PMID in article")
                 return
 
-            docId = int(article.pmid)
-            pmid = docId
-            if self.posPmids!=None and pmid not in self.negPmids and pmid not in self.posPmids:
-                logging.debug("neither in pos nor in neg set")
-                return
+        docId = article.articleId+"/"+article.externalId+"/"+article.pmid
+        #docId = int(article.pmid)
+        pmid = int(article.pmid)
+        if self.posPmids!=None and pmid not in self.negPmids and pmid not in self.posPmids:
+            logging.debug("neither in pos nor in neg set")
+            return
             
         termRow = []
         for term in iterWords(text):
@@ -278,7 +278,7 @@ class MatrixMaker:
         else:
             self.docIdOfh = open(paramDict["docIdOutFname"], "w")
         
-        self.pmidCount = 0
+        self.docIdCount = 0
 
     def _termsToArff(self, pmid, isPos, termIdSet):
         " return a string in arff format "
@@ -300,10 +300,10 @@ class MatrixMaker:
         line = ",".join(termRow)
         return line
 
-    def _termsToSvmLight(self, pmid, isPos, termIdSet, pmidAsClass):
+    def _termsToSvmLight(self, docId, isPos, termIdSet, docIdAsClass):
         " return a string in svmlight format "
-        if pmidAsClass:
-            target = str(pmid)
+        if docIdAsClass:
+            target = docId
         elif isPos==None:
             target = "0"
         elif isPos==True:
@@ -317,30 +317,34 @@ class MatrixMaker:
         line = "%s %s" % (target, " ".join(ftStrings))
         return line
 
-    def reduce(self, pmid, termIdList):
+    def reduce(self, docId, termIdList):
         " output vectors and document identifiers "
-        pmidAsClass = False
+        docIdAsClass = False
         if self.outFormat=="pmidsvml":
-            pmidAsClass = True
+            docIdAsClass = True
 
         if (self.posPmids==None and self.negPmids==None) or \
             (len(self.posPmids)==0 and len(self.negPmids)==0):
             isPos = None
         else:
-            pmid = int(pmid)
+            pmid = int(docId.split("/")[2])
             isPos = pmid in self.posPmids
 
         termIdSet = set(termIdList)
         if len(termIdSet)!=0:
             if self.outFormat.endswith("svml"):
-                lineStr = self._termsToSvmLight(pmid, isPos, termIdSet, pmidAsClass)
+                lineStr = self._termsToSvmLight(docId, isPos, termIdSet, docIdAsClass)
             elif self.outFormat=="arff":
-                lineStr = self._termsToArff(pmid, isPos, termIdSet)
+                lineStr = self._termsToArff(docId, isPos, termIdSet)
             else:
                 assert(False)
 
             if self.docIdOfh!=None:
                 #self.docIdOfh.write(str(self.pmidCount)+"\t"+str(pmid)+"\n")
-                self.docIdOfh.write(str(pmid)+"\n")
-            self.pmidCount+=1
+                self.docIdOfh.write(str(docId)+"\n")
+            self.docIdCount+=1
             yield [lineStr]
+
+    def reduceEnd(self, results):
+        if self.docIdOfh!=None:
+            self.docIdOfh.close()

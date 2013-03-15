@@ -525,7 +525,7 @@ class htmlWriter:
 
     def write(self, text):
         #self.f.write(text.encode("latin1", 'replace'))
-        self.f.write(text.encode("utf", 'replace'))
+        self.f.write(text.encode("utf8", 'replace'))
 
     def writeLn(self, str):
         if str==None:

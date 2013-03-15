@@ -2,7 +2,13 @@ from os.path import *
 
 # GENERAL SETTINGS   ================================================
 # baseDir for internal data, accessible from cluster (if there is one)
+# used for data created during pipeline runs
 pubsDataDir = '/hive/data/inside/pubs'
+
+# static data, accessible from cluster, but part of distribution
+# these are basic files like gene lists, marker lists, journal lists
+# Some of it can be updated with pubPrepXXX commands
+staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 
 # DB PARSER SETTINGS ================================================
 # directory for files with parsed DBs each DB, e.g. uniprot or pdb
@@ -167,7 +173,8 @@ identifierStart = {
     "imgt"     : 4300000000,
     "pdfDir"   : 4400000000,
     "yif"      : 4500000000,
-    "crawler"  : 5000000000
+    "crawler"  : 5000000000,
+    "free"     : 6000000000  # to indicate end of list, always keep this here
 }
 # commands to convert various filetypes to ascii text 
 # $in and $out will be replaced with temp filenames
@@ -262,15 +269,20 @@ speciesNames = {
 'ci2' : ['ascidian', 'intestinalis', 'chordates', 'Ciona'],
 'sacCer2' : ['cerevisiae', 'Saccharomyces', 'yeast'],
 'nonUcsc_arabidopsisTair10' : ['arabidopsis', 'Arabidopsis', 'thaliana', 'thale cress'],
-'ensg17-PlasmodiumFalciparium-ASM276v1' : ['plasmodium', 'falciparium', 'malaria']
+'nonUcsc_ensg17-PlasmodiumFalciparium-ASM276v1' : ['plasmodium', 'Plasmodium', 'falciparium', 'malaria']
 }
 
 # During best-genome filtering, sometimes two genomes score equally
 # if this is the case, pick the best one, in this order:
 # the first one has highest priority
+
+# if a genome is not part of the genbank config system then you need to prefix it with
+# "nonUcsc_". Any db name like this will be searched in nonUcscGenomesDir (see below).
+# e.g. nonUcsc_archaea will be resolved to /hive/data/inside/pubs/nonUcscGenomes/archaea.2bit
+# The blatter also needs a .ooc file with the same name.
 alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
 'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2', 
-'nonUcsc_arabidopsisTair10', 'ensg17-PlasmodiumFalciparium-ASM276v1']
+'nonUcsc_arabidopsisTair10', 'nonUcsc_ensg17-PlasmodiumFalciparium-ASM276v1']
 
 # these genomes are used if no species name matches are found
 defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10", "nonUcsc_archaea"]
@@ -288,7 +300,7 @@ nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
 
 
 # for some genomes we don't have refseq data
-noCdnaDbs = ["sacCer2", "nonUcsc_archaea", "nonUcsc_arabidopsisTair10"]
+noCdnaDbs = ["sacCer2", "nonUcsc_archaea", "nonUcsc_arabidopsisTair10", "nonUcsc_ensg17-PlasmodiumFalciparium-ASM276v1"]
 
 # some text datasets are just variants of others
 # for these, to avoid annotation id overlaps with the main dataset
@@ -371,6 +383,9 @@ cdnaTable = 'refSeqAli'
 # where to store the cDNA data (alignments and fasta files)
 cdnaDir = "/hive/data/inside/pubs/cdnaDb/"
 
+# file with impact factors for bed annotation
+impactFname = join(staticDataDir, "map", "impact2011.tab")
+
 # directory with the files t2g.sql, t2gArticle.sql and t2gSequence.sql
 # required for loading into data UCSC genome browser
 # (for "pubMap <dataset> load")
@@ -396,7 +411,12 @@ mysqlDb = 'publications'
 uniProtTaxonIds = [9606, 10090, 10116, 7955]
 
 # CLASSIFICATION ==============================
+# directory with the SVMlight binaries
 svmlBinDir = "/hive/data/inside/pubs/svmlight"
+
+# directory to write html output files, one per DB
+classOutHtmlDir = "/cluster/home/max/public_html/mining/classes"
+
 # ACCESS METHODS (convenience) ============================
 
 import sys, logging, os.path, time, random
@@ -454,4 +474,4 @@ def resolveTextDirs(dataString):
 def getStaticDataDir():
     """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
     """
-    return join(dirname(__file__), "..", "data")
+    return staticDataDir

@@ -564,6 +564,7 @@ class PubReaderTest:
         art.articleId = "1000000000"
         art.pmid = "10"
         art.externalId = "extId000"
+        art.printIssn = "1234-1234"
 
         fileObj = C()
         fileObj.fileId = "1001"
@@ -792,7 +793,6 @@ def articleIdToDataset(articleId):
             restList.append( (datasetName, rest) )
     restList.sort(key=operator.itemgetter(1))
     #print restList
-    return restList[0][0]
 
 def iterChunks(datasets):
     """ given a list of datasets like ["pmc", "elsevier"], return a list of directory/chunkStems, 
@@ -889,18 +889,58 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
             primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False)
         addLoadedFiles(dbFname, toLoadFnames)
 
+datasetRanges = None
+
+def setupDatasetRanges():
+    if datasetRanges!=None:
+        return
+
+    datasetStarts = pubConf.identifierStart.items()
+    datasetStarts.sort(key=operator.itemgetter(1))
+    assert(datasetStarts[-1][0]=="free")
+
+    global datasetRanges
+    datasetRanges = []
+    for i in range(0, len(datasetStarts)-1):
+        d = datasetStarts[i]
+        d2 = datasetStarts[i+1]
+        datasetRanges.append((d[0], d[1], d2[1]))
+
+def artIdToDatasetName(artId):
+    """ resolve article Id to dataset name 
+    >>> artIdToDatasetName(1000000000)
+    'pmc'
+    >>> artIdToDatasetName(4500000005)
+    'yif'
+    """
+    artId = int(artId)
+    setupDatasetRanges()
+    for dataset, minId, maxId in datasetRanges:
+        if artId >= minId and artId < maxId:
+            return dataset
+
 def getArtDbPath(datasetName):
-    " return the sqlite database name with meta info of a dataset "
+    """ return the sqlite database name with meta info of a dataset """
     dataDir = pubConf.resolveTextDir(datasetName)
     dbPath = join(dataDir, "articles.db")
     return dbPath
 
+conCache = {}
 def openArticleDb(datasetName):
-    path = getArtDbPath(datasetName)
-    con, cur = maxTables.openSqlite(path)
-    con.row_factory = sqlite3.Row
-    cur = con.cursor()
+    if datasetName in conCache:
+        con, cur = conCache[datasetName]
+    else:
+        path = getArtDbPath(datasetName)
+        logging.debug("Opening db %s" % path)
+        con, cur = maxTables.openSqlite(path, asDict=True)
+        conCache[datasetName] = (con,cur)
     return con, cur
+
+def lookupArticleByArtId(artId):
+    " convenience method to get article info given article Id, caches db connections "
+    dataset = artIdToDatasetName(artId)
+    con, cur = openArticleDb(dataset)
+    return lookupArticle(con, cur, "articleId", artId)
 
 def lookupArticle(con, cur, column, val):
     " uses sqlite db, returns a dict with info we have locally about article, None if not found "

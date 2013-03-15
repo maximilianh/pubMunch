@@ -366,7 +366,7 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             if alg.headers[0]=="start" and alg.headers[1]=="end":
                 start, end = row[0:2]
                 if (start,end) == (0,0) or not addSnippet:
-                    snippet = ""
+                    snippet = None
                 else:
                     snippet = getSnippet(secText, start, end)
                     # lift start and end if sectioning
@@ -377,14 +377,15 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
                 logging.debug("Got row: %s" % str(row))
                 if doSectioning:
                     fields.append(section)
-                fields.append(snippet)
+                if snippet!=None:
+                    fields.append(snippet)
             #fields = [unicode(x).encode("utf8") for x in fields]
             fields = [pubStore.removeTabNl(unicode(x)) for x in fields]
                 
             line = "\t".join(fields)
             outFh.write(line+"\n")
             annotCount+=1
-            assert(annotCount<10**annotDigits) # can only store 100.000 annotations
+            assert(annotCount<10**annotDigits) # we can only store 100.000 annotations per file
     return annotCount
 
 def writeHeaders(alg, outFh, doSectioning, addFields):
@@ -407,7 +408,7 @@ def writeHeaders(alg, outFh, doSectioning, addFields):
     if doSectioning:
         headers.append("section")
 
-    if not "snippet" in headers:
+    if not "snippet" in headers and "start" in headers and "end" in headers:
         headers.append("snippet")
     logging.debug("Writing headers %s to %s" % (headers, outFh.name))
     outFh.write("\t".join(headers)+"\n")
@@ -496,13 +497,14 @@ def runAnnotate(reader, alg, paramDict, outName):
     bestMain = attributeTrue(alg, "bestMain")
     logging.info("Only best main files: %s" % bestMain)
 
-    addSnippet = not "snippet" in alg.headers
+    addSnippet = "snippet" in alg.headers
 
     for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
         logging.debug("Annotating article %s with %d files, %s" % \
             (articleData.articleId, len(fileDataList), [x.fileId for x in fileDataList]))
         for fileData in fileDataList:
-            writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields, addSnippet)
+            writeAnnotations(alg, articleData, fileData, outFh, \
+                annotIdAdd, doSectioning, addFields, addSnippet)
 
     if outName!="stdout":
         outFh.close()
@@ -610,6 +612,7 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
         tupleIterator = alg.reduce(key, valList)
         for tuple in tupleIterator:
             if tuple==None:
+                logging.debug("Got None, not writing anything")
                 continue
             if type(tuple)==types.StringType: # make sure that returned value is a list
                 tuple = [tuple]
@@ -620,6 +623,10 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
             ofh.write("\n")
         meter.taskCompleted()
     ofh.close()
+
+    if "reduceEnd" in dir(alg):
+        logging.info("Running reduceEnd")
+        alg.reduceEnd(data)
 
 def concatFiles(inDir, outFname):
     " concat all files in outDir and write to outFname. "
@@ -740,6 +747,9 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
     # before we let this loose on the cluster, make sure that it actually works
     if runTest:
         mapReduceTestRun(textDirs, alg, paramDict, tmpDir, updateIds=updateIds, skipMap=skipMap)
+        # make sure that all state of the algorithm is reset
+        del alg
+        alg = getAlg(algName, defClass="Map") # just to check if algName is valid
 
     if not onlyTest:
         logging.info("Now submitting to cluster/running on all files")

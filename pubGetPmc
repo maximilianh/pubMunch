@@ -43,7 +43,10 @@ def parseFileList(path):
     ifh.readline() # skip header
     for line in ifh:
         fields = line.strip('\n').split("\t")
-        fname, cit, pmcId = fields
+        if len(fields)!=3:
+            fname, cit, pmcId, pdfName = fields # PMC changed their format for a few weeks
+        else:
+            fname, cit, pmcId = fields
         data[pmcId] = fname
     return data
 

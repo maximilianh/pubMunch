@@ -98,12 +98,13 @@ class Runner:
             # remove parasol tags
             removeTags = [ "}",
                 "{check in line",
-                "{check out line",
                 "{check out line+",
+                "{check out line",
                 "{check out exists+",
                 "{check out exists",
-                "{check in exists",
-                "{check in exists+"]
+                "{check in exists+",
+                "{check in exists"
+                ]
             for tag in removeTags:
                 command = command.replace(tag, "")
 
