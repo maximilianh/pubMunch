@@ -23,10 +23,23 @@ import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <datasetList> <pmidListFile> <datasetOut> - filter text files with a list of PMIDs, create a new dataset
+parser = optparse.OptionParser("""usage: %prog [options] command options
+
+command "filter": 
+    create subset of dataset(s) with a list of PMIDs, create a new dataset
+    %prog filter <datasetList> <pmidListFile> <datasetOut> 
 
 example:
-pubFilter pmc,elsevier,crawler uniprotPmids.txt uniProtText
+%prog filter pmc,elsevier,crawler uniprotPmids.txt uniProtText
+
+
+command "addPmids": 
+    read PMIDs from datasetDir/medline.ids.tab, rewrite all 
+    articles.gz files and add the new PMID.
+
+example:
+%prog addPmids elsevier 
+
 
 """)
 
@@ -52,7 +65,7 @@ def filterOneChunk(inFname, pmidFname, outFname):
             store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
     store.close()
 
-def submitJobs(inDirs, pmidFname, outDir):
+def submitJobs(inSpec, pmidFname, outDir):
     inDirs = pubConf.resolveTextDirs(inSpec)
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, algName=inSpec)
 
@@ -87,7 +100,64 @@ def submitJobs(inDirs, pmidFname, outDir):
             #pm.taskCompleted()
     #store.close()
 
+def filterCmd(args, options):
+    inSpec, pmidFname, outSpec = args
+    if isfile(inSpec):
+        # if indir is a file, we got called on the cluster by ourself
+        filterOneChunk(inSpec, pmidFname, outSpec)
+    else:
+        # otherwise got called from command line by user
+        outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
+        assert(outDir!=None)
+        maxCommon.mustBeEmptyDir(outDir)
+        submitJobs(inSpec, pmidFname, outDir)
 
+def parseIdFname(fname):
+    res = {}
+    for row in maxCommon.iterTsvRows(fname):
+        res[int(row.artId1)] = row.pmid
+    return res
+        
+def addPmidCmd(args, options):
+    " for all datasets, add the pmids from the pubCompare output file to the article files "
+    datasetString = args[0]
+    textDir = pubConf.resolveTextDir(datasetString)
+    logging.info("Changing article files in %s" % textDir)
+    artToPmid = parseIdFname(join(textDir, pubConf.idFname))
+    fnames = glob.glob(join(textDir, "*.articles.gz"))
+    logging.info("Running on %d article files" % len(fnames))
+    pm = maxCommon.ProgressMeter(len(fnames), stepCount=100)
+    for fname in fnames:
+        # write headers
+        newFname = join(pubConf.TEMPDIR, basename(fname))
+        logging.debug("reading %s, writing %s" % (fname, newFname))
+        newF = gzip.open(newFname, "w")
+        newF.write(gzip.open(fname).readline())
+
+        # write rows, replacing pmids on the way
+        for row in maxCommon.iterTsvRows(fname):
+            artId = int(row.articleId)
+            if int(row.articleId) in artToPmid:
+                row = row._replace(pmid=artToPmid[artId])
+            newF.write((u'\t'.join(row)).encode("utf8"))
+            newF.write("\n")
+        newF.close()
+
+        # rename old, move over the new one
+        shutil.move(fname, fname+".bak")
+        shutil.move(newFname, fname)
+        pm.taskCompleted()
+        
+def main(args, options):
+    cmd = args[0]
+
+    if cmd=="filter":
+        filterCmd(args[1:], options)
+    elif cmd=="addPmids":
+        addPmidCmd(args[1:], options)
+    else:
+        raise Exception("Unknown command") 
+        
 # ----------- MAIN --------------
 if args==[]:
     parser.print_help()
@@ -95,14 +165,5 @@ if args==[]:
 
 # normal operation
 pubGeneric.setupLogging(progFile, options)
+main(args, options)
 
-inSpec, pmidFname, outSpec = args
-if isfile(inSpec):
-    # if indir is a file, we got called on the cluster by ourself
-    filterOneChunk(inSpec, pmidFname, outSpec)
-else:
-    # otherwise got called from command line by user
-    outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
-    assert(outDir!=None)
-    maxCommon.mustBeEmptyDir(outDir)
-    submitJobs(inSpec, pmidFname, outDir)

@@ -648,7 +648,8 @@ def concatFiles(inDir, outFname):
         fno += 1
     ofh.close()
 
-def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, updateIds=None, batchDir=".", runner=None, addFields=[], concat=False):
+def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, \
+    updateIds=None, batchDir=".", runner=None, addFields=[], concat=False):
     """ 
     submit jobs to batch system to run algorithm over text in textDir, write
     annotations to outDir 
@@ -673,7 +674,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
             sys.exit(1)
 
         if "startup" in dir(alg):
-            alg.startup(paramDict) # to check if startup works
+            alg.startup(paramDict) # to check if at least the algorithm works 
 
     logging.debug("Testing successful, submitting jobs")
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \

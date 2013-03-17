@@ -100,7 +100,7 @@ def main(args, options):
     noPrintFname = join(dir2, "%s.ids.noFingerprint.tab" % dataSet1)
 
     global noIssuePage
-    if step=="map":
+    if step=="index":
         map1 = {}
         map2 = {}
         artIds = {}
@@ -165,7 +165,7 @@ def main(args, options):
                 continue
 
             artId, extId, doi, pmid = artData
-            row = (matchFprint, row.articleId, row.externalId, row.doi, artId, extId, doi)
+            row = (matchFprint, row.articleId, row.externalId, row.doi, artId, extId, doi, pmid)
             row = [unicode(x) for x in row]
             ofh.write("\t".join(row).encode("utf8"))
             ofh.write("\n")
@@ -184,7 +184,14 @@ def main(args, options):
         logging.info("non-matching articles written to %s and %s" % (noPrintFname, noMatchFname))
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] step <dataset> - infer PMIDs from a dataset by comparing with medline. Uses fingerprints of papers. 
+parser = optparse.OptionParser("""usage: %prog [options] <map> <sourceDataset> <targetDataset> - infer PMIDs from a dataset by comparing with medline. Uses fingerprints of papers. 
+
+step can either be 'index' or 'lookup'
+
+'index' will create a file fingerprints.marshal in the source directory
+'lookup' will read this file and create a file medline.ids.tab in target directory.
+
+medline.ids.tab lists matching articles from both sets
 
 When compared to data from crossref and a random collection of 10.000 DOIs, achieves a precision
 of 99.99%.

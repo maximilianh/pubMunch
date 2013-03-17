@@ -52,8 +52,29 @@ highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", "aspetjournal
 # has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
 errorPageUrls = ["http://status.nature.com"]
 
+def makeHighwireTemplates(hostnames):
+     
+def highwireConfig(hostnames):
+    return {
+        "hostnames" : hostnames,
+        "landingUrl_templates" : \
+            {"0737-4038" : "http://mbe.oxfordjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
+        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        "doiUrl_replace" : {"$" : ".long"},
+        "landingUrl_isFulltextKeyword" : ".long",
+        "landingPage_ignoreMetaTag" : True,
+        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
+        "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
+        }
+
 # crawl configuration: for each website, define how to crawl the pages
-pubsCrawlCfg = { "npg" :
+pubsCrawlCfg = { 
+    "oup" :
+    {
+    },
+
+    "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
     # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
     # 

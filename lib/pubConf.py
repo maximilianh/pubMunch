@@ -10,6 +10,9 @@ pubsDataDir = '/hive/data/inside/pubs'
 # Some of it can be updated with pubPrepXXX commands
 staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 
+journalListDir = join(staticDataDir, "extJournalLists")
+publisherDir = join(staticDataDir, "publishers")
+
 # DB PARSER SETTINGS ================================================
 # directory for files with parsed DBs each DB, e.g. uniprot or pdb
 dbRefDir = '/hive/data/inside/pubs/parsedDbs'
@@ -48,8 +51,8 @@ crawlPubIds = {
 # we don't have ISSNs for NPG directly, so we use grouped data from NLM
 "NLM Nature Publishing Group" : "npg",
 "NLM American Association for Cancer Research" : "aacr",
-# rockefeller university press
-"HIGHWIRE The Rockefeller University" : "rupress",
+"HIGHWIRE The Rockefeller University Press" : "rupress",
+"NLM Oxford University Press" : "oup",
 "HIGHWIRE American Society for Microbiology" : "asm",
 "NLM Future Science" : "futureScience",
 "NLM National Academy of Sciences" : "pnas",
@@ -219,6 +222,11 @@ chunkArticleCount = 400
 # for conversion jobs: how many cluster jobs should we run in parallel ?
 # can be used to limit I/O and be nice to other cluster users
 convertMaxJob = 200
+
+# PMID RESOLVER
+
+# filename of pubCompare output file in source dataset directory
+idFname = "medline.ids.tab"
 
 # GENBANK CONVERSION
 

@@ -19,6 +19,9 @@ from collections import defaultdict
 parser = optparse.OptionParser("""usage: %prog [options] <step> - count relevant articles per publisher per year and write to outfiles
 
 steps are:
+"publishers - create a table publisher -> journals by guessing the "real" publisher for all
+              journals in the NLM catalog and other lists (Highwire, Wiley). Write these
+              to data/publishers/
 "journals" - create a table with journalUid -> articleCount from medline, pubCounts.tab
 "here" - determine which documents of publishers we have here, in the form of pmids.txt
 "pubs" - create a table with publishers, their post-2000 article counts and how many we have on disk
@@ -90,10 +93,15 @@ if len(steps)==0:
     print("You need to specify a step to run")
     sys.exit(0)
 
+# create list with publisher -> journals
+if "publishers" in steps:
+    inDir = pubConf.journalListDir
+    pubResolvePublishers.initJournalDir(inDir, pubConf.publisherDir, None)
+
 # process medline:
 # make table with journalId -> number of articles
 # and db with uid -> list of pmids
-if "journals" in steps:
+elif "journals" in steps:
     #cmd = "mv %s pubTable/counts.tab.old; mv %s pubTable/pmids.db.old; mkdir -p pubTable" % (COUNTFNAME, PMIDFNAME)
     #os.system(cmd)
 

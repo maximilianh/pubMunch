@@ -896,7 +896,8 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
     articleCount = 0
     for articleData in pubStore.iterArticleDataDir(textDir, updateIds=updateIds):
         artId = int(articleData.articleId)
-        extIdFh.write(articleData.articleId+"\t"+articleData.externalId+"\t"+articleData.doi+"\n")
+        doi = pubStore.prepSqlString(articleData.doi)
+        extIdFh.write(articleData.articleId+"\t"+articleData.externalId+"\t"+doi+"\n")
         artDbs = articleDbs.get(artId, None)
         if not artDbs:
             continue
