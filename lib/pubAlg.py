@@ -71,7 +71,7 @@ def getAlg(algName, defClass=None):
     or moduleName:className
 
     object or module needs to support the operation annotate(string) and the 
-    variable "headers"
+    variable "headers" or "writerTypes"
 
     defaultClass can be "Annotate" or "Map"
     """
@@ -94,6 +94,8 @@ def writeParamDict(paramDict, paramDictName):
     for key, val in paramDict.iteritems():
         if val==None:
             logging.debug("parameter %s: None" % (key))
+        elif type(val)==types.BooleanType:
+            logging.debug("parameter %s: value %s" % (key, str(val)))
         elif type(val)!=types.IntType:
             logging.debug("parameter %s: %d values" % (key, len(val)))
         else:
@@ -463,6 +465,43 @@ def attributeTrue(obj, attrName):
             return True
     return False
 
+def runAnnotateWrite(reader, alg, paramDict, outName):
+    """ run annotate of alg on all articles in reader """
+    baseFname = splitext(outName)[0]
+    if "setup" in dir(alg):
+        logging.debug("Running setup")
+        alg.setup(paramDict)
+
+    outFnames = [baseFname+"."+ext for ext in alg.outTypes]
+    # create dict: filename -> fileObject
+    outFiles = dict([(outType, open(fn, "w")) for outType, fn in zip(alg.outTypes, outFnames)])
+
+    if "startup" in dir(alg):
+        logging.debug("Running startup")
+        alg.startup(outFiles)
+
+    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg)
+    for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
+        alg.annotate(articleData, fileDataList)
+
+    if "cleanup" in dir(alg):
+        logging.debug("Running cleanup")
+        alg.cleanup()
+
+def getAlgPrefs(alg):
+    onlyMain = attributeTrue(alg, "onlyMain")
+    onlyMain = paramDict.get("onlyMain", onlyMain)
+    if isinstance(onlyMain, basestring):
+        onlyMain = (onlyMain.lower()=="true")
+    logging.info("Only main files: %s" % onlyMain)
+
+    onlyMeta = attributeTrue(alg, "onlyMeta")
+    logging.info("Only meta files: %s" % onlyMeta)
+
+    bestMain = attributeTrue(alg, "bestMain")
+    logging.info("Only best main files: %s" % bestMain)
+    return onlyMain, onlyMeta, bestMain
+
 def runAnnotate(reader, alg, paramDict, outName):
     """ annotate all articles in reader
     """
@@ -484,18 +523,7 @@ def runAnnotate(reader, alg, paramDict, outName):
     writeHeaders(alg, outFh, doSectioning, addFields)
 
     annotIdAdd = getAnnotId(alg, paramDict)
-
-    onlyMain = attributeTrue(alg, "onlyMain")
-    onlyMain = paramDict.get("onlyMain", onlyMain)
-    if isinstance(onlyMain, basestring):
-        onlyMain = (onlyMain.lower()=="true")
-    logging.info("Only main files: %s" % onlyMain)
-
-    onlyMeta = attributeTrue(alg, "onlyMeta")
-    logging.info("Only meta files: %s" % onlyMeta)
-
-    bestMain = attributeTrue(alg, "bestMain")
-    logging.info("Only best main files: %s" % bestMain)
+    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg)
 
     addSnippet = "snippet" in alg.headers
 
@@ -509,6 +537,25 @@ def runAnnotate(reader, alg, paramDict, outName):
     if outName!="stdout":
         outFh.close()
         moveTempToFinal(tmpOutFname, outName)
+
+def unmarshal(fname):
+    if fname.endswith(".gz"):
+        raw = gzip.open(fname, "rb").read()
+        data = marshal.loads(raw)
+    else:
+        data = marshal.load(open(fname))
+    return data
+
+def runCombine(inFname, alg, paramDict, outName):
+    inFnames = open(inFnames).read().splitlines()
+    for fname in inFnames:
+        partDict = unmarshal(fname)
+        alg.combine(partDict, paramDict)
+
+    if "combineResult" in dir(alg):
+        data = alg.combineResult()
+
+    marshal.dump(data, open(outName, "wb"))
 
 def runMap(reader, alg, paramDict, outFname):
     """ run map part of alg over all files that reader has.
@@ -545,7 +592,7 @@ def runMap(reader, alg, paramDict, outFname):
 
     moveTempToFinal(tmpOutFname, outFname)
 
-def runReduce(algName, paramDict, path, outFilename, quiet=False):
+def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None):
     """ parse pickled dicts from path, run through reduce function of alg and 
     write output to one file """
 
@@ -565,7 +612,9 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False):
     if "startup" in dir(alg):
         alg.startup(paramDict, {})
 
-    if isfile(path):
+    if inFnames!=None:
+        infiles = inFnames
+    elif isfile(path):
         logging.debug("Filename specified, running only on a single file (debugging)")
         infiles = [(dirname(path), path)]
     else:
@@ -648,6 +697,79 @@ def concatFiles(inDir, outFname):
         fno += 1
     ofh.close()
 
+def getLastOutType(alg, paramDict):
+    if "setup" in dir(alg):
+        logging.debug("Running setup")
+        alg.setup(paramDict)
+    assert(type(alg.outTypes)==types.ListType)
+    assert(len(set(alg.outTypes))==len(alg.outTypes)) # no duplicate out type
+    outExt = alg.outTypes[-1]
+    return outExt
+
+def splitList(a, n):
+    k, m = len(a) / n, len(a) % n
+    return (a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in xrange(n))
+
+def writeParts(ll, outDir):
+    " writes lines to numbered textFiles in outDir "
+    fnames = []
+    for i, lines in enumerate(ll):
+        fname = join(outDir, "inputFiles%d.txt" % i)
+        ofh = open(fname)
+        ofh.write("\n".join(lines))
+        ofh.write("\n")
+        ofh.close()
+        fnames.append(fname)
+    return fnames
+
+def submitCombine(runner, algName, mapReduceDir, outExt, paramDict, pieceCount):
+    " submits combiner jobs: they get a list of dicts and output a single dict "
+    inFnames = pubGeneric.findFiles(path, outExt)
+    random.shuffle(inFnames)
+    parts = splitList(inFnames, pieceCount)
+    partFnames = writeParts(parts, runner.batchDir)
+
+    paramFname = join(runner.batchDir, "mapReduceParams.marshal.gz")
+    writeParamDict(paramDict, paramFname)
+    for fname in partFnames:
+        inBase   = splitext(basename(fname))[0]
+        outFullname = join(mapReduceDir, inBase+".combined."+MAPREDUCEEXT.replace(".gz",""))
+        command = "%s %s %s %s %s {check out exists %s} %s" % \
+                (sys.executable, __file__ , algName, "combine", fname, outFullname, paramFname)
+        runner.submit(command)
+    runner.finish()
+
+def submitAnnotateWrite(runner, algName, textDirs, paramDict, outDir, updateIds=None):
+    """ 
+    submit annotation writer jobs to batch system 
+
+    The only difference from anntation jobs are that annotation writers need to declare what
+    types of data they return in the list "outTypes". Their startup method gets a dictionary
+    with file object, one per outType. The annotators must then write their output themselves
+    into the files. The annotate function does not return anything.
+
+    """
+    alg = pubAlg.getAlg(algName)
+    outExt = getLastOutType(alg, paramDict)
+
+    outNames = []
+    paramFname = join(runner.batchDir, "algParams.marshal.gz")
+    writeParamDict(paramDict, paramFname)
+
+    for textDir in textDirs:
+        logging.debug("input directory %s" % textDir)
+        baseNames = findArticleBasenames(textDir, updateIds)
+        for inFname in baseNames:
+            # outName: e.g pmc_0_0000 for sth like 0_00000.articles.gz 
+            outName = basename(textDir)+"_"+splitext(basename(inFname))[0]
+            outNames.append(outName)
+            # outFullName: e.g <path>/pmc_0_0000.svml 
+            outFullname = join(outDir, outName)+"."+outExt
+            command = "%s %s %s %s %s {check out exists %s} %s" % \
+                (sys.executable, __file__ , algName, "annotateWrite", inFname, outFullname, paramFname)
+            runner.submit(command)
+    return outNames
+
 def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, \
     updateIds=None, batchDir=".", runner=None, addFields=[], concat=False):
     """ 
@@ -669,7 +791,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
         logging.debug("Testing algorithm %s startup" % algName)
         alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
 
-        if "annotateFile" not in dir(alg):
+        if "annotateFile" not in dir(alg) and "annotateWrite" not in dir(alg):
             logging.error("Could not find an annotate() function in %s" % algName)
             sys.exit(1)
 
@@ -718,7 +840,7 @@ def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=F
 
 def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=False, \
         tmpDir=None, updateIds=None, runTest=True, batchDir=".", headNode=None, \
-        runner=None, onlyTest=False):
+        runner=None, onlyTest=False, combineCount=50):
     """ 
     submit jobs to batch system to:
     create tempDir, map textDir into this directory with alg,
@@ -757,7 +879,13 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
         if not skipMap:
             findFilesSubmitJobs(algName, "map", textDirs, tmpDir, MAPREDUCEEXT, paramDict,\
                 runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
-        runReduce(algName, paramDict, tmpDir, outFilename)
+
+        combFnames = None
+        if "combine" in dir(alg):
+            outExt = ".combined"+MAPREDUCEEXT.replace(".gz", "")
+            submitCombine(runner, algName, tmpDir, outExt, paramDict, combineCount)
+            combFnames = glob.glob(join(tmpDir, "*"+outExt))
+        runReduce(algName, paramDict, tmpDir, outFilename, inFnames=combFnames)
 
     if cleanUp and not skipMap:
         logging.info("Deleting directory %s" % tmpDir)
@@ -768,7 +896,7 @@ if __name__ == '__main__':
     syntax: pubAlg.py <algName> map|reduce <inFile> <outFile> <paramPickleFile>
     """)
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
     (options, args) = parser.parse_args()
     pubGeneric.setupLogging(__file__, options)
 
@@ -784,12 +912,17 @@ if __name__ == '__main__':
         logging.log(5, "parameter %s = %s" % (key, str(val)))
 
     alg = pubAlg.getAlg(algName, defClass=string.capitalize(algMethod))
-    reader = pubStore.PubReaderFile(inName)
 
-    if algMethod=="map":
-        runMap(reader, alg, paramDict, outName)
-    elif algMethod=="annotate":
-        runAnnotate(reader, alg, paramDict, outName)
+    if algMethod!="combine":
+        reader = pubStore.PubReaderFile(inName)
+        if algMethod=="map":
+            runMap(reader, alg, paramDict, outName)
+        elif algMethod=="annotate":
+            runAnnotate(reader, alg, paramDict, outName)
+        elif algMethod=="annotateWrite":
+            runAnnotateWrite(reader, alg, paramDict, outName)
+    else:
+        runCombine(inName, alg, paramDict, outName)
 
     reader.close()
     

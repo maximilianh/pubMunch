@@ -92,6 +92,24 @@ def iterTsvDir(inDir, ext=".tab.gz", headers=None, format=None, fieldTypes=None,
         if onlyFirst:
             break
 
+def fastIterTsvRows(inFname):
+    """ 
+    simplistic version of iterTsvRows for higher speed.
+    creates namedtuples from file and returns them AND THE LINE 
+    like iterTsvRows, but loads full file into memory.
+    """
+    if inFname.endswith(".gz"):
+        openFunc = gzip.open
+    else:
+        openFunc = open
+    headers = openFunc(inFname).readline().strip("\n").split("\t")
+    Record = collections.namedtuple('tsvRec', headers)
+    data = openFunc(inFname).read()
+    #data = data.decode("utf8")
+    lines = data.splitlines()
+    for line in lines[1:]:
+        yield Record(*line.split("\t")), line
+
 def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False):
     """ 
         parses tab-sep file with headers as field names 

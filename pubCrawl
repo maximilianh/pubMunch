@@ -19,7 +19,8 @@ def main(args, options):
     pubGeneric.setupLogging("", options, logFileName=logFname, fileMode="a")
 
     try:
-        pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, options.pause, options.tryHard, options.restrictPublisher)
+        pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, \
+            options.pause, options.tryHard, options.restrictPublisher)
     except KeyboardInterrupt:
         logging.info("stopped with ctrl-c, no email sent")
         raise

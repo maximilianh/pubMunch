@@ -11,7 +11,7 @@ progFile = os.path.abspath(sys.argv[0])
 progDir  = os.path.dirname(progFile)
 pubToolsLibDir = os.path.join(progDir, "..", "lib")
 sys.path.insert(0, pubToolsLibDir)
-import maxCommon, collections, pubGeneric, pubConf
+import maxCommon, collections, pubGeneric, pubConf, pubResolvePublishers
 import sqlite3 as s
 
 from collections import defaultdict

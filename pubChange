@@ -123,10 +123,20 @@ def addPmidCmd(args, options):
     datasetString = args[0]
     textDir = pubConf.resolveTextDir(datasetString)
     logging.info("Changing article files in %s" % textDir)
-    artToPmid = parseIdFname(join(textDir, pubConf.idFname))
+    aToPfn = join(textDir, pubConf.idFname)
+    logging.info("Reading art -> pmid mapping from %s" % aToPfn)
+    artToPmid = parseIdFname(aToPfn)
     fnames = glob.glob(join(textDir, "*.articles.gz"))
     logging.info("Running on %d article files" % len(fnames))
     pm = maxCommon.ProgressMeter(len(fnames), stepCount=100)
+
+    # update the sqlite db
+    logging.info("Updating the sqlite DB")
+    con, cur = pubStore.openArticleDb(datasetString)
+    cur.executemany("UPDATE articles set pmid=? where articleId=?", artToPmid.items())
+    con.commit()
+
+    logging.info("Updating tab sep files")
     for fname in fnames:
         # write headers
         newFname = join(pubConf.TEMPDIR, basename(fname))
@@ -147,6 +157,15 @@ def addPmidCmd(args, options):
         shutil.move(fname, fname+".bak")
         shutil.move(newFname, fname)
         pm.taskCompleted()
+
+    # rebuild the sqlite file
+    #tsvFnames = glob.glob(join(textDir,"*.articles.gz"))
+    #dbPath = join(outDir, "articles.db")
+    #dbPathBak = dbPath+".bak"
+    #dbPathNew = dbPath+".new"
+    #pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+    #shutil.move(dbPath, dbPathBak)
+    #shutil.move(dbPathNew, dbPath)
         
 def main(args, options):
     cmd = args[0]

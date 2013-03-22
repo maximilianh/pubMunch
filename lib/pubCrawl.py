@@ -52,27 +52,79 @@ highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", "aspetjournal
 # has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
 errorPageUrls = ["http://status.nature.com"]
 
-def makeHighwireTemplates(hostnames):
+def parseHighwire():
+    """ create two dicts 
+    printIssn -> url to pmidlookup-cgi of highwire 
+    and 
+    publisherName -> top-level hostnames
+    >>> temps, domains = parseHighwire()
+    >>> temps['0270-6474']
+    u'http://www.jneurosci.org/cgi/pmidlookup?view=long&pmid=%(pmid)s'
+    >>> domains["Society for Neuroscience"]
+    set([u'jneurosci'])
+    """
+    # highwire's publisher names are not resolved ("SAGE", "SAGE Pub", etc)
+    # so: first get dict printIssn -> resolved publisherName from publishers.tab
+    pubFname = join(pubConf.publisherDir, "publishers.tab")
+    pIssnToPub = {}
+    for row in maxCommon.iterTsvRows(pubFname):
+        if not row.pubName.startswith("HIGHWIRE"):
+            continue
+        for issn in row.journalIssns.split("|"):
+            issn = issn.rstrip(" ")
+            pIssnToPub[issn] = row.pubName.replace("HIGHWIRE ","").strip()
+
+    # go over highwire table and make dict pubName -> issn -> templates
+    # and dict pubName -> domains
+    fname = join(pubConf.journalListDir, "highwire.tab")
+    templates = {}
+    domains = {}
+    for row in maxCommon.iterTsvRows(fname, encoding="latin1"):
+        if row.eIssn.strip()=="Unknown":
+            continue
+        pubName = pIssnToPub[row.pIssn.strip()].strip()
+        templates.setdefault(pubName, {})
+        templates[row.pIssn.strip()] = row.urls.strip()+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
+
+        host = urlparse.urlparse(row.urls).hostname
+        domain = ".".join(host.split('.')[-2:]).strip()
+        domains.setdefault(pubName, set()).add(domain)
+
+    return templates, domains
      
-def highwireConfig(hostnames):
-    return {
-        "hostnames" : hostnames,
-        "landingUrl_templates" : \
-            {"0737-4038" : "http://mbe.oxfordjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
-        "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
+def highwireConfigs():
+    " return dict publisher name -> config for all highwire publishers "
+    logging.info("Creating config for Highwire publishers")
+    res = {}
+    issnTemplates, pubDomains = parseHighwire()
+
+    for pubName, domains in pubDomains.iteritems():
+        templates = {}
+        for issn, templUrl in issnTemplates.iteritems():
+            for domain in domains:
+                if domain in templUrl:
+                    templates[issn]=templUrl
+                    break
+                    
+        res[pubName] = {
+            "hostnames" : domains,
+            "landingUrl_templates" : templates,
+            "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+            "doiUrl_replace" : {"$" : ".long"},
+            "landingUrl_isFulltextKeyword" : ".long",
+            "landingPage_ignoreMetaTag" : True,
+            "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+            "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
+            "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
         }
+    return res
+
+highwireCfg = highwireConfigs()
 
 # crawl configuration: for each website, define how to crawl the pages
-pubsCrawlCfg = { 
+pubsCrawlCfg = {
     "oup" :
-    {
-    },
+        highwireCfg["Oxford University Press"],
 
     "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
@@ -429,7 +481,8 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
     - a Crossref search with medline data
     - Pubmed Outlink 
     - an SFX search
-    >>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084"}, {}, {})
+    >>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084", "printIssn" : "1234", "page":"8"}, {}, {})
+    'http://jcb.rupress.org/content/160/1/53'
     """
     logging.log(5, "Looking for landing page")
 
@@ -1370,13 +1423,15 @@ def checkForOngoingMaintenanceUrl(url):
         raise pubGetError("Landing page is error page", "errorPage", url)
 
 def getConfig(hostToConfig, url):
-    " based on the url or IP of the landing page, return a crawl configuration dict "
-    hostname = urlparse.urlparse(url)[1]
+    """ based on the url or IP of the landing page, return a crawl configuration dict 
+    This is used all the time and not using a hashmap... could be made faster
+    
+    """
+    hostname = urlparse.urlparse(url).netloc
     thisConfig = None
+    logging.debug("Looking for config for url %s, hostname %s" % (url, hostname))
     for cfgHost, config in hostToConfig.iteritems():
-        #if type(configHosts)==types.StringType: # tuples with one element get converted by python to a string
-            #configHosts = [configHosts]
-        #logging.debug("cfhosts %s", configHosts)
+        #logging.debug("Cmp %s with %s" % (repr(hostname), repr(cfgHost)))
         if hostname.endswith(cfgHost):
             logging.debug("Found config for host %s: %s" % (hostname, cfgHost))
             thisConfig = config
@@ -1589,7 +1644,7 @@ def stringRewrite(origString, crawlConfig, configKey):
 
 def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
-    >>> resolveDoi("10.1073/pnas.1121051109")
+    #>>> resolveDoi("10.1073/pnas.1121051109")
     """
     doiUrl = "http://dx.doi.org/"+urllib.quote(doi.encode("utf8"))
     resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4)
@@ -1602,7 +1657,7 @@ def resolveDoi(doi):
 def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     """ resolve a DOI to the final target url and rewrite according to crawlConfig rules
         Returns None on error
-    >>> resolveDoiRewrite("10.1073/pnas.1121051109")
+    #>>> resolveDoiRewrite("10.1073/pnas.1121051109")
     """
     logging.debug("Resolving DOI and rewriting")
     url = resolveDoi(doi)

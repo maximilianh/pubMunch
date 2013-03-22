@@ -13,6 +13,9 @@ from urllib2 import urlparse
 
 import xml.etree.cElementTree as etree
 
+ISSNTAB = "issns.tab"
+PUBLISHERTAB = "publishers.tab"
+
 # ===== FUNCTIONS =======
 
 def parseIssns(journalDataDir, crawlPubDirs, crawlIssnOverwrite):
@@ -151,7 +154,7 @@ def getPmidsForIssns(outDir, minYear):
     # parse all issns into a big dict dirPath -> list of issns
     outDirIssns = {}
     for outDirPath in outDirFiles:
-        if not isdir(outDirPath) or outDirPath.endswith(JOURNALDIR):
+        if not isdir(outDirPath):
             logging.info("ignoring directory %s" % outDirPath)
             continue
 
@@ -183,9 +186,7 @@ def main(args, options):
     pubDirs = pubConf.crawlPubIds
     issnOverwrite = pubConf.crawlIssnOverwrite
 
-    #journalDataDir = join(outDir, JOURNALDIR)
     journalDataDir = pubConf.publisherDir
-    #maxCommon.mustExistDir(journalDataDir, makeDir=True)
     maxCommon.mustExistDir(journalDataDir)
 
     command = command.lower()
@@ -197,9 +198,6 @@ def main(args, options):
         writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
     elif command=="pmids":
         getPmidsForIssns(outDir, minYear)
-    #elif command=="all":
-        #writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
-        #getPmidsForIssns(outDir, minYear)
     else:
         raise Exception("Unknown command %s" % command)
 

@@ -573,8 +573,9 @@ class PubReaderTest:
         
         yield art, [fileObj]
 
-def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False):
+def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False, onlyMain=False):
     " iterate over all files with article/fileData in textDir "
+    logging.debug("Getting filenames in dir %s" % textDir)
     fileNames = glob.glob(os.path.join(textDir, "*.articles.gz"))
     logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))
     pm = maxCommon.ProgressMeter(len(fileNames))
@@ -582,7 +583,8 @@ def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False):
         reader = PubReaderFile(textFname)
         logging.debug("Reading %s, %d files left" % (textFname, len(fileNames)-textCount))
         pr = pubStore.PubReaderFile(textFname)
-        for article, fileList in pr.iterArticlesFileList(onlyBestMain=preferPdf, onlyMeta=onlyMeta):
+        artIter = pr.iterArticlesFileList(onlyBestMain=preferPdf, onlyMain=False, onlyMeta=onlyMeta)
+        for article, fileList in artIter:
             yield article, fileList
         pm.taskCompleted()
 
@@ -942,6 +944,15 @@ def lookupArticleByArtId(artId):
     con, cur = openArticleDb(dataset)
     return lookupArticle(con, cur, "articleId", artId)
 
+def lookupArticleByPmid(datasets, pmid):
+    " convenience method to get article info given article Id, caches db connections "
+    for dataset in datasets:
+        con, cur = openArticleDb(dataset)
+        art = lookupArticle(con, cur, "pmid", pmid)
+        if art!=None:
+            return art
+    return None
+
 def lookupArticle(con, cur, column, val):
     " uses sqlite db, returns a dict with info we have locally about article, None if not found "
     #logging.debug("Trying PMID lookup with local medline copy")
@@ -969,7 +980,7 @@ def lookupArticle(con, cur, column, val):
         raise Exception("database was locked for more than 60 minutes")
         
     if len(rows)==0:
-        logging.info("No info in local db for %s %s" % (column, val))
+        logging.debug("No info in local db for %s %s" % (column, val))
         return None
     # the last entry should be the newest one
     lastRow = rows[-1]

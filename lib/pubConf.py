@@ -13,6 +13,10 @@ staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 journalListDir = join(staticDataDir, "extJournalLists")
 publisherDir = join(staticDataDir, "publishers")
 
+# a directory on the main server (hgwdev) where program is run, on local disk
+# with lots of space available
+localHeadDir = '/scratch/max/pubTools'
+
 # DB PARSER SETTINGS ================================================
 # directory for files with parsed DBs each DB, e.g. uniprot or pdb
 dbRefDir = '/hive/data/inside/pubs/parsedDbs'
@@ -51,7 +55,8 @@ crawlPubIds = {
 # we don't have ISSNs for NPG directly, so we use grouped data from NLM
 "NLM Nature Publishing Group" : "npg",
 "NLM American Association for Cancer Research" : "aacr",
-"HIGHWIRE The Rockefeller University Press" : "rupress",
+"HIGHWIRE Rockefeller University Press" : "rupress",
+"NLM Mary Ann Liebert" : "mal",
 "NLM Oxford University Press" : "oup",
 "HIGHWIRE American Society for Microbiology" : "asm",
 "NLM Future Science" : "futureScience",
@@ -424,6 +429,7 @@ svmlBinDir = "/hive/data/inside/pubs/svmlight"
 
 # directory to write html output files, one per DB
 classOutHtmlDir = "/cluster/home/max/public_html/mining/classes"
+testOutHtmlDir = "/cluster/home/max/public_html/mining/testClasses"
 
 # ACCESS METHODS (convenience) ============================
 
@@ -457,6 +463,7 @@ def getMaxTxtFileSize():
 
 def resolveTextDir(dataDir, makeDir=False):
     " check if dataDir exists, if not: try if subdir of textDir exists and return "
+    inName = dataDir
     if os.path.isfile(dataDir):
         return dataDir
     if not os.path.isdir(dataDir):
@@ -470,6 +477,7 @@ def resolveTextDir(dataDir, makeDir=False):
             else:
                 raise Exception("Neither %s not %s are directories" % (dataDir, dataDir2))
                 dataDir = None
+    logging.debug("Resolved dataset name %s to dataset directory %s" % (inName, dataDir))
     return dataDir
 
 def resolveTextDirs(dataString):

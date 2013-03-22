@@ -6,7 +6,7 @@ from os.path import *
 # load our own libraries
 import pubConf, pubGeneric, pubStore, maxCommon, maxRun, pubAlg, tabfile
 #import nltk.stem.porter
-import nltk.stem.snowball
+#import nltk.stem.snowball
 
 
 # ===== GLOBALS ======
@@ -38,7 +38,7 @@ def parseTerms(termFname):
     return termList
 
 def runMatrixJobs(outFname, datasets, wordListFname, posPmidFname, negPmidFname, \
-        skipMap, outFormat, onlyTest, posPmids=None, negPmids=None, runner=None):
+        skipMap, outFormat, onlyTest, docIdFname, posPmids=None, negPmids=None, runner=None):
     """ run jobs to convert the articles to a bag-of-words matrix """
 
     assert (outFormat in ["svml", "arff", "pmidsvml"])
@@ -59,7 +59,7 @@ def runMatrixJobs(outFname, datasets, wordListFname, posPmidFname, negPmidFname,
 
     paramDict = {"termList" : termList, "posPmids"  : posPmids, \
                  "negPmids" : negPmids, "outFormat" : outFormat }
-    paramDict["docIdOutFname"] = splitext(outFname)[0]+".docIds"
+    paramDict["docIdOutFname"] = docIdFname
 
     pubAlg.mapReduce(__file__+":MatrixMaker", datasets, paramDict, \
         outFname, skipMap=skipMap, runTest=True, runner=runner, onlyTest=onlyTest)
@@ -118,7 +118,7 @@ def isAscii(word):
 MINWORDLEN = 5
 MINCOUNT = 10 
 #stemmer = nltk.stem.porter.PorterStemmer()
-stemmer = nltk.stem.snowball.EnglishStemmer()
+#stemmer = nltk.stem.snowball.EnglishStemmer()
 nonLetterRe = re.compile(r'[^A-Za-z-]') # non-alphanumeric/non-dash characters
 
 def findMethods(text):
