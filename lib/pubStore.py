@@ -945,7 +945,7 @@ def lookupArticleByArtId(artId):
     return lookupArticle(con, cur, "articleId", artId)
 
 def lookupArticleByPmid(datasets, pmid):
-    " convenience method to get article info given article Id, caches db connections "
+    " convenience method to get article info given pubmed Id, caches db connections "
     for dataset in datasets:
         con, cur = openArticleDb(dataset)
         art = lookupArticle(con, cur, "pmid", pmid)
@@ -989,9 +989,12 @@ def lookupArticle(con, cur, column, val):
     result = {}
     for key, val in zip(lastRow.keys(), lastRow):
         result[key] = unicode(val)
+        #if isinstance(val, basestring):
+            #print repr(val)
+            #result[key] = val.decode("utf8")
+        #else:
+            #result[key] = val
 
-    #result["source"] = ""
-    #result["origFile"] = ""
     return result
 
 if __name__=="__main__":

@@ -1015,8 +1015,12 @@ def findBedPslFiles(bedDirs):
     # get all input filenames
     basenames   = []
     for bedDir in bedDirs:
+        logging.info("Looking for bed and psl files in dir %s" % str(bedDir))
         bedFiles = glob.glob(join(bedDir, "*.bed"))
         pslFiles = glob.glob(join(bedDir, "*.psl"))
+        print bedFiles
+        print pslFiles
+        print len(bedFiles), len(pslFiles)
         assert(len(bedFiles)==len(pslFiles))
         logging.info("Found %d files in dir %s" % (len(bedFiles), str(bedDir)))
         for bedName in bedFiles:

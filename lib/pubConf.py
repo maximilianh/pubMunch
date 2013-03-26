@@ -431,6 +431,23 @@ svmlBinDir = "/hive/data/inside/pubs/svmlight"
 classOutHtmlDir = "/cluster/home/max/public_html/mining/classes"
 testOutHtmlDir = "/cluster/home/max/public_html/mining/testClasses"
 
+# descriptions for the various classes based on lists of PMIDs from DBs
+classDescriptions = {
+'gwas' : "Genome-wide association studies",
+'redfly' : "Drosophila cis-regulatory assays",
+'aptamerBase' : "Aptamers",
+'chembl' : "Drug-like small molecules",
+'chimerDb' : "Fusion genes",
+'clinicalTrials' : "Clinical Trials",
+'cosmic' : "Cancer genes and mutations",
+'flybase' : "Drosophila Genetics",
+'mgi' : "Mouse Genetics",
+'omim' : "Human Genetics",
+'pdb' : "Protein Structures",
+'pharmGKB' : "Genetic variation and drug response",
+'reactome' : "Protein interactions",
+'wormbase' : "C. elegans genetics",
+}
 # ACCESS METHODS (convenience) ============================
 
 import sys, logging, os.path, time, random

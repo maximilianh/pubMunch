@@ -5,7 +5,8 @@
 
 # module will call itself on the compute nodes if run on a cluster (->findFileSubmitJobs)
 
-import logging, sys, os, shutil, glob, optparse, copy, types, string, pipes, gzip, doctest, marshal
+import logging, sys, os, shutil, glob, optparse, copy, types, string, pipes, gzip, \
+    doctest, marshal, random
 
 from os.path import *
 from maxCommon import *
@@ -465,17 +466,34 @@ def attributeTrue(obj, attrName):
             return True
     return False
 
+def openOutfiles(outName, outTypes):
+    """ open one temporary file per outType. return dict type -> filehandle and
+        dict type -> final filename 
+    """
+    chunkId = basename(outName).split(".")[0] # e.g. pmc_0_00000
+    finalBase = join(dirname(outName), chunkId)
+    tmpBase = join(pubConf.TEMPDIR, chunkId)
+    tmpOutFiles = {}
+    finalOutFnames = {}
+    for ext in outTypes:
+        tmpOutFiles[ext] = open(tmpBase+"."+ext, "w")
+        finalOutFnames[ext] = finalBase+"."+ext
+    return tmpOutFiles, finalOutFnames
+
+def moveResults(outFiles, finalOutNames):
+    " move from scratch/tmp to server "
+    for ext, outFile in outFiles.iteritems():
+        outFile.close()
+        logging.info("Moving %s to %s" % (outFile.name, finalOutNames[ext]))
+        shutil.move(outFile.name, finalOutNames[ext])
+
 def runAnnotateWrite(reader, alg, paramDict, outName):
     """ run annotate of alg on all articles in reader """
-    baseFname = splitext(outName)[0]
     if "setup" in dir(alg):
         logging.debug("Running setup")
         alg.setup(paramDict)
 
-    outFnames = [baseFname+"."+ext for ext in alg.outTypes]
-    # create dict: filename -> fileObject
-    outFiles = dict([(outType, open(fn, "w")) for outType, fn in zip(alg.outTypes, outFnames)])
-
+    outFiles, finalNames = openOutfiles(outName, alg.outTypes)
     if "startup" in dir(alg):
         logging.debug("Running startup")
         alg.startup(outFiles)
@@ -487,6 +505,8 @@ def runAnnotateWrite(reader, alg, paramDict, outName):
     if "cleanup" in dir(alg):
         logging.debug("Running cleanup")
         alg.cleanup()
+
+    moveResults(outFiles, finalNames)
 
 def getAlgPrefs(alg):
     onlyMain = attributeTrue(alg, "onlyMain")
@@ -539,23 +559,32 @@ def runAnnotate(reader, alg, paramDict, outName):
         moveTempToFinal(tmpOutFname, outName)
 
 def unmarshal(fname):
+    print fname
     if fname.endswith(".gz"):
-        raw = gzip.open(fname, "rb").read()
-        data = marshal.loads(raw)
+        with gzip.open(fname, "rb") as f:
+            raw = f.read()
+            data = marshal.loads(raw)
     else:
-        data = marshal.load(open(fname))
+        with open(fname, "rb") as f:
+            data = marshal.load(f)
     return data
 
 def runCombine(inFname, alg, paramDict, outName):
-    inFnames = open(inFnames).read().splitlines()
+    inFnames = open(inFname).read().splitlines()
+    data = {}
+    if "combineStartup" in dir(alg):
+        alg.combineStartup(data, paramDict)
+
     for fname in inFnames:
         partDict = unmarshal(fname)
-        alg.combine(partDict, paramDict)
+        alg.combine(data, partDict, paramDict)
 
-    if "combineResult" in dir(alg):
-        data = alg.combineResult()
+    if "combineCleanup" in dir(alg):
+        data = alg.combineCleanup(data)
 
-    marshal.dump(data, open(outName, "wb"))
+    f = open(outName, "wb")
+    marshal.dump(data, f)
+    f.close()
 
 def runMap(reader, alg, paramDict, outFname):
     """ run map part of alg over all files that reader has.
@@ -596,7 +625,7 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
     """ parse pickled dicts from path, run through reduce function of alg and 
     write output to one file """
 
-    if isfile(outFilename):
+    if outFilename!=None and isfile(outFilename):
         logging.info("deleting existing file %s" % outFilename)
         os.remove(outFilename)
 
@@ -642,12 +671,14 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
         meter.taskCompleted()
 
     logging.info("Writing to %s" % outFilename)
-    if outFilename=="stdout":
+    if outFilename==None:
+        ofh = None
+    elif outFilename=="stdout":
         ofh = sys.stdout
     else:
         ofh = open(outFilename, "w")
 
-    if "headers" in dir(alg):
+    if "headers" in dir(alg) and ofh!=None:
         ofh.write("\t".join(alg.headers))
         ofh.write("\n")
 
@@ -668,10 +699,12 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
             if type(tuple)==types.IntType: # make sure that it's a string
                 tuple = [str(tuple)]
             tuple = [unicode(x).encode("utf8") for x in tuple] # convert to utf8
-            ofh.write("\t".join(tuple))
-            ofh.write("\n")
+            if ofh!=None:
+                ofh.write("\t".join(tuple))
+                ofh.write("\n")
         meter.taskCompleted()
-    ofh.close()
+    if ofh!=None:
+        ofh.close()
 
     if "reduceEnd" in dir(alg):
         logging.info("Running reduceEnd")
@@ -724,7 +757,7 @@ def writeParts(ll, outDir):
 
 def submitCombine(runner, algName, mapReduceDir, outExt, paramDict, pieceCount):
     " submits combiner jobs: they get a list of dicts and output a single dict "
-    inFnames = pubGeneric.findFiles(path, outExt)
+    inFnames = pubGeneric.findFiles(mapReduceDir, [MAPREDUCEEXT])
     random.shuffle(inFnames)
     parts = splitList(inFnames, pieceCount)
     partFnames = writeParts(parts, runner.batchDir)
@@ -823,10 +856,11 @@ def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=F
         oneInputFile = firstBasename+".files.gz"
     logging.info("Testing algorithm on file %s" % oneInputFile)
     reader = pubStore.PubReaderFile(oneInputFile)
-    tmpAlgOut = join(tmpDir, "pubMapReduceTest.temp.tab.gz")
-    tmpRedOut = "pubRunMapReduce_TestOutput.tmp"
-    if skipMap==False or not isfile(tmpAlgOut):
+    tmpAlgOut = join(tmpDir, "pubMapReduceTest.temp.marshal.gz")
+    if skipMap==False:
         runMap(reader, alg, paramDict, tmpAlgOut)
+    if "combine" in dir(alg):
+        runCombine(tmpAlgOut, alg, paramDict, tmpAlgOut)
     runReduce(alg, paramDict, tmpAlgOut, tmpRedOut, quiet=True)
     ifh = open(tmpRedOut)
     logging.info("Example reducer output")

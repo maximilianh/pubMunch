@@ -1,0 +1,150 @@
+#!/usr/bin/python
+
+import tempfile, os, shutil, subprocess, sys, optparse, glob
+from os.path import join, splitext, basename
+
+TEMPBASE = os.environ["TMPDIR"]
+
+def makeTempFile(tmpDir, prefix):
+    " create tempfile in pubtools tempdir dir with given prefix, return object and name "
+    tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=".psl")
+    return tf, tf.name
+
+def concatFiles(inFnames, outFile):
+    # concat all files into some file
+    #usfh = open(unsortedPslFname, "w")
+    for fn in inFnames:
+        outFile.write(open(fn).read())
+    outFile.flush() # cannot do close, otherwise temp file will get deleted
+
+def runCommand(cmd, ignoreErrors=False, verbose=False):
+    """ run command in shell, exit if not successful """
+    msg = "Running shell command: %s" % cmd
+    print(msg)
+
+    ret = subprocess.call(cmd)
+
+    if ret!=0:
+        if ignoreErrors:
+            print("Could not run command %s" % cmd)
+            print("Error message ignored, program will continue")
+        else:
+            raise Exception("Could not run command (Exitcode %d): %s" % (ret, cmd))
+
+def findFiles(dir, extensions):
+    """ find all files in or below dir with one of several extensions 
+    extensions is a list, e.g. [".tab", ".txt"] or just a string like ".psl"
+
+    returns list of full file paths
+    """
+    if isinstance(extensions, str): 
+        extensions = [extensions]
+    result = set()
+    for dirPath, dirNames, fileNames in os.walk(dir):
+        for fileName in fileNames:
+            for ext in extensions:
+                if fileName.endswith(ext):
+                    fullPath = os.path.join(dirPath, fileName )
+                    result.add( fullPath )
+    return result
+
+
+def sortDb(pslBaseDir, pslOutFile, db, tSeqType, cdnaDir):
+    """ 
+        pslBaseDir can be a comma-sep string with two dirs, second one will be added
+        "as is". Otherwise, pslBaseDir will be resolved to <pslBaseDir>/{short,long}/<db>
+
+        Sort psl files from inDir/genomeBlat/{short,long}/<db> to outFile
+        Prefix TSeq field of psl with name of the db (e.g. "hg19,chr1")
+
+        if liftCdna is True: use cdnaDir/<db> to lift from mrna coordinates to genome coords
+    """ 
+
+    pslInFnames = findFiles(pslBaseDir, ".psl")
+
+    if len(pslInFnames)==0:
+        print("Cannot find any input psl files %s, not doing any sorting" % pslInFnames)
+        open(pslOutFile, "w").write("") # for parasol
+        return
+        
+    print("Found %d input psl files" % len(pslInFnames))
+
+    # create tmp dir on local node
+    tmpDir = TEMPBASE
+    tmpDir = join(tmpDir, "pubMap")
+    try:
+        os.makedirs(tmpDir)
+    except OSError:
+        pass
+
+    fh1, unsortedPslFname = makeTempFile(tmpDir, "unsorted")
+    concatFiles(pslInFnames, fh1)
+    fh1.flush()
+
+    # pslMap crashes sometimes if run on empty files
+    if os.path.getsize(unsortedPslFname)==0:
+        open(pslOutFile, "w").write("") # for parasol
+        return
+        
+    # map to genome coords
+    if tSeqType in ["c", "p"]:
+        assert(cdnaDir!=None)
+        #mappedPslFname = join(tmpDir, "mapped.psl")
+        fh2, mappedPslFname = makeTempFile(tmpDir, "mapped")
+        pslMapFile = join(cdnaDir, db, "cdna.psl")
+        cmd = ["pslMap", unsortedPslFname, pslMapFile, mappedPslFname]
+        runCommand(cmd, verbose=True)
+        sortInputFname = mappedPslFname
+    else:
+        sortInputFname = unsortedPslFname
+        
+    # sort by query name and keep only unique lines
+    #sortedPslFname = join(tmpDir, "sorted.psl")
+    fh3, sortedPslFname = makeTempFile(tmpDir, "sorted")
+    cmd = ["sort", "-u", "-T%s" % tmpDir, "-t\t",
+        "-k10,10", sortInputFname, "-o%s" % sortedPslFname]
+    runCommand(cmd, verbose=True)
+
+    if os.path.getsize(sortedPslFname)==0:
+        open(pslOutFile, "w").write("") # for parasol
+        return
+
+    # keep only best alignments
+    #filteredPslFname = join(tmpDir, "filtered.psl")
+    fh4, filteredPslFname = makeTempFile(tmpDir, "filtered")
+    cmd = ["pslCDnaFilter", sortedPslFname, filteredPslFname,\
+        "-globalNearBest=0", "-filterWeirdOverlapped", "-ignoreIntrons"]
+    runCommand(cmd, verbose=True)
+
+    # add the db in front of the tName field in psl
+    # and add an indicator is this alignment is from genome, protein or cdna
+    #annotatedPslFname = join(tmpDir, "annotated.psl")
+    annotFh, annotatedPslFname = makeTempFile(tmpDir, "annotated")
+    #annotFh = open(annotatedPslFname, "w")
+    for line in open(filteredPslFname):
+        fields = line.split()
+        fields[13] = "%s,%s,%s" % (db, fields[13], tSeqType)
+        annotFh.write('\t'.join(fields))
+        annotFh.write('\n')
+    #annotFh.close()
+    annotFh.flush()
+    #gawk '{OFS="\\t"; if (length($0)!=0) {$14="%s,"$14",%s"; print}}' """ % (db, tSeqType)
+
+    # copy to final outfile on cluster
+    shutil.copy(annotatedPslFname, pslOutFile)
+
+    print("Output written to %s" % pslOutFile)
+    # now all temp files fh1-fh5 will go out of scope and will get deleted
+
+def main():
+    parser = optparse.OptionParser("%prog <inPslDir> <outPslFile> <db> <tSeqType> - concat, sort, map and filter all psl files under inPslDir and write to outPslFile. Db will be added to field 14 of psl outfile. tSeqType can be either p=protein, c=cdna or g=genome and will be added to field 14 of the psl file.")
+    parser.add_option("-d", "--debug", dest="debug", \
+        action="store_true", help="show debug messages")
+    parser.add_option("", "--cdnaDir", dest="cdnaDir", action="store", \
+        help="directory with cdna psl map files, one per db. "
+        "If this is set, will use it to do a pslMap before sorting.")
+    (options, args) = parser.parse_args()
+    inPslDir, outPslFname, db, tSeqType = args
+    sortDb(inPslDir, outPslFname, db, tSeqType, options.cdnaDir)
+
+main()

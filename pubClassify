@@ -16,7 +16,7 @@ import logging, optparse, os, glob, zipfile, types, gzip, shutil, subprocess, \
     itertools, operator, gc, random
 import marshal
 from os.path import *
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime
 
 # add <scriptDir>/lib/ to package search path
@@ -28,7 +28,11 @@ sys.path.insert(0, pubToolsLibDir)
 # now load our own libraries
 import pubGeneric, maxRun, pubConf, maxCommon, pubExpMatrix, html, pubStore, pubAlg
 
-# === CONSTANTS ===================================
+# === CONSTANTS & GLOBALS ===================================
+
+# do not delete output dirs when starting a new step
+leaveDirs = False
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <datasetList> <step> - script to run the various steps of the article classification pipeline
 
@@ -63,6 +67,7 @@ parser.add_option("-t", "--test", dest="test", action="store_true", help="only r
 parser.add_option("-g", "--twoGrams", dest="twoGrams", action="store_true", help="also use twograms", default=False)
 parser.add_option("-w", "--bestWordCount", dest="bestWordCount", action="store", type="int", help="how many best words to use? default %default", default=2000)
 parser.add_option("", "--noMeta", dest="noMeta", action="store_true", help="do not add separate features for title/abstract/lastAuthor", default=False)
+parser.add_option("-l", "--leaveDirs", dest="leaveDirs", action="store_true", help="do not delete output dirs before starting a new step, saves times but can corrupt data", default=False)
 parser = pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 pubGeneric.setupLogging(__file__, options)
@@ -101,8 +106,8 @@ def defDirectories(baseDir, locBaseDir, datasets, options):
     #dirs.concatDir        = join(baseDir, "wordListByDb")
     dirs.concatDir        = join(locBaseDir, "wordListByDb%s.%s" % (sepType, gramType))
     dirs.corpusDir        = join(locBaseDir, "corpus")
-    #dirs.dataCountFname   = join(baseDir, "wordCounts.marshal")
-    dirs.dataCountFname   = join(locBaseDir, "wordCounts%s.%s.marshal" % (sepType, gramType))
+    dirs.wordCountFname   = join(baseDir, "wordCounts.marshal")
+    dirs.wordPmidDir      = join(baseDir, "wordPmidDicts.%s" % (gramType))
     dirs.textDirs         = pubConf.resolveTextDirs(datasets)
 
     dirs.rankedWordsDir     = join(baseDir, "rankedWords.%s.%d" % (gramType, maxWordRank))
@@ -117,7 +122,7 @@ def defDirectories(baseDir, locBaseDir, datasets, options):
     dirs.alphaDir         = join(baseDir, "svmlAlphas.%s.%d" % (gramType, maxWordRank))
     dirs.dMatrixFname     = join(baseDir, "docs.svml")
     dirs.dIdFname         = join(baseDir, "docs.docIds")
-    dirs.categoryFname    = join(baseDir, "docClasses.tab.gz")
+    dirs.categoryFname    = join(baseDir, "docClasses.tab")
     dirs.predClassDir     = dirs.testSvmlDir
     return dirs
 
@@ -148,6 +153,13 @@ def parsePmidClasses(inDir, db):
             res[pmid] = classId
     logging.warn("%d PMIDs in both classes" % len(overlapPmids))
     return res
+
+def parsePosPmids(db, inDir):
+    " parse pos pmids of db"
+    fname = join(inDir, "pos.%s.txt" % db)
+    pmids = open(fname).read().splitlines()
+    pmids = [int(x) for x in pmids]
+    return set(pmids)
 
 def parsePmids(inDir):
     """ parse pmids from dir and return as 
@@ -190,11 +202,18 @@ def parsePmids(inDir):
 
     return allPmids, dbs, pmidDbs
 
-def mkEmptyDir(dir):
+def mkEmptyDir(dir, doNotDelete=False):
     " make sure dir exists and is empty "
     logging.info("Making/Cleaning %s" % dir)
+    if leaveDirs:
+        doNotDelete=True
     if isdir(dir):
-        shutil.rmtree(dir)
+        if not doNotDelete:
+            shutil.rmtree(dir)
+            #cmd = "mv %(dir)s %(dir)s.old; rm -rf %(dir)s.old &" % locals()
+            #print cmd
+            #os.system(cmd)
+
     if not isdir(dir):
         os.makedirs(dir)
 
@@ -262,42 +281,6 @@ def svmlClassify(svmlBinDir, svmlDir, modelDir, classDir, dbList):
         #logging.debug("command is %s" % cmd)
         runner.submit(cmd)
     runner.finish(wait=True)
-
-def convertSvmlResults(dIdFname, classDir, categoryFname, dbList):
-    """ combine svml output and article ids and write categories in 
-    a format that is easier to parse: docId<tab>dbs (comma-sep) 
-    """
-    logging.info("Reading document identifiers from %s" % dIdFname)
-    docIds = [l.strip() for l in open(dIdFname).readlines()]
-    dbCounts = defaultdict(int)
-
-    # create a dict with documentId/externalId -> list of databases
-    docClasses = defaultdict(list)
-    for classFname in glob.glob(join(classDir, "*.classes")):
-        logging.info("Reading class assignment from %s" % classFname)
-        classValues = [float(l.strip()) for l in open(classFname).readlines()]
-        db = splitext(basename(classFname))[0]
-        if dbList!=None and db not in dbList:
-            continue
-        assert(len(classValues)==len(docIds))
-        for docId, classValue in itertools.izip(docIds, classValues):
-            if classValue>0.0:
-                docClasses[docId].append((db, classValue))
-                dbCounts[db]+=1
-    logging.info("processed %d articles" % len(docClasses))
-
-    # write result to out file
-    ofh = gzip.open(categoryFname, "w")
-    ofh.write("articleId\texternalId\tclasses\tscores\n")
-    for docId, catScores in docClasses.iteritems():
-        artId, extId = docId.split("/")
-        classes, scores = zip(*catScores) # weird python magic
-        scores = [str(s) for s in scores]
-        ofh.write("%s\t%s\t%s\t%s\n" % (artId, extId, ",".join(classes), ",".join(scores)))
-    ofh.close()
-    logging.info("Wrote class info to %s" % categoryFname)
-    for db, dbCount in dbCounts.iteritems():
-        logging.info("%s: %d assigned documents" % (db, dbCount))
 
 def parseDocClasses(fname):
     " return dict db -> list of (articleId (INT!), score) "
@@ -377,38 +360,30 @@ def makeHtmlTest(dbList, datasets, svmlDir, outDir):
                 #pm.taskCompleted()
         h.endHtml()
     
-def readWordPmids2(inDir, pmids):
+def readWordPmids3(inDir):
+    " merge together all those word -> pmid dictionatries and return it as one big dict "
+    gc.disable()
     fnames = glob.glob(join(inDir, "*.marshal"))
     logging.info("Found %d files in %s" % (len(fnames), inDir))
-    logging.info("Reading wordcounts for %d PMIDs" % len(pmids))
-    logging.info("Time: %s" % str(datetime.now()))
-    pm = maxCommon.ProgressMeter(len(fnames))
-    donePmids = set()
+
     duplPmidCount = 0
+    donePmids = set()
     wordPmids = {}
-    gc.disable()
+    pm = maxCommon.ProgressMeter(len(fnames))
     for fname in fnames:
         logging.debug("Reading %s" % fname)
         if os.path.getsize(fname)==0:
             logging.error("Empty file %s, skipping" % fname)
             continue
         f = open(fname)
-        pmidWords = marshal.load(f)
+        fileWordPmids = marshal.load(f)
         f.close()
-        for pmid, words in pmidWords.iteritems():
-            if pmid in donePmids:
-                duplPmidCount+=1
-                continue
-            donePmids.add(pmid)
-            for word in words:
-                wordPmids.setdefault(word, []).append(pmid)
+        for word, pmids in fileWordPmids.iteritems():
+            wordPmids.setdefault(word, []).extend(pmids)
         pm.taskCompleted()
-    logging.info("Featurecount: %d" % len(wordPmids))
-    logging.info("input PMID count: %d" % len(pmids))
-    logging.info("found PMID count: %d" % len(donePmids))
-    logging.info("Duplicated PMIDs: %d" % duplPmidCount)
+    logging.info("wordCount: %d" % len(wordPmids))
     gc.enable()
-    return wordPmids, donePmids
+    return wordPmids
 
 def readWordPmids(inDir, pmids, onlyOneGrams=False):
     " parse wordCounts, return as dict word -> pmids "
@@ -493,6 +468,13 @@ def filterPmids(inDir, pmids, dbList, outDir):
     logging.info("Duplicated PMIDs: %d" % duplPmidCount)
     logging.info("Output directory: %s" % outDir)
 
+def calcChiSq(allCount, posCount, negCount, posOvl, negOvl):
+    expOvl = int((float(negOvl) / negCount) * posCount)
+    if expOvl==0:
+        expOvl=1
+    chiSq = (posOvl-expOvl)**2 / float(expOvl)
+    return chiSq
+
 def makeBestWords(dbList, wordCountFname, pmidDir, rankedWordsDir, maxRank, bestWordsDir):
     """ read word counts from dataset completely into memory, for each db, use 
       pmidList to separate into pos/neg and do a chi-square test to find best 
@@ -541,25 +523,26 @@ def makeBestWords(dbList, wordCountFname, pmidDir, rankedWordsDir, maxRank, best
             ofh.write("%s\n" % (word))
         logging.info("Wrote top %d words to %s" % (maxRank, ofname))
 
-def removeWords(wordCounts, minCount, maxCount):
-    logging.info("Keeping only words that occur more than %d times, less than %d times" % (minCount, maxCount))
-    logging.info("Time: %s" % str(datetime.now()))
+def filterWords(wordCounts, posMin, posMax, negMin, negMax):
+    logging.info("Basic filter: Keeping only words with count: %d<pos<%d, %d<neg<%d" % (posMin, posMax, negMin, negMax))
+    #logging.info("Time: %s" % str(datetime.now()))
     gc.disable()
     newDict = {}
     for key, valList in wordCounts.iteritems():
-        valCount = len(valList)
-        if valCount>minCount and valCount<maxCount:
+        count = len(valList)
+        if count>posMin and count<posMax and \
+            count>negMin and count<negMax:
             newDict[key] = valList
     gc.enable()
+    logging.info("Word count reduced from %d to %d after basic filtering" % (len(wordCounts), len(newDict)))
     return newDict
 
 def writeWordPmids(wordPmids, wordCountFname):
     logging.info("Writing words")
-    logging.info("Time: %s" % str(datetime.now()))
-    marshal.dump(wordPmids, open(wordCountFname, "w"))
-    logging.info("Filesize: %3d MB" % (os.path.getsize(wordCountFname)/1000000))
-    logging.info("Output written to %s" % wordCountFname)
-    logging.info("Time: %s" % str(datetime.now()))
+    f = open(wordCountFname, "w")
+    marshal.dump(wordPmids, f)
+    f.close()
+    logging.info("%s: %3d MB" % (wordCountFname, os.path.getsize(wordCountFname)/1000000))
 
 def getDbList(pmidDir):
     " create a list of all possible DBs in pmidDir, those with a pos. and a neg.<db>.txt file "
@@ -569,23 +552,40 @@ def getDbList(pmidDir):
     dbNames = set(posNames).intersection(negNames)
     return dbNames
 
-def submitToSvmlJobs(textDirs, outDir, wordFname):
-    words = open(wordFname).read().splitlines()
-    paramDict = {"onlyWords" : words }
+def submitToSvmlJobs(textDirs, outDir, wordFname, addMeta, addTwoGrams):
+    paramDict = { "dbWords" : dbWords, "addMeta":addMeta, "addTwoGrams" : addTwoGrams }
     algName = "wordList.py:SvmlWriter"
     runner = pubGeneric.makeClusterRunner(__file__, algName="toSvml")
     pubAlg.submitAnnotateWrite("wordList", textDirs, paramDict, outDir, runner=runner)
     runner.finish()
 
-def submitWordCountJobs(datasets, textDirs, outDir, addMeta, addTwoGrams):
+def submitWordCountJobs(pmids, datasets, textDirs, outDir, addMeta, addTwoGrams):
     """ 
     creates a big marshalled dict with word -> list of pmids
     """
     maxCommon.mustExistDir(outDir, makeDir=True)
     mkEmptyDir(outDir)
     runner = pubGeneric.makeClusterRunner(__file__, algName="countWords")
-    paramDict = {"addMeta" : addMeta, "addTwoGrams" : addTwoGrams}
+    paramDict = {"addMeta" : addMeta, "addTwoGrams" : addTwoGrams, "pmids":pmids}
     pubAlg.submitAnnotateWrite(runner, "wordList", textDirs, paramDict, outDir)
+    logging.info("Output written to %s" % outDir)
+    runner.finish()
+
+def submitWordCountJobs2(pmidListDir, datasets, textDirs, outDir, addMeta, addTwoGrams):
+    """ 
+    creates a big marshalled dict with word -> list of pmids
+    """
+    #maxCommon.mustExistDir(outDir, makeDir=True)
+    #mkEmptyDir(outDir)
+    pmids, dbs, dbPmids = parsePmids(pmidListDir)
+    runner = pubGeneric.makeClusterRunner(__file__, algName="countWords")
+    paramDict = {
+        "addMeta" : addMeta,
+        "addTwoGrams" : addTwoGrams,
+        "outFname" : "big.marshal",
+        "pmids" : pmids
+        }
+    pubAlg.mapReduce("wordList:WordPmids", textDirs, paramDict, None, runner=runner, runTest=True)
     logging.info("Output written to %s" % outDir)
     runner.finish()
 
@@ -669,6 +669,47 @@ def getText(textDirs, dbList, pmidToDb, corpusDir):
                 for db in pmidToDb[pmid]:
                     outFiles[db].write("%s\t%s\n" % (pmid, text.encode("utf8")))
 
+def dictToSvml (wordToPmids, bestWords, posPmids, negPmids, svmlDir, db):
+    pmidToWords = defaultdict(list)
+    for wordIdx, word in enumerate(bestWords):
+        wordPmids = wordToPmids[word]
+        for pmid in set(wordPmids):
+            pmidToWords[pmid].append(wordIdx)
+    svmlOutFname = join(svmlDir, db+".svml")
+    pmidOutFname = join(svmlDir, db+".pmids")
+    classOutFname = join(svmlDir, db+".classes")
+    logging.info("Writing to %s and %s" % (svmlOutFname, pmidOutFname))
+    svmlFh = open(svmlOutFname, "w")
+    pmidFh = open(pmidOutFname, "w")
+    classIdFh = open(classOutFname, "w")
+
+    allPmids = posPmids.union(negPmids)
+    for pmid in allPmids:
+        wordIdxList = pmidToWords.get(pmid, [])
+        if pmid in posPmids:
+            classId = 1
+        else:
+            classId = -1
+
+        wordVec = ["1:1"]
+        # svml is 1-based
+        # AND we reserve feature 1 to indicate if any best word matched
+        wordVec.extend(["%d:1" % (wordIdx+2) for wordIdx in wordIdxList])
+
+        # if no word matched, set feature 1 to 0
+        if len(wordVec)==1:
+            wordVec = ["1:0"]
+
+        wordStr = " ".join(wordVec)
+        svmlFh.write("%+d %s\n" % (classId, wordStr))
+        pmidFh.write("%d\n" % pmid)
+        classIdFh.write("%d\n" % classId)
+
+    svmlFh.close()
+    pmidFh.close()
+    classIdFh.close()
+    return svmlOutFname
+
 def marshalToSvml(dbList, pmidListDir, dataCountFname, bestWordsDir, svmlDir):
     mkEmptyDir(svmlDir)
     gc.disable()
@@ -737,7 +778,7 @@ def splitFile(inFname, ratio, outDir1, outDir2):
 
     for lineIdx, line in enumerate(open(inFname)):
         rnd = random.random()
-        if rnd > ratio:
+        if rnd < ratio:
             ofhIdx = 0
         else:
             ofhIdx = 1
@@ -745,18 +786,20 @@ def splitFile(inFname, ratio, outDir1, outDir2):
         pmidFhs[ofhIdx].write(pmids[lineIdx]+"\n")
         classFhs[ofhIdx].write(classes[lineIdx]+"\n")
 
-def parseBestWords(inDir):
+def parseBestWords(inDir, dbList):
     " parse best words and return as dict db -> list of words "
     logging.info("Reading best words from %s" % inDir)
     res = {}
     for fname in glob.glob(join(inDir, "*.txt")):
         db = splitext(basename(fname))[0]
+        if not db in dbList:
+            continue
         bestWords = open(fname).read().splitlines()
         res[db] = bestWords
     assert(len(res)!=0)
     return res
         
-def textToSvml(textDirs, bestWords, dbs, dbPmids, svmlDir, addMeta, addTwoGrams):
+def textToSvml(textDirs, dbWords, svmlDir, addMeta, addTwoGrams, modelDir):
     """create subdirs in svmlDir, one per db and write svml files into it 
     use only words in bestWords and add +1/-1 classes according to dbPmids, 
     a dict with pmid -> list of (db, class)
@@ -766,26 +809,183 @@ def textToSvml(textDirs, bestWords, dbs, dbPmids, svmlDir, addMeta, addTwoGrams)
     paramDict = {
         "addMeta" : addMeta,
         "addTwoGrams" : addTwoGrams,
-        "dbPmids" : dbPmids,
-        "dbs" : dbs,
-        "bestWords" : bestWords
+        "dbWords" : dbWords,
+        "svmlBinDir" : svmlBinDir,
+        "modelDir" : modelDir
         }
     runner = pubGeneric.makeClusterRunner(__file__, algName="toSvml")
     pubAlg.submitAnnotateWrite(runner, "wordList:SvmlWriter", textDirs, paramDict, svmlDir)
     runner.finish()
-    logging.info("Output written to %s" % outDir)
+    logging.info("Output written to %s" % svmlDir)
 
+def parsePmidPosNeg(db, pmidListDir):
+    # open list of pmids in pos and neg set as set of integers
+    posPmids = set([int(x) for x in open(join(pmidListDir, "pos."+db+".txt")).read().splitlines()])
+    negPmids = set([int(x) for x in open(join(pmidListDir, "neg."+db+".txt")).read().splitlines()])
+    return posPmids, negPmids
+
+def writeWordCounts(counts, posPmids, negPmids, outFname, bestWordCount, bestWordFname):
+    """ 
+    write counts of pmids in foreground / background to tab file for each word 
+    counts is a dict word -> pmids
+    
+    """
+    posCount = len(posPmids)
+    negCount = len(negPmids)
+    rows = []
+    for word, pmidList in counts.iteritems():
+        pmids = set(pmidList)
+        posOvl = len(pmids.intersection(posPmids))
+        negOvl = len(pmids.intersection(negPmids))
+        chiSq = calcChiSq(len(pmids), posCount, negCount, posOvl, negOvl)
+        row = [word, len(pmids), posOvl, negOvl, chiSq]
+        rows.append(row)
+
+    # write best words
+    rows.sort(key=operator.itemgetter(-1), reverse=True)
+    bestWords = [row[0] for row in rows[:bestWordCount]]
+    ofh = open(bestWordFname, "w")
+    ofh.write("\n".join(bestWords))
+    ofh.write("\n")
+    ofh.close()
+    logging.info("Wrote %s" % bestWordFname)
+
+    ofh = open(outFname, "w")
+    ofh.write("# posPmids=%d, negPmids=%d\n" % (posCount, negCount))
+    ofh.write("\t".join(["word", "count", "posOvl", "negOvl", "chiSq"])+"\n")
+    for row in rows:
+        row = [str(s) for s in row]
+        ofh.write("\t".join(row)+"\n")
+    ofh.close()
+    logging.info("Wrote %s" % outFname)
+
+    return bestWords
+                
+def summarizeResults(dbList, svmlDir, categoryFname):
+    """ combine svml output and article ids and write categories in 
+    a format that is easier to parse: docId<tab>dbs (comma-sep) 
+    """
+    # open outfile
+    ofh = open(categoryFname, "w")
+    ofh.write("articleId\texternalId\tpmid\tclasses\tscores\n")
+
+    logging.info("Reading directory %s" % svmlDir)
+    fnames = os.listdir(svmlDir)
+    chunkIds = set([basename(fn).split(".")[0] for fn in fnames])
+    logging.info("Parsing %d chunks" % len(chunkIds))
+
+    dbCounts = Counter()
+    pm = maxCommon.ProgressMeter(len(chunkIds))
+    for chunkId in chunkIds:
+        logging.debug("%s" % chunkId)
+        docClasses = defaultdict(list)
+        docIdRows = list(maxCommon.iterTsvRows(join(svmlDir, chunkId+".docIds")))
+        for db in dbList:
+            classFname = join(svmlDir, chunkId+".%s.classes" % db)
+            logging.debug("Reading class assignment from %s" % classFname)
+            classScores = [float(l.strip()) for l in open(classFname).readlines()]
+            assert(len(classScores)==len(docIdRows))
+            for docIdRow, classValue in itertools.izip(docIdRows, classScores):
+                if classValue>0.0:
+                    docClasses[docIdRow].append((db, classValue))
+                    dbCounts[db] += 1
+        logging.debug("processed %d articles" % len(docClasses))
+
+        for docIdRow, catScores in docClasses.iteritems():
+            artId, extId, pmid =  docIdRow
+            catScores.sort(key=operator.itemgetter(1), reverse=True)
+            classes, scores = zip(*catScores) # weird python magic
+            scores = [str(s) for s in scores]
+            ofh.write("%s\t%s\t%s\t%s\t%s\n" % (artId, extId, pmid, ",".join(classes), ",".join(scores)))
+        pm.taskCompleted()
+    ofh.close()
+    for db, dbCount in dbCounts.iteritems():
+        logging.info("%s: %d assigned documents" % (db, dbCount))
+    logging.info("Wrote class info to %s" % categoryFname)
+
+def makeHtmlDir(dbList, outDir):
+    outfname = join(outDir, "index.html")
+    h = html.htmlWriter(outfname)
+    title = "Genocoding document categories recognized by Support Vector Machine"
+    h.head(title)
+    h.h4(title)
+    h.startUl()
+    for db in dbList:
+        desc = pubConf.classDescriptions[db]
+        h.li('<a href="%s.html">%s</a> (<a href="%s.ids.txt">article IDs</a>)' % (db, desc, db))
+    h.endUl()
+    h.endHtml()
+
+def makeHtml(dbList, pmidDir, catFname, outDir):
+    " "
+    docClasses = parseDocClasses(catFname)
+    mkEmptyDir(outDir)
+    logging.info("Writing html to %s" % outDir)
+    for db in dbList:
+        docIdFname = join(outDir, db+".ids.txt")
+        docFh = open(docIdFname, "w")
+        docFh.write("#PMID\tDOI\n")
+
+        outfname = join(outDir, db+".html")
+
+        artScores = docClasses[db]
+
+        logging.info("DB %s, filename %s" % (db, outfname))
+        h = html.htmlWriter(outfname)
+        h.head("Database: %s" % db)
+        desc = pubConf.classDescriptions.get(db, "")
+        h.h4("Documents in category <i>'%s'</i> (%s)" % (desc, db))
+        h.writeLn("Source database of training documents: <b>%s</b><br>" % db)
+        h.writeLn("Number of articles shown: %d<br>" % len(artScores))
+        h.writeLn('Articles already in the database are not shown<br>')
+        h.writeLn('<a href="%s.ids.txt">Download document IDs</a> in tab-sep format' % (db))
+        h.p()
+        h.writeLn('<hr>')
+
+        artScores.sort(key=operator.itemgetter(1), reverse=True)
+
+        pm = maxCommon.ProgressMeter(len(artScores), stepCount=100)
+        skippedPmids = 0
+        dbPmids = parsePosPmids(db, pmidDir)
+        for artId, score in artScores:
+            art = pubStore.lookupArticleByArtId(artId)
+            if art==None:
+                logging.warn("No info on artId %s?" % pmid)
+                continue
+            # don't show articles that are already in DB
+            if art["pmid"]!="" and int(art["pmid"]) in dbPmids:
+                skippedPmids += 1
+                continue
+            h.link(art["fulltextUrl"], art["title"])
+            h.br()
+            authors = art["authors"]
+            if len(authors)>60:
+                authors = authors.split(";")[0]+" et. al. "
+            ref = ["score: "+str(score), art["journal"], art["year"], authors]
+            h.writeLn(", ".join(ref))
+            #h.hr()
+            h.p()
+
+            docFh.write("%s\t%s\n" % (art["pmid"], art["doi"]))
+            pm.taskCompleted()
+        logging.info("Skipped %d PMIDs as they are already in DB" % skippedPmids)
+        h.endHtml()
+        docFh.close()
+    
 def main(args, options):
     datasets, stepsString = args
     steps = stepsString.split(',')
     dbList = getDbList(pmidListDir)
     dataId = datasets.replace(",", "-")
+    global leaveDirs
+    leaveDirs = options.leaveDirs # for mkEmptyDir()
 
     baseDir = join(varDir, dataId)
     localBaseDir = join(localDir, dataId)
     dirs = defDirectories(baseDir, localBaseDir, datasets, options)
     addMeta = not options.noMeta
     addTwoGrams = options.twoGrams
+    bestWordCount = options.bestWordCount
 
     logging.info("DBs defined: %s" % dbList)
 
@@ -800,22 +1000,71 @@ def main(args, options):
         logging.info("raw word list created, use your own command now to reduce it to something smaller")
         logging.info("e.g. cat %s | gawk '($2<50000) && ($2>100)' | cut -f1 | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/google-ngrams/fiction/top100k.tab  | lstOp remove stdin /hive/data/outside/pubs/wordFrequency/bnc/bnc.txt > %s" % (rawWordListFname, wordListFname))
 
+    # not used
     if "corpus" in steps:
         pmidToDb  = parsePmidsDbs(pmidListDir)
         getText(dirs.textDirs, dbList, pmidToDb, dirs.corpusDir)
 
     if "trainCounts" in steps:
-        submitWordCountJobs(datasets, dirs.textDirs, dirs.wordCountDir, addMeta, options.twoGrams)
+        pmids, dbs, dbPmids = parsePmids(pmidListDir)
+        submitWordCountJobs(pmids, datasets, dirs.textDirs, dirs.wordCountDir, addMeta, options.twoGrams)
+
+        wordPmids = readWordPmids3(dirs.wordCountDir)
+        mkEmptyDir(dirs.wordPmidDir, options.onlyDbs)
+        logging.info("Across all DBs, found %d words" % len(wordPmids))
+        #writeWordPmids(wordPmids, join(dirs.wordPmidDir, db+".marshal"))
+        wordPmids = filterWords(wordPmids, 20, 999999999, 20, 999999999)
+        writeWordPmids(wordPmids, dirs.wordCountFname)
+
+    if "rankWords" in steps:
+        logging.info("Reading word -> pmid dict %s" % dirs.wordCountFname)
+        wordPmids = marshal.load(open(dirs.wordCountFname))
+        mkEmptyDir(dirs.svmlDir)
+        mkEmptyDir(dirs.trainSvmlDir)
+        mkEmptyDir(dirs.testSvmlDir)
+        mkEmptyDir(dirs.alphaDir)
+        for db in dbList:
+            logging.info("Filtering most common words for DB %s" % db)
+            posPmids, negPmids = parsePmidPosNeg(db, pmidListDir)
+            posMin = 0.001 * len(posPmids) # remove uncommon words
+            posMax = len(posPmids) # keep words that appear in all foreground
+            negMin = 0.005 * len(negPmids) # remove uncommon words
+            negMax = 0.90 * len(negPmids) # remove common English words
+            dbWordPmids = filterWords(wordPmids, posMin, posMax, negMin, negMax)
+
+            outFname = join(dirs.wordPmidDir, db+".counts.tab")
+            bestWordFname = join(dirs.bestWordsDir, db+".txt")
+            bestWords = writeWordCounts(dbWordPmids, posPmids, negPmids, outFname, bestWordCount, bestWordFname)
+
+            svmlFname = dictToSvml (dbWordPmids, bestWords, posPmids, negPmids, dirs.svmlDir, db)
+            splitFile(svmlFname, 0.8, dirs.trainSvmlDir, dirs.testSvmlDir)
+
+        svmlLearn(svmlBinDir, dirs.trainSvmlDir, dirs.modelDir, dirs.alphaDir, dbList)
+        svmlClassify(svmlBinDir, dirs.testSvmlDir, dirs.modelDir, dirs.testSvmlDir, dbList)
+
+    # for inspection
+    if "wordCounts" in steps:
+        for db in dbList:
+            countFname = join(dirs.wordPmidDir, db+".marshal")
+            counts = marshal.load(open(countFname))
+            posPmids, negPmids = parsePmidPosNeg(db, pmidListDir)
+            outFname = join(dirs, dirs.wordPmidDir, db+".counts.tab")
+            writeWordCounts(counts, pmidPmids, negPmids, outFname)
+
+    # NO
+    if "trainCounts2" in steps:
+        submitWordCountJobs2(pmidListDir, datasets, dirs.textDirs, dirs.wordCountDir+".tmp", addMeta, options.twoGrams)
 
     #if "splitCounts" in steps:
         #pmidToDb  = parsePmidsDbs(pmidListDir)
         #filterPmids(dirs.wordCountDir, pmidToDb, dbList, dirs.concatDir)
-
+    # NO
     # debugging only
     if "catCounts" in steps:
         #pubAlg.concatFiles(dirs.wordCountDir, join(dirs.concatDir, "flybase.tab.gz"))
         pass
 
+    # NO
     if "wordPmids" in steps:
         pmids, dbs, dbPmids = parsePmids(pmidListDir)
         wordPmids, donePmids = readWordPmids2(dirs.wordCountDir, pmids)
@@ -833,16 +1082,16 @@ def main(args, options):
         for word, pmids in d.iteritems():
             ofh.write("%s\t%d\n" % (word, len(pmids)))
 
-    if "rankWords" in steps:
+    if "rankWords2" in steps:
         makeBestWords(dbList, dirs.dataCountFname, pmidListDir, dirs.rankedWordsDir, \
             options.bestWordCount, dirs.bestWordsDir)
 
-    if "trainSvml" in steps:
-        pmids, dbs, dbPmids = parsePmids(pmidListDir)
+    if "svml" in steps:
+        #pmids, dbs, dbPmids = parsePmids(pmidListDir)
         #marshalToSvml(dbList, pmidListDir, dirs.dataCountFname, dirs.bestWordsDir, dirs.svmlDir)
-        bestWords = parseBestWords(dirs.bestWordsDir)
-        dbs = list(dbs)
-        textToSvml(dirs.textDirs, bestWords, dbs, dbPmids, dirs.clusterSvmlDir, addMeta, addTwoGrams)
+        bestWords = parseBestWords(dirs.bestWordsDir, dbList)
+        #dbs = list(dbs)
+        textToSvml(dirs.textDirs, bestWords, dirs.clusterSvmlDir, addMeta, addTwoGrams, dirs.modelDir)
 
         #if "splitSvml" in steps:
         #inFnames = glob.glob(join(dirs.svmlDir, "*.svml"))
@@ -860,21 +1109,19 @@ def main(args, options):
         #logging.info("output matrix written to %s" % dirs.svmlDir)
         #splitSvml(tMatrixFname, dbs, dbPmids, svmlDir)
 
-    if "train" in steps:
-        svmlLearn(svmlBinDir, dirs.trainSvmlDir, dirs.modelDir, dirs.alphaDir, dbList)
-
-    if "test" in steps:
-        svmlClassify(svmlBinDir, dirs.testSvmlDir, dirs.modelDir, dirs.testSvmlDir, dbList)
+    # YES
+    if "concat" in steps:
+        summarizeResults(dbList, dirs.clusterSvmlDir, dirs.categoryFname)
 
     if "testHtml" in steps:
         makeHtmlTest(dbList, dirs.textDirs, dirs.testSvmlDir, pubConf.testOutHtmlDir)
         
     if "fullSvml" in steps:
-        #assert(len(dirs.textDirs)==1)
         for db in dbList:
-            #pubExpMatrix.runMatrixJobs(fullSvmlName, dirs.textDirs, wordListFname, None, None, \
-                    #options.skipMap, "svml", docIdFname, options.test, docIdFname)
-            submitToSvmlJobs(dirs.textDirs, dirs.fullSvmlDir, wordListFname)
+            dbBestWords = parseBestWords(dirs.bestWordsDir)
+            submitToSvmlJobs(dirs.textDirs, dirs.fullSvmlDir, dbBestWords, addMeta, addTwoGrams)
+        #pubExpMatrix.runMatrixJobs(fullSvmlName, dirs.textDirs, wordListFname, None, None, \
+                #options.skipMap, "svml", docIdFname, options.test, docIdFname)
 
     if "classify" in steps:
         assert(len(textDirs)==1)
@@ -883,8 +1130,14 @@ def main(args, options):
         convertSvmlResults(dIdFname, dirs.classDir, categoryFname, dbList)
 
     if "html" in steps:
-        makeHtml(categoryFname, pubConf.classOutHtmlDir, dbList)
-        
+        makeHtml(dbList, pmidListDir, dirs.categoryFname, pubConf.classOutHtmlDir)
+        makeHtmlDir(dbList, pubConf.classOutHtmlDir)
+
+    if "dir" in steps:
+        makeHtmlDir(dbList, pubConf.classOutHtmlDir)
+
+    if "benchmark" in steps:
+        benchmark(dbList, pubConf.classOutHtmlDir)
 
 # ----------- MAIN --------------
 if args==[]:
