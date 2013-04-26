@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 # load default python packages
 import sys, logging, optparse, os, glob, shutil, gzip, collections
 from os.path import *

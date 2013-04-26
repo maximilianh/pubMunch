@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # first load the standard libraries from python
 # we require at least python 2.7

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # this script collects the data about publishers from medline and from what we have on disk
 # it's terrible but it's only used here at UCSC

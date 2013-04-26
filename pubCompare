@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 # try to infer PMIDs by comparing issn/vol/issue/page against medline
 

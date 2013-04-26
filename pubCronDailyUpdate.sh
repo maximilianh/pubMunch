@@ -6,7 +6,7 @@
 export PATH=$PATH:/cluster/bin/x86_64 # for hgLoadSqlTab
 
 # VARIABLES
-PYTHON=/cluster/software/bin/python2.7
+PYTHON=/cluster/software/bin/python
 BIN=/hive/users/max/projects/pubs/tools/
 DOWNBASE=/hive/data/outside/pubs
 TEXTBASE=/hive/data/inside/pubs/text

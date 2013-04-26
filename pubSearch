@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 import maxCommon, glob, collections, os, sys, optparse, logging, operator, types
 
 # add <scriptDir>/lib/ to package search path
