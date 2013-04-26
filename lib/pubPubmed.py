@@ -101,27 +101,28 @@ def parseMedline(xmlParser):
     authors = [lastNames[i]+", "+initialList[i] for i in range(0, min(len(lastNames), len(initialList)))]
     data["authors"]="; ".join(authors)
 
-    articleTypeList = artTree.getTextAll("PublicationTypeList/PublicationType")
+    articleTypeList = set(artTree.getTextAll("PublicationTypeList/PublicationType"))
     articleTypesString  = ",".join(articleTypeList)
 
     articleType="research-article"
 
-    if "Review" in articleTypeList:
-       articleType = "review"
-    if "letter" in articleTypeList:
-       articleType = "research-article"
-
-    noResearchArticleTags = ["Bibliography", "Biography", 
-        "Case Reports", "Webcasts",  
+    noResearchArticleTags = ["Bibliography", "Biography",
+        "Case Reports", "Webcasts",
         "Dictionary", "Directory",
         "Editorial", "Festschrift",
-        "Patient Education Handout", "Periodical Index", 
+        "Patient Education Handout", "Periodical Index",
         "Portraits", "Published Erratum", "Scientific Integrity Review"
         "Congresses"]
 
-    for noResearchArticleTag in noResearchArticleTags:
-        if noResearchArticleTag in articleTypeList:
-            articleType = "other"
+    if "Review" in articleTypeList:
+       articleType = "review"
+    elif "Letter" in articleTypeList:
+       articleType = "research-article"
+    else:
+        for noResearchArticleTag in noResearchArticleTags:
+            if noResearchArticleTag in articleTypeList:
+                articleType = "other"
+                break
 
     data["articleType"]        = articleType
     #data["pubmedArticleTypes"] = articleTypesString

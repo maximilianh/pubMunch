@@ -109,15 +109,16 @@ def main(args, options):
 
     dataset, command = args
 
-    allSteps = ["annot", "filter", "blat", "sort", 
+    allSteps = ["annot", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]
 
     dirs = pubMapProp.PipelineConfig(dataset)
 
-    if command.startswith("steps:"):
-        stepFrom, stepTo = pubMap.parseSteps(command)
-        # this is the list of steps for steps:all
+    if "-" in command:
+        stepFrom, stepTo = command.split("-")
         pubMap.runStepRange(dirs, allSteps, stepFrom, stepTo, args, options)
+    elif command=="all":
+        pubMap.runStepRange(dirs, allSteps, "annot", "tables", args, options)
     else:
         pubMap.runStep(dataset, command, dirs, options)
 

@@ -35,7 +35,23 @@ def mustBeEmptyDir(path, makeDir=False):
     " exit if path does not exist or it not empty. do an mkdir if makeDir==True "
     if type(path)==types.ListType:
         for i in path:
-            mustBeEmptyDir(i, makeDir=makeDir)
+            notEmptyDirs = []
+            notExistDirs = []
+            if not os.path.isdir(i):
+                if makeDir:
+                    os.makedirs(i)
+                else:
+                    notExistDirs.append(i)
+            else:
+                if len(os.listdir(i))!=0:
+                    notEmptyDirs.append(i)
+        text = ""
+        if len(notEmptyDirs)!=0:
+            text += "Directories %s are not empty. " % " ".join(notEmptyDirs)
+        if len(notExistDirs)!=0:
+            text += "Directories %s do not exist. " % " ".join(notExistDirs)
+        if text!="":
+            raise Exception(text)
     else:
         if not os.path.isdir(path):
             if not makeDir:

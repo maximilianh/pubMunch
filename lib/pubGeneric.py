@@ -109,7 +109,7 @@ def verboseFunc(message):
 def addGeneralOptions(parser):
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
-    parser.add_option("", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
+    parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
     return parser
 
 def setupLogging(PROGNAME, options, parser=None, logFileName=False, \

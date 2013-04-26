@@ -533,7 +533,7 @@ class htmlWriter:
         self.write(str)
         self.write("\n")
 
-    def head(self, title, stylesheet=None, styleString=None, scripts=None):
+    def head(self, title, stylesheet=None, styleString=None, scripts=None, metaTags=[]):
         self.f.write("""
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
@@ -547,6 +547,9 @@ class htmlWriter:
         if scripts!=None:
             for script in scripts:
                 self.f.write("""<script type="text/javascript" src="%s"></script>\n""" % script)
+        for meta, val in metaTags:
+            self.f.write("""<meta http-equiv="%s" content="%s">\n""" % (meta, val))
+            
         self.f.write ("""</head>\n""")
 
     def endHtml(self):

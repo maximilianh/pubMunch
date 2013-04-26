@@ -1690,7 +1690,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     pubsCrawlCfg = prepConfigCompileRes(pubsCrawlCfg)
     hostToConfig = prepConfigIndexByHost(pubsCrawlCfg)
 
-    pubId = basename(outDir)
+    pubId = basename(outDir.rstrip("/"))
     crawlConfig = None
     if restrictPublisher:
         logging.error("pubId is %s" % pubId)

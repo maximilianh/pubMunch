@@ -118,9 +118,18 @@ def parseIdFname(fname):
         res[int(row.artId1)] = row.pmid
     return res
         
+def updateSqliteIds(datasetString, artToPmid):
+    " update the sqlite db given a list of (articleId, pmid) tuples "
+    logging.info("Updating the sqlite DB")
+    con, cur = pubStore.openArticleDb(datasetString)
+    pmidArtIds = [(y,x) for x,y in artToPmid]
+    cur.executemany("UPDATE articles set pmid=? where articleId=?", pmidArtIds)
+    con.commit()
+
 def addPmidCmd(args, options):
     " for all datasets, add the pmids from the pubCompare output file to the article files "
     datasetString = args[0]
+
     textDir = pubConf.resolveTextDir(datasetString)
     logging.info("Changing article files in %s" % textDir)
     aToPfn = join(textDir, pubConf.idFname)
@@ -130,11 +139,8 @@ def addPmidCmd(args, options):
     logging.info("Running on %d article files" % len(fnames))
     pm = maxCommon.ProgressMeter(len(fnames), stepCount=100)
 
-    # update the sqlite db
-    logging.info("Updating the sqlite DB")
-    con, cur = pubStore.openArticleDb(datasetString)
-    cur.executemany("UPDATE articles set pmid=? where articleId=?", artToPmid.items())
-    con.commit()
+    updateSqliteIds(datasetString, artToPmid.items())
+    sys.exit(0)
 
     logging.info("Updating tab sep files")
     for fname in fnames:

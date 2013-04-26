@@ -42,12 +42,11 @@ Or alternatively with something like:
     lftp -e 'set net:socket-buffer 4000000; connect ftp://ftp.nlm.nih.gov/nlmdata/.medleasebaseline/gz; mirror -c --parallel=8 .; quit'
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
 parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserver space for x entries in numerical namespace, default %default", default=300000) 
 parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
-parser.add_option("-c", "--cluster", dest="cluster", action="store_true", help="use cluster for conversion", default=None) 
 parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -96,7 +95,8 @@ def submitJobs(inDir, outDir, minId, idStep, useCluster):
         fCount += 1
         outFname = os.path.join(outDir, "%d_%05d.articles.gz" % (updateId, chunkId))
         maxCommon.mustNotExist(outFname)
-        command = "%s %s {check in exists %s} {check out exists+ %s} %d" % (sys.executable, progFile, medlineFname, outFname, chunkArticleId)
+        command = "%s %s {check in exists %s} {check out exists+ %s} %d" % \
+            (sys.executable, progFile, medlineFname, outFname, chunkArticleId)
         runner.submit(command)
         chunkArticleId += idStep
         chunkId += 1

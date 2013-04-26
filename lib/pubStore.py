@@ -12,7 +12,7 @@
 
 import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator
 import zipfile, gzip, re, sqlite3, random
-import pubGeneric, pubConf, maxCommon, pubStore, unicodeConvert, maxTables
+import pubGeneric, pubConf, maxCommon, unicodeConvert, maxTables
 
 from os.path import *
 
@@ -160,14 +160,14 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None):
     return data.keys()
 
 def toUnicode(var):
-    " force variable to unicode, somehow "
-    if type(var)==type(1):
+    " force variable to unicode, by decoding as utf8 first, then latin1 "
+    if isinstance(var, unicode):
+        return var
+    elif type(var)==type(1):
         var = unicode(var)
-    if var==None:
+    elif var==None:
         var = "NotSpecified"
-    elif type(var)==type(unicode()):
-        pass
-    else:
+    elif isinstance(var, str):
         try:
             var = var.decode("utf8")
         except UnicodeDecodeError, msg:
@@ -412,10 +412,6 @@ class PubReaderFile:
     def _readFilesForArticle(self, articleId, fileDataList):
         " reads files until the articleId changes, adds them to fileDataList "
 
-        #newFileDataList = [fd for fd in fileDataList if fileDataList.articleId=articleId]
-        #if len(newFileDataList)<>len(fileDataList):
-            #logging.debug("Skipped %d files
-        
         for fileData in self.fileRows:
            logging.log(5, "Read file data %s for article %s" % \
                (str(fileData.fileId), fileData.articleId))
@@ -450,7 +446,7 @@ class PubReaderFile:
         for fileData in files:
             if fileData.fileType=="main" or fileData.fileType=="":
                 # we should never have two main files with same type
-                assert(fileData.mimeType not in mainFiles) 
+                assert(fileData.mimeType not in mainFiles)
                 mainFiles[fileData.mimeType] = fileData
             else:
                 newFiles.append(fileData)
@@ -468,7 +464,7 @@ class PubReaderFile:
             logging.debug("Removing pdf")
             del mainFiles["application/pdf"]
 
-        # paranoia check: make sure that we still have left one file0
+        # paranoia check: make sure that we still have left one file
         if not len(mainFiles)>=1:
             logging.error("no main file anymore: input %s output %s " % (files, mainFiles))
             assert(len(mainFiles)>=1)
@@ -539,7 +535,6 @@ class PubReaderFile:
         for articleData in self.articleRows:
            yield None, articleData
 
-
     def close(self):
         if self.articleRows:
             self.articleRows.close()
@@ -582,7 +577,7 @@ def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False, onlyMain=False)
     for textCount, textFname in enumerate(fileNames):
         reader = PubReaderFile(textFname)
         logging.debug("Reading %s, %d files left" % (textFname, len(fileNames)-textCount))
-        pr = pubStore.PubReaderFile(textFname)
+        pr = PubReaderFile(textFname)
         artIter = pr.iterArticlesFileList(onlyBestMain=preferPdf, onlyMain=False, onlyMeta=onlyMeta)
         for article, fileList in artIter:
             yield article, fileList
@@ -663,7 +658,7 @@ def replaceSpecialChars(string):
 
 space_re = re.compile('[ ]+')
 
-def prepSqlString(string):
+def prepSqlString(string, maxLen=pubConf.maxColLen):
     """ change <<</>>> to <b>/</b>, replace unicode chars with 
     character code, because genome browser html cannot do unicode
     
@@ -671,7 +666,7 @@ def prepSqlString(string):
     global control_chars
     if string==None:
        string = ""
-    string = pubStore.toUnicode(string)
+    string = toUnicode(string)
     string = replaceSpecialChars(string)
     string = string.replace("\\", "\\\\") # mysql treats \ as escape char on LOAD DATA
     string = string.replace("<<<", "<B>")
@@ -679,9 +674,9 @@ def prepSqlString(string):
     string = string.replace("\A", "<BR>")
     string = space_re.sub(' ', string)
     string = unicodeConvert.string_to_ncr(string)
-    if len(string) > pubConf.maxColLen:
-       logging.warn("Cutting column to %d chars, text: %s" % (pubConf.maxColLen, string[:200]))
-       string = string[:pubConf.maxColLen]
+    if len(string) > maxLen:
+       logging.warn("Cutting column to %d chars, text: %s" % (maxLen, string[:200]))
+       string = string[:maxLen]
     return string
 
 def iterFileDataDir(textDir):
@@ -872,7 +867,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     else:
         firstFh = open(firstFname)
     #headers = firstFh.readline().strip("\n#").split("\t")
-    headers = pubStore.articleFields
+    headers = articleFields
     logging.debug("DB fields are: %s" % headers)
     toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
     toLoadFnames = sortPubFnames(toLoadFnames)
@@ -944,10 +939,19 @@ def lookupArticleByArtId(artId):
     con, cur = openArticleDb(dataset)
     return lookupArticle(con, cur, "articleId", artId)
 
+connCache = {}
+
 def lookupArticleByPmid(datasets, pmid):
     " convenience method to get article info given pubmed Id, caches db connections "
     for dataset in datasets:
-        con, cur = openArticleDb(dataset)
+        # keep cache of db connections
+        if not dataset in connCache:
+            con, cur = openArticleDb(dataset)
+            connCache[dataset] = con, cur
+        else:
+            con, cur = connCache[dataset]
+
+        # lookup article
         art = lookupArticle(con, cur, "pmid", pmid)
         if art!=None:
             return art
@@ -955,16 +959,6 @@ def lookupArticleByPmid(datasets, pmid):
 
 def lookupArticle(con, cur, column, val):
     " uses sqlite db, returns a dict with info we have locally about article, None if not found "
-    #logging.debug("Trying PMID lookup with local medline copy")
-    #medlineDb = pubStore.getArtDbPath("medline")
-    #if not isfile(medlineDb):
-        #logging.warn("%s does not exist, no local medline lookups, need to use eutils" % medlineDb)
-        #return None
-
-    #con, cur = maxTables.openSqlite(medlineDb)
-    #con.row_factory = sqlite3.Row
-    #cur = con.cursor()
-
     rows = None
     tryCount = 60
 

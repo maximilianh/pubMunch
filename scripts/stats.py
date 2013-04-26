@@ -1,9 +1,13 @@
 import tabfile
+from collections import defaultdict
 # example file for pubtools map/reduce framework
 # illustrates how to map/reduce article meta data
 
-
 # reports file sizes and file counts
+
+bestMain = True
+sectioning = False
+#onlyMeta = True
 
 headers = ["object", "size"]
 
@@ -17,11 +21,15 @@ def map(article, file, text, resultDict):
     " "
     keys = ["totalSize", "journalBytes:"+article.journal, "journalFiles:"+article.journal, 
             "fileCount", "mimeTypeFiles:"+file.mimeType, "mimeTypeBytes:"+file.mimeType,
-            "articleTypeFiles:"+article.articleType, "abstractBytes", "totalSizeMain", "totalSizeSupp"]
+            "articleTypeFiles:"+article.articleType, "abstractBytes", "totalSizeMain", "totalSizeSupp"
+            ]
+
     for key in keys:
         resultDict.setdefault(key, 0)
 
     resultDict.setdefault("articleCount_"+article.year, set())
+    resultDict.setdefault("pmidCount_"+article.publisher+"_"+article.year, set())
+    resultDict.setdefault("pmidCount", set())
     resultDict.setdefault("articleCountWithAbstract_"+article.year, set())
     resultDict.setdefault("maxMainSize", {})
 
@@ -36,6 +44,11 @@ def map(article, file, text, resultDict):
 
     resultDict["fileCount"] += 1
     resultDict["articleCount"].add(int(article.articleId))
+    if article.pmid!="":
+        pmid = int(article.pmid)
+        resultDict["pmidCount"].add(pmid)
+        resultDict["pmidCount_"+article.publisher+"_"+article.year].add(pmid)
+
     resultDict["articleCount_"+article.year].add(int(article.articleId))
     if len(article.abstract)>30:
         resultDict["articleCountWithAbstract_"+article.year].add(int(article.articleId))
@@ -49,9 +62,9 @@ def map(article, file, text, resultDict):
 # this is called after all jobs are finished, on the main machine
 # it is called once for each key
 def reduce(key, valList):
-    if key.startswith("articleCount"):
+    if key.startswith("articleCount") or key.startswith("pmidCount"):
         yield key, len(valList)
-    elif key=="maxMainSize":
+    elif key=="maxMainSize" and len(valList)!=0:
         yield key, max(valList)
     else:
         yield key, sum(valList)

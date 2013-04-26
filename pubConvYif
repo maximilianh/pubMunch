@@ -121,9 +121,9 @@ def convertFiles(inDir, outDir, minId):
                 print "making new writer"
                 writer = pubStore.PubWriterFile(join(outDir, chunkId))
                 
-            #articleId = int(artData["articleId"]) - pubConf.identifierStart["pmc"] + minId
+            articleId = int(artData["articleId"]) - pubConf.identifierStart["pmc"] + minId
             #print "writing %s" % artData
-            articleId = int(artData["articleId"])
+            #articleId = int(artData["articleId"])
             writer.writeArticle(articleId, artData)
             donePmcIds.add(pmcId)
             fileCount = 0
@@ -153,13 +153,14 @@ def convertFiles(inDir, outDir, minId):
     writer.close()
     
 def main(args, options):
-    inDir, outDir = args
+    inDir, outDataset = args
     maxCommon.mustExist(inDir)
     #minId = options.minId
     minId = pubConf.identifierStart["yif"]
 
     pubGeneric.setupLogging(progFile, options)
 
+    outDir = pubConf.resolveTextDir(outDataset)
     maxCommon.mustExistDir(outDir)
     maxCommon.mustBeEmptyDir(outDir)
     convertFiles(inDir, outDir, minId)

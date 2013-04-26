@@ -172,7 +172,8 @@ ARTICLEDIGITS=10 # number of digits to use for annotation ID
 FILEDIGITS=3 # number of digits to use for annotation ID 
 ANNOTDIGITS=5 # number of digits to use for annotation ID 
 
-# which converter should start at which position in our namespace?
+# articleIds should start at which position in our namespace?
+# this is to make sure that articleIds are unique
 identifierStart = {
     "pmc"      : 1000000000,
     "elsevier" : 2000000000,
@@ -183,6 +184,7 @@ identifierStart = {
     "yif"      : 4500000000,
     "crawler"  : 5000000000,
     "free"     : 6000000000  # to indicate end of list, always keep this here
+    # the "free" entry is necessary to indicate the range of the 2nd to last entry
 }
 # commands to convert various filetypes to ascii text 
 # $in and $out will be replaced with temp filenames
@@ -329,6 +331,8 @@ assert(len(set(alwaysUseGenomes).intersection(defaultGenomes))==len(alwaysUseGen
 minSeqLen=17
 # minimum size of protein sequence to be considered for blatting
 minProtSeqLen=7
+# maximum size of dna or protein sequence
+maxSeqLen=50000
 
 # maximum size of sequence to be considered "short", sequences can be "short" or "long"
 shortSeqCutoff = 35
@@ -404,9 +408,9 @@ impactFname = join(staticDataDir, "map", "impact2011.tab")
 # (for "pubMap <dataset> load")
 sqlDir = "/cluster/home/max/projects/pubs/tools/sql/"
 
-# when writing tables for mysql, we cut all columns to a maximum size,
+# when writing tables for mysql, we cut most columns to a maximum size,
 # to account for data errors (elsevier)
-maxColLen = 32000
+maxColLen = 255
 
 # MARKER MAPPING ============================
 markerDbDir = "/hive/data/inside/pubs/markerDb/"
@@ -448,6 +452,10 @@ classDescriptions = {
 'reactome' : "Protein interactions",
 'wormbase' : "C. elegans genetics",
 }
+
+# the final output of the classification step, for pubMap integration
+classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.tab")
+
 # ACCESS METHODS (convenience) ============================
 
 import sys, logging, os.path, time, random

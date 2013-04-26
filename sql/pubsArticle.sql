@@ -13,7 +13,7 @@ CREATE TABLE pubsArticle (
     page varchar(255), # page or pagerange within issue
     year int not null,	# year of publication or 0 if not defined
     title varchar(6000) default null,	# article title
-    authors varchar(12000) default null,	# author list for this article
+    authors varchar(6000) default null,	# author list for this article
     firstAuthor varchar(255) default null,	# first author family name
     abstract varchar(32000) not null,	# article abstract
     url varchar(1000) default null,	# url to fulltext of article

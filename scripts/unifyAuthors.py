@@ -153,13 +153,13 @@ class GetFileDesc:
         # ff and chrome seem to show unicode in mouseovers just fine
         title = pubStore.prepSqlString(a.title)
 
-        artRow = [ (a.externalId, a.pmid, a.doi, a.printIssn, title, firstAuthor, a.year) ]
+        artRow = [ (a.publisher, a.externalId, a.pmid, a.doi, a.printIssn, a.journal, title, firstAuthor, a.year) ]
         result["a"+articleData.articleId] = artRow
 
     def reduceStartup(self, resultDict, paramDict, outFh):
         self.artFh = open(paramDict["artDescFname"], "w")
-        headers = ["articleId", "externalId", "pmid", "doi", \
-            "printIssn", "title", "firstAuthor", "year"]
+        headers = ["articleId", "publisher", "externalId", "pmid", "doi", \
+            "printIssn", "journal", "title", "firstAuthor", "year"]
         self.artFh.write("\t".join(headers))
         self.artFh.write("\n")
 
@@ -172,13 +172,13 @@ class GetFileDesc:
             row = valList[0]
             line = docId.strip("a")+"\t"+u'\t'.join(row)+"\n"
             logging.debug("Writing %s" % line)
-            self.artFh.write(line)
+            self.artFh.write(line.encode('utf8'))
         else:
             assert(False)
 
     def reduceEnd(self, data):
         # this solves a very weird bug due to the hackiness of this whole 
         # solution. The test run will open the file but not close it.
-        # so the main run will write into the same old file.
-        # 
+        # and the main run will write into the same old file.
+        # So we need to close our outfiles.
         self.artFh.close()

@@ -54,18 +54,6 @@ def runStepRange(d, allSteps, fromStep, toStep, args, options):
         logging.info("=== RUNNING STEP %s ===" % stepName)
         runStep(d.dataset, stepName, d, options)
 
-def parseSteps(command):
-    " parse the 'steps' command "
-    stepFrom = "annot"
-    stepTo   = "tables"
-    if ":" in command:
-        fromTo = command.split(":")[1]
-        if fromTo=="all":
-            stepFrom, stepTo = "annot", "tables"
-        else:
-            stepFrom, stepTo = fromTo.split("-")
-    return stepFrom, stepTo
-
 def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None):
     """ create <db>.<long|short>.fa files in faDir and fill them with data from
     tab-sep inFile (output file from pubRun)
@@ -595,7 +583,7 @@ def chainPslToBed(tmpPslFname, oneOutFile, maxDist, tmpDir):
                 writePslsFuseOverlaps(pslList, outPslFile)
 
     # when no data was found on hg19, then the file was not created and parasol thinks
-    # that the job hash crashed. Make Parasol happy by creating a zero-byte outfile 
+    # that the job has crashed. Make Parasol happy by creating a zero-byte outfile 
     if not isfile(oneOutFile):
         logging.info("Creating empty file %s for parasol" % oneOutFile)
         open(oneOutFile, "w").write("")
@@ -812,7 +800,7 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
             else:
                 annotLinkString = ",".join(annotLinkList)
 
-            snippet = pubStore.prepSqlString(annot.snippet)
+            snippet = pubStore.prepSqlString(annot.snippet, maxLen=3000)
             outRowCount+=1
             if fileDesc == "" or fileDesc==None:
                 logging.debug("Cannot find file description for file id %d" % articleFileId)
@@ -914,19 +902,21 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
             eIssn = articleData.printIssn
 
         articleRow =  (str(artId), articleData.externalId, \
-                       str(pmid), str(articleData.doi), str(articleData.source), \
-                       pubStore.prepSqlString(refString), \
+                       str(pmid), pubStore.prepSqlString(articleData.doi), \
+                       str(articleData.source), \
+                       pubStore.prepSqlString(refString, maxLen=2000), \
                        pubStore.prepSqlString(articleData.journal), \
                        pubStore.prepSqlString(eIssn), \
                        pubStore.prepSqlString(articleData.vol), \
                        pubStore.prepSqlString(articleData.issue), \
                        pubStore.prepSqlString(articleData.page), \
                        sanitizeYear(articleData.year), \
-                       pubStore.prepSqlString(articleData.title), \
-                       pubStore.prepSqlString(articleData.authors), \
+                       pubStore.prepSqlString(articleData.title, maxLen=6000), \
+                       pubStore.prepSqlString(articleData.authors, maxLen=6000), \
                        firstAuthor(articleData.authors), \
-                       pubStore.prepSqlString(articleData.abstract), \
-                       articleData.fulltextUrl, dbString)
+                       pubStore.prepSqlString(articleData.abstract, maxLen=32000), \
+                       pubStore.prepSqlString(articleData.fulltextUrl, maxLen=1000), \
+                       dbString)
         articleFh.write(u'\t'.join(articleRow))
         articleFh.write(u'\n')
         articleCount+=1
@@ -1010,24 +1000,22 @@ def stripArticleIds(hitListString):
         matchRanges.append(parts[1])
     return articleId, ",".join(seqIds), ",".join(matchRanges)
 
-def findBedPslFiles(bedDirs):
+def findBedPslFiles(bedDir):
     " find all pairs of bed and psl files with same basename in input dirs and return list of basenames "
     # get all input filenames
-    basenames   = []
-    for bedDir in bedDirs:
-        logging.info("Looking for bed and psl files in dir %s" % str(bedDir))
-        bedFiles = glob.glob(join(bedDir, "*.bed"))
-        pslFiles = glob.glob(join(bedDir, "*.psl"))
-        print bedFiles
-        print pslFiles
-        print len(bedFiles), len(pslFiles)
-        assert(len(bedFiles)==len(pslFiles))
-        logging.info("Found %d files in dir %s" % (len(bedFiles), str(bedDir)))
-        for bedName in bedFiles:
-            basenames.append( splitext(bedName)[0] )
+    logging.info("Looking for bed and psl files in dir %s" % str(bedDir))
+    bedFiles = glob.glob(join(bedDir, "*.bed"))
+    pslFiles = glob.glob(join(bedDir, "*.psl"))
+    # there can be a bed file without a psl file if a job had no results
+    # and the job created the empty bed just to signal job completion
+    # for the cluster system
+    #assert(len(bedFiles)==len(pslFiles))
+    logging.info("Found %d files in dir %s" % (len(bedFiles), str(bedDir)))
+    bedBases = set([splitext(b)[0] for b in bedFiles])
+    pslBases = set([splitext(b)[0] for b in pslFiles])
+    basenames = set(bedBases).intersection(pslBases)
 
-    logging.info("Total: %d bed/psl files %d input directories" % (len(basenames), \
-        len(bedDirs)))
+    logging.info("Total: %d bed/psl files" % (len(basenames)))
     return basenames
 
 def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
@@ -1051,10 +1039,12 @@ def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
 
         fields.extend(artDescFields)
         fields.append(str(impact))
-        defaultClass = ""
+
+        # add the class field
+        classes = artClasses.get(articleIdInt, [])
         if dataset=="yif":
-            defaultClass="yif"
-        fields.append(artClasses.get(articleIdInt, defaultClass))
+            classes=["yif"]
+        fields.append(",".join(classes))
 
         bedLine = "\t".join(fields)
         bedLines.setdefault(articleIdInt, []).append(bedLine)
@@ -1084,11 +1074,11 @@ def appendPslsWithArticleId(pslFname, articleIds, outFile):
             outFile.write("\t".join(psl))
             outFile.write("\n")
 
-def rewriteFilterBedFiles(bedDirs, tableDir, dbList, artDescs, artClasses, impacts, dataset):
+def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impacts, dataset):
     """ add extended column with annotationIds
     """
     logging.info("- Formatting bed files for genome browser")
-    basenames = findBedPslFiles(bedDirs)
+    basenames = findBedPslFiles(bedDir)
     outBed, outPsl = openBedPslOutFiles(basenames, dbList, tableDir)
         
     featCounts    = {}
@@ -1275,7 +1265,8 @@ def findUpdates(baseDir, updateId):
     #maxMysql.renameTables("hg19", newTableNames, finalTableNames)
     #maxMysql.dropTables("hg19", oldTableNames)
 
-def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, suffix="", dropFirst=False):
+def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, \
+        suffix="", dropFirst=False, loadArticles=True):
     """ load all article and seq tables for a list of batchIds 
     return list of loaded tables in format: <db>.<tableName> 
     """
@@ -1305,6 +1296,10 @@ def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, suffix="
             if db.startswith("nonUcsc_"):
                 continue
             for fname in fnames:
+                # some datasets refer to article information from others
+                if tableBaseName.endswith("article"):
+                    logging.info("Not loading article information")
+                    continue
                 # find the right .sql file
                 if tableBaseName.startswith("marker") and not tableBaseName.startswith("markerAnnot"):
                     sqlName = join(sqlDir, sqlFilePrefix+"Marker.sql")
@@ -1373,6 +1368,9 @@ def isIdenticalOnDisk(loadedFiles):
     """
     check if files on disk have same size as files in the DB. return true if they are.
     """
+    if len(loadedFiles)==0:
+        return True
+
     for fname, sizeDate in loadedFiles.iteritems():
         size, date = sizeDate
         size = int(size)
@@ -1385,6 +1383,14 @@ def isIdenticalOnDisk(loadedFiles):
                 (fname, diskSize, size))
             return False
     return True
+
+def checkIsIdenticalOnDisk(loadedFiles, trackingDb, trackingTable):
+    " throw exception if there is any difference between loaded files in DB and on disk "
+    if not isIdenticalOnDisk(loadedFiles):
+        raise Exception("Old files already loaded into DB (%s.%s) are different "
+            "from the ones on disk. You can run hgsql -e 'truncate %s.%s' to reload everything." %\
+                (trackingDb, trackingTable, trackingDb, trackingTable))
+
 
 def initTempDir(dirName):
     " create temp dir with dirName and delete all contents "
@@ -1408,13 +1414,10 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
     markerDbDir     = pubConf.markerDbDir
     trackingTable   = tablePrefix+"LoadedFiles"
     trackingDb      = "hgFixed"
+
     loadedFilenames = getLoadedFiles(trackingDb, trackingTable)
-    filesMatch      = isIdenticalOnDisk(loadedFilenames)
-    if not filesMatch:
-        raise Exception("Old files already loaded into DB (%s.%s) are different "
-            "from the ones on disk. You can run hgsql -e 'truncate %s.%s' to reload everything." %\
-                (trackingDb, trackingTable, trackingDb, trackingTable))
-    append          = (len(loadedFilenames) != 0) # only append if there is already old data
+    checkIsIdenticalOnDisk(loadedFilenames, trackingDb, trackingTable)
+    append          = (len(loadedFilenames) != 0) # append if there is already old data
 
     # first create the marker bed files (for all basedirs) and load them
     # this is separate because we pre-calculate the counts for all marker beds
@@ -1428,9 +1431,14 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
     fileDicts = [markerFileDict]
     tableNames = set(markerTables)
 
+    logging.info("Now loading non-marker files")
     # now load non-marker data from each basedir
     # but only those that are not yet in the DB
     for datasetDir in datasetDirs:
+        logging.info("Loading non-marker files for dataset %s" % datasetDir.dataset)
+        # yif dataset links to PMC articles, must not load articles
+        # otherwise duplicated primary IDs in article table
+        loadArticles = (datasetDir.dataset != "yif")
         # find name of table files
         batchIds = datasetDir.findBatchesAtStep("tables")
         if len(batchIds)==0:
@@ -1440,9 +1448,10 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
         fileDicts.append(fileDict)
 
         # load tables into mysql
-        dirTableNames = loadTableFiles(tablePrefix, fileDict, dbList, sqlDir, append)
+        dirTableNames = loadTableFiles(tablePrefix, fileDict, dbList, sqlDir, append, \
+            loadArticles=loadArticles)
         tableNames.update(dirTableNames)
-        append = True # the second baseDir must always append to the tables
+        append = True # all subsequent baseDirs must append now to the tables
 
     # update tracking table with filenames
     appendFilenamesToSqlTable(fileDicts, trackingDb, trackingTable, tempMarkerDir)
@@ -1472,6 +1481,8 @@ def filterSeqFile(inFname, outFname, isProt=False):
     outFh.write(headerLine)
 
     minLen = pubConf.minSeqLen
+    maxLen = pubConf.maxSeqLen
+
     if isProt:
         minLen = pubConf.minProtSeqLen
 
@@ -1482,6 +1493,8 @@ def filterSeqFile(inFname, outFname, isProt=False):
         if row.seq in alreadySeenSeq[articleId]:
             continue
         if len(row.seq) < minLen:
+            continue
+        if len(row.seq) > maxLen:
             continue
         alreadySeenSeq[articleId].add(row.seq)
         outFh.write(u"\t".join(row))
@@ -1562,10 +1575,12 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
         for row in maxCommon.iterTsvRows(fname):
             articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
             fullFileId = articleId+fileId
-            snippet = pubStore.prepSqlString(row.snippet)
+            snippet = pubStore.prepSqlString(row.snippet, maxLen=3000)
             #fileDesc, fileUrl = unicode(fileDescs.get(fullFileId, ("", "")))
             fileAnnot = fileDescs[int(fullFileId)]
             fileDesc, fileUrl = fileAnnot
+            if row.type not in ["band", "snp", "symbol"]:
+                continue
             newRow = [articleId, fileId, annotId, fileDesc, fileUrl, \
                 row.type, row.markerId, row.section, unicode(snippet)]
             fileMarkerArticles[row.markerId].add(articleId)
@@ -1739,33 +1754,34 @@ def parseArtDescs(fname):
     logging.info("Parsing %s" % fname)
     res = {}
     for r in maxCommon.iterTsvRows(fname):
-        res[int(r.articleId)] = (r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
+        res[int(r.articleId)] = (r.publisher, r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
     return res
 
 def parseImpacts(fname):
-    """ parse file with columns ISSN and impact, return as dict string -> int 
-    impact is coded as a number 0-255, with 255= impact 25
+    """ parse file with columns ISSN and impact, return as dict string -> float 
     """
     res = {}
-    maxImp = 25.0
+    #maxImp = 25.0
     for row in maxCommon.iterTsvRows(fname):
         if row.impact.strip()=="":
             continue
         impact = float(row.impact)
-        impVal = int(min(impact,maxImp) * (255/maxImp))
-        res[row.ISSN] = impVal
+        #impVal = int(min(impact,maxImp) * (255/maxImp))
+        res[row.ISSN] = impact
     return res
         
 def parseArtClasses(textDir, updateIds):
     " read article classes into memory."
     # XX use the updateIds!!
-    fname = join(textDir, "docClasses.tab.gz")
-    if not isfile(fname):
-        return {}
+    #fname = join(textDir, "docClasses.tab.gz")
+    fname = pubConf.classFname
+    #if not isfile(fname):
+        #return {}
     logging.info("Parsing article classes from %s" % fname)
     res = {}
     for r in maxCommon.iterTsvRows(fname):
         res[int(r.articleId)] = (r.classes.split(","))
+    logging.info("Found article classes for %d articles" % len(res))
     return res
 
 def runTablesStep(d, options):
@@ -1774,6 +1790,11 @@ def runTablesStep(d, options):
     if not options.skipConvert:
         maxCommon.mustBeEmptyDir(d.tableDir, makeDir=True)
 
+    # yif has its own color
+    if d.dataset=="yif":
+        forceClass = "yif"
+    else:
+        forceClass = None
     logging.info("Reading file descriptions")
     # reformat bed and sequence files
     if not options.skipConvert:
@@ -1782,7 +1803,7 @@ def runTablesStep(d, options):
         artClasses = parseArtClasses(d.textDir, d.updateIds)
         impacts = parseImpacts(pubConf.impactFname)
 
-        rewriteFilterBedFiles([d.bedDir], d.tableDir, pubConf.speciesNames, \
+        rewriteFilterBedFiles(d.bedDir, d.tableDir, pubConf.speciesNames, \
             artDescs, artClasses, impacts, d.dataset)
 
         fileDescs  = parseFileDescs(d.fileDescFname)
@@ -1810,18 +1831,23 @@ def runIdentifierStep(d, options):
     logging.info("Results written to %s" % (d.fileDescFname))
     d.appendBatchProgress("identifiers")
 
+def dropAllTables(userTablePrefix):
+    " remove all tables with current prefix "
+    tablePrefix = "pubs"
+    tablePrefix = tablePrefix + userTablePrefix
+    dbs = pubConf.speciesNames.keys()
+    dbs = [d for d in dbs if not d.startswith("nonUcsc_")]
+    dbs.append("hgFixed")
+    logging.info("Removing all tables with prefix %s in dbs %s" % (tablePrefix, dbs))
+    logging.info("Waiting for 5 seconds before starting to delete")
+    time.sleep(5)
+    for db in dbs:
+        logging.info("Dropping for db %s" % db)
+        maxMysql.dropTablesExpr(db, tablePrefix+"%")
+
 def runStep(dataset, command, d, options):
     " run one step of the pubMap pipeline with pipeline directories in d "
 
-    #stepHost = pubConf.stepHosts.get(command, pubConf.stepHosts["default"])
-    #if stepHost!='localhost':
-        #myHost = socket.gethostname()
-        #if myHost!=stepHost:
-            #logging.info("hostname is %s, step host name is %s -> running %s via SSH" % \
-                #(myHost, stepHost, command))
-            #runStepSsh(stepHost, dataset, command)
-            #return
-        
     logging.info("Running step %s" % command)
 
     if command=="annot":
@@ -1829,7 +1855,10 @@ def runStep(dataset, command, d, options):
 
     elif command=="filter":
         # remove duplicates & short sequence & convert to fasta
+        # need to re-read d.chunkNames
+        dirs = pubMapProp.PipelineConfig(d.dataset)
         if not options.skipConvert:
+            maxCommon.mustBeEmptyDir([d.seqDir, d.fastaDir, d.protSeqDir, d.protSeqDir, d.protFastaDir], makeDir=True)
             runner = d.getRunner(command)
             submitFilterJobs(runner, d.chunkNames, d.dnaAnnotDir, d.seqDir)
             submitFilterJobs(runner, d.chunkNames, d.protAnnotDir, d.protSeqDir, isProt=True)
@@ -1896,6 +1925,12 @@ def runStep(dataset, command, d, options):
 
         runLoadStep(dataset, pubConf.speciesNames, d.markerCountsBase, \
             d.markerDirBase, tablePrefix, options.skipConvert)
+
+    elif command=="dropAll":
+        tablePrefix = "Dev"
+        if options.loadFinal:
+            tablePrefix = ""
+        dropAllTables(tablePrefix)
 
     elif command==("switchOver"):
         switchOver()

@@ -13,7 +13,7 @@ if sys.version_info[0]==2 and not sys.version_info[1]>=7:
 
 # load default python packages
 import logging, optparse, os, glob, zipfile, types, gzip, shutil, subprocess, \
-    itertools, operator, gc, random
+    itertools, operator, gc, random, codecs
 import marshal
 from os.path import *
 from collections import defaultdict, Counter
@@ -83,6 +83,8 @@ localDir = join(pubConf.localHeadDir, "classify")
 rawWordListFname = join(statClassDir, "wordList.raw.txt")
 wordListFname    = join(statClassDir, "wordList.txt.gz")
 pmidListDir      = join(statClassDir, "trainPmids")
+# like above, but ALL pmids in database
+pmidListDirOrig  = join(statClassDir, "trainPmids/orig")
 svmlBinDir      = pubConf.svmlBinDir
 
 def defDirectories(baseDir, locBaseDir, datasets, options):
@@ -117,6 +119,7 @@ def defDirectories(baseDir, locBaseDir, datasets, options):
     dirs.svmlDir          = join(baseDir, "svmlInput.%s.%d" % (gramType, maxWordRank))
     dirs.trainSvmlDir     = join(baseDir, "svmlTrain.%s.%d" % (gramType, maxWordRank))
     dirs.testSvmlDir      = join(baseDir, "svmlTest.%s.%d" % (gramType, maxWordRank))
+    dirs.benchTable       = join(baseDir, "bench.%s.%d.tab" % (gramType, maxWordRank))
 
     dirs.modelDir         = join(baseDir, "svmlModels.%s.%d" % (gramType, maxWordRank))
     dirs.alphaDir         = join(baseDir, "svmlAlphas.%s.%d" % (gramType, maxWordRank))
@@ -923,7 +926,7 @@ def makeHtml(dbList, pmidDir, catFname, outDir):
     logging.info("Writing html to %s" % outDir)
     for db in dbList:
         docIdFname = join(outDir, db+".ids.txt")
-        docFh = open(docIdFname, "w")
+        docFh = codecs.open(docIdFname, "w", encoding="utf8")
         docFh.write("#PMID\tDOI\n")
 
         outfname = join(outDir, db+".html")
@@ -972,6 +975,57 @@ def makeHtml(dbList, pmidDir, catFname, outDir):
         h.endHtml()
         docFh.close()
     
+def compSvmlClasses(testSvmlDir, db):
+    classFname = join(testSvmlDir, db+".predClasses")
+    svmlFname  = join(testSvmlDir, db+".classes")
+    print classFname, svmlFname
+    classes = open(classFname).read().splitlines()
+    svmls = open(svmlFname).read().splitlines()
+    TP, FN, FP, TN = 0, 0, 0, 0
+    realPosCount = 0
+    realNegCount = 0
+    for classLine, svmlLine in zip(classes, svmls):
+        predVal = float(classLine)
+        realVal = float(svmlLine.split()[0])
+        if realVal > 0:
+            realPosCount += 1
+        else:
+            realNegCount += 1
+        print realVal, predVal
+        if predVal<0 and realVal<0:
+            print "tn"
+            TN+=1
+        if predVal>0 and realVal>0:
+            print "tp"
+            TP+=1
+        if predVal<0 and realVal>0:
+            print "fp"
+            FP+=1
+        if predVal>0 and realVal<0:
+            print "fn"
+            FN+=1
+    prec = float(TP) / float(TP+FP)
+    rec =  float(TP) / float(TP+FN)
+    return realPosCount, realNegCount, TP, TN, FP, FN, prec, rec
+    
+def benchmark(dbList, pmidDir, pmidOrigDir, testSvmlDir, benchTable):
+    " calc prec and recall and write to tab output file "
+    ofh = open(benchTable, "w")
+    headers = ["db", "pmidCount", "countAtUcsc", "hereRatio", "testPos", "testNeg", "tp", "fp", "tn", "fn", "prec", "recall"]
+    ofh.write("\t".join(headers))
+    ofh.write("\n")
+    for db in dbList:
+        origPmid = len(parsePosPmids(db, pmidOrigDir))
+        herePmid = len(parsePosPmids(db, pmidDir))
+        hereRatio = float(herePmid)*100 / origPmid
+        posPmids, negPmids, tp, fp, tn, fn, prec, recall = compSvmlClasses(testSvmlDir, db)
+        row = [db, origPmid, herePmid, "%2.2f%%" % hereRatio, posPmids, negPmids, tp, fp, tn, fn, "%2.2f" % prec, "%2.2f" % recall]
+        row = [str(x) for x in row]
+        ofh.write("\t".join(row)+"\n")
+    logging.info("Table written to %s" % benchTable)
+    ofh.close()
+
+
 def main(args, options):
     datasets, stepsString = args
     steps = stepsString.split(',')
@@ -1034,7 +1088,8 @@ def main(args, options):
 
             outFname = join(dirs.wordPmidDir, db+".counts.tab")
             bestWordFname = join(dirs.bestWordsDir, db+".txt")
-            bestWords = writeWordCounts(dbWordPmids, posPmids, negPmids, outFname, bestWordCount, bestWordFname)
+            bestWords = writeWordCounts(dbWordPmids, posPmids, negPmids, outFname, \
+                bestWordCount, bestWordFname)
 
             svmlFname = dictToSvml (dbWordPmids, bestWords, posPmids, negPmids, dirs.svmlDir, db)
             splitFile(svmlFname, 0.8, dirs.trainSvmlDir, dirs.testSvmlDir)
@@ -1130,14 +1185,14 @@ def main(args, options):
         convertSvmlResults(dIdFname, dirs.classDir, categoryFname, dbList)
 
     if "html" in steps:
-        makeHtml(dbList, pmidListDir, dirs.categoryFname, pubConf.classOutHtmlDir)
+        makeHtml(dbList, pmidListDirOrig, dirs.categoryFname, pubConf.classOutHtmlDir)
         makeHtmlDir(dbList, pubConf.classOutHtmlDir)
 
     if "dir" in steps:
         makeHtmlDir(dbList, pubConf.classOutHtmlDir)
 
     if "benchmark" in steps:
-        benchmark(dbList, pubConf.classOutHtmlDir)
+        benchmark(dbList, pmidListDir, pmidListDirOrig, dirs.testSvmlDir, dirs.benchTable)
 
 # ----------- MAIN --------------
 if args==[]:

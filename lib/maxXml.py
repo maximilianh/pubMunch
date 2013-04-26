@@ -42,6 +42,8 @@ class XmlParser:
             return self.root.text
 
     def fromString(self, string, removeNamespaces=False):
+        if string=="":
+            return None
         root = etree.fromstring(string)
         if removeNamespaces:
             logging.debug("Stripping all namespaces")

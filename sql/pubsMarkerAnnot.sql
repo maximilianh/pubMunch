@@ -5,9 +5,9 @@ CREATE TABLE pubsMarkerAnnot (
     annotId int not null,	# unique identifier of this marker within a file
     fileDesc varchar(2000) not null, # description of file where sequence was found 
     fileUrl varchar(2000) not null, # url of file where sequence was found 
-    markerType enum('snp', 'band', 'gene'), # type of marker: snp, band or gene
+    markerType enum('symbol', 'snp', 'band', 'gene'), # type of marker: snp, band or gene
     markerId varchar(255), # id of marker, e.g. TP53 or rs12354
-    section enum('unknown', 'header', 'abstract', 'intro', 'methods', 'results', 'discussion', 'conclusions', 'ack', 'refs'), 
+    section enum('unknown', 'header', 'abstract', 'intro', 'methods', 'results', 'discussion', 'conclusions', 'ack', 'refs', 'supplement'), 
     snippet varchar(5000) not null,	# flanking text around marker match
         # Indices
     KEY articleIdx(articleId),

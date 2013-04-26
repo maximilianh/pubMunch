@@ -29,13 +29,19 @@ class PipelineConfig:
         Most of these are relative to a BATCH (=one full run of the pipeline)
     """
     def __init__(self, dataset):
+        self.markerCountsBase   = MARKERCOUNTSBASE
+        self.markerDirBase      = MARKERDIRBASE
+        self.pubMapBaseDir = pubConf.pubMapBaseDir
+        maxCommon.mustExistDir(pubConf.pubMapBaseDir, makeDir=True)
+
         self.dataset = dataset
+        if "," in dataset:
+            logging.debug("comma in dataset description, deferring config")
+            return
+
         self.textDir = pubConf.resolveTextDir(dataset)
         if self.textDir==None:
             raise Exception("dataset %s can not be resolved to a directory" % dataset)
-
-        self.pubMapBaseDir = pubConf.pubMapBaseDir
-        maxCommon.mustExistDir(pubConf.pubMapBaseDir, makeDir=True)
 
         self._defineBatchDirectories()
 
@@ -47,6 +53,10 @@ class PipelineConfig:
         if the batch directory exists
         
         """
+        if "," in self.dataset:
+            logging.debug("comma in dataset description, deferring config")
+            return
+
         logging.debug("Defining batch directories for %s" % self.pubMapBaseDir)
         # base dir for dataset
         self.baseDir = join(self.pubMapBaseDir, self.dataset)
@@ -73,7 +83,6 @@ class PipelineConfig:
         batchDir = self.batchDir
             
         # --- now define all other directories relative to batchDir
-        #self.batchId = int(open(self.currentBatchFname).read())
 
         # pipeline progress table file
         self.progressDir = join(self.batchDir, "progress")
@@ -102,10 +111,8 @@ class PipelineConfig:
         # articleIds associated to any marker
         self.markerArticleFile  = join(batchDir, "markerArticles.tab")
         # number of articles per marker, for base and all updates
-        self.markerCountsBase   = MARKERCOUNTSBASE
         self.markerCountFile    = join(batchDir, MARKERCOUNTSBASE)
         # filtered marker beds, annotated with article count
-        self.markerDirBase      = MARKERDIRBASE
         self.markerDir          = join(batchDir, MARKERDIRBASE)
 
         self.textConfigFname = join(batchDir, "textDir.conf") # directory where text files are stored
@@ -151,9 +158,6 @@ class PipelineConfig:
 
     def writeUpdateIds(self):
         writeList(self.updateIdFile, self.updateIds)
-
-    #def writeCurrentBatch(self):
-        #open(self.currentBatchFname, "w").write(str(self.batchId))
 
     def createNewBatch(self):
         " increment batch id and update the current batch id file"
@@ -270,15 +274,15 @@ class PipelineConfig:
     def findTableFiles(self, ignoreFilenames):
         """ find all table files across all batches in batchDir, find all files.
             create fileDict as (tableName, fileExt) -> dict of db -> list of files
-            return fileDict. 
+            returns fileDict. 
 
         >>> findTableFiles("/hive/data/inside/literature/blat/miniEls", ["0"])
         """
         fileDict = {}
-        logging.debug("Searching for all table files in %s" % baseDir)
+        logging.debug("Searching for all table files in %s" % self.baseDir)
         batchIds = self.findBatchesAtStep("tables")
         for batchId in batchIds:
-            tableDir = join(baseDir, "batches", batchId, "tables")
+            tableDir = join(self.baseDir, "batches", batchId, "tables")
             for tableFname in os.listdir(tableDir):
                 tablePath = join(tableDir, tableFname)
                 if tablePath in ignoreFilenames:
@@ -333,7 +337,7 @@ class PipelineConfig:
         go over all batches and get the total count for all markers in all updates
         uses markerCountFname, a table with <marker>tab<count> created by the 'tables' step
         """
-        logging.info("Reading counts from %s" % baseDir)
+        logging.info("Reading all counts from %s" % self.baseDir)
         # names of marker files
         markerCountNames = self.findFileInAllBatchesAtStep(MARKERCOUNTSBASE, "tables")
         # parse marker count files

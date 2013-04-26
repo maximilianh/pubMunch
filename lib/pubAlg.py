@@ -314,7 +314,7 @@ def getSnippet(text, start, end, minContext=0, maxContext=250):
     snippet = snippet.replace("\t", " ")
     return snippet
 
-def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields, addSnippet):
+def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields):
     """ use alg to annotate fileData, write to outFh, adding annotIdAdd to all annotations 
     return next free annotation id.
     """
@@ -368,7 +368,7 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             # check if alg actually returns coordinates
             if alg.headers[0]=="start" and alg.headers[1]=="end":
                 start, end = row[0:2]
-                if (start,end) == (0,0) or not addSnippet:
+                if (start,end) == (0,0):
                     snippet = None
                 else:
                     snippet = getSnippet(secText, start, end)
@@ -498,7 +498,7 @@ def runAnnotateWrite(reader, alg, paramDict, outName):
         logging.debug("Running startup")
         alg.startup(outFiles)
 
-    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg)
+    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg, paramDict)
     for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
         alg.annotate(articleData, fileDataList)
 
@@ -508,7 +508,7 @@ def runAnnotateWrite(reader, alg, paramDict, outName):
 
     moveResults(outFiles, finalNames)
 
-def getAlgPrefs(alg):
+def getAlgPrefs(alg, paramDict):
     onlyMain = attributeTrue(alg, "onlyMain")
     onlyMain = paramDict.get("onlyMain", onlyMain)
     if isinstance(onlyMain, basestring):
@@ -543,16 +543,16 @@ def runAnnotate(reader, alg, paramDict, outName):
     writeHeaders(alg, outFh, doSectioning, addFields)
 
     annotIdAdd = getAnnotId(alg, paramDict)
-    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg)
+    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg, paramDict)
 
-    addSnippet = "snippet" in alg.headers
+    #addSnippet = "snippet" in alg.headers
 
     for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
         logging.debug("Annotating article %s with %d files, %s" % \
             (articleData.articleId, len(fileDataList), [x.fileId for x in fileDataList]))
         for fileData in fileDataList:
             writeAnnotations(alg, articleData, fileData, outFh, \
-                annotIdAdd, doSectioning, addFields, addSnippet)
+                annotIdAdd, doSectioning, addFields)
 
     if outName!="stdout":
         outFh.close()
@@ -593,6 +593,7 @@ def runMap(reader, alg, paramDict, outFname):
         input can be a reader or a directory
         alg can be a string or an alg object 
     """
+    logging.info("Running map step")
     tmpOutFname = makeLocalTempFile()
 
     results = {}
@@ -825,7 +826,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
         alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
 
         if "annotateFile" not in dir(alg) and "annotateWrite" not in dir(alg):
-            logging.error("Could not find an annotate() function in %s" % algName)
+            logging.error("Could not find an annotateFile() function in %s" % algName)
             sys.exit(1)
 
         if "startup" in dir(alg):
@@ -843,7 +844,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
             logging.info("Output written to %s" % outFname)
     return baseNames
 
-def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False):
+def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False, keepOutFile=False):
     " do a map reduce run only on one random file, no cluster submission, for testing "
     if updateIds!=None:
         updateId = updateIds[0]
@@ -857,20 +858,26 @@ def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=F
     logging.info("Testing algorithm on file %s" % oneInputFile)
     reader = pubStore.PubReaderFile(oneInputFile)
     tmpAlgOut = join(tmpDir, "pubMapReduceTest.temp.marshal.gz")
-    if skipMap==False:
+    tmpRedOut = join(tmpDir, "red.temp.tab")
+    if not skipMap:
         runMap(reader, alg, paramDict, tmpAlgOut)
     if "combine" in dir(alg):
         runCombine(tmpAlgOut, alg, paramDict, tmpAlgOut)
     runReduce(alg, paramDict, tmpAlgOut, tmpRedOut, quiet=True)
+
     ifh = open(tmpRedOut)
     logging.info("Example reducer output")
-    for i in range(0, 10):
+    for i in range(0, 50):
         line = ifh.readline()
         line = line.strip()
         logging.info(line)
-    #os.remove(tmpAlgOut)
-    #os.remove(tmpRedOut)
-    logging.info("test output written to file %s, file not deleted" % tmpRedOut)
+    os.remove(tmpAlgOut)
+    if keepOutFile:
+        logging.info("test output written to file %s, file not deleted" % tmpRedOut)
+    else:
+        logging.info("Waiting for 5 secs")
+        time.sleep(5)
+        os.remove(tmpRedOut)
 
 def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=False, \
         tmpDir=None, updateIds=None, runTest=True, batchDir=".", headNode=None, \
@@ -891,7 +898,12 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
         textDirs = [textDirs]
 
     if tmpDir==None:
-        tmpDir = join(pubConf.mapReduceTmpDir, os.path.basename(algName).split(".")[0])
+        # if possible, place this into the batchDir, so two concurrent batches don't clash
+        if runner!=None:
+            tmpDir = join(runner.batchDir, "mapReduceTmp")
+        else:
+            tmpDir = join(pubConf.mapReduceTmpDir, os.path.basename(algName).split(".")[0])
+
     if skipMap:
         assert(isdir(tmpDir))
     else:
@@ -902,15 +914,16 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
         os.makedirs(tmpDir)
 
     # before we let this loose on the cluster, make sure that it actually works
-    if runTest:
-        mapReduceTestRun(textDirs, alg, paramDict, tmpDir, updateIds=updateIds, skipMap=skipMap)
+    if runTest and not skipMap:
+        mapReduceTestRun(textDirs, alg, paramDict, tmpDir, updateIds=updateIds, \
+            skipMap=skipMap, keepOutFile=onlyTest)
         # make sure that all state of the algorithm is reset
         del alg
         alg = getAlg(algName, defClass="Map") # just to check if algName is valid
 
     if not onlyTest:
-        logging.info("Now submitting to cluster/running on all files")
         if not skipMap:
+            logging.info("Now submitting to cluster/running on all files")
             findFilesSubmitJobs(algName, "map", textDirs, tmpDir, MAPREDUCEEXT, paramDict,\
                 runNow=True, cleanUp=cleanUp, updateIds=updateIds, batchDir=batchDir, runner=runner)
 

@@ -15,7 +15,7 @@ except ImportError:
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, pubCrawl, maxCommon, pubConf, maxbio
+import pubGeneric, maxCommon, pubConf, maxbio
 
 # example file /hive/data/outside/pdb/aa/pdb1aa0.ent.gz
 
@@ -107,6 +107,35 @@ def parsePdb(pdbDir, outDir):
 
 # UNIPROT PARSING 
 
+# remove these PMIDs from all evidences
+pmidBlackList = set([17344846]) # high-throughput study
+
+# only parse these feature types
+featTypes = {
+    "sequence variant": "variant",
+    "mutagenesis site": "mutagen",
+    "modified residue": "modif",
+    "cross-link": "cross-link",
+    "region of interest": "interest",
+    "short sequence motif": "motif",
+    "metal ion-binding site": "ion-binding",
+    "site": "site",
+    "topological domain" : "topo",
+    "transmembrane region" : "transmembr",
+    "disulfide bond" : "disulf bond",
+    "glycosylation site" : "glyco",
+    "binding site" : "bind",
+    "active site" : "enzyme act site",
+    "signal peptide" : "signal pep",
+    "transit peptide" : "trans pep",
+    "calcium-binding region" : "calcium bind",
+    "lipid moiety-binding region" : "lipid",
+    "propeptide" : "propep",
+    "intramembrane region" : "intramembr",
+    "peptide" : "peptide",
+    "nucleotide phosphate-binding region" : "nucl phos bind"
+}
+
 # main record info
 entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId", "name", "accList", \
     "protFullNames", "protShortNames", "protAltNames", "geneName", "geneSynonyms", "isoNames", \
@@ -116,7 +145,7 @@ entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
-mutHeaders = ["acc", "mainIsoAcc", "varId", "position", "origAa", "mutAa", "dbSnpId", "disease", "pmid", "comment"]
+mutHeaders = ["acc", "mainIsoAcc", "varId", "featType", "shortFeatType", "begin", "end", "origAa", "mutAa", "dbSnpId", "disRelated", "disease", "pmid", "comment"]
 MutRec = collections.namedtuple("mutrec", mutHeaders)
 
 # references from record
@@ -257,7 +286,10 @@ def findDiseases(text):
     return result
 
 def parseDiseaseComment(entryEl):
-    " return dict with evidenceCode -> disCode -> disease name "
+    """ return two dicts 
+    one with evidence code -> disease code
+    one with disease code -> disease name 
+    """
     disRefs = {}
     disCodes = {}
     for commentEl in entryEl.findall("comment"):
@@ -401,6 +433,9 @@ def parseFeatDesc(text, disCodes):
     if disName in disCodes:
         disName = disCodes[disName]
 
+    if disName.startswith("an ") or disName.startswith("a "):
+        disName = " ".join(disName.split(" ")[1:])
+
     # find snpId
     snpId = ""
     for m in re.finditer("dbSNP:(rs[0-9]+)", text):
@@ -412,6 +447,8 @@ def parseFeatDesc(text, disCodes):
     return disName, snpId, "; ".join(comments)
 
 
+ignoredTypes = collections.Counter()
+
 def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
     " go over features and yield mutation records "
 
@@ -419,69 +456,119 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
 
     mutations = []
     for featEl in entryEl.findall("feature"):
-        if featEl.attrib["type"] != "sequence variant":
+        featType = featEl.attrib["type"]
+        if featType not in featTypes:
+            ignoredTypes[featType] += 1 
             continue
+        shortFeatType = featTypes[featType]
+        logging.debug("type: %s" % featType)
 
         varId = featEl.attrib.get("id", "")
-        logging.debug("Variant %s" % varId)
+        logging.debug("Variant ID %s" % varId)
 
         origEl = featEl.find("original")
         if origEl==None:
-            logging.debug("No original residue")
-            continue
-        orig = origEl.text
+            #logging.debug("No original residue")
+            #continue
+            orig = ""
+        else:
+            orig = origEl.text
 
-        variant = featEl.find("variation").text
-        logging.debug("residue change: %s->%s" % (orig, variant))
+        varEl = featEl.find("variation")
+        if varEl==None:
+            variant = ""
+        else:
+            variant = varEl.text
+            logging.debug("residue change: %s->%s" % (orig, variant))
 
         posEl = featEl.find("location/position")
-        if posEl==None:
-            logging.debug("No position")
-            continue
-        position=posEl.attrib["position"]
+        if posEl!=None:
+            begin = posEl.attrib["position"]
+            end = str(int(begin)+1)
+        else:
+            beginEl = featEl.find("location/begin")
+            begin = beginEl.attrib.get("position", None)
+            if begin==None:
+                logging.debug("Unknown start, skipping a feature")
+                continue
+            endEl = featEl.find("location/end")
+            end = endEl.attrib.get("position", None)
+            if end==None:
+                logging.debug("Unknown end, skipping a feature")
+                continue
+            end = str(int(end)+1)
 
         desc = featEl.attrib.get("description", None)
         if desc==None:
-            logging.debug("No description")
-            continue
+            #logging.debug("No description")
+            #continue
+            desc = ""
+        if "sulfinic" in desc:
+            shortFeatType = "sulfo"
 
-        evidStr = featEl.attrib.get("evidence", None)
-        logging.debug("variant pos %s, desc %s, evidence %s" % (position, desc, evidStr))
+        descWords = desc.split()
+        if len(descWords)>0:
+            desc1 = descWords[0].lower()
+            if "phos" in desc1:
+                shortFeatType = "phos"
+            elif "acetyl" in desc1:
+                shortFeatType = "acetyl"
+            elif "methyl" in desc1:
+                shortFeatType = "methyl"
+            elif "lipo" in desc1:
+                shortFeatType = "lipo"
+            elif "hydroxy" in desc1:
+                shortFeatType = "hydroxy"
+            elif "nitro" in desc1:
+                shortFeatType = "nitro"
+
+        evidStr = featEl.attrib.get("evidence", "")
+        logging.debug("variant pos %s-%s, desc %s, evidence %s" % (begin, end, desc, evidStr))
         desc = desc.strip("() ")
-        if desc==None:
-            logging.debug("No description")
-            continue
-        if evidStr==None:
-            logging.debug("No evidence")
-            continue
+        #if desc=="":
+            #logging.debug("No description")
+            #continue
+        #if evidStr==None:
+            #logging.debug("No evidence")
+            #continue
         evidList = evidStr.split()
 
+        #disCode = disRefs[evidId]
+        disName, snpId, comments = parseFeatDesc(desc, disCodes)
+
+        varPmids = []
+        diseaseRelated = "noEvidence"
         for evidId in evidList:
-            if not evidId in disRefs:
-                logging.debug("evidence is not a disease evidence or blacklisted")
-                continue
+            if evidId in disRefs:
+                diseaseRelated="disRelated"
+            else:
+                diseaseRelated="notDisRelated"
+                logging.debug("evidence is not a disease evidence or blacklisted, check description")
+                #if "sample" in desc or "cancer" in desc or varType=="mutagenesisSite":
+                    #disName, snpId, comments = parseFeatDesc(desc, disCodes)
+                #else:
+                    #logging.debug("could not find word 'sample' in description")
+                    #continue
 
-            disCode = disRefs[evidId]
-            disName, snpId, comments = parseFeatDesc(desc, disCodes)
-
-            if not evidId in evidPmids:
-                logging.debug("No PMID for this evidence")
-                continue
-            pmids = evidPmids[evidId]
+            #if not evidId in evidPmids:
+                #logging.debug("No PMID for this evidence")
+                #continue
+            pmids = evidPmids.get(evidId, [])
             assert(len(pmids)<=1)
-            pmid = list(pmids)[0]
-            mut = MutRec(acc, mainIsoAcc, varId, position, orig, variant, snpId, disName, pmid, comments)
-            logging.debug("Accepted variant: %s" % str(mut))
+            if len(pmids)>0:
+                pmid = list(pmids)[0]
+                varPmids.append(pmid)
 
-            if disName=="":
-                logging.debug("No disease name, not writing an accepted variant")
-                continue
+        if len(varPmids)==1 and set(varPmids).intersection(pmidBlackList)==len(varPmids):
+            logging.debug("only blacklist pmids, skipping feature")
 
-            yield mut
+        mut = MutRec(acc, mainIsoAcc, varId, featType, shortFeatType, begin, end, orig, variant, snpId, diseaseRelated, disName, ",".join(varPmids), comments)
+        logging.debug("Accepted variant: %s" % str(mut))
+
+        yield mut
 
 def parseEvidence(entryEl):
     " return a dict with evidCode -> PMID "
-    pmidBlackList = set([17344846])
     result = {}
     for evidEl in entryEl.findall("evidence"):
         evidCode = evidEl.attrib["key"]
@@ -489,8 +576,8 @@ def parseEvidence(entryEl):
             dbType = dbRefEl.attrib["type"]
             if dbType=="PubMed":
                 pmid = dbRefEl.attrib["id"]
-                if pmid in pmidBlackList:
-                    continue
+                #if pmid in pmidBlackList:
+                    #continue
                 result.setdefault(evidCode, [])
                 result[evidCode].append(pmid)
     return result
@@ -499,9 +586,9 @@ def parseVariants(entryEl, mainIsoAcc):
     " return MutRecs with disease associated variants "
     disRefs, disCodes = parseDiseaseComment(entryEl)
 
-    if len(disRefs)==0:
-        logging.debug("No disease evidence")
-        return []
+    #if len(disRefs)==0:
+        #logging.debug("No disease evidence")
+        #return []
     acc = entryEl.find("accession").text
     logging.debug("Diseases in %s" % acc)
 
@@ -693,7 +780,7 @@ def parseUniprot(inDir, outDir, taxonIds):
             mutOf.write("\t".join(mutRow)+"\n")
 
         entryEl.clear()
-
+    logging.info("Skipped annotation types: %s" % ignoredTypes.most_common())
 
 def main(args, options):
     #logFname = join(outDir, "dbParse.log")
@@ -724,7 +811,16 @@ def main(args, options):
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] pdb or uniprot - parse PDB or UniProt to tab-sep files""")
+parser = optparse.OptionParser("""usage: %prog [options] pdb or uniprot - parse PDB or UniProt to tab-sep files
+
+uniprot parser:
+- goes over the disease comment evidences and tries to
+  classify annotations as disease-related or not.  
+- resolves disease codes to full disease names
+- blacklists some PMIDs, annotations from these are skipped
+
+
+""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")

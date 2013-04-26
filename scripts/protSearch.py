@@ -146,7 +146,7 @@ def cleanText(text):
 class Annotate:
     """ annotator to find protein sequence in english text """
     def __init__(self):
-        self.headers = ["start", "end", "seq", "partCount"]
+        self.headers = ["start", "end", "seq", "partCount", "snippet"]
         self.requireParameters=1
         self.excludeWords = set()
 

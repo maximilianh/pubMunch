@@ -24,7 +24,7 @@ pubToolsLibDir = join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubAlg, pubGeneric
+import pubAlg, pubGeneric, pubConf
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <algorithmName> <textDir> <outputFilename> - run a map-reduce algorithm on a directory of text files
@@ -33,20 +33,24 @@ parser = optparse.OptionParser("""usage: %prog [options] <algorithmName> <textDi
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("-r", "--onlyReduce", dest="onlyReduce", action="store_true", help="only run reducer") 
+parser.add_option("-t", "--test", dest="test", action="store_true", help="only run on a single file") 
 (options, args) = parser.parse_args()
 
 # ==== MAIN =======
 def main(args, options):
-    if args==[]: 
+    if args==[]:
         parser.print_help()
         exit(1)
 
     pubGeneric.setupLogging(progFile, options)
 
-    algName, textDir, outFilename = args[:3]
+    algName, textDirSpec, outFilename = args[:3]
     paramList = args[3:]
     paramDict = pubGeneric.stringListToDict(paramList)
 
-    pubAlg.mapReduce(algName, textDir, paramDict, outFilename, skipMap=options.onlyReduce)
+    textDirs = pubConf.resolveTextDirs(textDirSpec)
+    runner = pubGeneric.makeClusterRunner(__file__)
+    pubAlg.mapReduce(algName, textDirs, paramDict, outFilename, skipMap=options.onlyReduce, \
+        onlyTest=options.test, runner=runner)
 
 main(args, options)

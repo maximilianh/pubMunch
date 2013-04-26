@@ -15,9 +15,10 @@ CREATE TABLE `pubsBlat` (
   `tSeqTypes` varchar(255) NOT NULL, # comma-seq list of matching sequence db (g=genome, p=protein, c=cDNA)
   `seqIds` blob NOT NULL, # comma-separated list of matching seqIds
   `seqRanges` blob NOT NULL, # ranges start-end on sequence that matched, one for each seqId 
+  `publisher` varchar(255) NOT NULL, # publisher of article, for hgTracks feature filter
   `pmid` varchar(255) NOT NULL, # PMID of article, for annoGrator output, avoids table join
   `doi` varchar(255) NOT NULL, # doi of article, for annoGrator output, avoids table join
-  `issn` varchar(255) NOT NULL, # issn of journal for article, for future use
+  `issn` varchar(255) NOT NULL, # issn of journal for article, for impact coloring
   `title` varchar(32000) NOT NULL, # title of article, for genome browser mouseover
   `firstAuthor` varchar(255) NOT NULL, # first author family name of article, for genome browser
   `year` varchar(255) NOT NULL, # issn of journal for article, for genome browser
