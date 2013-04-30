@@ -565,7 +565,15 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
         mut = MutRec(acc, mainIsoAcc, varId, featType, shortFeatType, begin, end, orig, variant, snpId, diseaseRelated, disName, ",".join(varPmids), comments)
         logging.debug("Accepted variant: %s" % str(mut))
 
-        yield mut
+        # rewrite disulfide bonds to two separate features, one for each cysteine involved
+        if featType=="disulfide bond":
+            end = mut.end
+            mut1 = mut._replace(end=str(int(mut.begin)+1), comment=mut.comment+"; disulfide bond to position %s" % mut.end)
+            yield mut1
+            mut2 = mut._replace(begin=str(int(mut.end)-1), comment=mut.comment+"; disulfide bond to position %s" % mut.begin)
+            yield mut2
+        else:
+            yield mut
 
 def parseEvidence(entryEl):
     " return a dict with evidCode -> PMID "
