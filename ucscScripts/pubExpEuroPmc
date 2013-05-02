@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+
+# load default python packages
+import logging, optparse, sys, os, glob
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, pubExpMatrix, pubConf, maxCommon
+
+def main(args, options):
+    #datasetStr, wordListFname, outBase = args
+    dirNames = pubGeneric.resolveDatasetDesc("pmc")
+    pubGeneric.setupLogging(__file__, options)
+
+    inDir = "/hive/data/inside/pubs/map/yif/batches"
+
+    for subDir in os.listdir(inDir):
+        tablesDir = join(inDir, subDir, "tables")
+        # get articleId -> pmcId
+        artToPmc = {}
+        artFname = join(tablesDir, "hgFixed.article.tab")
+        logging.info("parsing artId -> pmcId from %s" % artFname)
+        for row in maxCommon.iterTsvRows(artFname, noHeaderCount=19):
+            artToPmc[row[0]] = row[1].replace("PMC","")
+
+        logging.info("parsing beds to get article Ids with matches")
+        bedFnames = glob.glob(join(tablesDir, "*.blat.bed"))
+        articleIds = set()
+        for bedFname in bedFnames:
+            for row in maxCommon.iterTsvRows(bedFname, noHeaderCount=24):
+                articleIds.add(row[3])
+
+        print """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"""
+        print """<links>"""
+        for artId in articleIds:
+            url = "http://hgwdev-max.cse.ucsc.edu/cgi-bin/hgc?g=pubsDevBlat&amp;i=%s" % artId
+            print """<link providerId="4580">
+            <resource>
+                <title>DNA or protein sequence that matches genome</title>
+                <url>%s</url>
+            </resource>
+            <record>
+                <source>PMC</source>
+                <id>PMC%s</id>
+            </record>\n""" % (url, artToPmc[artId])
+            print """</link>\n""" 
+        print "</links>"
+                
+
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] - print a europmc links file to stdout""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+(options, args) = parser.parse_args()
+
+#if args==[]:
+    #parser.print_help()
+    #exit(1)
+
+main(args, options)

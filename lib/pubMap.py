@@ -284,7 +284,6 @@ def makeBlockSizes(pslList):
             start = int(start) - minStart
             for pos in range(start, start+size):
                 mask[pos] = 1
-        print psl
 
     blockStarts = []
     blockSizes = []
@@ -302,7 +301,6 @@ def makeBlockSizes(pslList):
             lastStart=None
     if lastStart!=None:
         blockSizes.append(len(mask)-lastStart)
-    print mask
     assert(mask[len(mask)-1]==1)
     blockStarts = [str(x) for x in blockStarts]
     blockSizes = [str(x) for x in blockSizes]
@@ -904,6 +902,7 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
         articleRow =  (str(artId), articleData.externalId, \
                        str(pmid), pubStore.prepSqlString(articleData.doi), \
                        str(articleData.source), \
+                       str(articleData.publisher), \
                        pubStore.prepSqlString(refString, maxLen=2000), \
                        pubStore.prepSqlString(articleData.journal), \
                        pubStore.prepSqlString(eIssn), \
@@ -923,7 +922,7 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
     logging.info("Written info on %d articles to %s" % (articleCount, tableDir))
 
 def parseBeds(bedDirs):
-    """ open all bedFiles in dir, parse out the article Ids from field no 13 (12 zero based),
+    """ open all bedFiles in dir, parse out the article Ids from field no 14 (13 zero based),
         return dictionary articleId -> set of dbs and a list of all occuring annotation IDs
         return dictionary annotationId -> list of coordStrings, like hg19/chr1:2000-3000
     """
@@ -944,13 +943,14 @@ def parseBeds(bedDirs):
         dbPointers.setdefault(db, db) # this should save some memory
         db = dbPointers.get(db)       # by getting a pointer to a string instead of new object
         for line in open(bedFname):
-            fields = line.split()
+            fields = line.strip("\n").split("\t")
             chrom, start, end = fields[:3]
             coordString = "%s/%s:%s-%s" % (db, chrom, start, end)
             articleIdStr = fields[3]
             articleId = int(articleIdStr)
 
-            annotString = fields[12]
+            #print list(enumerate(fields))
+            annotString = fields[13]
             annotStrings = annotString.split(",")
             annotIds = [int(x) for x in annotStrings]
             for annotId in annotIds:
@@ -960,12 +960,11 @@ def parseBeds(bedDirs):
             articleDbs.setdefault(articleId, set()).add(db)
         pm.taskCompleted()
     logging.info("Found %d articles with sequences mapped to any genome" % len(articleDbs))
+    logging.info("Parsed %d annotationIds linked to coordinates" % len(annotToCoord))
     return articleDbs, annotToCoord
 
 def parseAnnotationIds(pslDir):
     " read all bed files and parse out their annotation IDs "
-    #dummy, annotIdDict = parseBeds([bedDir])
-    #annotIds = set(annotIdDict.keys())
     pslDirs = glob.glob(join(pslDir, "*"))
     pslFiles = []
     for pslDir in pslDirs:
@@ -1019,8 +1018,12 @@ def findBedPslFiles(bedDir):
     return basenames
 
 def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
-    """ read bed, return as dict, indexed by articleId. Special case for a dataset named yif. 
-        (yif = yale image finder). Figures are a class of their own.
+    """ read bed, return as dict, indexed by articleId. 
+    
+        Add various extra fields to bed, like journal, title from artDescs,
+        a category from artClasses and impact factors.
+        Special case for a dataset named yif. 
+        (yif = yale image finder) as figures are a class of their own.
     """
     bedLines = {}
     for line in open(bedFname):
@@ -1033,11 +1036,15 @@ def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
         fields[5] = "" # remove strand 
         articleIdInt = int(articleId)
 
-        artDescFields = artDescs[articleIdInt]
-        issn = artDescFields[2]
+        art = artDescs[articleIdInt]
+        issn = art.printIssn
         impact = impacts.get(issn, 0)
 
-        fields.extend(artDescFields)
+        # translate 
+        artDescFields = (art.publisher, art.pmid, art.doi, \
+            art.printIssn, art.journal, art.title, art.firstAuthor, art.year)
+        artDescFields = [pubStore.prepSqlString(f, maxLen=255) for f in artDescFields]
+        fields.extend(artDescFields[1:]) # don't add the articleId itself
         fields.append(str(impact))
 
         # add the class field
@@ -1062,6 +1069,10 @@ def openBedPslOutFiles(basenames, dbList, tableDir):
         outPsl[db] = open(outPslFname, "w")
     return outBed, outPsl
 
+def closeAllFiles(list):
+    for l in list:
+        l.close()
+
 def appendPslsWithArticleId(pslFname, articleIds, outFile):
     " append all psls in pslFname that have a qName in articleIds to outFile, append a field"
     for line in open(pslFname):
@@ -1074,8 +1085,16 @@ def appendPslsWithArticleId(pslFname, articleIds, outFile):
             outFile.write("\t".join(psl))
             outFile.write("\n")
 
+def sortBedFiles(tableDir):
+    " sort all bed files in directory "
+    logging.info("Sorting all bed files in %s with bedSort" % tableDir)
+    for bedFname in glob.glob(join(tableDir, "*.bed")):
+        logging.info("%s..." % bedFname)
+        cmd = "sort -k1,1 -k2,2n %s -o %s" % (bedFname, bedFname)
+        maxCommon.runCommand(cmd, verbose=False)
+
 def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impacts, dataset):
-    """ add extended column with annotationIds
+    """ add extended columns with annotationIds, impact, issn, etc
     """
     logging.info("- Formatting bed files for genome browser")
     basenames = findBedPslFiles(bedDir)
@@ -1116,6 +1135,8 @@ def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impact
         logging.info("Db %s: %d features kept, %d feats (%d articles) dropped" % \
             (db, count, dropCounts[db], dropArtCounts[db]))
     logging.info("bed output written to directory %s" % (tableDir))
+    closeAllFiles(outBed.values())
+    closeAllFiles(outPsl.values())
     
 def mustLoadTable(db, tableName, tabFname, sqlName, append=False):
     if append:
@@ -1753,13 +1774,15 @@ def parseArtDescs(fname):
     " read article descriptions into memory (can be very big, several gbs) "
     logging.info("Parsing %s" % fname)
     res = {}
-    for r in maxCommon.iterTsvRows(fname):
-        res[int(r.articleId)] = (r.publisher, r.pmid, r.doi, r.printIssn, r.title, r.firstAuthor, r.year)
+    for row in maxCommon.iterTsvRows(fname):
+        #res[int(r.articleId)] = (r.publisher, r.pmid, r.doi, r.printIssn, r.journal, r.title, r.firstAuthor, r.year)
+        res[int(row.articleId)] = row
     return res
 
 def parseImpacts(fname):
     """ parse file with columns ISSN and impact, return as dict string -> float 
     """
+    logging.info("Parsing impact factors from %s" % fname)
     res = {}
     #maxImp = 25.0
     for row in maxCommon.iterTsvRows(fname):
@@ -1767,7 +1790,8 @@ def parseImpacts(fname):
             continue
         impact = float(row.impact)
         #impVal = int(min(impact,maxImp) * (255/maxImp))
-        res[row.ISSN] = impact
+        res[row.ISSN] = int(round(impact))
+    print res
     return res
         
 def parseArtClasses(textDir, updateIds):
@@ -1790,11 +1814,6 @@ def runTablesStep(d, options):
     if not options.skipConvert:
         maxCommon.mustBeEmptyDir(d.tableDir, makeDir=True)
 
-    # yif has its own color
-    if d.dataset=="yif":
-        forceClass = "yif"
-    else:
-        forceClass = None
     logging.info("Reading file descriptions")
     # reformat bed and sequence files
     if not options.skipConvert:
@@ -1805,6 +1824,7 @@ def runTablesStep(d, options):
 
         rewriteFilterBedFiles(d.bedDir, d.tableDir, pubConf.speciesNames, \
             artDescs, artClasses, impacts, d.dataset)
+        sortBedFiles(d.tableDir)
 
         fileDescs  = parseFileDescs(d.fileDescFname)
         rewriteMarkerAnnots(d.markerAnnotDir, "hgFixed", d.tableDir, fileDescs, \

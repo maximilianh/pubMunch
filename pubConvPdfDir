@@ -33,7 +33,7 @@ parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a 
 Make sure that you set the minId parameter. 
 (ArticleIds should not overlap between different datasets.)
 Example:
-    ../../pubConvPdfDir /hive/data/outside/literature/spliceAid/ /hive/data/inside/literature/text/spliceAid2/ -minId=5000000000
+    pubConvPdfDir /hive/data/outside/pubs/spliceAid/ /hive/data/inside/literature/text/spliceAid2/ -minId=5000000000
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 

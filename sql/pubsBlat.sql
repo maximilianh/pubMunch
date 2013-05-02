@@ -18,8 +18,9 @@ CREATE TABLE `pubsBlat` (
   `publisher` varchar(255) NOT NULL, # publisher of article, for hgTracks feature filter
   `pmid` varchar(255) NOT NULL, # PMID of article, for annoGrator output, avoids table join
   `doi` varchar(255) NOT NULL, # doi of article, for annoGrator output, avoids table join
-  `issn` varchar(255) NOT NULL, # issn of journal for article, for impact coloring
-  `title` varchar(32000) NOT NULL, # title of article, for genome browser mouseover
+  `issn` varchar(255) NOT NULL, # issn of journal 
+  `journal` varchar(255) NOT NULL, # name of journal
+  `title` varchar(255) NOT NULL, # title of article, for genome browser mouseover
   `firstAuthor` varchar(255) NOT NULL, # first author family name of article, for genome browser
   `year` varchar(255) NOT NULL, # issn of journal for article, for genome browser
   `impact` varchar(255) NOT NULL, # issn of journal for article, for genome browser coloring, derived from official impact factors: max impact is 25, value is scaled to 0-255
