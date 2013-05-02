@@ -6,7 +6,8 @@
 headers = ["start", "end", "text"]
 
 # this indicates that we don't want to run on PDF files if there is an XML
-# file for the main text, only relevant for PMC articles at the moment
+# file for the main text
+# relevant for PMC and crawler articles at the moment
 bestMain = True
 
 # this method is called for each FILE. one article can have many files

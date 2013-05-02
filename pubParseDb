@@ -213,6 +213,9 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
                 elem.attrib.update(to_set)
 
 
+def parseHumDiseases(fname):
+    " parse the file humanDiseases.txt from uniprot to resolve disease IDs to disease names "
+
 def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAttrib=None):
     " find all text of subelemets matching path with given attrib and save into dataDict with key"
     l = []
@@ -240,55 +243,93 @@ def openOutTabFile(subDir, outName, headers):
     return ofh
 
 def findDiseases(text):
-    """ find disease codes and their names in text, return as dict code -> name 
-    >>> findDiseases("Defects in CEACAM16 are the cause of deafness autosomal dominant type 4B (DFNA4B) [MIM:614614].")
-    {'DFNA4B': 'deafness autosomal dominant type 4B'}
-    >>> findDiseases("Defects in ALX4 are the cause of parietal foramina 2 (PFM2) [MIM:609597]; also known as foramina parietalia permagna (FPP). PFM2 is an autosomal dominant disease characterized by oval defects of the parietal bones caused by deficient ossification around the parietal notch, which is normally obliterated during the fifth fetal month. PFM2 is also a clinical feature of Potocki-Shaffer syndrome.")
-    {'PFM2': 'parietal foramina 2', 'FPP': 'foramina parietalia permagna'}
-
-    # disease is only one word, but long enough
+    """ find disease codes in text, return as a set of disease codes 
     >>> findDiseases("Defects in HAL are the cause of histidinemia (HISTID) ")
-    {'HISTID': 'histidinemia'}
+    set(['HISTID'])
     """
-    result = {}
-    phrases = re.split("[;.] ", text)
-    notDisease = set(["of", "with", "to", "as", "or", "also", "in"])
+    words = phrase.split()
+    for m in re.finditer("[( .;]([A-Z0-9-]+)[) .;]", text):
+        if m.
 
-    for phrase in phrases:
-        words = phrase.split()
-        revWords = reversed(words)
+#def findDiseases(text):
+#    """ find disease codes and their names in text, return as dict code -> name 
+#    >>> findDiseases("Defects in CEACAM16 are the cause of deafness autosomal dominant type 4B (DFNA4B) [MIM:614614].")
+#    {'DFNA4B': 'deafness autosomal dominant type 4B'}
+#    >>> findDiseases("Defects in ALX4 are the cause of parietal foramina 2 (PFM2) [MIM:609597]; also known as foramina parietalia permagna (FPP). PFM2 is an autosomal dominant disease characterized by oval defects of the parietal bones caused by deficient ossification around the parietal notch, which is normally obliterated during the fifth fetal month. PFM2 is also a clinical feature of Potocki-Shaffer syndrome.")
+#    {'PFM2': 'parietal foramina 2', 'FPP': 'foramina parietalia permagna'}
+#
+#    # disease is only one word, but long enough
+#    >>> findDiseases("Defects in HAL are the cause of histidinemia (HISTID) ")
+#    {'HISTID': 'histidinemia'}
+#    """
+#    result = {}
+#    phrases = re.split("[;.] ", text)
+#    notDisease = set(["of", "with", "to", "as", "or", "also", "in"])
+#
+#    for phrase in phrases:
+#        words = phrase.split()
+#        revWords = reversed(words)
+#
+#        grabWords = False
+#        disWords = []
+#        disCode = None
+#        # go backwords over words and look for acronym, then grab all words before that
+#        # until we find a common English word
+#        for word in revWords:
+#            m = re.match("[(]([A-Z0-9-]+)[)]", word)
+#            if m!=None:
+#                disCode = m.group(1)
+#                grabWords = True
+#                continue
+#
+#            if word in notDisease and (len(disWords)>1 or len("".join(disWords))>=9):
+#                disName = " ".join(list(reversed(disWords)))
+#                if disCode==None:
+#                    logging.debug("Found disease %s, but no code for it" % disName)
+#                    continue
+#                result[disCode] = disName
+#                disCode = None
+#                disWords = []
+#                grabWords = False
+#
+#            if grabWords:
+#                disWords.append(word)
+#
+#    return result
 
-        grabWords = False
-        disWords = []
-        disCode = None
-        # go backwords over words and look for acronym, then grab all words before that
-        # until we find a common English word
-        for word in revWords:
-            m = re.match("[(]([A-Z0-9-]+)[)]", word)
-            if m!=None:
-                disCode = m.group(1)
-                grabWords = True
-                continue
-
-            if word in notDisease and (len(disWords)>1 or len("".join(disWords))>=9):
-                disName = " ".join(list(reversed(disWords)))
-                if disCode==None:
-                    logging.debug("Found disease %s, but no code for it" % disName)
-                    continue
-                result[disCode] = disName
-                disCode = None
-                disWords = []
-                grabWords = False
-
-            if grabWords:
-                disWords.append(word)
-
-    return result
+#def parseDiseaseComment(entryEl):
+#    """ return two dicts 
+#    one with evidence code -> disease code
+#    one with disease code -> disease name 
+#    """
+#    disRefs = {}
+#    disCodes = {}
+#    for commentEl in entryEl.findall("comment"):
+#        textEl = commentEl.find("text")
+#        if commentEl.attrib["type"]=="disease":
+#            refStr = commentEl.attrib.get("evidence", None)
+#            # website xml is different, has evidence attribute on text element
+#            if refStr==None:
+#                refStr = textEl.attrib.get("evidence", None)
+#                if refStr==None:
+#                    continue
+#
+#            refs = refStr.split(" ")
+#
+#            text = textEl.text
+#            logging.debug("Disease comment: %s, evidence %s" % (text, refStr))
+#            disCodes.update(findDiseases(text))
+#
+#            for refId in refs:
+#                disRefs[refId] = disCodes
+#
+#    logging.debug("Found disease evidences: %s" % disRefs)
+#    logging.debug("Found disease names: %s" % disCodes)
+#    return disRefs, disCodes
 
 def parseDiseaseComment(entryEl):
-    """ return two dicts 
-    one with evidence code -> disease code
-    one with disease code -> disease name 
+    """ return dict
+    with evidence code -> disease code
     """
     disRefs = {}
     disCodes = {}
