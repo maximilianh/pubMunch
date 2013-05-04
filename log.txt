@@ -1,2 +1,0 @@
-cat /cluster/home/max/projects/pubs/crawlDir/rupress/articleMeta.tab | head -n13658 | tail -n2 > problem.txt
- less /hive/data/inside/pubs/map/crawler/batches/0/tables/hg19.blat.bed | grep npg > /cluster/home/max/public_html/axton/npg.hg19.bed
