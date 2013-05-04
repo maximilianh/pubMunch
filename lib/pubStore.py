@@ -735,7 +735,8 @@ def guessChunkSize(outDir):
     " get line count of  0_00000.articles.gz in outDir"
     fname = join(outDir, "0_00000.articles.gz")
     if not isfile(fname):
-        raise Exception("%s does not exist, corrupted output directory from previous run?" % fname)
+        #raise Exception("%s does not exist, corrupted output directory from previous run?" % fname)
+        return None
     lineCount = len(gzip.open(fname).readlines())-1
     logging.info("Guessing chunk size: Chunk size of %s is %d" % (fname, lineCount))
     return lineCount

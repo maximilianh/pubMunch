@@ -44,6 +44,11 @@ def dropTable(db, table):
     cmd = """hgsql %s -NB -e 'drop table if exists %s'""" % (db, table)
     maxCommon.runCommand(cmd, verbose=False)
 
+def truncateTable(db, table):
+    logging.debug("Truncating table %s" % table)
+    cmd = """hgsql %s -NB -e 'truncate table %s'""" % (db, table)
+    maxCommon.runCommand(cmd, verbose=False)
+
 def dropTablesExpr(db, expr):
     " drop all tables in db that match expr"
     logging.debug("Dropping tables for %s with pattern %s" % (db, expr))

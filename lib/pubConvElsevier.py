@@ -36,14 +36,10 @@ ELSEVIER_ARTICLE_TAGS = [
         ]
 
 # ==== FUNCTIONs =====
-def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkCount, chunkSize):
+def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSize):
     """ 
     write filenames in zipfiles in inDir to indexFilename in format
     (numId, inDir, zipName, fileName), starting id is minId 
-
-    if chunkCount is None, chunkSize will be used. The idea is that chunkCount tells
-    how many pieces the files to split in and chunkSize tells how big one piece
-    shall be. Only one of them is needed.
 
     returns the last articleId that was assigned
     """
@@ -58,8 +54,10 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkCo
         sys.exit(0)
 
     numId = minId
+    donePiis = {}
+    xmlCount = 0
+    duplCount = 0
     i = 0
-    donePiis = set()
     for fname in zipFilenames:
         zipFilename = join(inDir, fname)
         logging.info("Indexing %s, %d files left" % (zipFilename, len(zipFilenames)-i))
@@ -75,18 +73,20 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkCo
             # do not import a PII twice
             pii = splitext(basename(fileName))[0]
             if pii in donePiis:
-                logging.warn("Already seen PII %s before" % pii)
-            donePiis.add(pii)
+                logging.warn("file %s: already seen PII %s before, in file %s" % (fileName, pii, donePiis[pii]))
+                duplCount +=1
+                continue
+            donePiis[pii] = (zipFilename, fileName)
+            xmlCount += 1
 
-            if chunkCount==None:
-                chunkId = ((numId-minId) / chunkSize)
-            else:
-                chunkId = ((numId-minId) % chunkCount)
+            chunkId = ((numId-minId) / chunkSize)
             chunkString = "%d_%05d" % (updateId, chunkId)
             data = [str(numId), chunkString, inDir, zipRelName, fileName]
             indexFile.write("\t".join(data)+"\n")
             numId+=1
     indexFile.close()
+    logging.info("Processed %d zip files, with %d xml files, skipped %d duplicated files" % \
+        (i, xmlCount, duplCount))
     return numId
 
 #def splitIndex(inDir, outDir, indexDir, minId, chunkCount, chunkSize, indexFilename):
@@ -417,18 +417,20 @@ def convertOneChunk(inIndexFile, outFile):
     logging.info("Converted %d files" % convCount)
     store.close()
 
-def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, runner):
+def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     """ convert Consyn ZIP files from inDir to outDir 
         split files into chunks and submit chunks to cluster system
     """
     maxCommon.mustExistDir(outDir)
 
     updateId, minId, alreadyDoneFiles = pubStore.parseUpdatesTab(outDir, minId)
-    chunkSize  = pubStore.guessChunkSize(outDir)
+    if chunkSize==None:
+        chunkSize  = pubStore.guessChunkSize(outDir)
+    assert(chunkSize!=None)
+
     finalOutDir= outDir
     outDir     = tempfile.mktemp(dir = outDir, prefix = "temp.pubConvElsevier.update.")
     os.mkdir(outDir)
-    chunkCount = None
 
     inFiles = os.listdir(inDir)
     inFiles = [x for x in inFiles if x.endswith(".ZIP")]
@@ -443,7 +445,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, chunkCount, runner):
         return None
 
     indexFilename = join(outDir, "%d_index.tab" % updateId)
-    maxArticleId  = createIndexFile(inDir, processFiles, indexFilename, updateId, minId, chunkCount, chunkSize)
+    maxArticleId  = createIndexFile(inDir, processFiles, indexFilename, updateId, minId, chunkSize)
     indexSplitDir = indexFilename+".tmp.split"
     pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
     submitJobs(runner, indexSplitDir, outDir)

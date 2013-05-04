@@ -5,7 +5,7 @@ import logging, optparse, sys, os, glob
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
-sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+sys.path.insert(0, join(dirname(abspath(__file__)), "../lib"))
 
 import pubGeneric, pubExpMatrix, pubConf, maxCommon
 
@@ -14,7 +14,7 @@ def main(args, options):
     dirNames = pubGeneric.resolveDatasetDesc("pmc")
     pubGeneric.setupLogging(__file__, options)
 
-    inDir = "/hive/data/inside/pubs/map/yif/batches"
+    inDir = "/hive/data/inside/pubs/map/pmc/batches"
 
     for subDir in os.listdir(inDir):
         tablesDir = join(inDir, subDir, "tables")
@@ -29,13 +29,15 @@ def main(args, options):
         bedFnames = glob.glob(join(tablesDir, "*.blat.bed"))
         articleIds = set()
         for bedFname in bedFnames:
-            for row in maxCommon.iterTsvRows(bedFname, noHeaderCount=24):
+            if "nonUcsc" in bedFname:
+                continue
+            for row in maxCommon.iterTsvRows(bedFname, noHeaderCount=25):
                 articleIds.add(row[3])
 
         print """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"""
         print """<links>"""
         for artId in articleIds:
-            url = "http://hgwdev-max.cse.ucsc.edu/cgi-bin/hgc?g=pubsDevBlat&amp;i=%s" % artId
+            url = "http://hgwdev-max.cse.ucsc.edu/cgi-bin/hgc?c=0&amp;l=0&amp;r=0&amp;g=pubsDevBlat&amp;i=%s" % artId
             print """<link providerId="4580">
             <resource>
                 <title>DNA or protein sequence that matches genome</title>

@@ -246,8 +246,10 @@ def toAscii(fileData, mimeType=None, \
     tempDir = pubConf.getTempDir()
 
     fileContent = fileData["content"]
+    fileDebugDesc = ",".join([fileData["url"],fileData["desc"],fileData["fileId"],fileData["articleId"]])
     if len(fileContent) > maxBinFileSize:
-        logging.warn("binary file size before conversion %d > %d, skipping file %s" % (len(fileContent), maxBinFileSize, fileData["url"]+fileData["desc"]+fileData["fileId"]+fileData["articleId"]))
+        logging.warn("binary file size before conversion %d > %d, skipping file %s" % \
+            (len(fileContent), maxBinFileSize, fileDebugDesc))
         return None
 
     url = fileData["url"]
@@ -286,7 +288,8 @@ def toAscii(fileData, mimeType=None, \
         #logging.verbose("data before conversion is %s" % fileContent)
         asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
         #logging.verbose("Ascii data after conversion is %s" % asciiData)
-        if fileExt=="pdf" and (asciiData==None or countBadChars(asciiData)>=10):
+        if fileExt=="pdf" and \
+            ((asciiData==None or len(asciiData)<minTxtFileSize) or countBadChars(asciiData)>=10):
             logging.debug("No data or too many non printable characters in PDF, trying alternative program")
             cmdLine = converters["pdf2"]
             asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
@@ -299,11 +302,11 @@ def toAscii(fileData, mimeType=None, \
     fileData = dictToUnicode(fileData)
 
     if len(fileData["content"]) > maxTxtFileSize:
-        logging.warn("ascii file size after conversion too big, ignoring file")
+        logging.debug("ascii file size after conversion too big, ignoring file")
         return None
 
     if len(fileData["content"]) < minTxtFileSize:
-        logging.warn("ascii file size after conversion too small, ignoring file")
+        logging.debug("ascii file size after conversion too small, ignoring file")
         return None
 
     #charSet = set(fileData["content"])

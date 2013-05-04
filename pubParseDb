@@ -121,7 +121,7 @@ featTypes = {
     "metal ion-binding site": "ion-binding",
     "site": "site",
     "topological domain" : "topo",
-    "transmembrane region" : "transmembr",
+    "transmembrane region" : "transmem",
     "disulfide bond" : "disulf bond",
     "glycosylation site" : "glyco",
     "binding site" : "bind",
@@ -131,7 +131,7 @@ featTypes = {
     "calcium-binding region" : "calcium bind",
     "lipid moiety-binding region" : "lipid",
     "propeptide" : "propep",
-    "intramembrane region" : "intramembr",
+    "intramembrane region" : "intramem",
     "peptide" : "peptide",
     "nucleotide phosphate-binding region" : "nucl phos bind"
 }
@@ -145,7 +145,7 @@ entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
-mutHeaders = ["acc", "mainIsoAcc", "varId", "featType", "shortFeatType", "begin", "end", "origAa", "mutAa", "dbSnpId", "disRelated", "disease", "pmid", "comment"]
+mutHeaders = ["acc", "mainIsoAcc", "varId", "featType", "shortFeatType", "begin", "end", "origAa", "mutAa", "dbSnpId", "disRelated", "disease", "disCode", "pmid", "comment"]
 MutRec = collections.namedtuple("mutrec", mutHeaders)
 
 # references from record
@@ -213,8 +213,16 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
                 elem.attrib.update(to_set)
 
 
-def parseHumDiseases(fname):
+def parseDiseases(fname):
     " parse the file humanDiseases.txt from uniprot to resolve disease IDs to disease names "
+    dis = {}
+    for line in open(fname).read().splitlines():
+        if line.startswith("ID"):
+            name = line[5:].strip(".")
+        if line.startswith("AR"):
+            code = line[5:].strip(".")
+            dis[code]=name
+    return dis
 
 def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAttrib=None):
     " find all text of subelemets matching path with given attrib and save into dataDict with key"
@@ -242,14 +250,18 @@ def openOutTabFile(subDir, outName, headers):
     ofh.write("\t".join(headers)+"\n")
     return ofh
 
-def findDiseases(text):
+def findDisCodes(text, disToName):
     """ find disease codes in text, return as a set of disease codes 
     >>> findDiseases("Defects in HAL are the cause of histidinemia (HISTID) ")
     set(['HISTID'])
     """
-    words = phrase.split()
-    for m in re.finditer("[( .;]([A-Z0-9-]+)[) .;]", text):
-        if m.
+    disSet = set()
+    for m in re.finditer("[(]([a-zA-Z0-9- ]+)[)]", text):
+        word = m.group(1)
+        if word in disToName:
+            disSet.add(word)
+    return disSet
+            
 
 #def findDiseases(text):
 #    """ find disease codes and their names in text, return as dict code -> name 
@@ -327,12 +339,14 @@ def findDiseases(text):
 #    logging.debug("Found disease names: %s" % disCodes)
 #    return disRefs, disCodes
 
-def parseDiseaseComment(entryEl):
-    """ return dict
-    with evidence code -> disease code
+def parseDiseaseComment(entryEl, disToName):
+    """ 
+    parse the general comments, disease section from up record 
+    return evidence codes that refer to diseases 
+    also return disease codes 
     """
     disRefs = {}
-    disCodes = {}
+    disCodes = set()
     for commentEl in entryEl.findall("comment"):
         textEl = commentEl.find("text")
         if commentEl.attrib["type"]=="disease":
@@ -347,13 +361,13 @@ def parseDiseaseComment(entryEl):
 
             text = textEl.text
             logging.debug("Disease comment: %s, evidence %s" % (text, refStr))
-            disCodes.update(findDiseases(text))
+            disCodes.update(findDisCodes(text, disToName))
 
             for refId in refs:
                 disRefs[refId] = disCodes
 
     logging.debug("Found disease evidences: %s" % disRefs)
-    logging.debug("Found disease names: %s" % disCodes)
+    #logging.debug("Found disease names: %s" % disCodes)
     return disRefs, disCodes
 
 def parseIsoforms(acc, mainSeq, entryEl, isoSeqs):
@@ -391,8 +405,6 @@ def parseIsoforms(acc, mainSeq, entryEl, isoSeqs):
         isoIds = [acc]
         seqs = [mainSeq]
 
-    #if len(seqs)!=len(isoIds):
-        #print seqs, isoIds
     assert(len(seqs)==len(isoIds))
 
     return isoIds, isoNames, seqs
@@ -432,6 +444,7 @@ def parseDbRefs(entryEl):
     return result
 
 def splitAndResolve(disName, disCodes, splitWord):
+    " split and split word, try to resolve via disCodes and rejoin again "
     subDises = disName.split(splitWord)
     newDises = []
     for subDis in subDises:
@@ -440,42 +453,50 @@ def splitAndResolve(disName, disCodes, splitWord):
             newDises.append(disCodes[subDis])
         else:
             newDises.append(subDis)
-    disName = "|".join(newDises)
+    disName = ",".join(newDises)
     return disName
 
-def parseFeatDesc(text, disCodes):
-    """ return tuple: (disease name, dbSnpId, otherComments)
+def parseFeatDesc(text, disToName):
+    """ 
+    parse the description of a feature to find code name of disease, snpId and comments 
+    return tuple: (disease name, dbSnpId, otherComments)
     >>> parseFeatDesc("In sporadic cancers; somatic mutation; dbSNP:rs11540654.", {})
     ('sporadic cancers', 'rs11540654', 'somatic mutation')
     >>> parseFeatDesc("In RIEG1; pointless comment", {"RIEG1" : "Axel-Riegerfeldt syndrome"})
     ('Axel-Riegerfeldt syndrome', '', 'pointless comment')
     """
-    # find disease name and try to resolve via disCodes
-    logging.debug("Feature description: %s (codes: %s)" % (text, disCodes))
+    # find disease name and try to resolve via disToNames
+    logging.debug("Feature description: %s " % (text))
     text = text.strip(".").strip()
     parts = text.split("; ")
-    disName = ""
+    disCode = ""
     comments = []
     for part in parts:
         part = part.replace("a patient with", "")
         part = part.replace("in a ", "in ")
         partLow = part.lower()
         if partLow.startswith("in ") and "dbSNP" not in part and "allele" not in part:
-            disName = " ".join(part.split()[1:])
+            disCode = " ".join(part.split()[1:])
             # some entries contain two disease names
-            if " and " in disName:
-                disName = splitAndResolve(disName, disCodes, " and ")
-            #if "," in disName:
-                #disName = splitAndResolve(disName, disCodes, ",")
         else:
             if "dbSNP" not in part:
                 comments.append(part)
                     
-    if disName in disCodes:
-        disName = disCodes[disName]
-
-    if disName.startswith("an ") or disName.startswith("a "):
-        disName = " ".join(disName.split(" ")[1:])
+    # we got a plain disease code
+    if disCode in disToName:
+        disLongName = disToName[disCode]
+    # or two dis codes with and
+    elif " and " in disCode:
+        disLongName = splitAndResolve(disCode, disToName, " and ")
+    else:
+        # there are dis code somewhere inside the text
+        intDisCodes = findDisCodes(disCode, disToName)
+        if len(intDisCodes)!=0:
+            disLongName = disCode
+            disCode = ",".join(intDisCodes)
+        # ok nothing worked, keep it as it is
+        else:
+            disLongName = disCode
 
     # find snpId
     snpId = ""
@@ -484,13 +505,13 @@ def parseFeatDesc(text, disCodes):
             #assert(snpId=="")
             snpId = m.group(1)
 
-    logging.debug("Disease: %s, snpId: %s" % (disName, snpId))
-    return disName, snpId, "; ".join(comments)
+    logging.debug("Disease: %s, snpId: %s" % (disLongName, snpId))
+    return disCode, disLongName, snpId, "; ".join(comments)
 
 
 ignoredTypes = collections.Counter()
 
-def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
+def parseFeatures(entryEl, disRefs, defaultDisCodes, disToName, evidPmids, mainIsoAcc):
     " go over features and yield mutation records "
 
     acc = entryEl.find("accession").text
@@ -501,6 +522,10 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
         if featType not in featTypes:
             ignoredTypes[featType] += 1 
             continue
+        if featType in ["sequence variant"]:
+            isVariant = True
+        else:
+            isVariant = False
         shortFeatType = featTypes[featType]
         logging.debug("type: %s" % featType)
 
@@ -574,26 +599,29 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
             #continue
         evidList = evidStr.split()
 
-        #disCode = disRefs[evidId]
-        disName, snpId, comments = parseFeatDesc(desc, disCodes)
+        if isVariant:
+            # only do this for natural variants
+            disCode, disName, snpId, comments = parseFeatDesc(desc, disToName)
+            # if no disease annotated to feature, use the one from the record
+            if disCode=="" and len(defaultDisCodes)==1:
+                disCode = list(defaultDisCodes)[0]
+                disName = disToName.get(disCode, disCode)+" (not annotated on variant but on gene record)"
+                disCode = disCode + "?"
+        else:
+            disCode, disName, snpId, comments = "", "", "", desc
 
         varPmids = []
-        diseaseRelated = "noEvidence"
+        if disCode!="":
+            diseaseRelated = "disRelated"
+        else:
+            diseaseRelated = "noEvidence"
         for evidId in evidList:
             if evidId in disRefs:
                 diseaseRelated="disRelated"
             else:
                 diseaseRelated="notDisRelated"
                 logging.debug("evidence is not a disease evidence or blacklisted, check description")
-                #if "sample" in desc or "cancer" in desc or varType=="mutagenesisSite":
-                    #disName, snpId, comments = parseFeatDesc(desc, disCodes)
-                #else:
-                    #logging.debug("could not find word 'sample' in description")
-                    #continue
 
-            #if not evidId in evidPmids:
-                #logging.debug("No PMID for this evidence")
-                #continue
             pmids = evidPmids.get(evidId, [])
             assert(len(pmids)<=1)
             if len(pmids)>0:
@@ -603,15 +631,20 @@ def parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc):
         if len(varPmids)==1 and set(varPmids).intersection(pmidBlackList)==len(varPmids):
             logging.debug("only blacklist pmids, skipping feature")
 
-        mut = MutRec(acc, mainIsoAcc, varId, featType, shortFeatType, begin, end, orig, variant, snpId, diseaseRelated, disName, ",".join(varPmids), comments)
+        mut = MutRec(acc, mainIsoAcc, varId, featType, shortFeatType, begin, end, orig, variant, snpId, diseaseRelated, disName, disCode, ",".join(varPmids), comments)
         logging.debug("Accepted variant: %s" % str(mut))
 
         # rewrite disulfide bonds to two separate features, one for each cysteine involved
         if featType=="disulfide bond":
             end = mut.end
-            mut1 = mut._replace(end=str(int(mut.begin)+1), comment=mut.comment+"; disulfide bond to position %s" % mut.end)
+            comment = mut.comment
+            if comment!="":
+                comment+= "; "
+            newComment = comment + "disulfide bond to position %s" % str(int(mut.end)-1)
+            mut1 = mut._replace(end=str(int(mut.begin)+1), comment=newComment)
             yield mut1
-            mut2 = mut._replace(begin=str(int(mut.end)-1), comment=mut.comment+"; disulfide bond to position %s" % mut.begin)
+            newComment = comment + "disulfide bond to position %s" % mut.begin
+            mut2 = mut._replace(begin=str(int(mut.end)-1), comment=newComment)
             yield mut2
         else:
             yield mut
@@ -631,9 +664,10 @@ def parseEvidence(entryEl):
                 result[evidCode].append(pmid)
     return result
     
-def parseVariants(entryEl, mainIsoAcc):
+def parseVariants(entryEl, mainIsoAcc, disToName):
     " return MutRecs with disease associated variants "
-    disRefs, disCodes = parseDiseaseComment(entryEl)
+    # parse the general record comment about diseases
+    disRefs, allDiseaseCodes = parseDiseaseComment(entryEl, disToName)
 
     #if len(disRefs)==0:
         #logging.debug("No disease evidence")
@@ -642,7 +676,7 @@ def parseVariants(entryEl, mainIsoAcc):
     logging.debug("Diseases in %s" % acc)
 
     evidPmids = parseEvidence(entryEl)
-    mutRecs = list(parseVariantFeatures(entryEl, disRefs, disCodes, evidPmids, mainIsoAcc))
+    mutRecs = list(parseFeatures(entryEl, disRefs, allDiseaseCodes, disToName, evidPmids, mainIsoAcc))
     return mutRecs
 
 def parseRecInfo(entryEl, entry, isoSeqs):
@@ -796,6 +830,7 @@ def parseUniprot(inDir, outDir, taxonIds):
     refOf = openOutTabFile(outDir, outPrefix+".refs.tab", refHeaders)
     mutOf = openOutTabFile(outDir, outPrefix+".mut.tab", mutHeaders)
 
+    disToName = parseDiseases(join(inDir, "humdisease.txt"))
     # base and variant sequence filehandles
     faFiles = openFaFiles(taxonIds, outDir, outPrefix)
     varFaFiles = openFaFiles(taxonIds, outDir, outPrefix, "var")
@@ -823,7 +858,7 @@ def parseUniprot(inDir, outDir, taxonIds):
         for refRow in refRows:
             refOf.write("\t".join(refRow)+"\n")
 
-        mutRecs = parseVariants(entryEl, entryRow.mainIsoAcc)
+        mutRecs = parseVariants(entryEl, entryRow.mainIsoAcc, disToName)
         for mutRow in mutRecs:
             logging.debug("writing row %s" % str(mutRow))
             mutOf.write("\t".join(mutRow)+"\n")

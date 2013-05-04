@@ -25,10 +25,10 @@ If in and out are files:
     Writes to outDir/<xxxx>.zip
 
 Example:
-pubConvElsevier /hive/data/outside/pubs/ElsevierConsyn/ /hive/data/inside/pubs/text/elsevier/
+pubConvElsevier /hive/data/outside/pubs/elsevier/ /hive/data/inside/pubs/text/elsevier/
 
 *big* CONSYN zipfiles have to be uploaded by Elsevier into your own ftp server
-or are shipped on blue ray discs. Updates are downloaded via http (RSS feed)
+or are shipped on a hard disc. Updates are downloaded via http (RSS feed)
 
 If a file doi2pmid.tab.gz is found in the input directory, the PMIDs are added for DOIs
 where they are available.
@@ -41,7 +41,7 @@ to add them manually ("updated since=xxx"). More info on consyn.elsevier.com
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default", default=2000) 
+parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=3500) 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
 parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
@@ -78,7 +78,7 @@ inDir, outDir = args
 maxCommon.mustExist(inDir)
 
 minId = options.minId
-chunkCount = options.chunkCount
+#chunkCount = options.chunkCount
 #maxSubmit = options.maxSubmit
 
 if not os.path.isdir(inDir):
@@ -89,7 +89,7 @@ if options.cluster:
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
 else:
     runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
-pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, chunkCount, runner)
+pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
 
 tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
 dbPath = join(outDir, "articles.db")

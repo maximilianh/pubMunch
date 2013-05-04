@@ -152,7 +152,7 @@ scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
 
 # assignment of pubMap pipeline steps to cluster machines
 # pubMap will ssh into a machine to run these steps
-stepHosts = {"sortCdna" : "localhost", "sortProt" : "localhost", "sortGenome" : "localhost", "blatProt" : "localhost"}
+stepHosts = {"sortCdna" : "localhost", "sortProt" : "localhost", "sortGenome" : "localhost"}
 
 # email for ncbi eutil requests and error email by pubCrawl
 email = "YOUREMAIL"
@@ -335,7 +335,10 @@ minProtSeqLen=7
 maxSeqLen=50000
 
 # maximum size of sequence to be considered "short", sequences can be "short" or "long"
-shortSeqCutoff = 35
+# 50 because: two neighboring primers in a table are recognized as one long primer.
+# Blat will split it, but it has to fall into the short category as otherwise
+# each individual match won't exceed the 25bp threshold.
+shortSeqCutoff = 50
 
 # the sequences from papers will be split into several fa files per organism
 # maximum size of fasta file per organism (to keep hippos low, short/long separated)

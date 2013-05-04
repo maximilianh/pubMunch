@@ -38,7 +38,8 @@ Example:
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"]) 
+parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"]) 
+parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -64,6 +65,8 @@ def createIndex(inDir, outDir, minId):
     indexFile.write("\t".join(headers)+"\n")
     articleId = minId
     for extId, files in idFiles.iteritems():
+        if not extId.isdigit():
+            continue
         chunkId = "00000"
         mainFile = extId+".pdf"
         files.remove(mainFile)
@@ -94,35 +97,51 @@ def createFileData(baseDir, fname, extId, isSupp):
 
 def createArticleData(externalId):
     " create article data dict "
-    articleData = pubStore.createEmptyArticleDict()
-    articleData = list(pubPubmed.ncbiEFetchGenerator([externalId]))[0]
+    #articleData = pubStore.createEmptyArticleDict()
+    articleData = pubStore.lookupArticleByPmid(["medline"], externalId)
+    if articleData==None:
+        logging.debug("No local information for %s" % externalId)
+        ncbiList = list(pubPubmed.ncbiEFetchGenerator([externalId]))
+        if len(ncbiList)==0:
+            return None
+        articleData = ncbiList[0]
     #articleData["externalId"] = "PMID"+externalId
     #articleData["fulltextUrl"] = "www.ncbi.nlm.nih.gov/pubmed/%s" % externalId
     articleData["source"] = "pdfDir"
     return articleData
 
-def convertFiles(inDir, outDir, minId):
+def convertFiles(inDir, outDir, minId, parseFname):
     " index files and convert to pubtools file in outDir, first articleId is minId "
     indexFn = createIndex(inDir, outDir, minId)
 
     chunkId = "00000"
     writer = pubStore.PubWriterFile(join(outDir, chunkId))
+    failed = []
 
     for row in maxCommon.iterTsvRows(indexFn):
         # article data
-        externalId = row.externalId
+        externalId = row.mainFile
         articleId = row.articleId
         mainFile = row.mainFile
+        if parseFname!=None and mainFile != parseFname:
+            continue
         suppFiles = row.suppFiles.split(",")
         logging.info("Converting article data for %s, articleId %s, suppFiles %s" % (mainFile, articleId, ",".join(suppFiles)))
-        articleData = createArticleData(externalId, mainFile)
-        writer.writeArticle(articleId, articleData)
-
+        articleData = createArticleData(externalId)
+        if articleData==None:
+            failed.append("metaData:"+externalId)
+            continue
         # file data of main file
         mainFileData = createFileData(inDir, mainFile, externalId, False)
         fileCount = 0
         fileId   = ((10**pubConf.FILEDIGITS)*int(articleId))+fileCount
-        writer.writeFile(articleId, fileId, mainFileData, externalId=articleData.externalId)
+
+        if mainFileData==None:
+            failed.append(mainFile)
+            logging.info("Conversion not successful")
+            continue
+        writer.writeFile(articleId, fileId, mainFileData, externalId=articleData["externalId"])
+        writer.writeArticle(articleId, articleData)
 
         # file data of supp files
         for suppFile in suppFiles:
@@ -133,8 +152,12 @@ def convertFiles(inDir, outDir, minId):
             fileData = createFileData(inDir, suppFile, externalId, True)
             if fileData != None:
                 writer.writeFile(articleId, fileId, fileData)
+            else:
+                failed.append(suppFile)
 
     writer.close()
+    if len(failed)!=0:
+        logging.info("These PDFs could not be converted: %s"% ",".join(failed))
     
 # ----------- MAIN --------------
 if args==[]:
@@ -149,4 +172,4 @@ pubGeneric.setupLogging(progFile, options)
 
 maxCommon.mustExistDir(outDir)
 maxCommon.mustBeEmptyDir(outDir)
-convertFiles(inDir, outDir, minId)
+convertFiles(inDir, outDir, minId, options.parseFile)

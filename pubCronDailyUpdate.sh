@@ -13,8 +13,8 @@ TEXTBASE=/hive/data/inside/pubs/text
 BLATBASE=/hive/data/inside/pubs/blat
 
 MEDLINEDOWNLOADDIR=${DOWNBASE}/medline
-ELSDOWNLOADDIR=${DOWNBASE}/ElsevierConsyn
-PMCDOWNLOADDIR=${DOWNBASE}/PubMedCentral
+ELSDOWNLOADDIR=${DOWNBASE}/elsevier
+PMCDOWNLOADDIR=${DOWNBASE}/pmc
 CRAWLDIR=/hive/data/inside/pubs/crawlDir/
 
 MEDLINECONVDIR=${TEXTBASE}/medline

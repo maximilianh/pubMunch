@@ -1044,7 +1044,7 @@ def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
         artDescFields = (art.publisher, art.pmid, art.doi, \
             art.printIssn, art.journal, art.title, art.firstAuthor, art.year)
         artDescFields = [pubStore.prepSqlString(f, maxLen=255) for f in artDescFields]
-        fields.extend(artDescFields[1:]) # don't add the articleId itself
+        fields.extend(artDescFields) # don't add the articleId itself
         fields.append(str(impact))
 
         # add the class field
@@ -1290,6 +1290,11 @@ def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, \
         suffix="", dropFirst=False, loadArticles=True):
     """ load all article and seq tables for a list of batchIds 
     return list of loaded tables in format: <db>.<tableName> 
+
+    fileDict is:
+    (tableName, [bed|tab]) -> db -> filenames
+    e.g. 
+    blat, bed -> hg19 -> [fname]
     """
     logging.debug("Loading tables from %s for %s, append Mode %s" % (fileDict, dbList, appendMode))
 
@@ -1318,9 +1323,9 @@ def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, \
                 continue
             for fname in fnames:
                 # some datasets refer to article information from others
-                if tableBaseName.endswith("article"):
-                    logging.info("Not loading article information")
-                    continue
+                #if tableBaseName.endswith("article") and "yif" in :
+                    #logging.info("Skipping article information")
+                    #continue
                 # find the right .sql file
                 if tableBaseName.startswith("marker") and not tableBaseName.startswith("markerAnnot"):
                     sqlName = join(sqlDir, sqlFilePrefix+"Marker.sql")
@@ -1438,7 +1443,7 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
 
     loadedFilenames = getLoadedFiles(trackingDb, trackingTable)
     checkIsIdenticalOnDisk(loadedFilenames, trackingDb, trackingTable)
-    append          = (len(loadedFilenames) != 0) # append if there is already old data
+    append          = (len(loadedFilenames) != 0) # append if there is already old data in the db
 
     # first create the marker bed files (for all basedirs) and load them
     # this is separate because we pre-calculate the counts for all marker beds
@@ -1791,7 +1796,6 @@ def parseImpacts(fname):
         impact = float(row.impact)
         #impVal = int(min(impact,maxImp) * (255/maxImp))
         res[row.ISSN] = int(round(impact))
-    print res
     return res
         
 def parseArtClasses(textDir, updateIds):
