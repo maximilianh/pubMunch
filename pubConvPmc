@@ -484,14 +484,15 @@ def getNxmlFile(fileDataDict):
     nxmlName = os.path.basename(nxmlName)
     return nxmlName, nxmlData
             
-def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles):
+def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pmcId):
     " given file data and meta data, create a fileData dictionary "
     fileDataList = []
-    urlPrefix = "pmcftp://"+tgzName
+    #urlPrefix = "pmcftp://"+tgzName
+    urlPrefix = "http://www.ncbi.nlm.nih.gov/pmc/articles/%s" % pmcId
 
     # add xml file data
     xmlFile = pubStore.createEmptyFileDict(
-        url=urlPrefix+"/"+nxmlName,
+        url=urlPrefix,
         content=nxmlData,
         fileType="main",
         desc = "main text (xml)",
@@ -499,10 +500,10 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles):
     fileDataList.append(xmlFile)
 
     # try to find pdf files and add pdf file data
-    pdfName = nxmlName.replace(".nxml", ".pdf")
+    pdfName = basename(nxmlName).replace(".nxml", ".pdf")
     if pdfName!=nxmlName and pdfName in extractedFiles:
         pdfFile = pubStore.createEmptyFileDict(
-            url=urlPrefix+"/"+pdfName,
+            url=urlPrefix+"/pdf/"
             content=extractedFiles[pdfName],
             desc = "main text (pdf)",
             fileType="main",
@@ -517,13 +518,12 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles):
         suppData = extractedFiles[suppFname]
         mimeType, dummy = mimetypes.guess_type(suppFname)
         suppFile = pubStore.createEmptyFileDict(
-            url=urlPrefix+"/"+suppFname,
+            url=urlPrefix+"/bin/"+basename(suppFname),
             content=suppData,
             desc=suppDesc,
             fileType="supp",
             mimeType=mimeType)
         fileDataList.append(suppFile)
-
     return fileDataList
     
 def convertOneChunk(inIndexFile, outFile):
@@ -546,9 +546,10 @@ def convertOneChunk(inIndexFile, outFile):
             continue
         articleData = pubStore.createEmptyArticleDict(publisher="")
         articleData, suppFileDict = parsePmcXml(nxmlData, articleData)
-        store.writeArticle(articleId, articleData)
 
-        fileDataList = createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles)
+        fileWritten = False
+        fileDataList = createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, \
+            articleData["externalId"])
         fileIdx = 0
         for fileData in fileDataList:
             fileId   = (1000*int(articleId))+fileIdx
@@ -556,6 +557,11 @@ def convertOneChunk(inIndexFile, outFile):
             fileIdx+=1
             if fileData!=None:
                 store.writeFile(articleId, fileId, fileData, externalId=articleData["externalId"])
+                fileWritten = True
+
+        if fileWritten:
+            store.writeArticle(articleId, articleData)
+
     store.close()
 
 # ----------- MAIN --------------

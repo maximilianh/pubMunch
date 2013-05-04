@@ -6,7 +6,9 @@ all:
 
 install:
 	mkdir -p $(BIN)
+	rm $(BIN)/*
 	cp -R * $(BIN)/
 	# most other hgwdev users don't have the correct python
 	# in their path, so I have to force it
 	sed -i 's|/usr/bin/env python|$(PYTHON)|' $(BIN)/pub*
+	touch $(BIN)/changes_to_files_here_will_get_overwritten

@@ -206,8 +206,16 @@ def findFiles(zipDir, eIssn, pmid):
 def convSaveFile(writer, externalId, fileType, url, mimeType, fname, fileId, articleId):
     " try to convert fname to ascii and write to writer, report success as boolean "
     logging.debug("Converting file %s, articleId %s" % (fname, articleId))
+    if fileType == "main":
+        fileDesc = "main text"
+    else:
+        fileDesc = "supplemental file"
+    ext = splitext(basename(fname))[1]
+    if ext!="":
+        fileDesc = fileDesc + " (%s)" % ext
+
     if isfile(fname):
-        fileDict = pubStore.createEmptyFileDict()
+        fileDict = pubStore.createEmptyFileDict(desc=fileDesc)
         fileDict["externalId"] = externalId
         fileDict["fileType"] = fileType
         newParts = list(urlparse.urlparse(url))
