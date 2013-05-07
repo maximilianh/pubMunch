@@ -39,13 +39,11 @@ to add them manually ("updated since=xxx"). More info on consyn.elsevier.com
 
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=3500) 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
 parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
-parser.add_option("-c", "--cluster", dest="cluster", action="store_true", help="run conversion on cluster") 
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ----------- MAIN --------------

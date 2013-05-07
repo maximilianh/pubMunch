@@ -29,10 +29,8 @@ pubConvCrawler /hive/data/inside/pubs/crawlDir /hive/data/inside/pubs/text/crawl
 
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-c", "--cluster", dest="cluster", action="store_true", help="use cluster for conversion", default=None)
-parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export meta data to sqlite db 'articles.db' in outDir") 
+parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export meta data to sqlite db 'articles.db' in outDir")
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====

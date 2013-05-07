@@ -121,7 +121,7 @@ def findMainArticleTag(tree):
             else:
                 return None, None
 
-    logging.error("Unknown article tag")
+    logging.error("Unknown or no article tag when trying to convert to ASCII")
     sys.exit(1)
     return None
 
@@ -159,10 +159,13 @@ def sanitizeYear(yearStr):
     nonNumber = re.compile("\D")
     lastWord = yearStr.split(" ")[-1]
     yearStrClean = nonNumber.sub("", lastWord)
+    if yearStrClean=="":
+        #logging.debug("empty year")
+        return ""
     try:
         year = int(yearStrClean)
     except:
-        logging.debug("%s does not look like a year, cleaned string is %s" % (yearStr, yearStrClean))
+        #logging.debug("%s does not look like a year, cleaned string is %s" % (yearStr, yearStrClean))
         year = yearStrClean
 
     return str(year)
@@ -196,6 +199,9 @@ def parseElsevier(tree, data):
     if desc==None:
         logging.warn("Uppercase RDF/Description not found.")
         desc =  tree.find("rdf/description")
+        if desc==None:
+            logging.warn("no rdf description tag found (is this a file with just <empty> in it?)")
+            return None
 
     data["source"]          = "elsevier"
     data["title"]           = findText(desc, "title")
@@ -211,7 +217,7 @@ def parseElsevier(tree, data):
     data["issue"]           = findText(desc, "number")
     data["year"]            = sanitizeYear(findText(desc, "coverDisplayDate"))
     if data["year"]=="":
-        data["year"] = findYear(findText(desc, "copyright"))
+        data["year"] = sanitizeYear(findYear(findText(desc, "copyright")))
     data["vol"]             = findText(desc, "volume")
 
     # authors: first try to get from description
@@ -229,10 +235,10 @@ def parseElsevier(tree, data):
 
     # try to get year, title and raw text from "document properties"
     dp = tree.find("document-properties")
-    if data["year"]!=None and data["year"]!="":
-        dpYear = dp.find("year-first")
-        if dpYear is not None:
-            data["year"]            = dpYear.text
+    #if data["year"]!=None and data["year"]!="":
+    dpYear = dp.find("year-first")
+    if dpYear is not None:
+        data["year"]            = dpYear.text
 
 
     if dp.find("raw-text") is not None:
@@ -255,12 +261,8 @@ def parseElsevier(tree, data):
             if copyEl!=None:
                 data["year"] = copyEl.attrib.get("year", None)
 
-    data["year"] = sanitizeYear(data["year"])
-
     if data["year"]=="":
-        logging.warn("no year for article")
-
-
+        data["year"] = sanitizeYear(data["year"])
 
     # PARSE ARTICLE
     if articleEl is None:
@@ -387,7 +389,11 @@ def convertOneChunk(inIndexFile, outFile):
         if doi2pmid==None:
             doi2pmid = parseDoi2Pmid(baseDir)
         xmlString = zipFile.open(filename).read()
-        xmlTree   = pubXml.etreeFromXml(xmlString)
+        try:
+            xmlTree   = pubXml.etreeFromXml(xmlString)
+        except lxml.etree.XMLSyntaxError:
+            logging.error("XML parse error, skipping file %s, %s" % (zipFilename, filename))
+            continue
 
         # parse xml
         articleData = pubStore.createEmptyArticleDict(publisher="elsevier")
@@ -420,6 +426,7 @@ def convertOneChunk(inIndexFile, outFile):
 def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     """ convert Consyn ZIP files from inDir to outDir 
         split files into chunks and submit chunks to cluster system
+        write first to temporary dir, and copy over at end of all jobs
     """
     maxCommon.mustExistDir(outDir)
 
@@ -449,10 +456,10 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     indexSplitDir = indexFilename+".tmp.split"
     pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
     submitJobs(runner, indexSplitDir, outDir)
-
     pubStore.moveFiles(outDir, finalOutDir)
     shutil.rmtree(outDir)
-    if isdir(indexSplitDir): # how could it not be there? 
+
+    if isdir(indexSplitDir): # necessary? how could it not be there? 
         logging.info("Deleting directory %s" % indexSplitDir)
         shutil.rmtree(indexSplitDir) # got sometimes exception here...
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)

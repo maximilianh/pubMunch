@@ -559,13 +559,14 @@ def convertOneChunk(inIndexFile, outFile):
                 store.writeFile(articleId, fileId, fileData, externalId=articleData["externalId"])
                 fileWritten = True
 
+        # only write article meta information if at least one article file could be converted
         if fileWritten:
             store.writeArticle(articleId, articleData)
 
     store.close()
 
 # ----------- MAIN --------------
-if args==[]: 
+if args==[]:
     parser.print_help()
     exit(1)
 

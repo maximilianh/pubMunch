@@ -38,7 +38,7 @@ def main(args, options):
         print """<links>"""
         for artId in articleIds:
             url = "http://hgwdev-max.cse.ucsc.edu/cgi-bin/hgc?c=0&amp;l=0&amp;r=0&amp;g=pubsDevBlat&amp;i=%s" % artId
-            print """<link providerId="4580">
+            print """<link providerId="1045">
             <resource>
                 <title>DNA or protein sequence that matches genome</title>
                 <url>%s</url>
