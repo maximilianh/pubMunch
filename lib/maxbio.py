@@ -1,7 +1,7 @@
 # Routines for handling fasta sequences and tab sep files
 
 # std packages
-import sys, textwrap, operator, types, doctest,logging
+import sys, textwrap, operator, types, doctest,logging, gzip
 from types import *
 
 # external packages
@@ -66,6 +66,8 @@ class FastaReader:
             self.f = fname
         elif fname=="stdin":
             self.f=sys.stdin
+        elif fname.endswith(".gz"):
+            self.f=gzip.open(fname)
         else:
             self.f=open(fname)
         self.lastId=None

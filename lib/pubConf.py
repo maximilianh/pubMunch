@@ -21,9 +21,10 @@ localHeadDir = '/scratch/max/pubTools'
 # directory for files with parsed DBs each DB, e.g. uniprot or pdb
 dbRefDir = '/hive/data/inside/pubs/parsedDbs'
 
-# directories with a local copy of PDB or uniprot
+# directories with a local copy of PDB and uniprot and ncbi genes
 uniProtBaseDir = '/hive/data/outside/uniProtCurrent'
 pdbBaseDir = '/hive/data/outside/pdb'
+ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
 
 # CONVERTER SETTINGS ================================================
 # for pubConvMedline:

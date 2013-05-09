@@ -504,7 +504,7 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
     if pdfName!=nxmlName and pdfName in extractedFiles:
         pdfFile = pubStore.createEmptyFileDict(
             url=urlPrefix+"/pdf/"
-            content=extractedFiles[pdfName],
+            content=extractedFiles[pdfName]
             desc = "main text (pdf)",
             fileType="main",
             mimeType="application/pdf")
