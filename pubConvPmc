@@ -502,9 +502,9 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
     # try to find pdf files and add pdf file data
     pdfName = basename(nxmlName).replace(".nxml", ".pdf")
     if pdfName!=nxmlName and pdfName in extractedFiles:
-        pdfFile = pubStore.createEmptyFileDict(
-            url=urlPrefix+"/pdf/"
-            content=extractedFiles[pdfName]
+        pdfFile = pubStore.createEmptyFileDict( 
+            url=urlPrefix+"/pdf/",
+            content=extractedFiles[pdfName],
             desc = "main text (pdf)",
             fileType="main",
             mimeType="application/pdf")
