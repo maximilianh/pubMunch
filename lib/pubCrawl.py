@@ -206,7 +206,10 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
 
     # try SFX
     if landingUrl==None:
-        landingUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData["pmid"])
+        if pubConf.crawlSfxServer==None:
+            logging.warn("You have not defined an SFX server in pubConf.py, cannot search for fulltext")
+        else:
+            landingUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData["pmid"])
 
     if landingUrl==None:
         raise pubGetError("No fulltext for this article", "noOutlinkOrDoi") 

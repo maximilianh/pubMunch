@@ -76,7 +76,11 @@ crawlPubIds = {
 }
 
 # SFX server for pubmed entries without an outlink
-crawlSfxServer = "YOURSFXSERVER"
+# YOU NEED TO DEFINE THIS IF YOU WANT TO USE SFX
+# the UC SFX server is "http://ucelinks.cdlib.org:8888"
+# but please use your own SFX server at your university
+# google for it or ask your library for the URL
+crawlSfxServer = None
 
 # in some cases, the automatic publisher<->ISSN assignment has errors
 # this is either because the journal has switched publishers or
@@ -114,7 +118,7 @@ _pubsDir = "/hive/data/inside/pubs"
 # which dataset should be loaded by the "load" step in pubMap ?
 loadDatasets = ["elsevier", "pmc", "crawler"]
 
-TEMPDIR = "/scratch/tmp/pubTools" # local filesystem on cluster nodes
+TEMPDIR = "/tmp/pubTools" # local filesystem on cluster nodes
 
 maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
