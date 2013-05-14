@@ -15,5 +15,5 @@ install:
 	touch $(BIN)/changes_to_files_here_will_get_overwritten
 
 tarball:
-	cd .. && tar cvfz ~/public_html/pubtools/pubtools_$(VERSION).tar.gz pubtools/pub* pubtools/lib/* pubtools/data/publi
+	cd .. && tar cvfz ~/public_html/pubtools/pubMunch_$(VERSION).tar.gz tools/*
 	

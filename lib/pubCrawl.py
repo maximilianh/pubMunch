@@ -1033,14 +1033,20 @@ def checkCreateLock(outDir):
 def parsePmids(outDir):
     " parse pmids.txt in outDir and return as list, ignore duplicates "
     pmidFname = join(outDir, "pmids.txt")
+    logging.debug("Parsing %s" % pmidFname)
     if not isfile(pmidFname):
-        raise Exception("file %s not found. You need to run pubPrepCrawl pmids to create this file." % pmidFname)
+        raise Exception("file %s not found. You need to create this manually or "
+            " run pubPrepCrawl pmids to create this file." % pmidFname)
     logging.debug("Parsing PMIDS %s" % pmidFname)
     #pmids = [p.strip() for p in open(pmidFname).readlines()]
     pmids = []
     seen = set()
     for line in open(pmidFname):
+        if line.startswith("#"):
+            continue
         pmid = line.strip().split("#")[0]
+        if pmid=="":
+            continue
         if pmid in seen:
             continue
         pmids.append(pmid)

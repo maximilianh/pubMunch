@@ -890,6 +890,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
 datasetRanges = None
 
 def setupDatasetRanges():
+    global datasetRanges
     if datasetRanges!=None:
         return
 
@@ -897,7 +898,6 @@ def setupDatasetRanges():
     datasetStarts.sort(key=operator.itemgetter(1))
     assert(datasetStarts[-1][0]=="free")
 
-    global datasetRanges
     datasetRanges = []
     for i in range(0, len(datasetStarts)-1):
         d = datasetStarts[i]

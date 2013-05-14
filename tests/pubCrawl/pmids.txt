@@ -1,0 +1,7 @@
+18358807 # elsevier sciencedirect
+17695372 # wiley online library
+#22017543 # Mary ann liebert journal with supp, broken
+#7632460 # Mary ann liebert without html, broken
+12515824 # rupress with integrate supp
+8636223 # rupress, landing page is directly a pdf
+22636775 # ASM

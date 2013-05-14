@@ -386,15 +386,14 @@ def getOutlinks(pmid):
     logging.debug("%s: Getting outlink from pubmed" % (pmid))
     url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id=%s&retmode=llinks&cmd=llinks" % pmid
     #try:
-    req = urllib2.Request(url)
     #except
     #logging.info(traceback.format_exc())
     #logging.info("Exception when downloading")
     #return None
-    req.add_header('User-Agent', 'User-Agent: Mozilla (max@soe.ucsc.edu, http://text.soe.ucsc.edu)')
+    userAgent = 'User-Agent: Mozilla (max@soe.ucsc.edu, http://text.soe.ucsc.edu)'
 
     #html = urllib2.urlopen(req)
-    html = maxCommon.retryHttpRequest(req)
+    html = maxCommon.retryHttpRequest(url, userAgent=userAgent)
 
     if html==None:
         return None
