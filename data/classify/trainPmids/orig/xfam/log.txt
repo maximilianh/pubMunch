@@ -1,0 +1,6 @@
+# received dfam file from Paul P Gardner Apr 19 2013 -> dfam.txt
+mkdir xfam
+cd xfam
+wget ftp://ftp.sanger.ac.uk/pub/databases/Pfam/releases/Pfam27.0/database_files/literature_references.txt.gz -O - | zcat | cut -f2 | sort -u > pfam.txt 
+wget ftp://ftp.sanger.ac.uk/pub/databases/Rfam/11.0/database_files/literature_references.txt.gz -O - | zcat | cut -f2 | sort -u | egrep ^[0-9]+$ > rfam.txt
+cat *.txt | sort -u | grep -v ^0$ | grep -v ^999999999$ > ../pos.xfam.txt

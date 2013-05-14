@@ -1,0 +1,6 @@
+ sort orig/pos.cosmic.txt | join - /hive/data/inside/pubs/publishers/herePmids.txt > pos.cosmic.txt 
+ for i in orig/pos.*.txt; do echo $i; sort $i | join - /hive/data/inside/pubs/publishers/herePmids.txt > `basename $i`; done
+ randomLines orig/post1990AbsPmids.txt 90000 stdout | sort | join - /hive/data/inside/pubs/publishers/herePmids.txt > neg.mgi.txt
+ randomLines orig/post1990AbsPmids.txt 120000 stdout | sort | join - /hive/data/inside/pubs/publishers/herePmids.txt > neg.mgi.txt
+ randomLines orig/post1990AbsPmids.txt 200000 stdout | sort | join - /hive/data/inside/pubs/publishers/herePmids.txt > neg.mgi.txt
+ randomLines orig/post1990AbsPmids.txt 250000 stdout | sort | join - /hive/data/inside/pubs/publishers/herePmids.txt > neg.mgi.txt

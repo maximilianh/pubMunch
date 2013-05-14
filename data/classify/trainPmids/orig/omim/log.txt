@@ -1,0 +1,2 @@
+gunzip omim.txt.Z 
+#wget 'ftp://anonymous:max%40soe.ucsc.edu@grcf.jhmi.edu/OMIM/omim.txt.Z'

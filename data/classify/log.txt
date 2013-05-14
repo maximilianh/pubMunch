@@ -1,0 +1,1 @@
+ cat trainPmids/pos* trainPmids/neg* > classTrain.txt

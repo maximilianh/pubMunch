@@ -1,0 +1,134 @@
+# zfin
+wget http://zfin.org/downloads/zfinpubs.txt  -O - | cut -f2 | grep -v none | grep -v ^$ | grep -v Date | grep -v ISBN | sort -u > pos.zfin.txt
+
+# flybase
+wget ftp://ftp.flybase.net/releases/FB2012_05/precomputed_files/references/fbrf_pmid_fb_2012_05.tsv.gz -O - | gunzip | grep -v ^# | cut -f2 | sort -u > pos.flybase.txt
+retrPubmed query '((((gene or protein or patient) NOT drosophila) NOT melanogaster) NOT fruitfly) NOT flies)' | randomLines stdin 56000 stdout > neg.flybase.txt
+
+# MGI
+wget ftp://ftp.informatics.jax.org/pub/reports/BIB_PubMed.rpt -O - | cut -f2 | sort -u > pos.mgi.txt
+retrPubmed query '((((gene or protein or patient) NOT mouse) NOT mice) NOT rodents) NOT mice)' --remove pos.mgi.txt | randomLines stdin 56000 stdout > neg.mgi.txt
+
+# GWAS catalog
+wget http://www.genome.gov/admin/gwascatalog.txt -O - | cut -f2 | grep -v PUBMEDID | sort -u > pos.gwas.txt
+retrPubmed query '((((gene AND 2011[pd]) NOT gwas) NOT association) NOT snp) NOT variants)' | randomLines stdin 1400 stdout > neg.gwas.txt
+
+# clinicaltrials.gov - related to trials
+mkdir clinicalTrials
+cd clinicalTrials
+wget http://library.dcri.duke.edu/dtmi/ctti/2011%20Pipe%20delimited%20text%20output%20V3.0.zip
+unzip 2011\ Pipe\ delimited\ text\ output\ V3.0.zip 
+less references.txt | cut -d\| -f5 | sort -u | grep -v PMID | grep -v ^$ > ../clinicalTrials.txt
+cd ..
+
+# wormbase
+# do not use worm mart, will be phased out and old data
+# got data from Kevin Hower via email Apr 20 2013, file wb_papers.WS237.with_pubmedID.txt
+cut -f2 wb_papers.WS237.with_pubmedID.txt | sort -u > pos.wormbase.txt 
+
+retrPubmed query '((((2011[pd]) NOT gwas) NOT association) NOT snp) NOT variants)' | randomLines stdin 1400 stdout > neg.gwas.txt
+# randomLines pmids/allPmids.post1970.txt 9134 pmids/neg.wormbase2.txt - used?
+
+# OMIM - genetic diseases
+# got positives via email from francois schittekatte
+randomLines allPmids.post1970.txt 117083 neg.omim.txt
+
+# ChimerDB - fusion genes
+xls2csv PO_down.xls | egrep -o  '[0-9]+"$' | tr -d \" > pos.chimerDb.txt
+randomLines allPmids.post1970.txt 2666 neg.chimerDb.txt
+
+# cosmic - cancer mutations
+wget ftp://ftp.sanger.ac.uk/pub/CGP/cosmic/data_export/CosmicCompleteExport_v61_260912.tsv.gz
+gunzip CosmicCompleteExport_v61_260912.tsv.gz
+less CosmicCompleteExport_v61_260912.tsv  | cut -f22 | sort -u > ../pmidLists/pos.cosmic.txt
+randomLines allPmids.post1970.txt 9680 neg.cosmic.txt
+
+# chembl - small molecules
+wget ftp://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_14_mysql.tar.gz
+tar xvfz chembl_14_mysql.tar.gz
+mysql -e 'create database chembl'
+mysql chembl < chembl_14.mysqldump.sql
+mysql chembl -e 'select distinct pubmed_id from docs' -NB  > pos.chembl.txt
+randomLines allPmids.post1970.txt 42490 neg.chembl.txt
+
+cat /hive/data/inside/pubs/dbRef/pdb.tab | cut -f7 | grep pmid -v | sort -u > pos.pdb.txt
+randomLines allPmids.post1970.txt 82209 neg.clinicalTrials.txt
+
+# reactome - protein interactions
+wget http://www.reactome.org/download/current/homo_sapiens.interactions.txt.gz -O - | cut -f9 | tr ',' '\n' | grep -v ^$ | sort -u > pos.reactome.txt
+randomLines allPmids.post1970.txt 4000 neg.reactome.txt
+
+# generate better random background
+zcat /hive/data/inside/pubs/text/medline/*.articles.gz | tabCut -n year,pmid,abstract | tawk '($1>1990 && $3!="")' | cut -f2 | sort -u > post1990AbsPmids.txt
+lstIntersect pos.flybase.txt post1990AbsPmids.txt | sort | join - /hive/data/inside/pubs/publishers/herePmids.txt > ../pos.flybase.txt
+lstIntersect neg.flybase.txt post1990AbsPmids.txt | sort | join - /hive/data/inside/pubs/publishers/herePmids.txt > ../neg.flybase.txt
+
+# redfly - fly cis-regulatory regions
+ wget http://redfly.ccr.buffalo.edu/datadumps/redfly_v3_2013-03-26.sql.gz
+ hgsql -e 'create database redfly'
+ hgsql redfly < redfly_v3_2013-03-26.sql 
+ hgsql redfly -e 'select external_id from Citation where citation_type="PUBMED"' -NB > pos.redfly.txt
+
+# imgt - immune genetics
+# http://www.imgt.org/download/LIGM-DB/imgt.dat.Z
+less /hive/data/outside/pubs/imgt/imgt.dat | grep PUBMED | tr -s ' ' | cut -d' ' -f3 | tr -d '.' | uniq | sort | uniq > pos.imgt.txt
+
+# oreganno - human cis-regulatory regions
+# original website crashes, copy in UCSC hg19 works
+ hgsql hg19 -NB -e 'select distinct attrAcc from oregannoLink where raKey="PubMed"'  > pos.oreganno.txt
+
+# clinical trials mesh - searched pubmed for clinical trial[mesh] and exported
+# pmid list
+
+# genetic association database - genetic associations of *common* diseases
+mkdir gad
+cd gad
+wget http://geneticassociationdb.nih.gov/all.zip
+unzip all.zip
+cut -f14 tmp/all.txt | egrep -v 'Genetic|Tab|Pubmed' | sort -u > ../pos.gad.txt
+cd ..
+
+# BIOGRID - protein interactions (mostly yeast, human, mouse)
+mkdir biogrid; cd biogrid
+wget http://thebiogrid.org/downloads/archives/Latest%20Release/BIOGRID-ALL-LATEST.mitab.zip
+unzip BIOGRID-ALL-LATEST.mitab.zip 
+#less BIOGRID-ALL-3.2.100.mitab.txt | grep MI:0018 | cut -f9 | sort -u | cut -d: -f2 > /tmp/max/twoHybridPmids.txt
+cat BIOGRID-ALL-3.2.100.mitab.txt | cut -f9 | grep -v Publication | cut -d: -f2 | sort -u > ../pos.biogrid.txt
+
+# compare with  mesh terms yeast two hybrid, overlap only 30%
+#less BIOGRID-ALL-3.2.100.mitab.txt | grep MI:0018 | cut -f9 | sort -u | cut -d: -f2 > /tmp/max/twoHybridPmids.txt
+lstIntersect /tmp/max/twoHybridPmids.txt mesh.yeastTwoHybrid.txt | wc -l
+cd ..
+
+# MINT - protein interactions 
+# http://mint.bio.uniroma2.it/mint/Welcome.do
+wget ftp://mint.bio.uniroma2.it/pub/release/mitab26/current/2012-10-26-mint-full-binary.mitab26.txt -O mint.txt
+cat mint.txt | cut -f9 | grep -v Publication | grep -v doi | cut -d: -f2 | uniq | cut -d\| -f1 | sort -u > pos.mint.txt
+rm mint.txt
+
+# InnateDB - innate immune response interactions
+# http://www.innatedb.com/aboutIDB.jsp
+wget http://www.innatedb.com/download/interactions/innatedb_all.mitab.gz -O - | gunzip > innatedb.tab
+less innatedb.tab | cut -f9 | cut -d: -f2 | grep -v pmid | sort -u > pos.innatedb.txt
+rm innatedb.tab
+
+# DIP
+# requires registration to download
+# http://dip.doe-mbi.ucla.edu/dip/File.cgi?FN=2013/tab25/dip20130131.txt
+less dip/dip20130131.txt | cut -f9 | less | tr '\|' '\n' | grep -v DIP | uniq | cut -d: -f2 | grep -v Publication | sort -u > ../pos.dip.txt
+
+# MatrixDB - extracellular and polysaccharides
+wget http://matrixdb.ibcp.fr/current/MatrixDB_20120420.tab -O - | cut -f9 | tr '|' '\n' | grep -v imex | grep -v doi | cut -d: -f2 | sort -u > pos.matrixdb.txt
+
+# CTD - drug/gene and gene/disease interactions
+wget http://ctdbase.org/reports/CTD_genes_diseases.tsv.gz -O - | gunzip | grep -v '^#' | cut -f9 | less | tr '|' '\n' | sort -u > pos.ctdGeneDis.txt
+logadd 
+wget http://ctdbase.org/reports/CTD_chem_gene_ixns.tsv.gz -O - | gunzip | grep -v '^#' | cut -f11 | tr '|' '\n' | sort -u > pos.ctdChemGene.txt
+
+# XFAM - RNA, protein and domain families
+# received dfam file from Paul P Gardner Apr 19 2013 -> dfam.txt
+mkdir xfam
+cd xfam
+wget ftp://ftp.sanger.ac.uk/pub/databases/Pfam/releases/Pfam27.0/database_files/literature_references.txt.gz -O - | zcat | cut -f2 | sort -u > pfam.txt 
+wget ftp://ftp.sanger.ac.uk/pub/databases/Rfam/11.0/database_files/literature_references.txt.gz -O - | zcat | cut -f2 | sort -u | egrep ^[0-9]+$ > rfam.txt
+cat *.txt | sort -u | grep -v ^0$ | grep -v ^999999999$ > ../pos.xfam.txt
