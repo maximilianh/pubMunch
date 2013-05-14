@@ -1405,7 +1405,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
                 crawlConfig  = getConfig(hostToConfig, landingPage["url"])
             else:
                 # bail out if we're in restrict mode and don't know this host
-                if noMatches(landingPage["url"], crawlConfig["hostnames"]) and not restrictPublisher:
+                if noMatches(landingPage["url"], crawlConfig["hostnames"]) and restrictPublisher:
                     raise pubGetError("Landing page is on an unknown server", "unknownHost", \
                         landingPage["url"])
 
