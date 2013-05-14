@@ -311,7 +311,7 @@ def runWget(url):
         prefix="pubGetPmid-Wget-", suffix=".log")
     cmd += " -o %s " % logFile.name
     logging.verbose("command: %s" % cmd)
-    print cmd
+    #print cmd
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=pubConf.httpTransferTimeout)
     if ret!=0:
         #logging.debug("non-null return code from wget, sleeping for 120 seconds")
