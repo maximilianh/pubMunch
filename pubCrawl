@@ -20,7 +20,8 @@ def main(args, options):
 
     try:
         pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, \
-            options.pause, options.tryHard, options.restrictPublisher)
+            options.pause, options.tryHard, options.restrictPublisher, options.localMedline, \
+            options.fakeUseragent)
     except KeyboardInterrupt:
         logging.info("stopped with ctrl-c, no email sent")
         raise
@@ -47,6 +48,8 @@ parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int
 parser.add_option("", "--test", dest="testPmid", action="store", help="test crawling with this PMID")
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
 parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")
+parser.add_option("-l", "--localMedline", dest="localMedline", action="store_true", help="the crawler can get MedLine info from either a local sqlite copy or use NCBI's eutils. This parameter activates local medline lookups.")
+parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_true", help="by default, the crawler accounces itself to the publisher's webserver as 'genomeBot/0.1'. This parameter changes the behaviour and the crawler will present itself as Firefox. Use this with caution and only if you need it.")
 parser.add_option("", "--tryHarder", dest="tryHard", action="store_true", help="the default behaviour is to back off when errors occur, i.e. make the delays between requests longer and longer (60secs*number of errors) until the first download was successful again. This is to allow for repairs of servers, e.g. during the night. This option changes the wait time and will always wait for 5 secs, for downloads where we expect many errors. It also increases tolerance for errors, will stop crawling only after 500 consecutive errors")
 parser.add_option("", "--report", dest="report", action="store", help="Do not crawl. given the base crawl directory, write a status report in html format to the specified file and quite. ")
 (options, args) = parser.parse_args()

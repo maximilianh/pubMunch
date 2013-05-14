@@ -2,7 +2,7 @@
 
 # load our own libraries
 import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
-    pubCrossRef, html, maxCommon
+    pubCrossRef, html, maxCommon, pubCrawlConf
 import chardet # library for guessing encodings
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
@@ -16,7 +16,10 @@ from os.path import *
 
 # options for wget 
 # (python's http implementation is extremely buggy and tends to hang for minutes)
-WGETOPTIONS = " --no-check-certificate --tries=3 --random-wait --waitretry=%d --connect-timeout=%d --dns-timeout=%d --read-timeout=%d --ignore-length --user-agent='%s'" % (pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpUserAgent)
+WGETOPTIONS = " --no-check-certificate --tries=3 --random-wait --waitretry=%d --connect-timeout=%d --dns-timeout=%d --read-timeout=%d --ignore-length " % (pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout)
+
+# global variable, http userAgent for all requests
+userAgent = None
 
 # name of pmid status file
 PMIDSTATNAME = "pmidStatus.tab"
@@ -51,348 +54,6 @@ highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", "aspetjournal
 # if any of these is found in a landing page Url, wait for 15 minutes and retry
 # has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
 errorPageUrls = ["http://status.nature.com"]
-
-def parseHighwire():
-    """ create two dicts 
-    printIssn -> url to pmidlookup-cgi of highwire 
-    and 
-    publisherName -> top-level hostnames
-    >>> temps, domains = parseHighwire()
-    >>> temps['0270-6474']
-    u'http://www.jneurosci.org/cgi/pmidlookup?view=long&pmid=%(pmid)s'
-    >>> domains["Society for Neuroscience"]
-    set([u'jneurosci'])
-    """
-    # highwire's publisher names are not resolved ("SAGE", "SAGE Pub", etc)
-    # so: first get dict printIssn -> resolved publisherName from publishers.tab
-    pubFname = join(pubConf.publisherDir, "publishers.tab")
-    pIssnToPub = {}
-    for row in maxCommon.iterTsvRows(pubFname):
-        if not row.pubName.startswith("HIGHWIRE"):
-            continue
-        for issn in row.journalIssns.split("|"):
-            issn = issn.rstrip(" ")
-            pIssnToPub[issn] = row.pubName.replace("HIGHWIRE ","").strip()
-
-    # go over highwire table and make dict pubName -> issn -> templates
-    # and dict pubName -> domains
-    fname = join(pubConf.journalListDir, "highwire.tab")
-    templates = {}
-    domains = {}
-    for row in maxCommon.iterTsvRows(fname, encoding="latin1"):
-        if row.eIssn.strip()=="Unknown":
-            continue
-        pubName = pIssnToPub[row.pIssn.strip()].strip()
-        templates.setdefault(pubName, {})
-        templates[row.pIssn.strip()] = row.urls.strip()+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
-
-        host = urlparse.urlparse(row.urls).hostname
-        domain = ".".join(host.split('.')[-2:]).strip()
-        domains.setdefault(pubName, set()).add(domain)
-
-    return templates, domains
-     
-def highwireConfigs():
-    " return dict publisher name -> config for all highwire publishers "
-    logging.info("Creating config for Highwire publishers")
-    res = {}
-    issnTemplates, pubDomains = parseHighwire()
-
-    for pubName, domains in pubDomains.iteritems():
-        templates = {}
-        for issn, templUrl in issnTemplates.iteritems():
-            for domain in domains:
-                if domain in templUrl:
-                    templates[issn]=templUrl
-                    break
-                    
-        res[pubName] = {
-            "hostnames" : domains,
-            "landingUrl_templates" : templates,
-            "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-            "doiUrl_replace" : {"$" : ".long"},
-            "landingUrl_isFulltextKeyword" : ".long",
-            "landingPage_ignoreMetaTag" : True,
-            "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-            "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
-            "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
-        }
-    return res
-
-highwireCfg = highwireConfigs()
-
-# crawl configuration: for each website, define how to crawl the pages
-pubsCrawlCfg = {
-    "oup" :
-        highwireCfg["Oxford University Press"],
-
-    "npg" :
-    # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
-    # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
-    # 
-    {
-        "hostnames" : ["www.nature.com"],
-        "landingPage_stopPhrases": ["make a payment", "purchase this article"],
-        "landingPage_acceptNoPdf": True,
-        "landingUrl_isFulltextKeyword" : "full",
-        "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
-        "landingPage_mainLinkTextREs" : ["Download PDF"],
-        "landingUrl_suppListUrl_replace" : {"full" : "suppinfo", "abs" : "suppinfo"},
-        "landingPage_suppListTextREs" : ["Supplementary information index", "[Ss]upplementary [iI]nfo", "[sS]upplementary [iI]nformation"],
-        "suppListPage_suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]ethods.*", "Supplementary [mM]aterials.*", "Review Process File"]
-    # Review process file for EMBO, see http://www.nature.com/emboj/journal/v30/n13/suppinfo/emboj2011171as1.html
-    },
-
-    # with suppl
-    # PMID 22017543
-    # http://online.liebertpub.com/doi/full/10.1089/nat.2011.0311
-    # with html
-    # PMID 22145933
-    # http://online.liebertpub.com/doi/abs/10.1089/aid.2011.0232
-    # no html
-    # PMID 7632460
-    # http://online.liebertpub.com/doi/abs/10.1089/aid.1995.11.443
-    "mal" :
-    {
-        "hostnames" : ["online.liebertpub.com"],
-        "landingUrl_templates" : {"any" : "http://online.liebertpub.com/doi/full/%(doi)s"},
-        "landingUrl_isFulltextKeyword" : "/full/",
-        "landingUrl_fulltextUrl_replace" : {"/abs/" : "/full/" },
-        "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
-        "landingPage_suppListTextREs" : ["Supplementary materials.*"]
-    },
-
-    # https://www.jstage.jst.go.jp/article/circj/75/4/75_CJ-10-0798/_article
-    # suppl file download does NOT work: strange javascript links
-    "jstage" :
-    {
-        "hostnames" : ["www.jstage.jst.go.jp"],
-        "landingUrl_fulltextUrl_replace" : {"_article" : "_pdf" },
-        "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
-        "landingPage_suppListTextREs" : ["Supplementary materials.*"]
-    },
-    # rupress tests:
-    # PMID 12515824 - with integrated suppl files into main PDF
-    # PMID 15824131 - with separate suppl files
-    # PMID 8636223  - landing page is full (via Pubmed), abstract via DOI
-    # cannot do suppl zip files like this one http://jcb.rupress.org/content/169/1/35/suppl/DC1
-    # 
-    "rupress" :
-    {
-        "hostnames" : ["rupress.org", "jcb.org"],
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignorePageWords" : ["From The Jcb"],
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf"},
-        "suppListPage_addSuppFileTypes" : ["html", "htm"], # pubConf does not include htm/html
-        "landingPage_mainLinkTextREs" : ["Full Text (PDF)"],
-        #"landingPage_suppListTextREs" : ["Supplemental [Mm]aterial [Iindex]", "Supplemental [Mm]aterial"],
-        "landingUrl_suppListUrl_replace" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
-        "suppListPage_suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
-        "ignoreSuppFileLinkWords" : ["Video"],
-        "ignoreSuppFileContentText" : ["Reprint (PDF) Version"],
-        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"]
-    },
-    # http://jb.asm.org/content/194/16/4161.abstract = PMID 22636775
-    "asm" :
-    {
-        "hostnames" : ["asm.org"],
-        "landingUrl_isFulltextKeyword" : ".long",
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingPage_ignoreMetaTag" : True,
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        #"landingUrl_fulltextUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
-        #"landingUrl_suppListUrl_replace" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
-        "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
-        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
-    },
-    # 
-    # 21159627 http://cancerres.aacrjournals.org/content/70/24/10024.abstract has suppl file
-    "aacr" :
-    {
-        "hostnames" : ["aacrjournals.org"],
-        "landingUrl_templates" : {"0008-5472" : "http://cancerres.aacrjournals.org/content/%(vol)s/%(issue)s/%(firstPage)s.long"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-        "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
-    },
-    # 1995 PMID 7816814 
-    # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
-    "cshlp" :
-    {
-        "hostnames" : ["cshlp.org"],
-        "landingUrl_templates" : {"1355-8382" : "http://rnajournal.cshlp.org/content/%(vol)s/%(issue)s/%(firstPage)s.full"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-        "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
-    },
-    "pnas" :
-    {
-        "hostnames" : ["pnas.org"],
-        "landingUrl_templates" : {"0027-8424" : "http://pnas.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
-        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
-    },
-    "aspet" :
-    {
-        "hostnames" : ["aspetjournals.org"],
-        "landingUrl_templates" : {"0022-3565" : "http://jpet.aspetjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-    },
-    "faseb" :
-    {
-        "hostnames" : ["fasebj.org"],
-        "landingUrl_templates" : {"0892-6638" : "http://www.fasebj.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-    },
-    # society of leukocyte biology
-    # PMID 20971921
-    "slb" :
-    {
-        "hostnames" : ["jleukbio.org"],
-        "landingUrl_templates" : {"0741-5400" : "http://www.jleukbio.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-    },
-    # Company of Biologists
-    "cob" :
-    {
-        "hostnames" : ["biologists.org"],
-        "landingUrl_templates" : {"0950-1991" : "http://dev.biologists.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", "0022-0949" : "http://jcs.biologists.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-    },
-    # Genetics Society of America
-    # PMID 22714407
-    "genetics" :
-    {
-        "hostnames" : ["genetics.org"],
-        "landingUrl_templates" : {"0016-6731" : "http://genetics.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-    },
-    # Society of General Microbiology
-    # PMID 22956734
-    # THEY USE DC1 AND DC2 !!! Currently we're missing the DC1 or DC2 files... :-(
-    # todo: invert linkdict to link -> text and not text -> link
-    # otherwise we miss one link if we see twice "supplemental table" (see example)
-    "sgm" :
-    {
-        "hostnames" : ["sgmjournals.org"],
-        "landingUrl_templates" : {\
-            "1466-5026" : "http://ijs.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
-            "1350-0872" : "http://mic.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
-            "0022-2615" : "http://jmm.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s", \
-            "0022-1317" : "http://vir.sgmjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
-        "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
-    },
-    # SMBE - Soc of Mol Biol and Evol
-    # part of OUP - careful, duplicates!
-    # PMID 22956734
-    "smbe" :
-    {
-        "hostnames" : ["mbe.oxfordjournals.org"],
-        "landingUrl_templates" : \
-            {"0737-4038" : "http://mbe.oxfordjournals.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
-        "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
-    },
-    # http://www.jimmunol.org/content/189/11/5129/suppl/DC1
-    # http://www.jimmunol.org/content/suppl/2012/10/25/jimmunol.1201570.DC1/12-01570_S1-4_ed10-24.pdf
-    "aai" :
-    {
-        "hostnames" : ["jimmunol.org"],
-        "landingUrl_templates" : {"0022-1767" : "http://www.jimmunol.org/cgi/pmidlookup?view=long&pmid=%(pmid)s"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
-    },
-    # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
-    # example spurious suppinfo link 8536951
-    # 
-    "wiley" :
-    {
-        "hostnames" : ["onlinelibrary.wiley.com"],
-        #"landingUrl_templates" : {None: "http://onlinelibrary.wiley.com/doi/%(doi)s/full"},
-        "doiUrl_replace" : {"abstract" : "full"},
-        "landingUrl_isFulltextKeyword" : "full",
-        "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "abstract" : "pdf"},
-        "landingPage_suppListTextREs" : ["Supporting Information"],
-        "suppListPage_suppFile_urlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
-        "suppFilesAreOffsite" : True,
-        "landingPage_ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
-        "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
-    },
-    # http://www.futuremedicine.com/doi/abs/10.2217/epi.12.21
-    "futureScience" :
-    {
-        "hostnames" : ["futuremedicine.com", "future-science.com", "expert-reviews.com", "future-drugs.com"],
-        "landingUrl_fulltextUrl_replace" : {"abs" : "pdfplus"},
-        "landingUrl_suppListUrl_replace" : {"abs" : "suppl"},
-        "suppListPage_suppFile_urlREs" : [".*suppl_file.*"],
-        "landingPage_stopPhrases" : ["single article purchase is required", "The page you have requested is unfortunately unavailable"]
-    },
-
-}
 
 # wget page cache, to avoid duplicate downloads
 wgetCache = {}
@@ -475,7 +136,7 @@ def resolvePmidWithSfx(sfxServer, pmid):
     return url
 
 def findLandingUrl(articleData, crawlConfig, hostToConfig):
-    """ try to find landing URL either by constructing it, try in this order:
+    """ try to find landing URL either by constructing it or by other means:
     - inferred from medline data via landingUrl_templates
     - medlina's DOI
     - a Crossref search with medline data
@@ -500,9 +161,9 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
         logging.debug("firstPage %s" % articleData["firstPage"])
         urlTemplates = crawlConfig.get("landingUrl_templates", {})
         urlTemplate = urlTemplates.get(issn, None)
-        # if the ISSN is not in, try the "any" template
-        if urlTemplate==None and "any" in urlTemplates:
-            urlTemplate = urlTemplates.get("any", None)
+        # if the ISSN is not in, try the "anyIssn" template
+        if urlTemplate==None and "anyIssn" in urlTemplates:
+            urlTemplate = urlTemplates.get("anyIssn", None)
 
         if urlTemplate==None:
             logging.debug("No template found for issn %s" % issn)
@@ -601,8 +262,8 @@ def delayedWget(url, forceDelaySecs=None):
     if forceDelaySecs==None:
         host = urlparse.urlsplit(url)[1]
         logging.debug("Looking up delay time for host %s" % host)
-        if host in pubConf.crawlDelays:
-            delaySecs = pubConf.crawlDelays.get(host, defaultDelay)
+        if host in pubCrawlConf.crawlDelays:
+            delaySecs = pubCrawlConf.crawlDelays.get(host, defaultDelay)
             logging.debug("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
         elif isHighwire(host):
             delaySecs = highwireDelay()
@@ -618,7 +279,9 @@ def delayedWget(url, forceDelaySecs=None):
     return page
 
 def runWget(url):
-    " download url with wget and return dict with keys url, mimeType, charset, data "
+    """ download url with wget and return dict with keys url, mimeType, charset, data 
+    global variable userAgent is used if possible
+    """
     # check if file is already in cache
     global wgetCache
     if url in wgetCache:
@@ -627,22 +290,28 @@ def runWget(url):
 
     logging.debug("Downloading %s" % url)
     url = url.replace("'", "")
-    #urlParts = urlparse.urlsplit(url)
-    #filePath = urlParts[0:5] # get rid of #anchornames
-    #if filePath in downloadedUrls:
-        #raise pubGetError("url %s has been downloaded before, crawler error?" % url, "doubleDownload\t"+url)
-    #downloadedUrls.add(filePath)
 
-    # run wget command
-    tmpFile = tempfile.NamedTemporaryFile(dir = pubConf.getTempDir(), prefix="WgetGoogleCrawler", suffix=".data")
-    cmd = "wget '%s' -O %s --server-response" % (url, tmpFile.name)
+    # construct user agent
+    global userAgent
+    if userAgent==None:
+        userAgent = pubConf.httpUserAgent
+    userAgent = userAgent.replace("'", "")
+
+    # construct & run wget command
+    tmpFile = tempfile.NamedTemporaryFile(dir = pubConf.getTempDir(), \
+        prefix="WgetGoogleCrawler", suffix=".data")
+    cmd = "wget '%s' -O %s --server-response " % (url, tmpFile.name)
     cmd += WGETOPTIONS
+    cmd += "--user-agent='%s'" % userAgent
+
     logFile = tempfile.NamedTemporaryFile(dir = pubConf.getTempDir(), \
         prefix="pubGetPmid-Wget-", suffix=".log")
     cmd += " -o %s " % logFile.name
+    logging.verbose("command: %s" % cmd)
+    print cmd
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=pubConf.httpTransferTimeout)
     if ret!=0:
-        #logging.debug("non-null return code from wget, sleeping 120 seconds")
+        #logging.debug("non-null return code from wget, sleeping for 120 seconds")
         #time.sleep(120)
         raise pubGetError("non-null return code from wget", "wgetRetNonNull", url.decode("utf8"))
 
@@ -1200,21 +869,25 @@ def findMainFileUrl(landingPage, crawlConfig):
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
 
+    # some pages contain meta tags to the pdf
     if "citation_pdf_url" in htmlMetas and not crawlConfig.get("landingPage_ignoreMetaTag", False):
         pdfUrl = htmlMetas["citation_pdf_url"]
         logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
         return pdfUrl
 
+    # some pdf urls are just a variation of the main url by appending something
     if "appendStringForPdfUrl" in crawlConfig:
         pdfUrl = landingPage["url"]+crawlConfig["appendStringForPdfUrl"]
         logging.debug("Appending string to URL yields new URL %s" % (pdfUrl))
         return pdfUrl
 
+    # some others can be derived by replacing strings in the landing url
     if "landingUrl_fulltextUrl_replace" in crawlConfig:
         pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_fulltextUrl_replace"])
         return pdfUrl
 
-    if pdfUrl != None:
+    # if all of that doesn't work, parse the html and try all <a> links
+    if pdfUrl == None:
         pdfLinkNames = crawlConfig["landingPage_mainLinkTextREs"]
         for pdfLinkName in pdfLinkNames:
             for linkText, linkUrl in links.iteritems():
@@ -1358,12 +1031,20 @@ def checkCreateLock(outDir):
     atexit.register(removeLock) # register handler that is executed on program exit
 
 def parsePmids(outDir):
-    " parse pmids.txt in outDir and return as list "
+    " parse pmids.txt in outDir and return as list, ignore duplicates "
     pmidFname = join(outDir, "pmids.txt")
     if not isfile(pmidFname):
         raise Exception("file %s not found. You need to run pubPrepCrawl pmids to create this file." % pmidFname)
     logging.debug("Parsing PMIDS %s" % pmidFname)
-    pmids = [p.strip() for p in open(pmidFname).readlines()]
+    #pmids = [p.strip() for p in open(pmidFname).readlines()]
+    pmids = []
+    seen = set()
+    for line in open(pmidFname):
+        pmid = line.strip().split("#")[0]
+        if pmid in seen:
+            continue
+        pmids.append(pmid)
+        seen.add(pmid)
     logging.debug("Found %d PMIDS" % len(pmids))
     return pmids
 
@@ -1424,7 +1105,7 @@ def checkForOngoingMaintenanceUrl(url):
 
 def getConfig(hostToConfig, url):
     """ based on the url or IP of the landing page, return a crawl configuration dict 
-    This is used all the time and not using a hashmap... could be made faster
+    problem: This is used all the time but is not using a hashmap... could be faster...
     
     """
     hostname = urlparse.urlparse(url).netloc
@@ -1446,29 +1127,6 @@ def getConfig(hostToConfig, url):
     else:
         return thisConfig
 
-def prepConfigIndexByHost(pubsCrawlCfg):
-    " return dict hostname -> config "
-    res = {}
-    for pubId, crawlConfig in pubsCrawlCfg.iteritems():
-        for host in crawlConfig["hostnames"]:
-            res[host] = crawlConfig
-    return res
-
-
-def prepConfigCompileRes(pubsCrawlCfg):
-    " compile regexes in pubsCrawlCfg "
-    ret = {}
-    for pubId, crawlConfig in pubsCrawlCfg.iteritems():
-        ret[pubId] = {}
-        for key, values in crawlConfig.iteritems():
-            if key.endswith("REs"):
-                newValues = []
-                for regex in values:
-                    newValues.append(re.compile(regex))
-            else:
-                newValues = values
-            ret[pubId][key] = newValues
-    return ret
 
 hostCache = {}
 
@@ -1496,11 +1154,11 @@ def isHighwire(hostname):
     return result
 
 def highwireDelay():
-    " return current delay for highwire "
+    """ return current delay for highwire, get current time at east coast
+    """
     os.environ['TZ'] = 'US/Eastern'
     time.tzset()
     tm = time.localtime()
-    #time.struct_time(tm_year=2012, tm_mon=8, tm_mday=2, tm_hour=19, tm_min=22, tm_sec=49, tm_wday=3, tm_yday=215, tm_isdst=1)
     if tm.tm_wday in [5,6]:
         delay=5
     else:
@@ -1523,6 +1181,7 @@ def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig, testMode
         return
 
     oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c
+    # do we need zipfiles ?
     #pubmedMeta = storeFiles(pmid, pubmedMeta, fulltextData, outDir)
     pubmedMeta = storeFilesNoZip(pmid, pubmedMeta, fulltextData, outDir)
     writeMeta(outDir, pubmedMeta, fulltextData)
@@ -1582,7 +1241,7 @@ def writeReport(baseDir, htmlFname):
         publisher = basename(dirName)
         isActive = isfile(join(dirName, "_pubCrawl.lock"))
         totalPmidCount += pmidCount
-        totalOkCount  += len(statusPmids["OK"])
+        totalOkCount  += len(statusPmids.get("OK", []))
         totalDownCount  += len(statusPmids.values())
 
         if publisher in publDesc:
@@ -1646,8 +1305,9 @@ def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
     #>>> resolveDoi("10.1073/pnas.1121051109")
     """
+    logging.debug("Resolving DOI %s" % doi)
     doiUrl = "http://dx.doi.org/"+urllib.quote(doi.encode("utf8"))
-    resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4)
+    resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
     if resp==None:
         return None
     trgUrl = resp.geturl()
@@ -1671,9 +1331,16 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     newUrl = stringRewrite(url, crawlConfig, "doiUrl_replace")
     return newUrl, crawlConfig
 
-def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher):
-    " download all files for pmids in outDir/pmids.txt to zipfiles in outDir "
+def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher, \
+    localMedline, fakeUseragent):
+    " download all files for pmids in outDir/pmids.txt to outDir/files "
     checkCreateLock(outDir)
+
+    global userAgent
+    if fakeUseragent:
+        logging.debug("Setting useragent to Mozilla")
+        userAgent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20130406 Firefox/23.0'
+
     if testPmid!=None:
         pmids, ignorePmids, ignoreIssns = [testPmid], [], []
     else:
@@ -1686,9 +1353,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     global defaultDelay
     defaultDelay = waitSec
 
-    global pubsCrawlCfg
-    pubsCrawlCfg = prepConfigCompileRes(pubsCrawlCfg)
-    hostToConfig = prepConfigIndexByHost(pubsCrawlCfg)
+    pubsCrawlCfg, hostToConfig = pubCrawlConf.prepConfigIndexByHost()
 
     pubId = basename(outDir.rstrip("/"))
     crawlConfig = None
@@ -1712,7 +1377,11 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
         try:
             global wgetCache
             wgetCache.clear()
-            pubmedMeta = readLocalMedline(pmid)
+
+            # get pubmed info from local db or ncbi webservice
+            pubmedMeta = None
+            if localMedline:
+                pubmedMeta = readLocalMedline(pmid)
             if pubmedMeta==None:
                 pubmedMeta = downloadPubmedMeta(pmid)
 

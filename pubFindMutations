@@ -2,7 +2,7 @@
 
 # load default python packages
 import logging, optparse, sys, glob, gzip, gdbm, marshal
-from os.path import join, basename, isfile, dirname, abspath, splitext
+from os.path import join, basename, isfile, dirname, abspath, splitext, isdir
 from collections import defaultdict, Counter, namedtuple
 
 # I highly recommend installing re2, it's way faster than re
@@ -15,33 +15,36 @@ import re
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, maxCommon, pubConf, maxbio
+import pubGeneric, maxCommon, pubConf, maxbio, pubAlg
 
-MutFields = \
+mutFields = \
     (
-    "patNames",  # the names of the patterns that matched, separated by |
     "patType",     # the type of the patterns (sub, del, ins)
     "seqType",     # the seqType of the patterns, dna or protein
     "protStart",   # the protein start position, if protein
     "protEnd",     # the protein end position, if protein
     "origAa",      # wild type amino acid seq
     "mutAa",       # mutated amino acid seq
-    "mutStarts",   # start positions of mutation pattern matches in document
-    "mutEnds",     # end positions of mutation pattern matches in document
-    "mutSupport",  # prot, dna, protDna
-    "mutCount",    # how often was this mutation mentioned?
+    "texts",        # mutation match in text
+    #"mutSupport",  # prot, dna, protDna
+    #"mutCount",    # how often was this mutation mentioned?
 
+    "geneSymbol",  # symbol of gene
     "entrezId",    # entrez ID of gene
     "protId",      # uniprot ID of protein
     "geneType",    # why was this gene selected (entrez, idInText, symInTitle, symInAbstract)
     "geneStarts",  # start positions of gene mentions in document
     "geneEnds",    # end positions of gene mentions in document
-    "mutPhrases",  # the phrases around the mutation mentions, separated by "|"
-    "genePhrases"  # the phrases around the gene mentions, separated by "|"
+
+    "mutPatNames",    # the names of the patterns that matched, separated by |
+    "mutStarts",   # start positions of mutation pattern matches in document
+    "mutEnds",     # end positions of mutation pattern matches in document
+    "mutSnippets",  # the phrases around the mutation mentions, separated by "|"
+    "geneSnippets"  # the phrases around the gene mentions, separated by "|"
     )
 
 # fields of the output file
-MutRec = namedtuple("mutation_desc", MutFields)
+MutRec = namedtuple("mutation_desc", mutFields)
 
 threeToOne = \
     {'Cys': 'C', 'Asp': 'D', 'Ser': 'S', 'Gln': 'Q', 'Lys': 'K',
@@ -49,6 +52,10 @@ threeToOne = \
      'Gly': 'G', 'His': 'H', 'Leu': 'L', 'Arg': 'R', 'Trp': 'W', 
      'Ala': 'A', 'Val':'V',  'Glu': 'E', 'Tyr': 'Y', 'Met': 'M'}
 
+blackList = [ 
+    ("D", 11, "S"),
+    ("D", 15, "S"),
+    ("D", 16, "S")]
 # ==== FUNCTIONS =====
 def iterCommonFiles(inDirs, mask="*.tab.gz"):
     """ 
@@ -129,6 +136,33 @@ def someSnippets(idCounts, idToAnnots, isGene=False):
         descs.append("%s (%s, %d times): %s" % (id, name, count, annot.snippet))
     return descs, names
 
+def parseRegex(mutDataDir):
+    # read regexes and translate placeholders to long form
+    replDict = {
+    "sep"         : r"""(?:^|[\s\(\[\'"/,\-])""",
+    "origAaShort" : r'(?P<origAaShort>[CISQMNPKDTFAGHLRWVEY])',
+    "fromPos"     : r'(?P<fromPos>[1-9][0-9]+)',
+    "toPos"       : r'(?P<toPos>[1-9][0-9]+)',
+    "pos"         : r'(?P<pos>[1-9][0-9]+)',
+    "mutAaShort"  : r'(?P<mutAaShort>[CISQMNPKDTFAGHLRWVEY])',
+    "dna"         : r'(?P<dna>[actgACTG])',
+    }
+    regexTab = join(mutDataDir, "regex.txt")
+    logging.info("Parsing regexes from %s" % regexTab)
+    regexList = []
+    counts = defaultdict(int)
+    for row in maxCommon.iterTsvRows(regexTab):
+        logging.debug("Translating %s" % row.pat)
+        patName = row.pat
+        patFull = row.pat.format(**replDict)
+        regexList.append((row.seqType, row.mutType, patName, patFull))
+        textComp = re.compile(patFull) # just checking
+        counts[(row.seqType, row.mutType)] += 1
+
+    for regexType, count in counts.iteritems():
+            logging.info("regexType %s, Found %d regexes" % (str(regexType), count))
+    return regexList
+
 def openData(mutDataDir, taxId):
     " open db files, compile patterns, parse input as far as possible "
     fname = join(mutDataDir, "data.marshal")
@@ -139,61 +173,62 @@ def openData(mutDataDir, taxId):
     logging.info("opening %s" % fname)
     pmid2entrez = gdbm.open(fname, "r")
     
-    regexList = []
-    for seqType, mutType, patName, pat in data["regexes"]:
-        regexList.append( (seqType, mutType, patName, re.compile(pat)) )
+    # parse regexes into list (seqType, mutType, patName, pat)
+    regexes = parseRegex(mutDataDir)
+    compRegexes = []
+    for seqType, mutType, patName, pat in regexes:
+        compRegexes.append( (seqType, mutType, patName, re.compile(pat)) )
         
     ret = {}
     ret["entrezToUp"] = data[taxId]["entrezToUp"]
     ret["upSeqs"] = data[taxId]["upSeqs"]
     ret["pmid2entrez"] = pmid2entrez
-    ret["regexes"] = regexList
-    return ret
+    ret["upToSym"] = data[taxId]["upToSym"]
 
-def prot
-class ProtMut(object):
-    #__slots__ = ["patName", "origAa", "mutAa", "protStart", "protEnd"]
-    __slots__ = ["patName", "start", "end"]
+    return ret, compRegexes
 
-    def __init__(self, match, patName):
-        """ create mutation from match object """
-        for i in self.__slots__:
-            setattr(self, i, "")
-        self.patName = patName
-        groups = match.groupdict()
-        # grab long and short versions of amino acid
-        if "origAaShort" in groups:
-            origAa = groups["origAaShort"]
-        if "origAaLong" in groups:
-            origAa = threeToOne[groups["origAaLong"]]
+VariantFields = ["start", "end", "orig", "mut"]
+Variant = namedtuple("Variant", VariantFields)
+Mention = namedtuple("Mention", "patName,start,end")
 
-        if "mutAaShort" in groups:
-            mutAa = groups["mutAaShort"]
-        if "mutAaLong" in groups:
-            mutAa = threeToOne[groups["mutAaLong"]]
+def parseMatch(match, patName):
+    groups = match.groupdict()
+    # grab long and short versions of amino acid
+    if "origAaShort" in groups:
+        origAa = groups["origAaShort"]
+    if "origAaLong" in groups:
+        origAa = threeToOne[groups["origAaLong"]]
 
+    if "mutAaShort" in groups:
+        mutAa = groups["mutAaShort"]
+    if "mutAaLong" in groups:
+        mutAa = threeToOne[groups["mutAaLong"]]
+
+    if "dna" in groups:
+        origAa = groups["dna"]
+        mutAa = ""
+
+    if "fromPos" in groups:
+        protStart = int(groups["fromPos"])
+    if "toPos" in groups:
+        protEnd = int(groups["toPos"])
+    else:
         pos = int(groups["pos"])
-
-        mutAa = mutAa
-        origAa = origAa
         protStart = pos
         protEnd = pos+1
-        self.start = match.start()
-        self.end = match.end()
-        #self.seqType = "prot"
-        #self.patType = "sub"
-        return (protStart, protEnd, mutAa, origAa)
 
-    def normalForm(self):
-        " return normal form for protein mutation "
-        return "p.%s%d%s" % (self.origAa, self.protStart, self.mutAa)
+    var = Variant(protStart, protEnd, origAa, mutAa)
 
-    def __repr__(self):
-        row = []
-        for attr in self.__slots__:
-            row.append(getattr(self, attr))
-        return "(%s)"%",".join([str(c) for c in row])
-        
+    start = match.start()
+    end = match.end()
+    mention = Mention(patName, start, end)
+
+    if origAa==mutAa or (origAa, protStart, mutAa) in blackList:
+        logging.debug("Variant is blacklisted")
+        return None, None
+    else:
+        return var, mention
+
 def findGenes(db, pmid, abstract, title, text):
     """ return dict where [entrez|title|abstract|text] = list of gene mentions 
 
@@ -205,24 +240,141 @@ def findGenes(db, pmid, abstract, title, text):
 
     return geneTypes
 
-def findMutations(regexes, pmid, text):
+def findMutations(regexes, text):
     """ put mutation mentions from document together into dicts indexed by normal form 
-    
-        return (seqType, mutType) -> normalForm -> list of mutations
+        return dict variant-> list of mentions
     """
-    allMuts = {}
+    muts = defaultdict(list)
     for seqType, mutType, patName, pat in regexes:
-        muts = defaultdict(list)
-        for match in pat.finditer(text):
-            if seqType=="prot" and mutType=="sub":
-                mut = ProtMut(match, patName)
-                muts[mutName].append(mut)
-        if len(muts)!=0:
-            allMuts[(seqType, mutType)] = muts
-    return allMuts
+        if mutType=="sub":
+            for match in pat.finditer(text):
+                variant, mention = parseMatch(match, patName)
+                if variant!=None:
+                    muts[variant].append(mention)
+    return muts
     
-def groundMuts(muts, genes):
-    " try to ground mutations onto genes and return "
+class SeqVariant(object):
+    " a variant grounded on a sequence, with pieces from the text "
+    __slots__ = mutFields
+
+    def __init__(self, mut, entrezGene, protId, geneSym, mentions, text):
+        self.patType = "sub"
+        self.seqType = "prot"
+        self.protStart = mut.start
+        self.protEnd   = mut.end
+        self.origAa    = mut.orig
+        self.mutAa    = mut.mut
+        self.geneSymbol   = geneSym
+        self.entrezId  = entrezGene
+        self.protId    = protId
+        self.geneType  = "entrez"
+        self.geneStarts= ""
+        self.geneEnds  = ""
+        self.geneSnippets = ""
+
+        mutStarts = []
+        mutEnds = []
+        snippets = []
+        patNames = []
+        texts = []
+        for m in mentions:
+            mutStarts.append(str(m.start))
+            mutEnds.append(str(m.end))
+            snippets.append(pubAlg.getSnippet(text, m.start, m.end).replace("|"," "))
+            patNames.append(m.patName)
+            texts.append(text[m.start:m.end].strip("() -;,."))
+
+        self.mutStarts = ",".join(mutStarts)
+        self.mutEnds   = ",".join(mutEnds)
+        self.mutPatNames= "|".join(patNames)
+        self.mutSnippets = "|".join(snippets)
+        self.texts = "|".join(texts)
+
+    def asRow(self):
+        row =[]
+        for i in self.__slots__:
+            row.append(str(getattr(self, i)))
+        return row
+        
+    def __repr__(self):
+        return ",".join(self.asRow())
+        
+def ungroundedMutsToFakeSeqVariants(ungroundedMuts, text):
+    """ convert mutations that could not be grounded to "fake" variants
+        that not located on any sequence but are easy to write to a file
+    """
+    muts = []
+    for mut, mentions in ungroundedMuts.iteritems():
+        muts.append(SeqVariant(mut, "", "", "", mentions, text))
+    return muts
+
+def groundMutations(text, mutations, genes, geneData):
+    """ ground mutations onto genes and return """
+    groundedMuts = []
+    ungroundedMuts = {}
+
+    for mut, mentions in mutations.iteritems():
+        logging.debug("Trying to ground mutation %s onto genes %s" % (mut, genes))
+        entrezGenes = genes["entrez"]
+        upStart = mut.start-1 # uniprot is 1-based, we are 0-based
+        upEnd   = mut.end -1
+        for entrezGene in entrezGenes:
+            logging.debug("Trying entrez gene %s" % entrezGene)
+            entrezId = int(entrezGene)
+            if entrezId not in geneData["entrezToUp"]:
+                logging.debug("gene %d is not selected species")
+                continue
+            protId = geneData["entrezToUp"][int(entrezGene)]
+            geneSym = geneData["upToSym"][protId]
+            seq = geneData["upSeqs"][protId]
+            if not upEnd<=len(seq):
+                logging.debug("sequence is too short")
+                continue
+                
+            upAa = seq[upStart:upEnd]
+            logging.debug("Found %s at pos %d-%d in uniprot %s" % (upAa, upStart, upEnd, protId))
+            if upAa==mut.orig:
+                groundedMuts.append(SeqVariant(mut, entrezGene, protId, geneSym, mentions, text))
+            else:
+                ungroundedMuts[mut] = mentions
+
+    ungroundedMuts = ungroundedMutsToFakeSeqVariants(ungroundedMuts, text)
+    return groundedMuts, ungroundedMuts
+
+def writeHeaders(outFh):
+    prefixHeaders = ["docId", "isConfirmed"]
+    outFh.write("\t".join(prefixHeaders)+"\t"+"\t".join(mutFields)+"\n")
+
+def writeMuts(docId, status, muts, outFh):
+    for mut in muts:
+        prefixFields=[docId, status]
+        outFh.write("\t".join(prefixFields)+"\t")
+        outFh.write("\t".join(mut.asRow()))
+        outFh.write("\n")
+    
+def readFile(inFname):
+    logging.info("Reading file %s" % inFname)
+    text = open(inFname).read()
+    title = ""
+    abstract = ""
+    pmid  = splitext(basename(inFname))[0]
+    return pmid, title, abstract, text
+
+def findInLocalFile(inFname, outFh, regexes, geneData):
+    pmid, title, abstract, text = readFile(inFname)
+    muts  = findMutations(regexes, text)
+    genes = findGenes(geneData, pmid, title, abstract, text)
+    if not "entrez" in genes:
+        logging.info("Skipping %s" % inFname)
+        return
+    groundedMuts, ungroundMuts = groundMutations(text, muts, genes, geneData)
+    writeMuts(pmid, "confirmed", groundedMuts, outFh)
+    writeMuts(pmid, "notConfirmed", ungroundMuts, outFh)
+
+def findInLocalDir(inDir, outFh, regexes, geneData):
+    for fname in glob.glob(join(inDir, "*.txt")):
+        logging.info(fname)
+        findInLocalFile(fname, outFh, regexes, geneData)
 
 def main(args, options):
     if options.test:
@@ -235,17 +387,21 @@ def main(args, options):
 
     inFname, outFname = args
 
-    geneData = openData(mutDataDir, 9606)
+    geneData, regexes = openData(mutDataDir, 9606)
+
+    outFh = open(outFname, "w")
+    writeHeaders(outFh)
 
     if isfile(inFname):
-        text = open(inFname).read()
-        title = ""
-        abstract = ""
+        findInLocalFile(inFname, outFh, regexes, geneData)
+    elif isdir(inFname):
+        findInLocalDir(inFname, outFh, regexes, geneData)
+    else:
+        assert(False)
 
-        pmid  = splitext(basename(inFname))[0]
-        muts  = findMutations(geneData["regexes"], pmid, text)
-        genes = findGenes(geneData, pmid, title, abstract, text)
-        groundedMuts = groundMuts(muts, genes)
+    logging.info("Wrote output to %s" % outFname)
+    outFh.close()
+
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] annotDir - read geneSearcher and mutation_finderoutput, guess the gene for each mutation, and place onto uniprot sequences""")
@@ -259,4 +415,5 @@ if args==[] and not options.test:
     parser.print_help()
     exit(1)
 
+pubGeneric.setupLogging(__file__, options)
 main(args, options)

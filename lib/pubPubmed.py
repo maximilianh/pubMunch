@@ -147,6 +147,8 @@ def parseMedline(xmlParser):
 def parsePubmedFields(xmlEl, dataDict):
     """ parse special pubmed (not medline) fields, like doi, pmc, etc """
     dataDict["doi"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'doi'}, default="")
+    dataDict["pii"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pii'}, default="")
+    dataDict["mid"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'mid'}, default="")
     dataDict["pmcId"]         = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pmc'}, default="").replace("PMC", "")
     return dataDict
 

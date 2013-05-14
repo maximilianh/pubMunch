@@ -276,7 +276,7 @@ def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
 
     return dotPos
 
-def getSnippet(text, start, end, minContext=0, maxContext=250):
+def getSnippet(text, start, end, minContext=0, maxContext=150):
     """ return contextLen characters around start:end from text string 
     >>> textWithDot = 'cex XXX And'
     >>> Xpos = textWithDot.find("X")

@@ -21,10 +21,11 @@ localHeadDir = '/scratch/max/pubTools'
 # directory for files with parsed DBs each DB, e.g. uniprot or pdb
 dbRefDir = '/hive/data/inside/pubs/parsedDbs'
 
-# directories with a local copy of PDB and uniprot and ncbi genes
+# directories with a local copy of PDB and uniprot, ncbi genes, refseq
 uniProtBaseDir = '/hive/data/outside/uniProtCurrent'
 pdbBaseDir = '/hive/data/outside/pdb'
 ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
+ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/release/vertebrate_mammalian'
 
 # CONVERTER SETTINGS ================================================
 # for pubConvMedline:
@@ -72,18 +73,6 @@ crawlPubIds = {
 "HIGHWIRE Society for General Microbiology" : "sgm",
 "NLM Informa Healthcare" : "informa"
 #"Society for Molecular Biology and Evolution" : "smbe"
-}
-
-# crawler delay config, values in seconds
-# these overwrite the default set with the command line switch to pubCrawl
-# special case is highwire, handled in the code:
-# (no joke) (all EST): mo-fri: 9-5pm: 120 sec, mo-fri 5pm-9am: 10 sec, sat-sun: 5 sec 
-crawlDelays = {
-    "www.nature.com"              : 10,
-    "onlinelibrary.wiley.com" : 1,
-    "dx.doi.org"              : 1,
-    "ucelinks.cdlib.org"      : 20,
-    "eutils.ncbi.nlm.nih.gov"      : 3
 }
 
 # SFX server for pubmed entries without an outlink

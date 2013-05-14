@@ -363,11 +363,15 @@ def parseConfig(f):
             result[key]=val
     return result
 
-def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
+def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=None, onlyHead=False):
     """ wrap urlopen in try...except clause and repeat
     #>>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
     """
     
+    class HeadRequest(urllib2.Request):
+        def get_method(self):
+            return u'HEAD'
+
     def handleEx(ex, count):
         logging.debug("Got Exception %s, %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
             (type(ex), str(ex), url, params, delaySecs))
@@ -379,7 +383,15 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
     count = repeatCount
     while count>0:
         try:
-            ret = urllib2.urlopen(url, params, 20)
+            if onlyHead:
+                req = HeadRequest(url, params)
+            else:
+                req = urllib2.Request(url, params)
+            if userAgent != None:
+                req.add_header('User-Agent', userAgent)
+            opener = urllib2.build_opener()
+            ret = opener.open(req, timeout=20)
+            #ret = urllib2.urlopen(url, params, 20)
         except urllib2.HTTPError as ex:
             count = handleEx(ex, count)
         except httplib.HTTPException as ex:
@@ -392,12 +404,9 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120):
     logging.debug("Got repeatedexceptions on urlopen, returning None")
     return None
     
-def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120):
-    class HeadRequest(urllib2.Request):
-        def get_method(self):
-            return u'HEAD'
-
-    response = retryHttpRequest(HeadRequest(url), repeatCount=repeatCount, delaySecs=delaySecs)
+def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120, userAgent = None):
+    response = retryHttpRequest(url, repeatCount=repeatCount, delaySecs=delaySecs, \
+        userAgent=userAgent)
     return response
     
 def sendEmail(address, subject, text):

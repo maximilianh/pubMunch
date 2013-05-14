@@ -116,14 +116,15 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
         debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
     if "cluster" in options.__dict__ and options.cluster!=None:
-        global forceHeadnode 
+        global forceHeadnode
         # for makeClusterRunner
         forceHeadnode = options.cluster
 
     if options==None:
         stdoutLevel=logging.DEBUG
     elif "verbose" in options.__dict__ and options.verbose:
-        stdoutLevel=5
+        stdoutLevel=3
+        fileLevel = 3
         logging.addLevelName(5,"VERBOSE")
     elif options.debug or debug:
         stdoutLevel=logging.DEBUG
