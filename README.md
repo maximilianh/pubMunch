@@ -35,14 +35,21 @@ need the cluster system and various input/output directories.
 # An example run
 
 Create a directory
-        mkdir myCrawl
+
+    mkdir myCrawl
+
 Fill it with a list of PMIDs that must be called pmids.txt
-        echo 17695372 > myCrawl/pmids.txt
+
+    echo 17695372 > myCrawl/pmids.txt
+
 Run the crawler in unrestricted mode and with debug output on this list
-        pubCrawl -du myCrawl/pmids.txt
+
+    pubCrawl -du myCrawl/pmids.txt
+
 Convert crawled PDFs to text
-        mkdir myCrawlText
-        pubConvCrawler myCrawl myCrawlText
+
+    mkdir myCrawlText
+    pubConvCrawler myCrawl myCrawlText
 
 Maximilian Haeussler, max@soe.ucsc.edu
 
