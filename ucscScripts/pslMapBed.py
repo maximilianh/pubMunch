@@ -47,7 +47,7 @@ class PslMapBedMaker(object):
         pass
 
     def mapQuery(self, psl, qRngStart, qRngEnd):
-        " call this method to get qRngStart-qRngEnd mapped through the psl "
+        " call this method to get qRngStart-qRngEnd mapped through the psl as a bed "
         self.mapper.queryToTargetMap(psl, qRngStart, qRngEnd)
         self.chrom = psl.tName
         self.name = psl.qName

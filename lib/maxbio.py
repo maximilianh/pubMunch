@@ -43,16 +43,23 @@ def writeToTsv(fileObj, rec):
         fileObj.write(string+"\n")
 
 # --- FASTA FILES ---
-def parseFastaAsDict(fname, inDict={}):
+def parseFastaAsDict(fname, inDict=None):
+    if inDict==None:
+        inDict = {}
     logging.info("Parsing %s" % fname)
     fr = FastaReader(fname)
     for (id, seq) in fr.parse():
-        #if id in inDict:
-            #print inDict
-            #print inDict[id]
-            #raise Exception("%s already seen before" % id)
+        if id in inDict:
+            print inDict
+            print inDict[id]
+            raise Exception("%s already seen before" % id)
         inDict[id]=seq
     return inDict
+
+def parseFasta(fname):
+    fr = FastaReader(fname)
+    for (id, seq) in fr.parse():
+        yield id, seq
 
 class FastaReader:
     """ a class to parse a fasta file 

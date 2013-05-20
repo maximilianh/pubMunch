@@ -25,7 +25,8 @@ dbRefDir = '/hive/data/inside/pubs/parsedDbs'
 uniProtBaseDir = '/hive/data/outside/uniProtCurrent'
 pdbBaseDir = '/hive/data/outside/pdb'
 ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
-ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/release/vertebrate_mammalian'
+#ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/release/vertebrate_mammalian'
+ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens.mRNA_Prot'
 
 # CONVERTER SETTINGS ================================================
 # for pubConvMedline:
@@ -213,6 +214,11 @@ MIMEMAP = {
     "application/pdf":"pdf"
 }
 
+# override the weird highwire delay times for certain URLs with lower values
+# you need to check with Highwire on these personally first
+highwireDelayOverride = {
+}
+
 # when splitting text files for cluster jobs,
 # how many "chunks" should be created?
 # chunkCount = 2000 # XXX  not used 
@@ -374,7 +380,7 @@ maxFeatures = 50
 
 # how many bp does a chain has to cover?
 # smaller chains will be considered "noise" and skipped
-minChainCoverage=21
+minChainCoverage=23
 
 # maximum length of chain
 # this can sometimes happen if a chain contains many individual

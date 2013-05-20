@@ -176,9 +176,10 @@ def indexFilesByTypeDb(faDir, blatOptions):
         raise Exception("no files found in %s" % faDir)
     return dbFaFiles
 
-def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqTypeOptions, noOocFile=False):
+def submitBlatJobs(runner, faDir, pslDir, onlyDbs, cdnaDir=None, \
+        blatOptions=pubConf.seqTypeOptions, noOocFile=False):
     """ read .fa files from faDir and submit blat jobs that write to pslDir 
-        dbs are taken from pubConf, but can be overwritten with onlyDbs 
+        dbs are taken from pubConf, but can be restricted with onlyDbs 
     """
     #maxCommon.makedirs(pslDir)
     maxCommon.mustBeEmptyDir(pslDir, makeDir=True)
@@ -188,6 +189,8 @@ def submitBlatJobs(runner, faDir, pslDir, cdnaDir=None, blatOptions=pubConf.seqT
     dbFaFiles = indexFilesByTypeDb(faDir, blatOptions)
     for seqType, dbFiles in dbFaFiles.iteritems():
         for db, faNames in dbFiles.iteritems():
+            if len(onlyDbs)!=0 and db not in onlyDbs:
+                continue
             logging.debug("seqtype %s, db %s, query file file count %d" % (seqType, db, len(faNames)))
             blatOpt, filterOpt = blatOptions[seqType]
             #pslTypeDir = maxCommon.joinMkdir(pslDir, seqType, db)
@@ -1889,7 +1892,7 @@ def runStep(dataset, command, d, options):
             runner.finish(wait=True)
 
         # convert to fasta
-        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+        cdnaDbs = [basename(path) for path in glob.glob(join(pubConf.cdnaDir, "*"))]
         logging.info("These DBs have cDNA data in %s: %s" % (pubConf.cdnaDir, cdnaDbs))
         pubToFasta(d.seqDir, d.fastaDir, pubConf.speciesNames, pubConf.queryFaSplitSize, \
             pubConf.shortSeqCutoff)
@@ -1901,11 +1904,15 @@ def runStep(dataset, command, d, options):
         # make sure that directories are empty before we start this
         maxCommon.mustBeEmptyDir([d.pslDir, d.cdnaPslDir, d.protPslDir], makeDir=True)
         runner = d.getRunner(command)
-        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+        cdnaDbs = [basename(path) for path in glob.glob(join(pubConf.cdnaDir, "*"))]
 
-        submitBlatJobs(runner, d.fastaDir, d.pslDir, blatOptions=pubConf.seqTypeOptions)
-        submitBlatJobs(runner, d.fastaDir, d.cdnaPslDir, cdnaDir=pubConf.cdnaDir)
-        submitBlatJobs(runner, d.protFastaDir, d.protPslDir, cdnaDir=pubConf.cdnaDir, \
+        onlyDbs = options.onlyDb
+        # genomes
+        submitBlatJobs(runner, d.fastaDir, d.pslDir, onlyDbs, blatOptions=pubConf.seqTypeOptions)
+        # cdna
+        submitBlatJobs(runner, d.fastaDir, d.cdnaPslDir, onlyDbs, cdnaDir=pubConf.cdnaDir)
+        # proteins
+        submitBlatJobs(runner, d.protFastaDir, d.protPslDir, onlyDbs, cdnaDir=pubConf.cdnaDir, \
             blatOptions=pubConf.protBlatOptions, noOocFile=True)
         runner.finish(wait=True)
         d.appendBatchProgress(command)
@@ -1916,7 +1923,7 @@ def runStep(dataset, command, d, options):
         runner = d.getRunner(command)
         runner.maxRam = "8g"
         submitSortPslJobs(runner, "g", d.pslDir, d.pslSortedDir, pubConf.speciesNames.keys())
-        cdnaDbs = [basename(dir) for dir in glob.glob(join(pubConf.cdnaDir, "*"))]
+        cdnaDbs = [basename(path) for path in glob.glob(join(pubConf.cdnaDir, "*"))]
         submitSortPslJobs(runner, "p", d.protPslDir, d.protPslSortedDir, cdnaDbs)
         submitSortPslJobs(runner, "c", d.cdnaPslDir, d.cdnaPslSortedDir, cdnaDbs)
         runner.finish(wait=True)

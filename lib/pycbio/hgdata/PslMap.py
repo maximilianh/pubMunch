@@ -110,6 +110,9 @@ class PslMap(object):
     def queryToTargetMap(self, psl, qRngStart, qRngEnd):
         """Map a query range to target ranges using a PSL.  Query range must
         be in PSL block-specific coordinates (positive or negative strand)"""
+        # refuse protein PSLs
+        assert(not psl.isProtein()) # run psl.protToNa() on map psls first
+        
         # deal with gap at beginning
         qRngNext = qRngStart
         if qRngNext < psl.blocks[0].qStart:
@@ -131,5 +134,4 @@ class PslMap(object):
         lastBlk = psl.blocks[psl.blockCount-1]
         if qRngEnd > lastBlk.qEnd:
             self.cb.mapGap(psl, lastBlk, None, lastBlk.qEnd, qRngEnd, None, None)
-
 

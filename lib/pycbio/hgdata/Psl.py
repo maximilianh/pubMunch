@@ -214,10 +214,34 @@ class Psl(object):
         if len(self.strand) < 2:
             return False
         return (((self.strand[1] == '+' ) and
-                 (self.tEnd == self.tStarts[lastBlock] + 3*self.blockSizes[lastBlock]))
+                 (self.tEnd == self.blocks[-1].tStart + 3*self.blocks[-1].size))
+                 #(self.tEnd == self.tStarts[lastBlock] + 3*self.blockSizes[lastBlock]))
                 or
                 ((self.strand[1] == '-') and
-                 (self.tStart == (self.tSize-(self.tStarts[lastBlock] + 3*self.blockSizes[lastBlock])))))
+                 (self.tStart == (self.tSize-(self.blocks[-1].tStart + 3*self.blocks[-1].size)))))
+                 #(self.tStart == (self.tSize-(self.tStarts[lastBlock] + 3*self.blockSizes[lastBlock])))))
+
+    def protToNa(self):
+        """ convert protein alignment to nucleotide alignment """
+        self.qStart *= 3
+        self.qEnd   *= 3
+        self.qSize  *= 3
+
+        for b in self.blocks:
+            b.qStart *= 3
+            b.qEnd   *= 3
+            b.size   *= 3
+            
+    def naToProt(self):
+        """ convert nucleotide alignment to protein alignment """
+        self.qStart /= 3
+        self.qEnd   /= 3
+        self.qSize  /= 3
+
+        for b in self.blocks:
+            b.qStart /= 3
+            b.qEnd   /= 3
+            b.size   /= 3
 
     def tOverlap(self, tName, tStart, tEnd):
         "test for overlap of target range"

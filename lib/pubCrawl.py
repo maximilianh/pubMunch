@@ -269,7 +269,7 @@ def delayedWget(url, forceDelaySecs=None):
             delaySecs = pubCrawlConf.crawlDelays.get(host, defaultDelay)
             logging.debug("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
         elif isHighwire(host):
-            delaySecs = highwireDelay()
+            delaySecs = highwireDelay(host)
         else:
             logging.debug("Delay time for host %s not configured in pubConf" % (host))
             delaySecs = defaultDelay
@@ -1162,9 +1162,15 @@ def isHighwire(hostname):
         logging.log(5, "hostname %s is highwire host" % hostname)
     return result
 
-def highwireDelay():
+def highwireDelay(host):
     """ return current delay for highwire, get current time at east coast
+        can be overriden in pubConf per host-keyword
     """
+    for hostKey, delaySec in pubConf.highwireDelayOverride.iteritems():
+        if hostKey in host:
+            logging.debug("Overriding normal Highwire delay with %d secs as specified in conf" % delaySec)
+            return delaySec
+        
     os.environ['TZ'] = 'US/Eastern'
     time.tzset()
     tm = time.localtime()

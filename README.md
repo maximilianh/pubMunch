@@ -1,16 +1,17 @@
 # Overview
 
 These are the tools that I wrote for the UCSC Genocoding project, see
-http://text.soe.ucsc.edu . They allow you to download fulltext research
+http://text.soe.ucsc.edu. They allow you to download fulltext research
 articles from internet, convert them to text and run text mining algorithms
 on them.  All tools start with the prefix "pub". 
+This is a early testing release, please send error messages to Maximilian Haeussler, max@soe.ucsc.edu.
 
 # The tools
 
 - pubCrawl = crawl papers from various publishers, needs a directory with a
         textfile "pmids.txt" in it and the data/journalList directory
 - pubGet<PUB> = download files from publisher PUB directly (medline, pmc, elsevier)
-- pubConv<PUB> = convert downloaded files to a pub format (tab-separated table
+- pubConv<PUB> = convert downloaded files to my pub format (tab-separated table
              with fields defined in lib/pubStore.py)
 - pubLoadMysql and pubLoadSqlite = load pub format data into a database system 
 - pubRunAnnot = run an annotator from the scripts directory on text data in
@@ -38,7 +39,7 @@ Create a directory
 
     mkdir myCrawl
 
-Fill it with a list of PMIDs that must be called pmids.txt
+Get a list of PMIDs, put them into the file pmids.txt
 
     echo 17695372 > myCrawl/pmids.txt
 
@@ -46,13 +47,13 @@ Run the crawler in unrestricted mode and with debug output on this list
 
     pubCrawl -du myCrawl/pmids.txt
 
-Convert crawled PDFs to text
+The PDFs should be in the subdirectory myCrawl/files. Error messages are in myCrawl/pmidStatus.txt. 
+Metadata is in a sqlite and a tab separated file. 
+
+Convert crawled PDFs to text:
 
     mkdir myCrawlText
     pubConvCrawler myCrawl myCrawlText
-
-Maximilian Haeussler, max@soe.ucsc.edu
-
 
 # BUGS to fix:
 

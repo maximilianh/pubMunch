@@ -67,7 +67,7 @@ def createIndex(inDir, outDir, minId):
     for extId, files in idFiles.iteritems():
         if not extId.isdigit():
             continue
-        chunkId = "00000"
+        chunkId = "0_00000"
         mainFile = extId+".pdf"
         files.remove(mainFile)
         row = [chunkId, str(articleId), extId, mainFile, ",".join(files)]
