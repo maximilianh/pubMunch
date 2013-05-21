@@ -363,17 +363,20 @@ def aaChangeToDnaChange(origAa, mutAa):
                 ret.append( diffTuple )
     return ret
 
-def bedToPsl(chrom, chromSize, start, end, name):
-    qSize = end-start
-    psl = kent.psl.pslNew(name, qSize, 0, qSize, chrom, chromSize, start, end, "+", 1, 0)
-    psl.contents.match = qSize
-    psl.contents.qStarts[0]=0
-    psl.contents.tStarts[0]=start
-    psl.contents.blockSizes[0]=(end-start)
-    psl.contents.blockCount=1
-    kent.psl.pslWriteAll(psl, "temp.psl", 0)
-    return psl
+#def bedToPsl(chrom, chromSize, start, end, name):
+    #qSize = end-start
+    #psl = kent.psl.pslNew(name, qSize, 0, qSize, chrom, chromSize, start, end, "+", 1, 0)
+    #psl.contents.match = qSize
+    #psl.contents.qStarts[0]=0
+    #psl.contents.tStarts[0]=start
+    #psl.contents.blockSizes[0]=(end-start)
+    #psl.contents.blockCount=1
+    #kent.psl.pslWriteAll(psl, "temp.psl", 0)
+    #return psl
     
+def refseqProtToHgvs(protIds, mut):
+    " resolve protIds to transIds and return a list of hgvs strings "
+
 def hgvsMapProtToCdna(protIds, mut):
     " map mutation through psl to get cdna positions "
     ret = []
@@ -382,14 +385,7 @@ def hgvsMapProtToCdna(protIds, mut):
         pslList = protMap[protId]
         assert(len(pslList)==1)
         psl = pslList[0]
-        #print psl
-        #print mut.start*3, mut.end*3
-        print dir(psl)
-        print psl.blocks
-        print mut.start*3, mut.end*3
         bed = maker.mapQuery(psl, mut.start*3, mut.end*3)
-        print bed
-        #print bed
         liftStart = int(bed[1])
         liftEnd   = int(bed[2])
         tName    = bed[0]

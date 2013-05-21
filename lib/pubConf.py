@@ -26,7 +26,7 @@ uniProtBaseDir = '/hive/data/outside/uniProtCurrent'
 pdbBaseDir = '/hive/data/outside/pdb'
 ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
 #ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/release/vertebrate_mammalian'
-ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens.mRNA_Prot'
+ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens/mRNA_Prot'
 
 # CONVERTER SETTINGS ================================================
 # for pubConvMedline:
