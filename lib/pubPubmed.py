@@ -4,6 +4,7 @@
 import logging, urllib2, pubConf, maxXml, pubStore, re, time, urllib, traceback, httplib, maxCommon
 from xml.etree.ElementTree import ParseError
 from xml.etree.cElementTree import ParseError as ParseError2
+from collections import OrderedDict
 
 class PubmedError(Exception):
     def __init__(self, longMsg, logMsg, detailMsg=None):
@@ -381,10 +382,11 @@ def stripTag(line):
     line = line.strip()
     return line
 
-def getOutlinks(pmid):
+def getOutlinks(pmid, preferPmc=False):
     """ use NCBI eutils to get outlinks for a pmid as a list """
     logging.debug("%s: Getting outlink from pubmed" % (pmid))
     url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id=%s&retmode=llinks&cmd=llinks" % pmid
+    #logging.debug("getting %s" % url)
     #try:
     #except
     #logging.info(traceback.format_exc())
@@ -398,9 +400,10 @@ def getOutlinks(pmid):
     if html==None:
         return None
 
-    outlinks = {}
+    outlinks = OrderedDict()
     provider = False
     fullText = False
+    isPmc = False
 
     for line in html:
         if line.find("<ObjUrl>") != -1:
@@ -427,6 +430,11 @@ def getOutlinks(pmid):
             url = stripTag(url).replace("&amp;", "&") # XX strange!
             url = stripTag(url).replace("&lt;", "<")
             url = stripTag(url).replace("&gt;", ">")
+            if "www.ncbi.nlm.nih.gov" in url and "/pmc/" in url and preferPmc:
+                # override all other links
+                outlinks.clear()
+                outlinks["pmc"] = url
+
     logging.debug("%s: Found outlinks %s" % (pmid, str(outlinks)))
     return outlinks
 

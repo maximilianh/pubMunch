@@ -135,7 +135,7 @@ def resolvePmidWithSfx(sfxServer, pmid):
     url = urls[0].encode("utf8")
     return url
 
-def findLandingUrl(articleData, crawlConfig, hostToConfig):
+def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
     """ try to find landing URL either by constructing it or by other means:
     - inferred from medline data via landingUrl_templates
     - medlina's DOI
@@ -182,11 +182,11 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
     # try medline's DOI
     # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
     # than via Pubmed outlink, so we need sometimes to rewrite the doi urls
-    if landingUrl==None and articleData["doi"]!="":
+    if landingUrl==None and articleData["doi"]!="" and not (preferPmc and articleData["pmcId"]!=""):
         landingUrl, crawlConfig = resolveDoiRewrite(articleData["doi"], crawlConfig, hostToConfig)
 
-    # try crossref's search API to find the DOI
-    if landingUrl==None and articleData["doi"]=="":
+    # try crossref's search API to find the DOI 
+    if landingUrl==None and articleData["doi"]=="" and not (preferPmc and articleData["pmcId"]!=""):
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
             articleData["doi"] = xrDoi
@@ -194,7 +194,7 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig):
 
     # try pubmed's outlink
     if landingUrl==None:
-        outlinks = pubPubmed.getOutlinks(articleData["pmid"])
+        outlinks = pubPubmed.getOutlinks(articleData["pmid"], preferPmc=preferPmc)
         if outlinks==None:
             logging.info("pubmed error, waiting for 120 secs")
             time.sleep(120)
@@ -469,8 +469,8 @@ def anyMatch(regexList, queryStr):
     return False
 
 def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
-    """ return all A-like links andm meta-tag-info from a html string as a dict url => text
-    and a second name -> content dict
+    """ find all A-like links and meta-tag-info from a html string and add 
+    to page dictionary as keys "links", "metas" and "iframes"
     
     """
 
@@ -820,7 +820,8 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
 
     suppFilesAreOffsite = crawlConfig.get("suppFilesAreOffsite", False)
     landingPage_ignoreUrlREs = crawlConfig.get("landingPage_ignoreUrlREs", [])
-    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite, landingPage_ignoreUrlREs=landingPage_ignoreUrlREs)
+    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite, \
+        landingPage_ignoreUrlREs=landingPage_ignoreUrlREs)
     suppLinks = suppListPage["links"]
     htmlMetas = suppListPage["metas"]
     suppUrls  = list(findMatchingLinks(suppLinks, suppTextREs, suppUrlREs, suppExts, ignSuppTextWords))
@@ -851,6 +852,8 @@ def replaceUrl(landingUrl, landingUrl_fulltextUrl_replace):
         if word in newUrl:
             replaceCount+=1
             newUrl = newUrl.replace(word, replacement)
+        elif word=="$":
+            newUrl = newUrl+replacement
     if replaceCount==0:
         logging.debug("Could not replace words in URL")
         return None
@@ -879,8 +882,8 @@ def findMainFileUrl(landingPage, crawlConfig):
         return pdfUrl
 
     # some pdf urls are just a variation of the main url by appending something
-    if "appendStringForPdfUrl" in crawlConfig:
-        pdfUrl = landingPage["url"]+crawlConfig["appendStringForPdfUrl"]
+    if "landingUrl_fulltextUrl_append" in crawlConfig:
+        pdfUrl = landingPage["url"]+crawlConfig["landingUrl_fulltextUrl_append"]
         logging.debug("Appending string to URL yields new URL %s" % (pdfUrl))
         return pdfUrl
 
@@ -899,7 +902,7 @@ def findMainFileUrl(landingPage, crawlConfig):
                     logging.debug("Found link to main PDF: %s -> %s" % (pdfLinkName, pdfUrl))
 
     if pdfUrl==None:
-        raise pubGetError("main PDF not found", "mainPdfNotFound")
+        raise pubGetError("main PDF not found", "mainPdfNotFound", landingPage["url"])
 
     return pdfUrl
 
@@ -957,7 +960,8 @@ def crawlForFulltext(landingPage, crawlConfig):
     if pdfUrl==None :
         if not crawlConfig.get("landingPage_acceptNoPdf", False):
             logging.debug("Could not find PDF on landing page")
-            raise pubGetError("Could not find main PDF", "notFoundMainPdf")
+            raise pubGetError("Could not find main PDF on landing page", \
+                "notFoundMainPdf", landingPage["url"])
         else:
             logging.debug("No PDF found, but we accept this case for this publisher")
     else:
@@ -1073,6 +1077,10 @@ def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
 
 def findSuppListUrl(landingPage, crawlConfig):
     " given the landing page, find the link to the list of supp files "
+    landingUrl_isSuppListUrl = crawlConfig.get("landingUrl_isSuppListUrl", False)
+    if landingUrl_isSuppListUrl:
+        logging.debug("Landing page contains suppl files")
+        return landingPage["url"]
     ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
     landingPage = parseHtml(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
 
@@ -1347,7 +1355,7 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     return newUrl, crawlConfig
 
 def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher, \
-    localMedline, fakeUseragent):
+    localMedline, fakeUseragent, preferPmc):
     " download all files for pmids in outDir/pmids.txt to outDir/files "
     checkCreateLock(outDir)
 
@@ -1368,6 +1376,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     global defaultDelay
     defaultDelay = waitSec
 
+    # parse the config file, index it by host and by publisher
     pubsCrawlCfg, hostToConfig = pubCrawlConf.prepConfigIndexByHost()
 
     pubId = basename(outDir.rstrip("/"))
@@ -1402,7 +1411,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
 
             checkIssnErrorCounts(pubmedMeta, issnErrorCount, ignoreIssns, outDir)
 
-            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig, hostToConfig)
+            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig, hostToConfig, preferPmc)
 
             # first resolve the url (e.g. doi) to something on a webserver
             landingPage  = delayedWget(landingUrl)

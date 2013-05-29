@@ -3,7 +3,10 @@
 # e.g. uniprot sequences, entrez mapping, etc
 
 # load default python packages
-import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, gdbm, re, zlib
+import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, gdbm, re, zlib, cPickle
+import struct
+import urllib, urllib2
+import xml.etree.ElementTree as et
 from os.path import *
 from collections import defaultdict
 
@@ -14,7 +17,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, util, maxbio, maxCommon
+import pubConf, pubGeneric, util, maxbio, maxCommon, pslMapBed
 from os.path import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -26,6 +29,8 @@ parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONS =====
+taxToDb = {9606 : "hg19"}
+
 def writeGzDict(data, fname):
     logging.info("Writing %d keys to %s" % (len(data), fname))
     ofh = gzip.open(fname, "w")
@@ -94,7 +99,7 @@ def parseEntrezGeneRefseq(taxId, outFname):
        if refProtId!="-":
            refprots.setdefault(int(geneId), set()).add(refProtId)
 
-    # output dicts to tab sep file and to a marshal file
+    # output dicts to tab sep file 
     logging.info("tab output...")
     ofh = open(outFname, "w")
     ofh.write("\t".join(["entrezId", "sym", "refseqIds", "refseqProtIds"]))
@@ -158,37 +163,139 @@ def tabToDbm(fname):
         dbm[key] = val
     dbm.close()
 
+def parseRa(raName, tabName):
+    logging.info("Parsing ra")
+    ofh = open(tabName, "w")
+    ofh.write("refSeq\trefProt\tcdsStart\n")
+    id = None
+    cds = None
+    prt = None
+    data = {}
+    skipRec = False
+    skipCount = 0
+    accList = []
+    for line in open(raName):
+        if line.startswith("acc"):
+            id = line.rstrip("\n").split()[1]
+            continue
+        if line.startswith("ver"):
+            ver = line.rstrip("\n").split()[1]
+            continue
+        if line.startswith("prt"):
+            prt = line.rstrip("\n").split()[1]
+            continue
+        if line.startswith("cds"):
+            cds = line.rstrip("\n").split()[1].split(".")[0]
+            if "join" in line:
+                skipRec = True
+            continue
+        if line=="\n" and id!=None and cds!=None and prt!=None:
+            if skipRec:
+                skipCount += 1
+            else:
+                acc = id+"."+ver
+                row = [acc, prt, cds]
+                ofh.write("\t".join(row))
+                ofh.write("\n")
+                accList.append(acc)
+            id = None
+            cds = None
+            prt = None
+            skipRec = False
+    ofh.close()
+    logging.info("Wrote cds and pep/refseq assignment to %s" % tabName)
+    logging.info("Skipped %d records" % skipCount)
+    return accList
+
+def makeOldAccs(newAccList):
+    " given a list of things like NM_000325.5, return NM_000325.4, NM_000325.3, etc. "
+    oldAccs = []
+    for fullAcc in newAccList:
+        acc, ver = fullAcc.split(".")
+        ver = int(ver)
+        if ver != 1:
+            for i in range(1, ver):
+                oldAccs.append(acc+"."+str(i))
+    return oldAccs
+
+def chunkedDownloadFromEutils(accs, outFh, format="fasta"):
+    " download in chunks of 5000 accs from eutils "
+    chunkMax = 5000
+    for chunkStart in range(0, len(accs), chunkMax):
+        logging.info("Chunkstart is %d" % chunkStart)
+        downloadFromEutils(accs[chunkStart:chunkStart+chunkMax], outFh, format="fasta")
+
+def downloadFromEutils(accs, outFh, format="fasta"):
+    " download accession via eutils "
+    # query and put into history
+    logging.info("Running eutils search for %d accessions" % len(accs))
+    accFull = [acc for acc in accs]
+    query = " OR ".join(accFull)
+    base = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    url = base+'/esearch.fcgi';
+    data = urllib.urlencode({"db":"nucleotide", "term":query, "usehistory":"y"})
+    logging.debug("Data: %s" % data)
+    req  = urllib2.Request(url, data)
+    try:
+        xmlStr = urllib2.urlopen(req).read()
+    except urllib2.HTTPError:
+        logging.error("Error when searching")
+        raise
+    logging.debug("XML reply: %s" % xmlStr)
+
+    # now parse xml to get history IDs
+    root = et.fromstring(xmlStr)
+    try:
+        webEnv = root.find("WebEnv").text
+        key = root.find("QueryKey").text
+    except AttributeError:
+        logging.info("Error, XML is %s" % xmlStr)
+        raise
+    count = int(root.find("Count").text)
+    logging.info("Got history id %s, found %d sequences" % (webEnv, count))
+
+    # fetch
+    retMax = 1000
+    for retStart in range(0, count, retMax):
+        logging.info("Retrieving up to %d records, start %d..." % (retMax, retStart))
+        url = base + "/efetch.fcgi?db=nuccore&query_key=%(key)s&WebEnv=%(webEnv)s&" \
+            "retstart=%(retStart)s&retmax=%(retMax)s&rettype=%(format)s&retmode=text" % locals();
+        resp = urllib2.urlopen(url).read()
+        outFh.write(resp)
+
 def parseRefseq(taxId, mutDataDir):
     """ parse refseq sequences as compressed values to gdbm file """
     assert(taxId==9606)
 
-    # get cdsStart
-    query = 'select concat_ws(".", name, version) as refseqId, cdsStart-txStart as cdsStart from refGene JOIN gbCdnaInfo ON (acc=name)'
-    cdsStartFname = join(mutDataDir, "refseqCds.tab")
-    cmd = "hgsql hg19 -e '%s' > %s" % (query, cdsStartFname)
-    maxCommon.runCommand(cmd)
-    logging.info("Wrote cds starts to %s" % cdsStartFname)
-    tabToDbm(cdsStartFname)
-
     # get prot <-> trans assignment
-    query = 'select concat_ws(".", name, version) as refseqId, cdsStart-txStart as cdsStart from refGene JOIN gbCdnaInfo ON (acc=name)'
-    cdsStartFname = join(mutDataDir, "refseqProt.tab")
-    cmd = "hgsql hg19 -e '%s' > %s" % (query, cdsStartFname)
+    raName =  join(mutDataDir, "refseq.%s.ra"  % str(taxId))
+    logging.info("Getting ra to %s" % raName)
+    cmd = "gbGetSeqs -gbRoot=/hive/data/outside/genbank RefSeq mrna %s -get=ra -db=hg19 -inclVersion -native" % raName
     maxCommon.runCommand(cmd)
-    logging.info("Wrote cds starts to %s" % cdsStartFname)
-    tabToDbm(cdsStartFname)
+    refseqInfoFname =  join(mutDataDir, "refseqInfo.tab")
+    accList = parseRa(raName, refseqInfoFname)
+    os.remove(raName)
 
+    # get old refseqs, too
+    #oldRefseqFname = join(mutDataDir, "oldRefseq.%s.gb")
+    #logging.info("Downloading old refseqs to %s" % oldRefseqFname)
+    #oldAccs = makeOldAccs(accList)
+    #outFh = open(oldRefseqFname, "w")
+    #chunkedDownloadFromEutils(oldAccs, outFh)
+    #outFh.write("\n".join(oldAccs[:1000]))
+    #assert(False)
 
-    # get fasta
+    # get fastas
     cmdTemp = "gbGetSeqs -gbRoot=/hive/data/outside/genbank RefSeq %s %s -db=hg19 -inclVersion"
     transFaName = join(mutDataDir, "refseq.%s.trans.fa" % str(taxId))
     protFaName =  join(mutDataDir, "refseq.%s.prot.fa"  % str(taxId))
     for seqType, fname in [("mrna", transFaName), ("pep", protFaName)]:
-        logging.info("Getting fa seqs for %s" % seqType)
+        logging.info("Getting data for %s" % seqType)
         cmd = cmdTemp % (seqType, fname)
         maxCommon.runCommand(cmd)
     logging.info("Wrote fastas to %s and %s" % (transFaName, protFaName))
 
+    # index fastas
     dbmFname = join(mutDataDir, "refGeneSeqs.dbm")
     dbm = gdbm.open(dbmFname, "nf")
     faToDbm(transFaName, dbm)
@@ -197,16 +304,82 @@ def parseRefseq(taxId, mutDataDir):
 
     logging.info("Wrote compressed refseq seqs to %s" % dbmFname)
 
+def dbSnp(taxId, mutDataDir):
+    assert(taxId==9606)
+    tmpDir = pubConf.getTempDir()
+    fastTmp = pubConf.getFastTempDir()
+
+    snpFname = join(tmpDir, "snp137.tab")
+    logging.info("getting snp137 into file %s" % snpFname)
+    if not isfile(snpFname):
+        cmd = '''hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from snp137' > %s''' % snpFname
+        maxCommon.runCommand(cmd)
+    else:
+        logging.info("%s already exists, delete if you want to restart" % snpFname)
+
+    snpDbmNameTemp = join(fastTmp, "snp137.dbm")
+    dbm = gdbm.open(snpDbmNameTemp, "nf")
+    count = 0
+    for line in open(snpFname):
+        if count % 1000000 == 0:
+            print "%d" % count
+        count += 1
+        chrom, start, end, name = line.rstrip("\n").split("\t")
+        packCoord = maxbio.packCoord(chrom, start, end)
+        if packCoord==None:
+            continue
+        packRsId = struct.pack("l", int(name[2:]))
+        dbm[packCoord] = packRsId
+        count += 1
+    dbm.close()
+    logging.info("Wrote %s, copying to final dest %s" % (snpDbmNameTemp, snpDbmName))
+
+    snpDbmName = join(mutDataDir, "snp137.dbm")
+    shutil.copy(snpDbmNameTemp, snpDbmName)
+    os.remove(snpDbmNameTemp)
+    logging.info("Wrote %s, deleted %s" % (snpDbmName, snpDbmNameTemp))
+
+
+def refseqMap(taxId, mutDataDir):
+    " get refseq -> genome map from browser "
+    db = taxToDb[taxId]
+    refPslFname = join(mutDataDir, "refGene.%d.psl" % taxId)
+    refCdsFname = join(mutDataDir, "refGene.%d.cds" % taxId)
+    cmd = 'genePredToFakePsl %s refGene %s %s' % (db, refPslFname, refCdsFname)
+    maxCommon.runCommand(cmd)
+
+    # index by qname
+    qNamePsls = defaultdict(list)
+    for line in open(refPslFname):
+        line = line.rstrip("\n")
+        qName = line.split("\t")[9]
+        #if isProt:
+            #psl.protToNa()
+        qNamePsls[qName].append(line)
+
+    # write to dbm as \n separated psl lines indexed by qName
+    refPslDbmFname = join(mutDataDir, "refGene.%d.psl.dbm" % taxId)
+    refPslDbm = gdbm.open(refPslDbmFname, "nf")
+    for qName, pslLines in qNamePsls.iteritems():
+        refPslDbm[qName]= "\n".join(pslLines)
+    refPslDbm["hi"] = "there"
+    refPslDbm.close()
+    logging.info("Wrote to %s" % refPslDbmFname)
+
+    # pickle
+    #queryToPsl = pslMapBed.indexPsls(refPslFname)
+    #refPslFname = join(mutDataDir, "refGene.%d.psl.cpickle" % taxId)
+    #cPickle.dump(queryToPsl, open(refPslFname, "w"))
+
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
 
     step = args[0]
-
     uniprotDir = join(pubConf.dbRefDir)
     mutDataDir = join(pubConf.staticDataDir, "mutFinder")
     taxId = 9606
 
-    allSteps = ["genePmids", "geneRefseq", "refseq", "uniprot"]
+    allSteps = ["genePmids", "geneRefseq", "refseq", "uniprot", "refseqMap", "snp"]
     if step not in allSteps:
         logging.error("Unknown step %s" % step)
         logging.info("Available steps are: %s" % ",".join(allSteps))
@@ -226,6 +399,12 @@ def main(args, options):
 
     if step=="refseq" or step=="all":
         parseRefseq(taxId, mutDataDir)
+
+    if step=="refseqMap" or step=="all":
+        refseqMap(taxId, mutDataDir)
+
+    if step=="snp" or step=="all":
+        dbSnp(taxId, mutDataDir)
 
     if step=="uniprot" or step=="all":
         data = {}

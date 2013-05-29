@@ -4,6 +4,7 @@
 import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy
 from os.path import join, basename, isfile, dirname, abspath, splitext, isdir
 from collections import defaultdict, Counter, namedtuple
+from pycbio.hgdata.Psl import Psl
 
 # I highly recommend installing re2, it's way faster than re
 # we fallback to re just in case
@@ -16,7 +17,7 @@ import re
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
 import pubGeneric, maxCommon, pubConf, maxbio, pubAlg, maxTables, pslMapBed
-import kent.psl, kent.pslTransMap
+#import kent.psl, kent.pslTransMap
 
 geneData = None
 
@@ -38,6 +39,7 @@ VariantFields = [
 # A completely resolved mutation
 mutFields = \
     (
+    "varId",       # uniqueId
     "patType",     # the type of the patterns (sub, del, ins)
     "chrom",       # chromosome
     "start",       # on chrom
@@ -178,6 +180,7 @@ blackList = [
     ("D", 16, "S")]
 
 # ==== FUNCTIONS =====
+
 #def prepAaMutTable():
 #    """ create a table (aa1, aa2) -> list of nucleotides that change and their positions
 #    """
@@ -186,6 +189,17 @@ blackList = [
 #        for aa2 in aaToDna:
 #            aaChangeToDnaChange(aa1, aa2)
 #
+#def indexPsls(fname):
+#    psl = kent.psl.pslLoadAll(fname)
+#    pslIdx = {}
+#    while psl:
+#        pslIdx[str(psl.contents.qName)] = psl
+#        psl = psl.contents.next
+#    # memory leak, struct behind p not freed
+#    return pslIdx
+    
+#protMap = indexPsls("toRefseq/protMap/work/protToTrans.psl")
+
 
 def indexGenes(upAnnots):
     """ given rows from annotation file, return extId, counts of uniprot accession and 
@@ -257,9 +271,12 @@ class SeqData(object):
 
     def __init__(self, mutDataDir, taxId):
         " open db files, compile patterns, parse input as far as possible "
+        if mutDataDir==None:
+            return
         # load uniprot into mem
+        logging.info("Reading data")
         fname = join(mutDataDir, "uniprot.tab.marshal")
-        logging.info("Reading uniprot data from %s" % fname)
+        logging.debug("Reading uniprot data from %s" % fname)
         data = marshal.load(open(fname))
         self.entrez2Up = data[taxId]["entrezToUp"]
         self.upSeqs = data[taxId]["upSeqs"]
@@ -267,7 +284,7 @@ class SeqData(object):
 
         # load entrez -> refseq/refprot/symbol
         fname = join(mutDataDir, "entrezToRefseq.%s.tab.marshal" % taxId)
-        logging.info("Reading entrez data from %s" % fname)
+        logging.debug("Reading entrez data from %s" % fname)
         entrezRefseq = marshal.load(open(fname))
         self.entrez2refseqs = entrezRefseq["entrez2refseqs"]
         self.entrez2refprots = entrezRefseq["entrez2refprots"]
@@ -280,7 +297,7 @@ class SeqData(object):
         self.pmid2entrez = pmid2entrez
         
         # refseq sequences
-        fname = join(mutDataDir, "refseq.dbm")
+        fname = join(mutDataDir, "refGeneSeqs.dbm")
         logging.info("opening %s" % fname)
         seqs = gdbm.open(fname, "r")
         self.seqs = seqs
@@ -288,26 +305,27 @@ class SeqData(object):
         # refprot to refseqId
         # refseq to CDS Start
         fname = join(mutDataDir, "refseqInfo.tab")
+        logging.debug("Reading %s" % fname)
         self.refProtToRefSeq = {}
         self.refSeqCds = {}
         for row in maxCommon.iterTsvRows(fname):
             self.refProtToRefSeq[row.refProt] = row.refSeq
-            if not "," in row.cdsStart:
-                self.refSeqCds[row.refSeq] = int(row.cdsStart)-1
-            if row.refSeq=="NM_001195798.1":
-                print row
-                assert (self.refSeqCds["NM_001195798.1"]==187)
+            #if not "," in row.cdsStart:
+            self.refSeqCds[row.refSeq] = int(row.cdsStart)-1
         self.seqCache = {}
 
-    def makeStub(self):
-        self.seqCache = {
-        "NP_000518.1": "MGPWGWKLRWTVALLLAAAGTAVGDRCERNEFQCQDGKCISYKWVCDGSAECQDGSDESQETCLSVTCKSGDFSCGGRVNRCIPQFWRCDGQVDCDNGSDEQGCPPKTCSQDEFRCHDGKCISRQFVCDSDRDCLDGSDEASCPVLTCGPASFQCNSSTCIPQLWACDNDPDCEDGSDEWPQRCRGLYVFQGDSSPCSAFEFHCLSGECIHSSWRCDGGPDCKDKSDEENCAVATCRPDEFQCSDGNCIHGSRQCDREYDCKDMSDEVGCVNVTLCEGPNKFKCHSGECITLDKVCNMARDCRDWSDEPIKECGTNECLDNNGGCSHVCNDLKIGYECLCPDGFQLVAQRRCEDIDECQDPDTCSQLCVNLEGGYKCQCEEGFQLDPHTKACKAVGSIAYLFFTNRHEVRKMTLDRSEYTSLIPNLRNVVALDTEVASNRIYWSDLSQRMICSTQLDRAHGVSSYDTVISRDIQAPDGLAVDWIHSNIYWTDSVLGTVSVADTKGVKRKTLFRENGSKPRAIVVDPVHGFMYWTDWGTPAKIKKGGLNGVDIYSLVTENIQWPNGITLDLLSGRLYWVDSKLHSISSIDVNGGNRKTILEDEKRLAHPFSLAVFEDKVFWTDIINEAIFSANRLTGSDVNLLAENLLSPEDMVLFHNLTQPRGVNWCERTTLSNGGCQYLCLPAPQINPHSPKFTCACPDGMLLARDMRSCLTEAEAAVATQETSTVRLKVSSTAVRTQHTTTRPVPDTSRLPGATPGLTTVEIVTMSHQALGDVAGRGNEKKPSSVRALSIVLPIVLLVFLCLGVFLLWKNWRLKNINSINFDNPVYQKTTEDEVHICHNQDGYSYPSRQMVSLEDDVA",
-        "NM_000527.4":"CTCTTGCAGTGAGGTGAAGACATTTGAAAATCACCCCACTGCAAACTCCTCCCCCTGCTAGAAACCTCACATTGAAATGCTGTAAATGACGTGGGCCCCGAGTGCAATCGCGGGAAGCCAGGGTTTCCAGCTAGGACACAGCAGGTCGTGATCCGGGTCGGGACACTGCCTGGCAGAGGCTGCGAGCATGGGGCCCTGGGGCTGGAAATTGCGCTGGACCGTCGCCTTGCTCCTCGCCGCGGCGGGGACTGCAGTGGGCGACAGATGCGAAAGAAACGAGTTCCAGTGCCAAGACGGGAAATGCATCTCCTACAAGTGGGTCTGCGATGGCAGCGCTGAGTGCCAGGATGGCTCTGATGAGTCCCAGGAGACGTGCTTGTCTGTCACCTGCAAATCCGGGGACTTCAGCTGTGGGGGCCGTGTCAACCGCTGCATTCCTCAGTTCTGGAGGTGCGATGGCCAAGTGGACTGCGACAACGGCTCAGACGAGCAAGGCTGTCCCCCCAAGACGTGCTCCCAGGACGAGTTTCGCTGCCACGATGGGAAGTGCATCTCTCGGCAGTTCGTCTGTGACTCAGACCGGGACTGCTTGGACGGCTCAGACGAGGCCTCCTGCCCGGTGCTCACCTGTGGTCCCGCCAGCTTCCAGTGCAACAGCTCCACCTGCATCCCCCAGCTGTGGGCCTGCGACAACGACCCCGACTGCGAAGATGGCTCGGATGAGTGGCCGCAGCGCTGTAGGGGTCTTTACGTGTTCCAAGGGGACAGTAGCCCCTGCTCGGCCTTCGAGTTCCACTGCCTAAGTGGCGAGTGCATCCACTCCAGCTGGCGCTGTGATGGTGGCCCCGACTGCAAGGACAAATCTGACGAGGAAAACTGCGCTGTGGCCACCTGTCGCCCTGACGAATTCCAGTGCTCTGATGGAAACTGCATCCATGGCAGCCGGCAGTGTGACCGGGAATATGACTGCAAGGACATGAGCGATGAAGTTGGCTGCGTTAATGTGACACTCTGCGAGGGACCCAACAAGTTCAAGTGTCACAGCGGCGAATGCATCACCCTGGACAAAGTCTGCAACATGGCTAGAGACTGCCGGGACTGGTCAGATGAACCCATCAAAGAGTGCGGGACCAACGAATGCTTGGACAACAACGGCGGCTGTTCCCACGTCTGCAATGACCTTAAGATCGGCTACGAGTGCCTGTGCCCCGACGGCTTCCAGCTGGTGGCCCAGCGAAGATGCGAAGATATCGATGAGTGTCAGGATCCCGACACCTGCAGCCAGCTCTGCGTGAACCTGGAGGGTGGCTACAAGTGCCAGTGTGAGGAAGGCTTCCAGCTGGACCCCCACACGAAGGCCTGCAAGGCTGTGGGCTCCATCGCCTACCTCTTCTTCACCAACCGGCACGAGGTCAGGAAGATGACGCTGGACCGGAGCGAGTACACCAGCCTCATCCCCAACCTGAGGAACGTGGTCGCTCTGGACACGGAGGTGGCCAGCAATAGAATCTACTGGTCTGACCTGTCCCAGAGAATGATCTGCAGCACCCAGCTTGACAGAGCCCACGGCGTCTCTTCCTATGACACCGTCATCAGCAGAGACATCCAGGCCCCCGACGGGCTGGCTGTGGACTGGATCCACAGCAACATCTACTGGACCGACTCTGTCCTGGGCACTGTCTCTGTTGCGGATACCAAGGGCGTGAAGAGGAAAACGTTATTCAGGGAGAACGGCTCCAAGCCAAGGGCCATCGTGGTGGATCCTGTTCATGGCTTCATGTACTGGACTGACTGGGGAACTCCCGCCAAGATCAAGAAAGGGGGCCTGAATGGTGTGGACATCTACTCGCTGGTGACTGAAAACATTCAGTGGCCCAATGGCATCACCCTAGATCTCCTCAGTGGCCGCCTCTACTGGGTTGACTCCAAACTTCACTCCATCTCAAGCATCGATGTCAACGGGGGCAACCGGAAGACCATCTTGGAGGATGAAAAGAGGCTGGCCCACCCCTTCTCCTTGGCCGTCTTTGAGGACAAAGTATTTTGGACAGATATCATCAACGAAGCCATTTTCAGTGCCAACCGCCTCACAGGTTCCGATGTCAACTTGTTGGCTGAAAACCTACTGTCCCCAGAGGATATGGTTCTCTTCCACAACCTCACCCAGCCAAGAGGAGTGAACTGGTGTGAGAGGACCACCCTGAGCAATGGCGGCTGCCAGTATCTGTGCCTCCCTGCCCCGCAGATCAACCCCCACTCGCCCAAGTTTACCTGCGCCTGCCCGGACGGCATGCTGCTGGCCAGGGACATGAGGAGCTGCCTCACAGAGGCTGAGGCTGCAGTGGCCACCCAGGAGACATCCACCGTCAGGCTAAAGGTCAGCTCCACAGCCGTAAGGACACAGCACACAACCACCCGACCTGTTCCCGACACCTCCCGGCTGCCTGGGGCCACCCCTGGGCTCACCACGGTGGAGATAGTGACAATGTCTCACCAAGCTCTGGGCGACGTTGCTGGCAGAGGAAATGAGAAGAAGCCCAGTAGCGTGAGGGCTCTGTCCATTGTCCTCCCCATCGTGCTCCTCGTCTTCCTTTGCCTGGGGGTCTTCCTTCTATGGAAGAACTGGCGGCTTAAGAACATCAACAGCATCAACTTTGACAACCCCGTCTATCAGAAGACCACAGAGGATGAGGTCCACATTTGCCACAACCAGGACGGCTACAGCTACCCCTCGAGACAGATGGTCAGTCTGGAGGATGACGTGGCGTGAACATCTGCCTGGAGTCCCGTCCCTGCCCAGAACCCTTCCTGAGACCTCGCCGGCCTTGTTTTATTCAAAGACAGAGAAGACCAAAGCATTGCCTGCCAGAGCTTTGTTTTATATATTTATTCATCTGGGAGGCAGAACAGGCTTCGGACAGTGCCCATGCAATGGCTTGGGTTGGGATTTTGGTTTCTTCCTTTCCTCGTGAAGGATAAGAGAAACAGGCCCGGGGGGACCAGGATGACACCTCCATTTCTCTCCAGGAAGTTTTGAGTTTCTCTCCACCGTGACACAATCCTCAAACATGGAAGATGAAAGGGGAGGGGATGTCAGGCCCAGAGAAGCAAGTGGCTTTCAACACACAACAGCAGATGGCACCAACGGGACCCCCTGGCCCTGCCTCATCCACCAATCTCTAAGCCAAACCCCTAAACTCAGGAGTCAACGTGTTTACCTCTTCTATGCAAGCCTTGCTAGACAGCCAGGTTAGCCTTTGCCCTGTCACCCCCGAATCATGACCCACCCAGTGTCTTTCGAGGTGGGTTTGTACCTTCCTTAAGCCAGGAAAGGGATTCATGGCGTCGGAAATGATCTGGCTGAATCCGTGGTGGCACCGAGACCAAACTCATTCACCAAATGATGCCACTTCCCAGAGGCAGAGCCTGAGTCACTGGTCACCCTTAATATTTATTAAGTGCCTGAGACACCCGGTTACCTTGGCCGTGAGGACACGTGGCCTGCACCCAGGTGTGGCTGTCAGGACACCAGCCTGGTGCCCATCCTCCCGACCCCTACCCACTTCCATTCCCGTGGTCTCCTTGCACTTTCTCAGTTCAGAGTTGTACACTGTGTACATTTGGCATTTGTGTTATTATTTTGCACTGTTTTCTGTCGTGTGTGTTGGGATGGGATCCCAGGCCAGGGAAAGCCCGTGTCAATGAATGCCGGGGACAGAGAGGGGCAGGTTGACCGGGACTTCAAAGCCGTGATCGTGAATATCGAGAACTGCCATTGTCGTCTTTATGTCCGCCCACCTAGTGCTTCCACTTCTATGCAAATGCCTCCAAGCCATTCACTTCCCCAATCTTGTCGTTGATGGGTATGTGTTTAAAACATGCACGGTGAGGCCGGGCGCAGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGTGGATCATGAGGTCAGGAGATCGAGACCATCCTGGCTAACACGTGAAACCCCGTCTCTACTAAAAATACAAAAAATTAGCCGGGCGTGGTGGCGGGCACCTGTAGTCCCAGCTACTCGGGAGGCTGAGGCAGGAGAATGGTGTGAACCCGGGAAGCGGAGCTTGCAGTGAGCCGAGATTGCGCCACTGCAGTCCGCAGTCTGGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAAAAAAAAACAAAAAAAAACCATGCATGGTGCATCAGCAGCCCATGGCCTCTGGCCAGGCATGGCGAGGCTGAGGTGGGAGGATGGTTTGAGCTCAGGCATTTGAGGCTGTCGTGAGCTATGATTATGCCACTGCTTTCCAGCCTGGGCAACATAGTAAGACCCCATCTCTTAAAAAATGAATTTGGCCAGACACAGGTGCCTCACGCCTGTAATCCCAGCACTTTGGGAGGCTGAGCTGGATCACTTGAGTTCAGGAGTTGGAGACCAGGCCTGAGCAACAAAGCGAGATCCCATCTCTACAAAAACCAAAAAGTTAAAAATCAGCTGGGTACGGTGGCACGTGCCTGTGATCCCAGCTACTTGGGAGGCTGAGGCAGGAGGATCGCCTGAGCCCAGGAGGTGGAGGTTGCAGTGAGCCATGATCGAGCCACTGCACTCCAGCCTGGGCAACAGATGAAGACCCTATTTCAGAAATACAACTATAAAAAAATAAATAAATCCTCCAGTCTGGATCGTTTGACGGGACTTCAGGTTCTTTCTGAAATCGCCGTGTTACTGTTGCACTGATGTCCGGAGAGACAGTGACAGCCTCCGTCAGACTCCCGCGTGAAGATGTCACAAGGGATTGGCAATTGTCCCCAGGGACAAAACACTGTGTCCCCCCCAGTGCAGGGAACCGTGATAAGCCTTTCTGGTTTCGGAGCACGTAAATGCGTCCCTGTACAGATAGTGGGGATTTTTTGTTATGTTTGCACTTTGTATATTGGTTGAAACTGTTATCACTTATATATATATATATACACACATATATATAAAATCTATTTATTTTTGCAAACCCTGGTTGCTGTATTTGTTCAGTGACTATTCTCGGGGCCCTGTGTAGGGGGTTATTGCCTCTGAAATGCCTCTTCTTTATGTACAAAGATTATTTGCACGAACTGGACTGTGTGCAACGCTTTTTGGGAGAATGATGTCCCCGTTGTATGTATGAGTGGCTTCTGGGAGATGGGTGTCACTTTTTAAACCACTGTATAGAAGGTTTTTGTAGCCTGAATGTCTTACTGTGATCAATTAAATTTCTTAAATGAACCAATTTGTCTAAAAAAAAAAA"
-        }
-        self.refSeqCds["NM_000527.4"] = 187
+        # refseq to genome
+        liftFname = join(mutDataDir, "refGene.%s.psl.dbm" % taxId)
+        logging.debug("Opening %s" % liftFname)
+        self.refGenePsls = gdbm.open(liftFname, "r")
+        #self.protMap = pslMapBed.indexPsls(liftFname)
+        self.refGenePslCache = {}
+
+        logging.info("Reading of data finished")
 
     def getSeq(self, seqId):
         " get seq from db , cache results "
+        seqId = str(seqId) # gdbm doesn't like unicode
         if seqId not in self.seqCache:
             comprSeq = self.seqs[seqId]
             seq = zlib.decompress(comprSeq)
@@ -330,15 +348,19 @@ class SeqData(object):
         assert(False)
 
     def entrezToSym(self, entrezGene):
-        geneSym = self.entrez2sym[entrezGene]
-        logging.debug("Entrez gene %s = symbol %s" % (entrezGene, geneSym))
-        return geneSym
+        entrezGene = int(entrezGene)
+        if entrezGene in self.entrez2sym:
+            geneSym = self.entrez2sym[entrezGene]
+            logging.debug("Entrez gene %s = symbol %s" % (entrezGene, geneSym))
+            return geneSym
+        else:
+            return None
 
     def entrezToRefseqProts(self, entrezGene):
         " map entrez gene to refseq prots like NP_xxx "
         if entrezGene not in self.entrez2refprots:
-            logging.debug("gene %d is not valid or not in selected species")
-            return None, None
+            logging.debug("gene %d is not valid or not in selected species" % entrezGene)
+            return []
         protIds = self.entrez2refprots[entrezGene]
         logging.debug("Entrez gene %s is mapped to proteins %s" % \
             (entrezGene, ",".join(protIds)))
@@ -358,6 +380,32 @@ class SeqData(object):
 
     def getRefSeqId(self, refProtId):
         return self.refProtToRefSeq[refProtId]
+
+    def getRefseqPsls(self, refseqId):
+        """ return psl objects for regseq Id
+            as Gb doesn't support version numbers, stripping those 
+        """
+        logging.debug("Getting mapping psl for %s" % refseqId)
+        refseqId = str(refseqId.split(".")[0])
+        if refseqId in self.refGenePslCache:
+            psls = self.refGenePslCache[refseqId]
+        else:
+            #print repr(refseqId)
+            #print self.refGenePsls[str('NM_000527.4')]
+            pslLines = self.refGenePsls[refseqId]
+            psls = []
+            for line in pslLines.split("\n"):
+                psl = Psl(line.split("\t"))
+                psls.append(psl)
+            self.refGenePslCache[refseqId] = psls
+        return psls
+
+    def makeStub(self):
+        self.seqCache = {
+        "NP_000518.1": "MGPWGWKLRWTVALLLAAAGTAVGDRCERNEFQCQDGKCISYKWVCDGSAECQDGSDESQETCLSVTCKSGDFSCGGRVNRCIPQFWRCDGQVDCDNGSDEQGCPPKTCSQDEFRCHDGKCISRQFVCDSDRDCLDGSDEASCPVLTCGPASFQCNSSTCIPQLWACDNDPDCEDGSDEWPQRCRGLYVFQGDSSPCSAFEFHCLSGECIHSSWRCDGGPDCKDKSDEENCAVATCRPDEFQCSDGNCIHGSRQCDREYDCKDMSDEVGCVNVTLCEGPNKFKCHSGECITLDKVCNMARDCRDWSDEPIKECGTNECLDNNGGCSHVCNDLKIGYECLCPDGFQLVAQRRCEDIDECQDPDTCSQLCVNLEGGYKCQCEEGFQLDPHTKACKAVGSIAYLFFTNRHEVRKMTLDRSEYTSLIPNLRNVVALDTEVASNRIYWSDLSQRMICSTQLDRAHGVSSYDTVISRDIQAPDGLAVDWIHSNIYWTDSVLGTVSVADTKGVKRKTLFRENGSKPRAIVVDPVHGFMYWTDWGTPAKIKKGGLNGVDIYSLVTENIQWPNGITLDLLSGRLYWVDSKLHSISSIDVNGGNRKTILEDEKRLAHPFSLAVFEDKVFWTDIINEAIFSANRLTGSDVNLLAENLLSPEDMVLFHNLTQPRGVNWCERTTLSNGGCQYLCLPAPQINPHSPKFTCACPDGMLLARDMRSCLTEAEAAVATQETSTVRLKVSSTAVRTQHTTTRPVPDTSRLPGATPGLTTVEIVTMSHQALGDVAGRGNEKKPSSVRALSIVLPIVLLVFLCLGVFLLWKNWRLKNINSINFDNPVYQKTTEDEVHICHNQDGYSYPSRQMVSLEDDVA",
+        "NM_000527.4":"CTCTTGCAGTGAGGTGAAGACATTTGAAAATCACCCCACTGCAAACTCCTCCCCCTGCTAGAAACCTCACATTGAAATGCTGTAAATGACGTGGGCCCCGAGTGCAATCGCGGGAAGCCAGGGTTTCCAGCTAGGACACAGCAGGTCGTGATCCGGGTCGGGACACTGCCTGGCAGAGGCTGCGAGCATGGGGCCCTGGGGCTGGAAATTGCGCTGGACCGTCGCCTTGCTCCTCGCCGCGGCGGGGACTGCAGTGGGCGACAGATGCGAAAGAAACGAGTTCCAGTGCCAAGACGGGAAATGCATCTCCTACAAGTGGGTCTGCGATGGCAGCGCTGAGTGCCAGGATGGCTCTGATGAGTCCCAGGAGACGTGCTTGTCTGTCACCTGCAAATCCGGGGACTTCAGCTGTGGGGGCCGTGTCAACCGCTGCATTCCTCAGTTCTGGAGGTGCGATGGCCAAGTGGACTGCGACAACGGCTCAGACGAGCAAGGCTGTCCCCCCAAGACGTGCTCCCAGGACGAGTTTCGCTGCCACGATGGGAAGTGCATCTCTCGGCAGTTCGTCTGTGACTCAGACCGGGACTGCTTGGACGGCTCAGACGAGGCCTCCTGCCCGGTGCTCACCTGTGGTCCCGCCAGCTTCCAGTGCAACAGCTCCACCTGCATCCCCCAGCTGTGGGCCTGCGACAACGACCCCGACTGCGAAGATGGCTCGGATGAGTGGCCGCAGCGCTGTAGGGGTCTTTACGTGTTCCAAGGGGACAGTAGCCCCTGCTCGGCCTTCGAGTTCCACTGCCTAAGTGGCGAGTGCATCCACTCCAGCTGGCGCTGTGATGGTGGCCCCGACTGCAAGGACAAATCTGACGAGGAAAACTGCGCTGTGGCCACCTGTCGCCCTGACGAATTCCAGTGCTCTGATGGAAACTGCATCCATGGCAGCCGGCAGTGTGACCGGGAATATGACTGCAAGGACATGAGCGATGAAGTTGGCTGCGTTAATGTGACACTCTGCGAGGGACCCAACAAGTTCAAGTGTCACAGCGGCGAATGCATCACCCTGGACAAAGTCTGCAACATGGCTAGAGACTGCCGGGACTGGTCAGATGAACCCATCAAAGAGTGCGGGACCAACGAATGCTTGGACAACAACGGCGGCTGTTCCCACGTCTGCAATGACCTTAAGATCGGCTACGAGTGCCTGTGCCCCGACGGCTTCCAGCTGGTGGCCCAGCGAAGATGCGAAGATATCGATGAGTGTCAGGATCCCGACACCTGCAGCCAGCTCTGCGTGAACCTGGAGGGTGGCTACAAGTGCCAGTGTGAGGAAGGCTTCCAGCTGGACCCCCACACGAAGGCCTGCAAGGCTGTGGGCTCCATCGCCTACCTCTTCTTCACCAACCGGCACGAGGTCAGGAAGATGACGCTGGACCGGAGCGAGTACACCAGCCTCATCCCCAACCTGAGGAACGTGGTCGCTCTGGACACGGAGGTGGCCAGCAATAGAATCTACTGGTCTGACCTGTCCCAGAGAATGATCTGCAGCACCCAGCTTGACAGAGCCCACGGCGTCTCTTCCTATGACACCGTCATCAGCAGAGACATCCAGGCCCCCGACGGGCTGGCTGTGGACTGGATCCACAGCAACATCTACTGGACCGACTCTGTCCTGGGCACTGTCTCTGTTGCGGATACCAAGGGCGTGAAGAGGAAAACGTTATTCAGGGAGAACGGCTCCAAGCCAAGGGCCATCGTGGTGGATCCTGTTCATGGCTTCATGTACTGGACTGACTGGGGAACTCCCGCCAAGATCAAGAAAGGGGGCCTGAATGGTGTGGACATCTACTCGCTGGTGACTGAAAACATTCAGTGGCCCAATGGCATCACCCTAGATCTCCTCAGTGGCCGCCTCTACTGGGTTGACTCCAAACTTCACTCCATCTCAAGCATCGATGTCAACGGGGGCAACCGGAAGACCATCTTGGAGGATGAAAAGAGGCTGGCCCACCCCTTCTCCTTGGCCGTCTTTGAGGACAAAGTATTTTGGACAGATATCATCAACGAAGCCATTTTCAGTGCCAACCGCCTCACAGGTTCCGATGTCAACTTGTTGGCTGAAAACCTACTGTCCCCAGAGGATATGGTTCTCTTCCACAACCTCACCCAGCCAAGAGGAGTGAACTGGTGTGAGAGGACCACCCTGAGCAATGGCGGCTGCCAGTATCTGTGCCTCCCTGCCCCGCAGATCAACCCCCACTCGCCCAAGTTTACCTGCGCCTGCCCGGACGGCATGCTGCTGGCCAGGGACATGAGGAGCTGCCTCACAGAGGCTGAGGCTGCAGTGGCCACCCAGGAGACATCCACCGTCAGGCTAAAGGTCAGCTCCACAGCCGTAAGGACACAGCACACAACCACCCGACCTGTTCCCGACACCTCCCGGCTGCCTGGGGCCACCCCTGGGCTCACCACGGTGGAGATAGTGACAATGTCTCACCAAGCTCTGGGCGACGTTGCTGGCAGAGGAAATGAGAAGAAGCCCAGTAGCGTGAGGGCTCTGTCCATTGTCCTCCCCATCGTGCTCCTCGTCTTCCTTTGCCTGGGGGTCTTCCTTCTATGGAAGAACTGGCGGCTTAAGAACATCAACAGCATCAACTTTGACAACCCCGTCTATCAGAAGACCACAGAGGATGAGGTCCACATTTGCCACAACCAGGACGGCTACAGCTACCCCTCGAGACAGATGGTCAGTCTGGAGGATGACGTGGCGTGAACATCTGCCTGGAGTCCCGTCCCTGCCCAGAACCCTTCCTGAGACCTCGCCGGCCTTGTTTTATTCAAAGACAGAGAAGACCAAAGCATTGCCTGCCAGAGCTTTGTTTTATATATTTATTCATCTGGGAGGCAGAACAGGCTTCGGACAGTGCCCATGCAATGGCTTGGGTTGGGATTTTGGTTTCTTCCTTTCCTCGTGAAGGATAAGAGAAACAGGCCCGGGGGGACCAGGATGACACCTCCATTTCTCTCCAGGAAGTTTTGAGTTTCTCTCCACCGTGACACAATCCTCAAACATGGAAGATGAAAGGGGAGGGGATGTCAGGCCCAGAGAAGCAAGTGGCTTTCAACACACAACAGCAGATGGCACCAACGGGACCCCCTGGCCCTGCCTCATCCACCAATCTCTAAGCCAAACCCCTAAACTCAGGAGTCAACGTGTTTACCTCTTCTATGCAAGCCTTGCTAGACAGCCAGGTTAGCCTTTGCCCTGTCACCCCCGAATCATGACCCACCCAGTGTCTTTCGAGGTGGGTTTGTACCTTCCTTAAGCCAGGAAAGGGATTCATGGCGTCGGAAATGATCTGGCTGAATCCGTGGTGGCACCGAGACCAAACTCATTCACCAAATGATGCCACTTCCCAGAGGCAGAGCCTGAGTCACTGGTCACCCTTAATATTTATTAAGTGCCTGAGACACCCGGTTACCTTGGCCGTGAGGACACGTGGCCTGCACCCAGGTGTGGCTGTCAGGACACCAGCCTGGTGCCCATCCTCCCGACCCCTACCCACTTCCATTCCCGTGGTCTCCTTGCACTTTCTCAGTTCAGAGTTGTACACTGTGTACATTTGGCATTTGTGTTATTATTTTGCACTGTTTTCTGTCGTGTGTGTTGGGATGGGATCCCAGGCCAGGGAAAGCCCGTGTCAATGAATGCCGGGGACAGAGAGGGGCAGGTTGACCGGGACTTCAAAGCCGTGATCGTGAATATCGAGAACTGCCATTGTCGTCTTTATGTCCGCCCACCTAGTGCTTCCACTTCTATGCAAATGCCTCCAAGCCATTCACTTCCCCAATCTTGTCGTTGATGGGTATGTGTTTAAAACATGCACGGTGAGGCCGGGCGCAGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGTGGATCATGAGGTCAGGAGATCGAGACCATCCTGGCTAACACGTGAAACCCCGTCTCTACTAAAAATACAAAAAATTAGCCGGGCGTGGTGGCGGGCACCTGTAGTCCCAGCTACTCGGGAGGCTGAGGCAGGAGAATGGTGTGAACCCGGGAAGCGGAGCTTGCAGTGAGCCGAGATTGCGCCACTGCAGTCCGCAGTCTGGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAAAAAAAAACAAAAAAAAACCATGCATGGTGCATCAGCAGCCCATGGCCTCTGGCCAGGCATGGCGAGGCTGAGGTGGGAGGATGGTTTGAGCTCAGGCATTTGAGGCTGTCGTGAGCTATGATTATGCCACTGCTTTCCAGCCTGGGCAACATAGTAAGACCCCATCTCTTAAAAAATGAATTTGGCCAGACACAGGTGCCTCACGCCTGTAATCCCAGCACTTTGGGAGGCTGAGCTGGATCACTTGAGTTCAGGAGTTGGAGACCAGGCCTGAGCAACAAAGCGAGATCCCATCTCTACAAAAACCAAAAAGTTAAAAATCAGCTGGGTACGGTGGCACGTGCCTGTGATCCCAGCTACTTGGGAGGCTGAGGCAGGAGGATCGCCTGAGCCCAGGAGGTGGAGGTTGCAGTGAGCCATGATCGAGCCACTGCACTCCAGCCTGGGCAACAGATGAAGACCCTATTTCAGAAATACAACTATAAAAAAATAAATAAATCCTCCAGTCTGGATCGTTTGACGGGACTTCAGGTTCTTTCTGAAATCGCCGTGTTACTGTTGCACTGATGTCCGGAGAGACAGTGACAGCCTCCGTCAGACTCCCGCGTGAAGATGTCACAAGGGATTGGCAATTGTCCCCAGGGACAAAACACTGTGTCCCCCCCAGTGCAGGGAACCGTGATAAGCCTTTCTGGTTTCGGAGCACGTAAATGCGTCCCTGTACAGATAGTGGGGATTTTTTGTTATGTTTGCACTTTGTATATTGGTTGAAACTGTTATCACTTATATATATATATATACACACATATATATAAAATCTATTTATTTTTGCAAACCCTGGTTGCTGTATTTGTTCAGTGACTATTCTCGGGGCCCTGTGTAGGGGGTTATTGCCTCTGAAATGCCTCTTCTTTATGTACAAAGATTATTTGCACGAACTGGACTGTGTGCAACGCTTTTTGGGAGAATGATGTCCCCGTTGTATGTATGAGTGGCTTCTGGGAGATGGGTGTCACTTTTTAAACCACTGTATAGAAGGTTTTTGTAGCCTGAATGTCTTACTGTGATCAATTAAATTTCTTAAATGAACCAATTTGTCTAAAAAAAAAAA"
+        }
+        self.refSeqCds["NM_000527.4"] = 187
 
 Mention = namedtuple("Mention", "patName,start,end")
 
@@ -419,6 +467,8 @@ def parseMatch(match, patName):
     if "mutDna" in groups:
         mutSeq = groups["mutDna"]
         seqType = "dna"
+    mutSeq = mutSeq.upper()
+    origSeq = origSeq.upper()
 
     if "fromPos" in groups:
         protStart = int(groups["fromPos"])-1
@@ -461,10 +511,10 @@ def findVariants(regexes, text):
             for match in pat.finditer(text):
                 logging.debug("Match: Pattern %s, text %s" % (patName, match.groups()))
                 variant, mention = parseMatch(match, patName)
-                varDescObj[variant.posDesc()] = variant
                 if variant!=None:
+                    varDescObj[variant.posDesc()] = variant
                     varMentions[variant.posDesc()].append(mention)
-                    debugSnip = pubAlg.getSnippet(text, mention.start, mention.end, maxContext=10)
+                    debugSnip = pubAlg.getSnippet(text, mention.start, mention.end, maxContext=60)
                     logging.debug("Found Variant: %s, snippet %s" % (str(variant), debugSnip))
 
     # convert to list of (variant, mentions)
@@ -483,25 +533,14 @@ def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq):
         desc = "%s:r.%d%s>%s" % (seqId, pos+1, origSeq, mutSeq)
     return desc
   
-def makeHgvsSub(hgvsType, protVars):
+def makeHgvsSub(hgvsType, variants):
    " create |-sep HGVS stringlist for all seqIds and a mutation"
+   #logging.debug("Creating HGVS type %s for vars %s" % (hgvsType, variants))
    ret = []
-   for protVar in protVars:
+   for protVar in variants:
        hgvsStr = makeHgvsStr(hgvsType, protVar.seqId, protVar.origSeq, protVar.start, protVar.mutSeq)
        ret.append(hgvsStr)
    return "|".join(ret)
-
-#def indexPsls(fname):
-#    psl = kent.psl.pslLoadAll(fname)
-#    pslIdx = {}
-#    while psl:
-#        pslIdx[str(psl.contents.qName)] = psl
-#        psl = psl.contents.next
-#    # memory leak, struct behind p not freed
-#    return pslIdx
-    
-protMap = pslMapBed.indexPsls("toRefseq/protMap/work/protToTrans.psl", isProt=True)
-#protMap = indexPsls("toRefseq/protMap/work/protToTrans.psl")
 
 def firstDiffNucl(str1, str2):
     """Return pos and letters where strings differ. Returns None if more than one diff char"""
@@ -533,6 +572,7 @@ def possibleDnaChanges(origAa, mutAa, origDna):
     >>> possibleDnaChanges("G", "G", "GGC")
     [(2, 'C', 'T'), (2, 'C', 'G'), (2, 'C', 'A')]
     """
+    origDna = origDna.upper()
     ret = set()
     mutDnas = backTrans(mutAa)
     logging.debug("Looking for possible DNA change. Aa change %s -> %s, original dna %s" % (origAa, mutAa, origDna))
@@ -582,7 +622,7 @@ def translate(dna):
     " return the aa translation of a dna seq "
     aaSeq = []
     for i in range(0, len(dna), 3):
-        codon = dna[i:i+3]
+        codon = dna[i:i+3].upper()
         aa = dnaToAa[codon]
         aaSeq.append(aa)
     return "".join(aaSeq)
@@ -594,7 +634,7 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     """
     logging.debug("Checking if codons from %d-%d in %s correspond to %s" % 
         (start, end, refseqId, expectAa))
-    cdsStart    = geneData.getCdsStart(refseqId)
+    cdsStart    = geneData.getCdsStart(str(refseqId))
     nuclStart   = cdsStart + (3*start)
     nuclEnd     = nuclStart + 3*(end-start)
     cdnaSeq     = geneData.getSeq(refseqId)
@@ -629,34 +669,12 @@ def mapToCodingAndRna(protVars):
     #return "|".join(ret)
     return codVars, rnaVars
 
-def hgvsMapProtToCdna(protIds, mut):
-    " map mutation through psl to get cdna positions "
-    ret = []
-    maker = pslMapBed.PslMapBedMaker()
-    for protId in protIds:
-        pslList = protMap[protId]
-        assert(len(pslList)==1)
-        psl = pslList[0]
-        bed = maker.mapQuery(psl, mut.start*3, mut.end*3)
-        liftStart = int(bed[1])
-        liftEnd   = int(bed[2])
-        tName    = bed[0]
-        #fakePsl = bedToPsl(protId, 860, mut.start, mut.end, "test")
-        #mappedPsl = kent.pslTransMap.pslTransMap(0, fakePsl, mapPsl)
-        #if mappedPsl:
-        #    tName = mappedPsl.contents.tName
-        #    tStart = mappedPsl.contents.tStart
-        #    tEnd = mappedPsl.contents.tEnd
-        hgvsStr = makeHgvsStr("r", tName, mut.orig, liftStart, mut.mut)
-        assert(3*(mut.end-mut.start) == liftEnd-liftStart) # can't do if over splice site
-        ret.append(hgvsStr)
-    return "|".join(ret)
-
 class SeqVariant(object):
     " a variant grounded on a sequence, with pieces from the text "
     __slots__ = mutFields
 
-    def __init__(self, protVars, codVars, rnaVars, entrezGene, geneSym, mentions, text):
+    def __init__(self, varId, protVars, codVars, rnaVars, entrezGene, geneSym, mentions, text):
+        self.varId   = varId
         self.patType = "sub"
         self.seqType = "prot"
         self.chrom      = ""
@@ -706,7 +724,7 @@ def ungroundedMutsToFakeSeqVariants(ungroundedMuts, text):
     """
     muts = []
     for mut, mentions in ungroundedMuts:
-        muts.append(SeqVariant([], [], [], "", "", mentions, text))
+        muts.append(SeqVariant("", [], [], [], "", "", mentions, text))
     return muts
 
 def isSeqCorrect(protId, variant):
@@ -775,33 +793,62 @@ def mapToRefProt(db, variant, protIds):
         seqIdLocs.append((protId, newPos))
     return seqIdLocs
         
-def groundMutations(text, mutations, genes):
+def mapToGenome(rnaVars, bedName):
+    " map to genome, remove duplicate results"
+    logging.debug("Mapping rnaVars %s to genome" % rnaVars)
+    maker = pslMapBed.PslMapBedMaker()
+    beds = []
+    doneBeds = set()
+    for rnaVar in rnaVars:
+        maker.clear()
+        # get psl
+        pslList = geneData.getRefseqPsls(rnaVar.seqId)
+        assert(len(pslList)==1)
+        mapPsl = pslList[0]
+        maker.mapQuery(mapPsl, rnaVar.start, rnaVar.end)
+        bed = maker.getBed(name=bedName)
+        if bed not in doneBeds:
+            beds.append(bed)
+        doneBeds.add(bed)
+        logging.debug("Got bed: %s" % str(bed))
+    return beds
+    
+def groundMutations(docId, text, mutations, genes):
     """ ground mutations onto genes and return """
     groundedMuts = []
     ungroundedMuts = []
 
+    varCount=1
+    allBeds = []
     for variant, mentions in mutations:
-        logging.debug("Trying to validate mutation %s onto genes %s" % (variant, genes))
+        logging.debug("Grounding mutation %s onto genes %s" % (variant, genes))
         # try all entrez genes in article
         for entrezGene in genes:
             geneSym = geneData.entrezToSym(entrezGene)
+            if not geneSym:
+                logging.warn("No symbol for entrez gene %s ??" % str(entrezGene))
+                continue
             db, protIds = tryProteinDbs(variant, entrezGene)
-            if len(protIds)!=0:
-                # map start position to refprot level
+            if len(protIds)==0:
+                ungroundedMuts.append((variant,  mentions))
+            else:
                 if db=="refseq":
                     protVars = rewriteToRefProt(variant, protIds)
                 else:
                     protVars = mapToRefProt(variant, protIds)
 
-                # create dna variants
+                # create dna variants on various levels
+                varId             = str(docId)+"_"+str(varCount)
                 codVars, rnaVars  = mapToCodingAndRna(protVars)
-                genomeVars = mapToGenome(rnaMuts)
-                groundedMuts.append(SeqVariant(protVars, codVars, rnaVars, entrezGene, geneSym, mentions, text))
-            else:
-                ungroundedMuts.append((variant,  mentions))
+                beds = mapToGenome(rnaVars, varId)
+
+                groundedMuts.append(SeqVariant(varId, protVars, codVars, rnaVars, entrezGene, \
+                    geneSym, mentions, text))
+                allBeds.extend(beds)
+            varCount += 1
 
     ungroundedMuts = ungroundedMutsToFakeSeqVariants(ungroundedMuts, text)
-    return groundedMuts, ungroundedMuts
+    return groundedMuts, ungroundedMuts, allBeds
 
 def writeHeaders(outFh):
     prefixHeaders = ["docId", "isConfirmed"]
@@ -824,11 +871,14 @@ def findInLocalFile(inFname, writer, regexes):
         genes = []
         groundedMuts = []
         ungroundMuts = ungroundedMutsToFakeSeqVariants(variants, text)
+        beds = []
     else:
         genes = genes["entrez"]
-        groundedMuts, ungroundMuts = groundMutations(text, variants, genes)
-    writer.writeMuts(pmid, "confirmed", groundedMuts)
-    writer.writeMuts(pmid, "notConfirmed", ungroundMuts)
+        groundedMuts, ungroundMuts, beds = groundMutations(pmid, text, variants, genes)
+        # XX currently do not run if there is not entrez gene data
+        writer.writeMuts(pmid, "confirmed", groundedMuts)
+        writer.writeMuts(pmid, "notConfirmed", ungroundMuts)
+        writer.writeBeds(beds)
 
 def findInLocalDir(inDir, writer, regexes):
     for fname in glob.glob(join(inDir, "*.txt")):
@@ -836,11 +886,27 @@ def findInLocalDir(inDir, writer, regexes):
         findInLocalFile(fname, writer, regexes)
 
 class OutputWriter(object):
-    def __init__(self, outFname):
+    def __init__(self, outFname, benchFname=None):
         self.outFh = maxTables.openFile(outFname, "w")
+        self.bedFh = maxTables.openFile(outFname+".bed", "w")
         writeHeaders(self.outFh)
 
+        # benchmarking stuff
+        self.docCount = 0
+        self.mutCount = 0
+        self.target = None
+        self.mutHits = 0
+        if benchFname:
+            self._parseBench(benchFname)
+
+    def _parseBench(self, fname):
+        logging.debug("Parsing benchmark file %s" % fname)
+        self.target = defaultdict(list)
+        for row in maxCommon.iterTsvRows(fname):
+            self.target[row.Mapping_reference].append(row.HGVS)
+            
     def writeMuts(self, docId, status, muts):
+        self._updateBenchmark(docId, muts)
         for mut in muts:
             prefixFields=[docId, status]
             self.outFh.write("\t".join(prefixFields)+"\t")
@@ -849,6 +915,30 @@ class OutputWriter(object):
             row = [r.replace("\t", " ") for r in row]
             self.outFh.write("\t".join(row))
             self.outFh.write("\n")
+
+    def writeBeds(self, beds):
+        for bed in beds:
+            self.bedFh.write("\t".join(bed))
+            self.bedFh.write("\n")
+
+    def _updateBenchmark(self, docId, muts):
+        if self.target==None:
+            return
+
+        self.docCount += 1
+        refs = self.target[docId]
+        for mut in muts:
+            self.mutCount += 1
+            mutFound = False
+            for hgvs in mut.hgvsCoding.split("|"):
+                if hgvs in refs:
+                    mutFound = True
+                    break
+            if mutFound:
+                self.mutHits += 1
+
+    def printBenchmark(self):
+        print "%d documents processed, %d mutations output, %d hits" % (self.docCount, self.mutCount, self.mutHits)
 
     def close(self):
         self.outFh.close()
@@ -868,7 +958,7 @@ def main(args, options):
     geneData = SeqData(mutDataDir, 9606)
     regexes = parseRegex(mutDataDir)
 
-    writer = OutputWriter(outFname)
+    writer = OutputWriter(outFname, "mutation_annotations.coding.tab")
 
     if isfile(inFname):
         findInLocalFile(inFname, writer, regexes)
@@ -879,6 +969,7 @@ def main(args, options):
 
     logging.info("Wrote output to %s" % outFname)
 
+    writer.printBenchmark()
     writer.close()
 
     #protSizeFname = join(mutDataDir, "uniprot.%s.prot.fa.size")

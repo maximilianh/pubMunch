@@ -120,6 +120,7 @@ _pubsDir = "/hive/data/inside/pubs"
 loadDatasets = ["elsevier", "pmc", "crawler"]
 
 TEMPDIR = "/tmp/pubTools" # local filesystem on cluster nodes
+FASTTEMPDIR = TEMPDIR
 
 maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
@@ -473,7 +474,14 @@ if os.path.isfile(confName):
 def getConverters():
     return CONVERTERS
 
+def getFastTempDir():
+    " some fast local temp, possibly a ramdisk "
+    if not os.path.isdir(FASTTEMPDIR):
+        os.makedirs(FASTTEMPDIR)
+    return FASTTEMPDIR
+
 def getTempDir():
+    " create temp dir, try to resolve race conditions "
     if not os.path.isdir(TEMPDIR):
         time.sleep(random.randint(1,5)) # make sure that we are not all trying to create it at the same time
         if not os.path.isdir(TEMPDIR):

@@ -90,6 +90,30 @@ confDict = {
     "oup" :
         highwireCfg["Oxford University Press"],
 
+    "pmc" :
+    # not used at UCSC
+    # caveats: we always keep html, can't distinguish between PDF-only and 
+    # and HTML/PDF articles
+    # supplementals might not always work, tested only on PLOS
+    # only gets the first supplemental file
+    {
+        "hostnames" : ["www.ncbi.nlm.nih.gov"],
+        "landingUrl_fulltextUrl_append" : "pdf",
+        "landingUrl_isSuppListUrl": True,
+        "landingUrl_isFulltextKeyword" : "pmc", # always true -> always keep fulltext
+        "suppListPage_suppFileTextREs" : ["Click here for additional data file.*"]
+    },
+    "springer" :
+    # we don't use this at UCSC, we get springer directly
+    {
+        "hostnames" : ["link.springer.com"],
+        #only pdfs "landingUrl_replaceREs" : {"$" : "?np=y"}, # switch sd to screen reader mode
+        "landingPage_stopPhrases": ["make a payment", "purchase this article"],
+        "landingPage_mainLinkTextREs" : [".*Download PDF +\([0-9]+ KB\)"],
+        "suppListPage_suppFile_urlREs" : [".*/file/MediaObjects/.*"],
+        "landingUrl_isSuppListUrl": True
+    },
+
     "elsevier" :
     # at UCSC we don't use this, we get elsevier data via consyn.elsevier.dom
     # this is mostly for off-site use or for the odd project that doesn't

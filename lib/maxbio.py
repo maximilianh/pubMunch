@@ -1,7 +1,7 @@
 # Routines for handling fasta sequences and tab sep files
 
 # std packages
-import sys, textwrap, operator, types, doctest,logging, gzip
+import sys, textwrap, operator, types, doctest,logging, gzip, struct
 from types import *
 
 # external packages
@@ -361,6 +361,35 @@ def calcBinomScore(background, foreground, genes, backgroundProb):
     binomProb = dist.pbinom(TP, len(genes), backgroundProb)
     binomScore = -math.log10(binomProb)
     return binomScore
+
+def packCoord(chrom, start, end):
+    """ pack chrom,start,end into 9 little-endian bytes 
+    >>> s = packCoord("chr21", 1233,123232299)
+    >>> unpackCoord(s)
+    ('chr21', 1233, 123232299)
+    >>> unpackCoord(packCoord("chrM", 1233,123232299))
+    ('chrM', 1233, 123232299)
+    >>> packCoord("chr6_Hap", 1,2)
+    >>> len(packCoord("chr6", 1,2))
+    9
+    """
+    if "_gl" in chrom or "hap" in chrom:
+        return None
+    chrom = chrom.replace("chr", "")
+    if chrom in ["M","X","Y"]:
+        chromInt = ord(chrom)
+    else:
+        chromInt = int(chrom)
+    return struct.pack("<bll", chromInt, int(start), int(end))
+
+def unpackCoord(arr):
+    " undo packCoord "
+    chrom, start, end = struct.unpack("<bll", arr)
+    if(chrom)>22:
+        chrom = "chr"+chr(chrom)
+    else:
+        chrom = "chr"+str(chrom)
+    return chrom, start, end, 
 
 # ----- 
 if __name__ == "__main__":

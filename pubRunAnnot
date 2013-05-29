@@ -52,6 +52,7 @@ parser.add_option("-a", "--addFields", dest="addFields", action="append", help="
 parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs")
 parser.add_option("-c", "--concat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
 parser.add_option("-k", "--keepOldFiles", dest="keepOldFiles", action="store_true", help="do not wipe the output dir before running the annotators")
+parser.add_option("-p", "--addPmid", dest="addPmid", action="store_true", help="try to add PMID to all output rows")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -91,6 +92,11 @@ alg = pubAlg.getAlg(algName, "Annotate") # makes sure that algName exists
 
 paramDict["startAnnotId"] = 0
 paramDict["addFields"] = options.addFields
+
+if options.addPmid:
+    if options.addFields==None:
+        options.addFields=[]
+    options.addFields.append("pmid")
 
 if options.test or options.oneText:
     reload(sys)

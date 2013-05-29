@@ -4,11 +4,12 @@
 # (unicode-awareness) and gzip
 import re, gzip, logging, itertools, collections
 from os.path import *
+from nltk.tokenize import PunktSentenceTokenizer
 
 # FRAMEWORK
 # this variable has to be defined, otherwise the jobs will not run.
 # The framework will use this for the headers in table output file
-headers = ["start", "end", "matchType", "word1", "word2", "recogSym1", "recogSym2", "sym1", "sym2", "markerId", "hgncIds1", "hgncIds2"]
+headers = ["start", "end", "trigger", "matchType", "word1", "word2", "recogSym1", "recogSym2", "sym1", "sym2", "markerId", "hgncIds1", "hgncIds2"]
 
 # SEARCH 
 
@@ -16,8 +17,8 @@ headers = ["start", "end", "matchType", "word1", "word2", "recogSym1", "recogSym
 wordRe = re.compile("[a-zA-z]+")
 
 # these words have to occur somewhere in the text
-triggerWords = set(["fusion", "fusions", "translocations", "translocation", "hybrid", "inversion", "inversions","chimeric", "oncoprotein", "oncogene", "oncofusion"])
-# removed: "deletion"
+triggerWords = set(["fusion", "fusions", "translocations", "translocation", "inversion", "inversions","chimeric", "oncoprotein", "oncogene", "oncofusion"])
+# removed: "deletion", "hybrid", 
 
 # rough description of what a fusion gene description looks like, note the lookahead at the end to accomodate lists
 # ex: " PITX2/OTX-1 "
@@ -38,7 +39,7 @@ stemRe = re.compile(r'^([A-Z]+)([0-9]+)$')
 fusionReDict = {"slash": slashFusion, "dash" : dashFusion, "colon" : colonFusion}
 
 # the path to hugo.tab, list of hugo symbols, synonomys and previous symbols
-dataFname = join(dirname(__file__), "data", "hugo2.tab.gz")
+dataFname = abspath(join(dirname(__file__), "data", "hugo2.tab.gz"))
 
 # global variable, holds the mapping symbol => official Symbol
 hugoDict = {}
@@ -54,7 +55,7 @@ stemToOffSym = collections.defaultdict(set)
 # pathway names or other crap, cannot be fusion genes
 blackList = set([("JAK","STAT"), ("PI3K", "AKT"),("MAPK", "ERK"),("AKT","PKB"),("RH", "HR"),("SAPK", "JNK"), ("CAD", "CAM"), ("SD", "OCT"), ("IVF", "ET"), ("PTEN", "AKT"), ("CD", "ROM"), ("JUN", "FOS")])
 
-# never recognize these
+# never recognize these as genes
 notGenes = ["OK", "II", "KO", "CD[0-9]+", "C[0-9]", "CT", "MS", "MRI", "H[0-9]", "ZIP", "WAF", "CIP", "OCT", "APR", "SEP", "NOV", "DEC", "JAN", "FEB", "TOP", "FOP", "FLASH"]
 notGeneRes = [re.compile(s) for s in notGenes]
 
@@ -87,6 +88,7 @@ def startup(paramDict):
     dict format is:
     symbol -> set of IDs
     """
+    logging.info("Reading %s" % dataFname)
     for line in gzip.open(dataFname):
         hugoId, symbol, prevSyms, synSyms = line.strip("\n").split("\t")
         prevSyms = prevSyms.split(",")
@@ -99,7 +101,7 @@ def startup(paramDict):
             symToOffSym[syn].add(symbol)
             stemToOffSym[stem(syn)].add(symbol)
         for syn in synSyms:
-            if syn=="ABL":
+            if syn=="ABL": # why do we ignore ABL?
                 continue
             hugoDict.setdefault(syn, set()).add(hugoId)
             symToOffSym[syn].add(symbol)
@@ -115,12 +117,15 @@ def findMatches(reDict, text):
 
 def tooSimilar(s1, s2):
     " if same len and only last char different, return true "
-    if len(s1) != len(s2):
-        return False
-    if s1[-1]!=s2[-1] and s1[:-1]==s2[:-1]:
-        return True
+    logging.debug("Checking off symbols %s and %s" % (s1, s2))
+    if s1==s2:
+        ret = True
+    elif len(s1) == len(s2) and s1[-1]!=s2[-1] and s1[:-1]==s2[:-1]:
+        ret = True
     else:
-        return False
+        ret = False
+    logging.debug("Are official symbols too similar? -> %s" % ret)
+    return ret
     # special case: if two genes are longer than two chars and 
     # the first letters are different, 
     #if len(s1)>2 and s1[0]==s2[0] and s1[1]==s2[1]:
@@ -140,7 +145,7 @@ def matchesAny(string, reList):
 def removeGreek(string):
     " replace greek letters with latin letters "
     greekTable = {"alpha" : "a", "beta":"b", "gamma":"g", "delta":"d"}
-    for greek, lating in greekTable.iteritems():
+    for greek, latin in greekTable.iteritems():
         if greek in string:
             string = string.replace(greek, latin)
     return string
@@ -181,34 +186,25 @@ def resolveSlash(string):
 
     #logging.debug("doesn't match slashNumRe")
     #return [string]
+    #print gene, modifier
 
-    print gene, modifier
+def offSymbolsOk(offSyms1, offSyms2):
+    " check if there are any problems in two lists of official symbols "
+    logging.debug("checking if %s and %s are different enough" % (offSyms1, offSyms2))
+    for (offSym1, offSym2) in itertools.product(offSyms1, offSyms2):
+        if tooSimilar(offSym1, offSym2):
+            logging.debug("skipping %s,%s: official symbols too similar" % (offSym1, offSym2))
+            return False
+        if (offSym1, offSym2) in blackList:
+            logging.debug("skipping %s,%s: blacklisted" % (sym1, sym2))
+            return False
+    return True
 
-# this method is called for each FILE. one article can have many files
-# (html, pdf, suppl files, etc). Article data is passed in the object 
-# article, file data is in "file". For a list of all attributes in these 
-# objects see the file ../lib/pubStore.py, search for "DATA FIELDS"
-def annotateFile(article, file):
-    """ go over words of text and check if they are in dict 
-    >>> annotateFile(None, " AML-1-ETO ")
-
-    """
-    resultRows = []
-    # for debugging
-    if isinstance(file, basestring):
-        text = file
-    else:
-        text = file.content
-
-    # make sure that one of the triggerwords occur
-    words =  set([w.lower() for w in wordRe.findall(text)])
-    if len(words.intersection(triggerWords)) == 0:
-        logging.debug("stop: No triggerword")
-        return
-        
+def findFusions(text, triggers):
     # go over putative fusion gene descriptions
+    rows = []
     for matchType, match in findMatches(fusionReDict, text):
-        logging.debug("Found match")
+        logging.debug("Found match %s" % match.group(0))
         word1 = match.group(1)
         word2 = match.group(2)
         sym1 = word1.upper()
@@ -244,15 +240,23 @@ def annotateFile(article, file):
             assert(False)
 
         for sym1, sym2 in itertools.product(syms1, syms2):
+            # eliminate cases like C1/C2
             if len(sym2)<=2:
                 logging.debug("stop: symbols not long enough")
                 continue
             logging.debug("Checking %s,%s against symbol db" % (sym1, sym2))
-            # eliminate cases like C1/C2 or HOX1/HOX4 or HOX1-HOX4
+            # eliminate cases HOX1/HOX4 or HOX1-HOX4
             if tooSimilar(sym1, sym2):
                 logging.debug("skipping %s,%s: symbols too similar" % (sym1, sym2))
                 continue
-            # check if the result is a valid symbol
+            # check if stem of 2nd symbol is official symbol of sym1
+            stem2 = stem(sym2)
+            if sym1 in stemToOffSym[stem2]:
+                logging.debug("Skipping: stem of %s is %s, is a synonym of %s" % \
+                    (sym2, stem2, sym1))
+                break
+
+            # check if the results are valid symbols
             if sym1 in hugoDict and sym2 in hugoDict and sym1!=sym2:
                 hgncSet1 = hugoDict[sym1]
                 hgncSet2 = hugoDict[sym2]
@@ -263,36 +267,59 @@ def annotateFile(article, file):
                     continue
                 offSyms1 = symToOffSym[sym1]
                 offSyms2 = symToOffSym[sym2]
+                logging.debug("Official syms1: %s, official syms2: %s" % (offSyms1, offSyms2))
 
-                # check if stem of 2nd symbol is official symbol of sym1
-                stem2 = stem(sym2)
-                if sym1 in stemToOffSym[stem2]:
-                    logging.debug("Skipping: stem of %s is %s, is a synonym of %s" % \
-                        (sym2, stem2, sym1))
-                    break
-
-                offOk = True
-                for (offSym1, offSym2) in itertools.product(offSyms1, offSyms2):
-                    if tooSimilar(offSym1, offSym2):
-                        logging.debug("skipping %s,%s: official symbols too similar" % (sym1, sym2))
-                        offOk = False
-                        break
-                    if (offSym1, offSym2) in blackList:
-                        logging.debug("skipping %s,%s: blacklisted" % (sym1, sym2))
-                        offOk = False
-                        break
-
+                if offSymbolsOk(offSyms1, offSyms2):
+                    offSym1 = list(offSyms1)[0] # we always take the first off symbol. good idea?
+                    offSym2 = list(offSyms2)[0]
                     sortPair = [offSym1, offSym2]
                     sortPair.sort()
-                    result = [ match.start(), match.end(), matchType, word1, word2, \
+                    result = [ match.start(), match.end(), ",".join(triggers), matchType, word1, word2, \
                         sym1, sym2, offSym1, offSym2, "/".join(sortPair), hgncIds1, hgncIds2]
-                    resultRows.append(result)
+                    rows.append(result)
 
-                if not offOk:
-                    break
-    if len(resultRows)>1000: # we skip files with more than 1000 genes 
+    if len(rows)>10: # we skip sentences with more than 10 genes 
+        logging.warn("More than 10 hits in a single sentence, dropping all")
+        return []
+    return rows
+
+# this method is called for each FILE. one article can have many files
+# (html, pdf, suppl files, etc). Article data is passed in the object 
+# article, file data is in "file". For a list of all attributes in these 
+# objects see the file ../lib/pubStore.py, search for "DATA FIELDS"
+def annotateFile(article, file):
+    """ go over words of text and check if they are in dict 
+    >>> annotateFile(None, " AML-1/ETO ")
+
+    """
+    # for debugging
+    if isinstance(file, basestring):
+        text = file
+    else:
+        text = file.content
+
+    rows = []
+    for start, end in PunktSentenceTokenizer().span_tokenize(text):
+        if end-start > 700:
+            logging.debug("Too long sentence, skipping")
+            continue
+        sent = text[start:end]
+        # make sure that one of the triggerwords occur
+        words =  set([w.lower() for w in wordRe.findall(sent)])
+        sentTriggers = words.intersection(triggerWords)
+        if len(sentTriggers) == 0:
+            #logging.debug("stop: no triggerword")
+            continue
+
+        for row in findFusions(sent, sentTriggers):
+            row[0] += start
+            row[1] += start
+            rows.append(row)
+
+    if len(rows)>100:
+        logging.warn("More than 100 rows per document, skipping all output")
         return None
-    return resultRows
+    return rows
 
 
 if __name__=="__main__":
