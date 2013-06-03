@@ -1,6 +1,6 @@
 BIN=/hive/data/inside/pubs/bin
 PYTHON=/cluster/software/bin/python2.7
-VERSION=1
+VERSION=2
 all:
 	echo to copy the scripts to the production place on the hive
 	echo run 'make install'

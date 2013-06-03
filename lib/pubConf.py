@@ -10,6 +10,8 @@ pubsDataDir = '/hive/data/inside/pubs'
 # Some of it can be updated with pubPrepXXX commands
 staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 
+ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
+
 journalListDir = join(staticDataDir, "extJournalLists")
 publisherDir = join(staticDataDir, "publishers")
 
@@ -491,6 +493,9 @@ def getTempDir():
                 logging.info("Ignoring OSError, directory %s seems to exist already" % TEMPDIR)
     return TEMPDIR
 
+def getUcscScriptDir():
+    dirname(__file__)
+    
 def getMaxBinFileSize():
     return MAXBINFILESIZE
 

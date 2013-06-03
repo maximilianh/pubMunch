@@ -362,7 +362,15 @@ def calcBinomScore(background, foreground, genes, backgroundProb):
     binomScore = -math.log10(binomProb)
     return binomScore
 
-def packCoord(chrom, start, end):
+def packCoord(start, end):
+    " pack start, end into 8 bytes "
+    return struct.pack("<ll", int(start), int(end))
+def unpackCoord(start, end):
+    " undo packCoord "
+    start, end = struct.unpack("<ll", arr)
+    return start, end
+
+def packChromCoord(chrom, start, end):
     """ pack chrom,start,end into 9 little-endian bytes 
     >>> s = packCoord("chr21", 1233,123232299)
     >>> unpackCoord(s)
@@ -382,7 +390,7 @@ def packCoord(chrom, start, end):
         chromInt = int(chrom)
     return struct.pack("<bll", chromInt, int(start), int(end))
 
-def unpackCoord(arr):
+def unpackChromCoord(arr):
     " undo packCoord "
     chrom, start, end = struct.unpack("<bll", arr)
     if(chrom)>22:

@@ -1020,7 +1020,7 @@ def writePmidStatus(outDir, pmid, msg, detail=None):
     if detail==None:
         outFh.write("%s\t%s\n" % (str(pmid), msg))
     else:
-        outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, detail))
+        outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, repr(detail)))
 
 def removeLock():
     logging.debug("Removing lockfile %s" % lockFname)

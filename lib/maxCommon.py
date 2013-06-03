@@ -1,5 +1,5 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess
+    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil
 from types import *
 
 def errAbort(text):
@@ -31,6 +31,14 @@ def mustNotBeEmptyDir(path):
         logging.error("dir %s does not contain any files" % path)
         sys.exit(1)
 
+def makeOrCleanDir(path):
+    " empty directory if exists or make it "
+    assert(not isfile(path))
+    logging.debug("Making/cleaning dir %s" % path)
+    if isdir(path):
+       shutil.rmtree(path)
+    os.makedirs(path)
+        
 def mustBeEmptyDir(path, makeDir=False):
     " exit if path does not exist or it not empty. do an mkdir if makeDir==True "
     if type(path)==types.ListType:

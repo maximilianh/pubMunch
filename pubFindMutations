@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
-import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy
+import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy, struct
 from os.path import join, basename, isfile, dirname, abspath, splitext, isdir
 from collections import defaultdict, Counter, namedtuple
 from pycbio.hgdata.Psl import Psl
@@ -47,6 +47,7 @@ mutFields = \
     "hgvsProt",    # hgvs on protein, can be multiple, separated with |
     "hgvsCoding",  # hgvs on cdna, can be multiple, separated with |
     "hgvsRna",     # hgvs on refseq, separated by "|"
+    "rsIds",       # rsIds, separated by "|"
     "protId",      # the protein ID that was used for the first mapping
     "texts",        # mutation match in text
     #"mutSupport",  # prot, dna, protDna
@@ -170,14 +171,33 @@ dnaToAa = {
 #aaDnaMuts = {}
 
 # these look like mutations but are definitely not mutations
-# satellites?
 blackList = [
-    ("D", 11, "S"),
+    ("D", 11, "S"), # satellites
     ("D", 12, "S"),
     ("D", 13, "S"),
     ("D", 14, "S"),
     ("D", 15, "S"),
-    ("D", 16, "S")]
+    ("D", 16, "S"),
+    ("A", 84, "M"), # cell lines...
+    ("A", 84, "P"), # all of these copied...
+    ("A", 94, "P"), # from http://bioinf.umbc.edu/EMU/ftp/Cell_line_list_short.txt
+    ("A", 94, "P"),
+    ("C", 127, "I"),
+    ("C", 86, "M"),
+    ("C", 86, "P"),
+    ("L", 283, "R"),
+    ("H", 96, "V"),
+    ("L", 5178, "Y"),
+    ("L", 89, "M"),
+    ("L", 89, "P"),
+    ("L", 929, "S"),
+    ("T", 89, "G"),
+    ("T", 47, "D"),
+    ("T", 84, "M"),
+    ("T", 98, "G"),
+    ("S", 288, "C"), # yeast strain names
+    ("T", 229, "C")
+]
 
 # ==== FUNCTIONS =====
 
@@ -199,7 +219,6 @@ blackList = [
 #    return pslIdx
     
 #protMap = indexPsls("toRefseq/protMap/work/protToTrans.psl")
-
 
 def indexGenes(upAnnots):
     """ given rows from annotation file, return extId, counts of uniprot accession and 
@@ -273,6 +292,7 @@ class SeqData(object):
         " open db files, compile patterns, parse input as far as possible "
         if mutDataDir==None:
             return
+        self.mutDataDir = mutDataDir
         # load uniprot into mem
         logging.info("Reading data")
         fname = join(mutDataDir, "uniprot.tab.marshal")
@@ -323,6 +343,9 @@ class SeqData(object):
 
         logging.info("Reading of data finished")
 
+        # dbsnp dbm file handles
+        self.snpDbmCache = {}
+
     def getSeq(self, seqId):
         " get seq from db , cache results "
         seqId = str(seqId) # gdbm doesn't like unicode
@@ -334,7 +357,28 @@ class SeqData(object):
             seq = self.seqCache[seqId]
         return seq
 
+    def lookupDbSnp(self, chrom, start, end):
+        " return the rs-Id of a position or None if not found "
+        if chrom in self.snpDbmCache:
+            dbm = self.snpDbmCache[chrom]
+        else:
+            fname = join(self.mutDataDir, "snp137."+chrom+".dbm")
+            logging.debug("Opening %s" % fname)
+            dbm = gdbm.open(fname, "r")
+            self.snpDbmCache[chrom] = dbm
+
+        # crazy packing of coordinates, probably too much effort here
+        packCoord = struct.pack("<ll", int(start), int(end))
+        if packCoord in dbm:
+            packRsId = dbm[packCoord]
+            rsId = struct.unpack("<l", packRsId)[0]
+            rsId = "rs"+str(rsId)
+        else:
+            rsId = None
+        return rsId
+
     def entrezToUniProt(self, entrezGene):
+        " return the uniprot IDs for an entrez gene "
         return self.entrez2Up.get(entrezGene, None)
 
     def entrezToOtherDb(self, entrezGene, db):
@@ -386,13 +430,13 @@ class SeqData(object):
             as Gb doesn't support version numbers, stripping those 
         """
         logging.debug("Getting mapping psl for %s" % refseqId)
-        refseqId = str(refseqId.split(".")[0])
+        refseqId = str(refseqId).split(".")[0]
         if refseqId in self.refGenePslCache:
             psls = self.refGenePslCache[refseqId]
         else:
             #print repr(refseqId)
             #print self.refGenePsls[str('NM_000527.4')]
-            pslLines = self.refGenePsls[refseqId]
+            pslLines = zlib.decompress(self.refGenePsls[refseqId])
             psls = []
             for line in pslLines.split("\n"):
                 psl = Psl(line.split("\t"))
@@ -632,7 +676,7 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     get nucleotide at CODING position in refseqId, check against expected aa
     also return positions on cdna
     """
-    logging.debug("Checking if codons from %d-%d in %s correspond to %s" % 
+    logging.debug("Paranoia check: make sure that codons from %d-%d in %s correspond to %s" % 
         (start, end, refseqId, expectAa))
     cdsStart    = geneData.getCdsStart(str(refseqId))
     nuclStart   = cdsStart + (3*start)
@@ -662,18 +706,34 @@ def mapToCodingAndRna(protVars):
             codVar = MappedVariant(protVar.mutType, "dna", cdStart, cdEnd, oldNucl, newNucl, transId)
             codVars.append(codVar)
 
-            rnaVar = MappedVariant(protVar.mutType, "dna", cdnaStart, cdnaEnd, oldNucl, newNucl, transId)
+            cdnaNuclStart = cdnaStart + relPos
+            cdnaNuclEnd   = cdnaNuclStart + len(newNucl)
+            rnaVar = MappedVariant(protVar.mutType, "dna", cdnaNuclStart, cdnaNuclEnd, \
+                oldNucl, newNucl, transId)
             rnaVars.append(rnaVar)
             #hgvsStr = makeHgvsStr("c", transId, oldNucl, nuclPos, newNucl)
             #ret.append(hgvsStr)
     #return "|".join(ret)
     return codVars, rnaVars
 
+def makeRsIds(beds):
+    " return a comma-sep string of rsIds given bed (12-tuple) features "
+    ret = []
+    for bed in beds:
+        chromCoord = bed[0], bed[1], bed[2]
+        snpId = geneData.lookupDbSnp(*chromCoord)
+        if snpId==None:
+            logging.debug("Chromosome location %s does not map to any dbSNP" % str(chromCoord))
+        else:
+            logging.debug("Chromosome location %s corresponds to dbSNP %s " % (chromCoord, snpId))
+            ret.append(snpId)
+    return "|".join(ret)
+
 class SeqVariant(object):
     " a variant grounded on a sequence, with pieces from the text "
     __slots__ = mutFields
 
-    def __init__(self, varId, protVars, codVars, rnaVars, entrezGene, geneSym, mentions, text):
+    def __init__(self, varId, protVars, codVars, rnaVars, beds, entrezGene, geneSym, mentions, text):
         self.varId   = varId
         self.patType = "sub"
         self.seqType = "prot"
@@ -685,6 +745,7 @@ class SeqVariant(object):
         self.hgvsProt   = makeHgvsSub("p", protVars)
         self.hgvsCoding = makeHgvsSub("c", codVars)
         self.hgvsRna    = makeHgvsSub("r", rnaVars)
+        self.rsIds      = makeRsIds(beds)
         self.protId     = ""
         self.geneType   = "entrez"
         self.geneStarts = ""
@@ -724,7 +785,7 @@ def ungroundedMutsToFakeSeqVariants(ungroundedMuts, text):
     """
     muts = []
     for mut, mentions in ungroundedMuts:
-        muts.append(SeqVariant("", [], [], [], "", "", mentions, text))
+        muts.append(SeqVariant("", [], [], [], [], "", "", mentions, text))
     return muts
 
 def isSeqCorrect(protId, variant):
@@ -794,7 +855,7 @@ def mapToRefProt(db, variant, protIds):
     return seqIdLocs
         
 def mapToGenome(rnaVars, bedName):
-    " map to genome, remove duplicate results"
+    " map to genome, remove duplicate results, return as 12-tuple (=BED) "
     logging.debug("Mapping rnaVars %s to genome" % rnaVars)
     maker = pslMapBed.PslMapBedMaker()
     beds = []
@@ -805,6 +866,8 @@ def mapToGenome(rnaVars, bedName):
         pslList = geneData.getRefseqPsls(rnaVar.seqId)
         assert(len(pslList)==1)
         mapPsl = pslList[0]
+
+        # map rna var through psl
         maker.mapQuery(mapPsl, rnaVar.start, rnaVar.end)
         bed = maker.getBed(name=bedName)
         if bed not in doneBeds:
@@ -842,7 +905,7 @@ def groundMutations(docId, text, mutations, genes):
                 codVars, rnaVars  = mapToCodingAndRna(protVars)
                 beds = mapToGenome(rnaVars, varId)
 
-                groundedMuts.append(SeqVariant(varId, protVars, codVars, rnaVars, entrezGene, \
+                groundedMuts.append(SeqVariant(varId, protVars, codVars, rnaVars, beds, entrezGene, \
                     geneSym, mentions, text))
                 allBeds.extend(beds)
             varCount += 1
@@ -899,12 +962,6 @@ class OutputWriter(object):
         if benchFname:
             self._parseBench(benchFname)
 
-    def _parseBench(self, fname):
-        logging.debug("Parsing benchmark file %s" % fname)
-        self.target = defaultdict(list)
-        for row in maxCommon.iterTsvRows(fname):
-            self.target[row.Mapping_reference].append(row.HGVS)
-            
     def writeMuts(self, docId, status, muts):
         self._updateBenchmark(docId, muts)
         for mut in muts:
@@ -921,6 +978,14 @@ class OutputWriter(object):
             self.bedFh.write("\t".join(bed))
             self.bedFh.write("\n")
 
+    def _parseBench(self, fname):
+        logging.debug("Parsing benchmark file %s" % fname)
+        self.target = defaultdict(list)
+        self.benchCount = 0
+        for row in maxCommon.iterTsvRows(fname):
+            self.target[row.Mapping_reference].append(row.HGVS)
+            self.benchCount += 1
+            
     def _updateBenchmark(self, docId, muts):
         if self.target==None:
             return
@@ -938,16 +1003,26 @@ class OutputWriter(object):
                 self.mutHits += 1
 
     def printBenchmark(self):
-        print "%d documents processed, %d mutations output, %d hits" % (self.docCount, self.mutCount, self.mutHits)
+        print ("%d total mutations in benchmark file" % self.benchCount)
+        print ("%d documents processed, %d mutations output, %d hits" % (self.docCount, self.mutCount, self.mutHits))
 
     def close(self):
         self.outFh.close()
         
+def runTests():
+    mutDataDir = join(pubConf.staticDataDir, "mutFinder")
+    geneData = SeqData(mutDataDir, 9606)
+    assert( geneData.lookupDbSnp("chr4", 111547605,111547606)=="rs143894132")
+    assert( geneData.lookupDbSnp("chr4", 111547606,111547606)==None)
+
 def main(args, options):
     if options.test:
         import doctest
         doctest.testmod()
+
+        runTests()
         sys.exit(0)
+
 
     pubGeneric.setupLogging("", options)
     mutDataDir = join(pubConf.staticDataDir, "mutFinder")
