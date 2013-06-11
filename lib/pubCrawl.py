@@ -665,7 +665,7 @@ def readLocalMedline(pmid):
     cur = con.cursor()
 
     rows = None
-    tryCount = 30
+    tryCount = 60
 
     while rows==None and tryCount>0:
         try:
@@ -676,7 +676,7 @@ def readLocalMedline(pmid):
             tryCount -= 1
 
     if rows==None:
-        raise Exception("Medline database was locked for more than 30 minutes")
+        raise Exception("Medline database was locked for more than 60 minutes")
         
     if len(rows)==0:
         logging.info("No info in local medline for PMID %s" % pmid)

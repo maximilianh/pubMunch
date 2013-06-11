@@ -1,0 +1,175 @@
+#!/usr/bin/env python
+
+# first load the standard libraries from python
+# we require at least python 2.5
+#from sys import *
+import sys
+if sys.version_info[0]==2 and not sys.version_info[1]>=7:
+    print "Sorry, this program requires at least python 2.7"
+    print "You can download a more current python version from python.org and compile it"
+    print "into your homedir with 'configure --prefix ~/python'; make;"
+    print "then run this program by specifying your own python executable like this: "
+    print "   ~/python/bin/python ~/pubtools/pubtools"
+    print "or add python/bin to your PATH before /usr/bin, then run pubtools itself"
+    exit(1)
+
+# load default python packages
+import logging, optparse, os, collections, tarfile, mimetypes
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, pubStore, pubConf, maxCommon, pubPubmed
+from pubXml import *
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local directory with PDFs (name: <PMID>.pdf) and suppl files (name: <PMID>.supp<count>.pdf) to pubtools format. Get article meta information from NCBI Eutils.
+
+Make sure that you set the minId parameter. 
+(ArticleIds should not overlap between different datasets.)
+Example:
+    pubConvPdfDir /hive/data/outside/pubs/spliceAid/ /hive/data/inside/literature/text/spliceAid2/ -minId=5000000000
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"]) 
+parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+
+def createIndex(inDir, outDir, minId):
+    " get all PMIDs from dir and create index file in outDir "
+    files =  os.listdir(inDir)
+    logging.info("Reading input dir %s" % inDir)
+
+    # create dict pmid -> set of filenames
+    idFiles = {}
+    for fname in files:
+        fileId = basename(fname).split(".")[0]
+        idFiles.setdefault(fileId, set()).add(fname)
+    logging.info("Found %d files with %d article identifiers" % (len(files), len(idFiles)))
+
+    indexFname = join(outDir, "index.tab")
+    indexFile = open(indexFname, "w")
+    logging.info("Writing index file %s" % indexFname)
+
+    # write index file
+    headers = ["chunkId", "articleId", "externalId", "mainFile", "suppFiles"]
+    indexFile.write("\t".join(headers)+"\n")
+    articleId = minId
+    for extId, files in idFiles.iteritems():
+        if not extId.isdigit():
+            continue
+        chunkId = "0_00000"
+        mainFile = extId+".pdf"
+        files.remove(mainFile)
+        row = [chunkId, str(articleId), extId, mainFile, ",".join(files)]
+        indexFile.write("\t".join(row)+"\n")
+        articleId += 1
+    indexFile.close()
+    return indexFname
+
+def createFileData(baseDir, fname, extId, isSupp):
+    " create fileData dict from fname "
+    logging.debug("Creating file data for %s" % repr(fname))
+    fileData = pubStore.createEmptyFileDict()
+    if isSupp:
+        fileData["desc"] = "supplement (%s)" % basename(fname).split(".")[1]
+        fileType = "supp"
+    else:
+        fileData["desc"] = "main text (pdf)"
+        fileType = "main"
+
+    fileData["fileType"] = fileType
+    fileData["url"] = fname
+    fileData["mimeType"] = mimetypes.guess_type(fname)[0]
+
+    fileData["content"] = open(join(baseDir, fname)).read()
+    fileData = pubGeneric.toAsciiEscape(fileData)
+    return fileData
+
+def createArticleData(externalId):
+    " create article data dict "
+    #articleData = pubStore.createEmptyArticleDict()
+    articleData = pubStore.lookupArticleByPmid(["medline"], externalId)
+    if articleData==None:
+        logging.debug("No local information for %s" % externalId)
+        ncbiList = list(pubPubmed.ncbiEFetchGenerator([externalId]))
+        if len(ncbiList)==0:
+            return None
+        articleData = ncbiList[0]
+    #articleData["externalId"] = "PMID"+externalId
+    #articleData["fulltextUrl"] = "www.ncbi.nlm.nih.gov/pubmed/%s" % externalId
+    articleData["source"] = "pdfDir"
+    return articleData
+
+def convertFiles(inDir, outDir, minId, parseFname):
+    " index files and convert to pubtools file in outDir, first articleId is minId "
+    indexFn = createIndex(inDir, outDir, minId)
+
+    chunkId = "00000"
+    writer = pubStore.PubWriterFile(join(outDir, chunkId))
+    failed = []
+
+    for row in maxCommon.iterTsvRows(indexFn):
+        # article data
+        externalId = row.mainFile
+        articleId = row.articleId
+        mainFile = row.mainFile
+        if parseFname!=None and mainFile != parseFname:
+            continue
+        suppFiles = row.suppFiles.split(",")
+        logging.info("Converting article data for %s, articleId %s, suppFiles %s" % (mainFile, articleId, ",".join(suppFiles)))
+        articleData = createArticleData(externalId)
+        if articleData==None:
+            failed.append("metaData:"+externalId)
+            continue
+        # file data of main file
+        mainFileData = createFileData(inDir, mainFile, externalId, False)
+        fileCount = 0
+        fileId   = ((10**pubConf.FILEDIGITS)*int(articleId))+fileCount
+
+        if mainFileData==None:
+            failed.append(mainFile)
+            logging.info("Conversion not successful")
+            continue
+        writer.writeFile(articleId, fileId, mainFileData, externalId=articleData["externalId"])
+        writer.writeArticle(articleId, articleData)
+
+        # file data of supp files
+        for suppFile in suppFiles:
+            if suppFile=="":
+                continue
+            fileCount += 1
+            fileId   = (10**pubConf.FILEDIGITS*int(articleId))+fileCount
+            fileData = createFileData(inDir, suppFile, externalId, True)
+            if fileData != None:
+                writer.writeFile(articleId, fileId, fileData)
+            else:
+                failed.append(suppFile)
+
+    writer.close()
+    if len(failed)!=0:
+        logging.info("These PDFs could not be converted: %s"% ",".join(failed))
+    
+# ----------- MAIN --------------
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+inDir, outDir = args
+maxCommon.mustExist(inDir)
+minId = options.minId
+
+pubGeneric.setupLogging(progFile, options)
+
+maxCommon.mustExistDir(outDir)
+maxCommon.mustBeEmptyDir(outDir)
+convertFiles(inDir, outDir, minId, options.parseFile)

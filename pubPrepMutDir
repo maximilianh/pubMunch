@@ -2,9 +2,11 @@
 # prepare the data for the mutation finder
 # e.g. uniprot sequences, entrez mapping, etc
 
+# in this file the prefix "up" always refers to "uniProt" not to the word "up" (like "down")
+
 # load default python packages
 import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, gdbm, re, zlib, cPickle
-import struct
+import struct, itertools, semidbm
 import urllib, urllib2
 import xml.etree.ElementTree as et
 from os.path import *
@@ -17,17 +19,23 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, util, maxbio, maxCommon, pslMapBed
+import pubConf, pubGeneric, util, maxbio, maxCommon, pslMapBed, pubEutils
 from maxCommon import runCommand, makeOrCleanDir
 from os.path import *
 from pycbio.hgdata import Psl
+from Bio import SeqIO
+
+# all possible commands for this script
+allSteps = ["genePmids", "geneRefseq", "refseq", "seqs",
+    "uniprot", "refseqMap", "uniprotMap", "snp", "oldRefseqGet", "oldRefseqMap",
+    "genbankGet", "genbankParse", "genbankMap"]
+
+genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog entrez|other|all: reformat uniprot sequences, entrez data etc for mutation finder and write to tools/data/mutFinder
-""")
+parser = optparse.OptionParser("""usage: %prog {}: reformat uniprot sequences, entrez data etc for mutation finder and write to tools/data/mutFinder """.format("|".join(allSteps)))
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONS =====
@@ -42,19 +50,23 @@ def writeGzDict(data, fname):
             assert("|" not in val)
         ofh.write("%s\t%s\n" % (key, "|".join(valList)))
 
-def parseUniprot(uniprotDir, taxId):
-    """ parse uniprot tab and return as three dicts 
-        entrezId -> upId
-        upId -> symbol
-        upId -> list of gb accessions
-        upId -> list of refseq IDs
+def parseUniprotLinks(uniprotDir, taxId):
+    """ parse uniprot tab and return as dict.
+        keys of dict:
+            entrezToUp: entrezId -> upId
+            upToSym: upId -> symbol
+            upToIsos: upId -> list of sequence isoform IDs
+            upToGbs: upId -> list of protein gb accessions
+            upToRefseq: upId -> list of refseq protein IDs
     """
     tabFname = join(uniprotDir, "uniprot.tab")
-    logging.info("Parsing entrez <-> uniprot from %s" % tabFname)
+    logging.info("Parsing uniprot links from %s" % tabFname)
     entrezToUp = {}
     upToSym = {}
+    upToIsos = {}
     upToGb = {}
-    upToRefseq = defaultdict(list)
+    upToGbProts = {}
+    upToRefseq = {}
 
     entrezCount = 0
     duplCount = 0
@@ -63,8 +75,9 @@ def parseUniprot(uniprotDir, taxId):
             if row.geneName!="":
                 upToSym[row.acc] = row.geneName
             if row.refSeq!="":
-                refseqIds = row.refSeq.split("|")
-                upToRefseq[row.acc]=refseqIds
+                refseqIds = row.refSeqProt.split("|")
+                upToRefseq.setdefault(row.acc, []).extend(refseqIds)
+            # create links ncbi entrez gene -> list of uniprot IDs
             if row.ncbiGene!="":
                 ncbiGenes = row.ncbiGene.split("|")
                 for ncbiGene in ncbiGenes:
@@ -72,12 +85,26 @@ def parseUniprot(uniprotDir, taxId):
                     entrezCount += 1
                     if ncbiGene in entrezToUp:
                         duplCount +=1
-                    entrezToUp[ncbiGene] = row.acc
+                    entrezToUp.setdefault(ncbiGene, []).append(row.acc)
+            if row.isoIds!="":
+                upToIsos.setdefault(row.acc, []).extend(row.isoIds.split("|"))
             if row.embl!="":
+                #emblIds = row.emblProt.split("|")
                 emblIds = row.embl.split("|")
                 upToGb[row.acc] = emblIds
-    logging.info("%d entrez -> uniprot links, skipped duplicates: %d" % (entrezCount, duplCount))
-    return entrezToUp, upToSym, upToGb, upToRefseq
+            if row.emblProt!="":
+                protIds = row.emblProt.split("|")
+                upToGbProts[row.acc] = protIds
+    logging.info("%d entrez-uniprot links (cases with several genes for a uniprot rec: %d)" % \
+        (entrezCount, duplCount))
+    data = {}
+    data["entrezToUp"] = entrezToUp
+    data["upToSym"] = upToSym
+    data["upToGbs"] = upToGb
+    data["upToGbProts"] = upToGbProts
+    data["upToIsos"] = upToIsos
+    data["upToRefseq"] = upToRefseq
+    return data
 
 def parseEntrezGeneRefseq(taxId, outFname):
     " create a tab-sep file with entrezGene, comma sep refseqIds, comma sep refseqProtIds"
@@ -131,7 +158,7 @@ def parseEntrezGeneRefseq(taxId, outFname):
     marshal.dump(data, open(outFname, "w"))
     logging.info("Wrote %s" % outFname)
     
-def parseEntrezGenePmids(taxId, dbm):
+def parseEntrezGenePmids(taxId, dbm, dbm2):
     pmid2geneFname = join(pubConf.ncbiGenesDir, "gene2pubmed.gz")
     # at ucsc: /hive/data/outside/ncbi/genes/gene2pubmed.gz
     logging.info("Parsing %s" % pmid2geneFname)
@@ -146,8 +173,15 @@ def parseEntrezGenePmids(taxId, dbm):
     logging.info("Taxon %d: found entrez ids for %s pmids" % (int(taxId), len(pmidToEntrez)))
 
     logging.info("Writing to dbm file")
+    count = 0
     for pmid, entrezList in pmidToEntrez.iteritems():
-        dbm[str(pmid)] = ",".join(entrezList)
+        if count%10000==0:
+            print count
+        pmid = str(pmid)
+        entrezStr = ",".join(entrezList)
+        dbm[pmid] = entrezStr
+        dbm2[pmid] = entrezStr
+        count += 1
 
 def faToDbm(faName, dbm):
     logging.info("indexing %s into dbm as compressed seqs" % faName)
@@ -155,7 +189,7 @@ def faToDbm(faName, dbm):
     #logging.info("Reading %s" % faName)
     for seqId, seq in maxbio.parseFasta(faName):
         dbm[seqId] = zlib.compress(seq)
-    logging.info("Converted %s to dbm" % (faName))
+    #logging.info("Converted %s to dbm" % (faName))
 
 def tabToDbm(fname):
     dbmFname = fname+".dbm"
@@ -211,61 +245,23 @@ def parseRa(raName, tabName):
     logging.info("Skipped %d records" % skipCount)
     return accList
 
-def makeOldAccs(newAccList):
-    " given a list of things like NM_000325.5, return NM_000325.4, NM_000325.3, etc. "
-    oldAccs = []
-    for fullAcc in newAccList:
-        acc, ver = fullAcc.split(".")
-        ver = int(ver)
-        if ver != 1:
-            for i in range(1, ver):
-                oldAccs.append(acc+"."+str(i))
-    return oldAccs
-
-def chunkedDownloadFromEutils(accs, outFh, format="fasta"):
-    " download in chunks of 5000 accs from eutils "
-    chunkMax = 5000
-    for chunkStart in range(0, len(accs), chunkMax):
-        logging.info("Chunkstart is %d" % chunkStart)
-        downloadFromEutils(accs[chunkStart:chunkStart+chunkMax], outFh, format="fasta")
-
-def downloadFromEutils(accs, outFh, format="fasta"):
-    " download accession via eutils "
-    # query and put into history
-    logging.info("Running eutils search for %d accessions" % len(accs))
-    accFull = [acc for acc in accs]
-    query = " OR ".join(accFull)
-    base = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils"
-    url = base+'/esearch.fcgi';
-    data = urllib.urlencode({"db":"nucleotide", "term":query, "usehistory":"y"})
-    logging.debug("Data: %s" % data)
-    req  = urllib2.Request(url, data)
-    try:
-        xmlStr = urllib2.urlopen(req).read()
-    except urllib2.HTTPError:
-        logging.error("Error when searching")
-        raise
-    logging.debug("XML reply: %s" % xmlStr)
-
-    # now parse xml to get history IDs
-    root = et.fromstring(xmlStr)
-    try:
-        webEnv = root.find("WebEnv").text
-        key = root.find("QueryKey").text
-    except AttributeError:
-        logging.info("Error, XML is %s" % xmlStr)
-        raise
-    count = int(root.find("Count").text)
-    logging.info("Got history id %s, found %d sequences" % (webEnv, count))
-
-    # fetch
-    retMax = 1000
-    for retStart in range(0, count, retMax):
-        logging.info("Retrieving up to %d records, start %d..." % (retMax, retStart))
-        url = base + "/efetch.fcgi?db=nuccore&query_key=%(key)s&WebEnv=%(webEnv)s&" \
-            "retstart=%(retStart)s&retmax=%(retMax)s&rettype=%(format)s&retmode=text" % locals();
-        resp = urllib2.urlopen(url).read()
-        outFh.write(resp)
+def makeOldToNewAccs(accs):
+    """ given a list of new things like NM_000325.5, 
+    return dict with mapping old -> new, like
+    "NM_000325.4": "NM_000325.5", "NM_000325.3" : "NM_000325.5", etc. 
+    """
+    oldToNew = {}
+    for newAcc in accs:
+        prefix,suffix = newAcc.split(".")
+        version = int(suffix)-1
+        if version!=0:
+            oldVersions = range(0, version)
+            oldVersions = [ov+1 for ov in oldVersions]
+            for oldVersion in range(0, version):
+                oldVersion = oldVersion+1
+                oldAcc = prefix+"."+str(oldVersion)
+                oldToNew[oldAcc] = newAcc
+    return oldToNew
 
 def parseRefseq(taxId, mutDataDir):
     """ get prot <-> trans assignment and cdsStart """
@@ -302,53 +298,78 @@ def loadSeqs(taxId, mutDataDir, uniprotDir):
 
     # index fastas
     dbmTmpFname = join(pubConf.getFastTempDir(), "seqs.dbm")
-    upFaName = join(uniprotDir, "uniprot.%d.fa.gz" % taxId)
+    upFaName = join(uniprotDir, "uniprot.%d.var.fa.gz" % taxId)
+    gbFaName = join(mutDataDir, "genbank.%d.prot.fa" % taxId)
+    oldRefseqFaName = join(mutDataDir, "oldRefseq.%d.prot.fa" % taxId)
 
     dbm = gdbm.open(dbmTmpFname, "nf")
+    faToDbm(oldRefseqFaName, dbm)
     faToDbm(upFaName, dbm)
+    faToDbm(gbFaName, dbm)
+
     faToDbm(transFaName, dbm)
     faToDbm(protFaName, dbm)
+
     dbm.close()
 
     dbmFname = join(mutDataDir, "seqs.dbm")
     shutil.copy(dbmTmpFname, dbmFname)
     os.remove(dbmTmpFname)
-    logging.info("Wrote compressed refseq seqs to %s" % dbmFname)
+    logging.info("Finished writing all seqs to %s" % dbmFname)
 
-def writeUpRefseq(taxId, uniprotDir, pairFname):
-    " write a list of tuples refseqId, uniprot id "
+def writeUpRefseqPairs(taxId, uniprotDir, proteinType, pairFname):
+    " write a list of tuples uniprot-protein id, refseqId"
     upTabFname = join(uniprotDir, "uniprot.tab")
     ret = []
     ofh = open(pairFname, "w")
-    entrezToUp, upToSym, upToGb, upToRefseq = parseUniprot(uniprotDir, taxId)
+    upData = parseUniprotLinks(uniprotDir, taxId)
+    upToRefseq = upData["upToRefseq"]
+    if proteinType=="uniprot":
+        upToProts = upData["upToIsos"]
+    elif proteinType=="genbank":
+        upToProts = upData["upToGbProts"]
+        
     for upId, refseqIds in upToRefseq.iteritems():
         for refseq in refseqIds:
-            ofh.write("%s\t%s\n" % (upId, refseq))
+            for protId in upToProts.get(upId, []):
+                ofh.write("%s\t%s\n" % (protId, refseq))
     ofh.close()
     return ofh.name
         
-def upRefseqMap(taxId, uniprotDir):
-    " map from uniprot to refseq in a psl "
-    upFaName  = join(uniprotDir, "uniprot.%d.fa.gz" % taxId)
-    tmpDir    = join(pubConf.mapReduceTmpDir, "uniprotRefseqMap")
-    pairFname = join(tmpDir, "upToRefseq.pairs")
-    mapFname  = join(mutDataDir, "upToRefseq.psl")
-
-    makeOrCleanDir(tmpDir)
-    writeUpRefseq(taxId, uniprotDir, pairFname)
-    mapProtToRefseq(taxId, tmpDir, upFaName, pairFname, mapFname)
-    
-
-def mapProtToRefseq(taxId, tmpDir, protFaName, pairFname, mapFname):
-    """ create a psl file with the best mapping protein -> refseq 
-    
-    input is protein fa and a file with pairs protein<->refseq
-    output goes into mapFname
+def mapProtToRefseqIndex(taxId, protType, protFname, uniprotDir, stripVersion=False):
+    """ map from proteins given protein fa and pairs to refseq.
+    create psl and compressed dbm of psls
+    protType can be genbank or uniprot
     """
-    logging.debug("mapping %s to refseq, pairs in %s, tmpdir %s" % (protFaName, pairFname, tmpDir))
-    refseqFname = join(mutDataDir, "refseq.%s.trans.fa" % str(taxId))
+    outPrefix = "%sToRefseq" % protType
+    tmpDir    = join(pubConf.mapReduceTmpDir, "protRefseqMap-"+outPrefix)
+    makeOrCleanDir(tmpDir)
+
+    pairFname = join(tmpDir, "%s.%d.pairs" % (outPrefix, taxId))
+    writeUpRefseqPairs(taxId, uniprotDir, protType, pairFname)
+
+    dbmFname  = join(mutDataDir, "%s.%d.psl.dbm" % (outPrefix, taxId))
+    mapFname  = join(mutDataDir, "%s.%d.psl" % (outPrefix, taxId))
+
+    mapProtToRefseq(taxId, tmpDir, protFname)
+    filterPsls(tmpDir, pairFname, mapFname)
+    loadPslToDbm(mapFname, dbmFname, stripVersion=stripVersion)
+
+def filterPsls(tmpDir, pairFname, mapFname):
+    """ pick the best alignment for each protein """
+    pslDir = join(tmpDir, "psl")
+    cmd = """ find %(pslDir)s -name '*.psl' | xargs cat | pslSelect -qtPairs=%(pairFname)s stdin stdout | sort -k 10,10 | pslCDnaFilter stdin -minQSize=20 -ignoreNs -globalNearBest=0 -bestOverlap -filterWeirdOverlapped stdout | sort | uniq > %(mapFname)s""" % locals()
+    runCommand(cmd)
+    logging.info("Wrote results to %s" % mapFname)
+
+def mapProtToRefseq(taxId, tmpDir, protFaName):
+    """ create a psl file with the best mapping protein -> refseq 
+    input is protein fa , output goes into tmpDir/psl
+    """
+    logging.debug("mapping %s to refseq, tmpdir %s" % (protFaName, tmpDir))
+    refseqFname = join(mutDataDir, "refseq.%s.prot.fa" % str(taxId))
     BLASTDIR="/cluster/bin/blast/x86_64/blast-2.2.16/bin"
-    targetFname = join(tmpDir, "refseq.fa")
+    targetFname = join(tmpDir, "refseq.prot.fa")
     logging.info("Copying %s to %s" % (refseqFname, targetFname))
     shutil.copy(refseqFname, targetFname)
 
@@ -356,10 +377,13 @@ def mapProtToRefseq(taxId, tmpDir, protFaName, pairFname, mapFname):
     queryDir = join(tmpDir, "queries")
 
     makeOrCleanDir(queryDir)
-    cmd = "gunzip %s -c | faSplit about stdin 2500 %s/" % (protFaName, queryDir)
+    if protFaName.endswith(".gz"):
+        cmd = "gunzip %s -c | faSplit about stdin 2500 %s/" % (protFaName, queryDir)
+    else:
+        cmd = "faSplit about %s 2500 %s/" % (protFaName, queryDir)
     runCommand(cmd)
     # index refseq for blast
-    cmd = "%s/formatdb -i %s -p F" % (BLASTDIR, targetFname)
+    cmd = "%s/formatdb -i %s -p T" % (BLASTDIR, targetFname)
     runCommand(cmd)
 
     # make dir for the output psl files
@@ -372,47 +396,43 @@ def mapProtToRefseq(taxId, tmpDir, protFaName, pairFname, mapFname):
     faFnames = glob.glob(join(queryDir, "*.fa"))
     logging.debug("Found %d part files" % len(faFnames))
     jobScriptFname = join(pubConf.ucscScriptDir, "mapUniprot_doBlast")
+    runner = pubGeneric.makeClusterRunner("pubPrepMutDir-mapProtRefseq-%s" % basename(protFaName))
     for fname in faFnames:
-        pslName = join(basename(fname))
-        cmd = "%(jobScriptFname)s %(targetFname)s %(fname)s {check out exists %(pslDir)s}" % locals()
-        jbl.write(cmd+"\n")
-    jbl.close()
-
-    # run
-    cmd = 'ssh swarm "cd %s && para stop && para make jobList"' % tmpDir
-    runCommand(cmd)
-
-    # pick the best alignment for each protein 
-    cmd = """ find %(pslDir)s -name 'psl.*' | xargs cat | pslSelect -qtPairs=%(pairFname)s stdin stdout | sort -k 10,10 | pslCDnaFilter stdin -minQSize=20 -ignoreNs -globalNearBest=0 -bestOverlap -filterWeirdOverlapped stdout | sort | uniq > %(mapFname)s""" % locals()
-    runCommand(cmd)
-    logging.info("Wrote results to %s" % mapFname)
+        outPslName = join(pslDir, splitext(basename(fname))[0]+".psl")
+        cmd = "%(jobScriptFname)s %(targetFname)s blastp %(fname)s {check out exists %(outPslName)s}" % locals()
+        runner.submit(cmd)
+    runner.finish(wait=True)
 
 def dbSnp(taxId, mutDataDir):
+    """ parse dbSnp into dbm files, most of these won't be used as they're in intergenic 
+    regions but we keep them for now 
+    """
     assert(taxId==9606)
     tmpDir = pubConf.getTempDir()
     fastTmp = pubConf.getFastTempDir()
 
     snpFname = join(tmpDir, "snp137.tab")
-    logging.info("getting snp137 into file %s" % snpFname)
+    logging.info("dumping snp137 into file %s" % snpFname)
     if not isfile(snpFname):
-        cmd = '''hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from snp137' > %s''' % snpFname
+        cmd = '''hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from snp137' > %s''' % \
+            snpFname
         maxCommon.runCommand(cmd)
     else:
         logging.info("%s already exists, delete if you want to restart" % snpFname)
 
     # dbm has a huge problem when rec count > 25 million, so we split it
     dbSnpDbms = {}
+    coordDbms = {}
     count = 0
     for line in open(snpFname):
         if count % 1000000 == 0:
             print "%d" % count
         count += 1
-        chrom, start, end, name = line.rstrip("\n").split("\t")
+        chrom, start, end, rsId = line.rstrip("\n").split("\t")
         # ignore haps and _gl
         if "hap" in chrom or "_gl" in chrom:
             continue
-        packCoord = struct.pack("<ll", int(start), int(end))
-        # lazily create dbms, one for each chrom
+        # open dbm: lazily create dbms, one for each chrom
         if chrom not in dbSnpDbms:
             fname = join(fastTmp, "snp137.%s.dbm" % chrom)
             logging.info("Creating %s" % fname)
@@ -420,8 +440,21 @@ def dbSnp(taxId, mutDataDir):
             dbSnpDbms[chrom] = (fname, dbm)
         else:
             dbm = dbSnpDbms[chrom][1]
-        packRsId = struct.pack("<l", int(name[2:]))
+        # open dbm2: lazily create reverse dbms, one for each last digit of the rsId
+        lastDigit = rsId[-1]
+        if lastDigit not in coordDbms:
+            fname = join(fastTmp, "snp137.coords.%s.dbm" % lastDigit)
+            logging.info("Creating %s" % fname)
+            coordDbm = gdbm.open(fname, "nf")
+            coordDbms[lastDigit] = (fname, dbm)
+        else:
+            coordDbm = coordDbms[lastDigit][1]
+
+        # pack and save data
+        packCoord = struct.pack("<ll", int(start), int(end))
+        packRsId = struct.pack("<l", int(rsId[2:]))
         dbm[packCoord] = packRsId
+        coordDbm[packRsId] = packCoord
 
     for tmpFname, dbm in dbSnpDbms.values():
         dbm.close()
@@ -430,16 +463,20 @@ def dbSnp(taxId, mutDataDir):
         os.remove(tmpFname)
         logging.info("Copied %s to %s and deleted temp" % (tmpFname, finalDbmName))
 
-def loadPslToDbm(pslFname, dbmFname, isProt=False):
+def loadPslToDbm(pslFname, dbmFname, isProt=False, stripVersion=False):
     " load psl file into a compressed dbm file "
     qNamePsls = defaultdict(list)
+    count = 0
     for line in open(pslFname):
         line = line.rstrip("\n")
         qName = line.split("\t")[9]
+        count += 1
         if isProt:
             p = Psl(line.split("\t"))
             p.protToNa()
             line = str(p)
+        if stripVersion:
+            qName = qName.split(".")[0]
         qNamePsls[qName].append(line)
 
     # write to dbm as \n separated psl lines indexed by qName
@@ -447,33 +484,222 @@ def loadPslToDbm(pslFname, dbmFname, isProt=False):
     for qName, pslLines in qNamePsls.iteritems():
         dbm[qName]= zlib.compress("\n".join(pslLines))
     dbm.close()
-    logging.info("Wrote to %s" % dbmFname)
+    logging.info("Compressed and indexed %d psls (%d qNames) from %s to %s" % \
+        (count, len(qNamePsls), pslFname, dbmFname))
 
 def refseqMap(taxId, mutDataDir):
     " get refseq -> genome map from browser "
     db = taxToDb[taxId]
     refPslFname = join(mutDataDir, "refGene.%d.psl" % taxId)
-    #refCdsFname = join(mutDataDir, "refGene.%d.cds" % taxId)
-    #cmd = 'genePredToFakePsl %s refGene %s %s' % (db, refPslFname, refCdsFname)
-    #runCommand(cmd)
     cmd = 'hgsql -NB hg19 -e "select * from refSeqAli" | cut -f2- > %s' % refPslFname
-    #shutil.copy("/cluster/data/genbank/data/aligned/refseq.59/hg19/full/mrna.native.psl.gz",
-        #refPslFname)
     runCommand(cmd)
 
     refPslDbmFname = join(mutDataDir, "refGene.%d.psl.dbm" % taxId)
-    loadPslToDbm(refPslFname, refPslDbmFname):
+    loadPslToDbm(refPslFname, refPslDbmFname)
+
+def gbToFa(inGbFname, faFname):
+    logging.info("Converting %s to %s" % (inGbFname, faFname))
+    seqs = []
+    outfh = open(faFname, "w")
+    for rec in SeqIO.parse(open(inGbFname, "rU"), "genbank") :
+        #seqs.append(record)
+        outfh.write(">%s\n%s\n" % (rec.id, rec.seq.tostring()))
+
+    #SeqIO.write(seqs, output_handle, "fasta")
+    outfh.close()
+
+def mapOldRefseqToNewRefseqIndex(faFname, taxId, dbmFname):
+    " map old prot refseqs to new refseqs "
+    # convert gb to fa
+    #raFname = join(mutDataDir, "oldRefseq.%d.ra" % taxId)
+    #taFname = join(mutDataDir, "oldRefseq.%d.ta" % taxId)
+    #cmd = "gbToFaRa -faInclVer /dev/null %(faFname)s %(raFname)s %(taFname)s %(oldRefseqFname)s" % locals()
+    # gbToFaRa doesn't work - takes only the first version
+    # gbtofa doesn't work - ignores peptides
+    # gbtocdi doesn't work
+    #runCommand(cmd)
+
+    # create a pair file oldAcc, newAcc
+    tmpDir    = join(pubConf.mapReduceTmpDir, "oldRefseqMap")
+    makeOrCleanDir(tmpDir)
+    oldAccs = constructOldRefseqAccs(taxId)
+    pairFname = join(tmpDir, "oldRefseq.%s.pairs" % taxId)
+    pairFh = open(pairFname, "w")
+    for old, new in oldAccs.iteritems():
+        pairFh.write("%s\t%s\n" % (old, new))
+    pairFh.close()
+    logging.debug("Wrote pairs to %s" % pairFname)
+
+    # create the mapping psl file
+    mapFname = join(mutDataDir, "oldRefseq.%d.prot.psl" % taxId)
+    mapProtToRefseq(taxId, tmpDir, faFname)
+    filterPsls(tmpDir, pairFname, mapFname)
+    loadPslToDbm(mapFname, dbmFname)
+
+def constructOldRefseqAccs(taxId):
+    refseqInfoFname =  join(mutDataDir, "refseqInfo.tab")
+    logging.debug("Parsing %s" % refseqInfoFname)
+    accs = []
+    for row in maxCommon.iterTsvRows(refseqInfoFname):
+        accs.append(row.refProt)
+    oldAccs = makeOldToNewAccs(accs)
+    logging.info("Found %d old accessions" % len(oldAccs))
+    return oldAccs
+
+def downloadFromGenbank(oldAccs, oldRefseqFname, oneByOne=True):
+    " download oldRefseq or genbank protein accessions "
+    logging.info("Writing old refseq data to %s" % oldRefseqFname)
+    outFh = open(oldRefseqFname, "w")
+    pubEutils.downloadFromEutils("protein", oldAccs, outFh, retType="gb", \
+        retMax=1000, oneByOne=oneByOne)
+    return oldRefseqFname
+
+#def downloadFromGenbankFast(accs, outFname):
+    #" download genbank protein accessions "
+    #logging.info("Writing genbank data to %s" % outFname)
+    #outFh = open(outFname, "w")
+    #pubEutils.chunkedDownloadFromEutils("protein", accs, outFh, retType="gb", chunkSize=1000)
+
+def writeUniprotEntrezSymGbLinks(taxId, uniprotDir):
+    """ write a tab and .marshal file with the follwing links:
+    - entrez -> uniprot (all isoforms)
+    - uniprot -> symbol
+    - uniprot -> genbank 
+    - uniprot sequences
+    """
+    global mutDataDir
+    assert(taxId==9606)
+    data = {}
+    data[taxId] = {}
+    # parse uniprot seqs (get all variants)
+    #faFname = join(uniprotDir, "uniprot.%s.var.fa.gz" % str(taxId))
+    #seqDict = maxbio.parseFastaAsDict(faFname)
+    #data[taxId]["upSeqs"] = seqDict
+    #logging.info("Found %s sequences" % len(seqDict))
+
+    # parse entrez -> uniprot id and up -> symbol and up->genbank
+    #entrezToUp, upToSym, upToGb, upToRefseq = parseUniprot(uniprotDir, taxId)
+    upData = parseUniprotLinks(uniprotDir, taxId)
+    data[taxId] = upData
+    entrezToUp = upData["entrezToUp"]
+    upToSym = upData["upToSym"]
+    upToGbProts = upData["upToGbProts"]
+    upToIsos = upData["upToIsos"]
+
+    # write to tab file
+    mutDataFname = join(mutDataDir, "uniprot.tab")
+    logging.info("Writing uniprot links to %s" % mutDataFname)
+    ofh = open(mutDataFname,"w")
+    ofh.write("geneId\tuniprotId\tuniprotIsoIds\tuniprotSym\tuniprotGbProtAcc\n")
+    noSym = 0
+    for geneId, upIds in entrezToUp.iteritems():
+        for upId in upIds:
+            sym = upToSym.get(upId, None)
+            if sym==None:
+                sym=""
+                noSym +=1
+            if upId in upToGbProts:
+                gbAccs = "|".join(upToGbProts[upId])
+            else:
+                gbAccs = ""
+            isoIds = upData["upToIsos"][upId]
+            row = [str(geneId), upId, "|".join(isoIds), sym, gbAccs]
+            ofh.write("\t".join(row)+"\n")
+            
+    ofh.close()
+    logging.info("No sym: %d" % noSym)
+    logging.info("Wrote to %s" % mutDataFname)
+
+    # write to marshal file (faster and easier to parse)
+    mutDataDir = join(pubConf.staticDataDir, "mutFinder")
+    mutDataFname = join(mutDataDir, "uniprot.tab.marshal")
+    del data[taxId]["upToGbs"] # don't need these
+    marshal.dump(data, open(mutDataFname, "w"))
+    logging.info("Wrote to %s" % mutDataFname)
+
+def cleanGbAccs(gbDict):
+    " get only unique values from dict, flatten and clean "
+    gbLists = gbDict.values()
+    gbAccs = list(itertools.chain.from_iterable(gbLists))
+    gbAccs = set([str(x) for x in gbAccs])
+    if 'na' in gbAccs:
+        gbAccs.remove("na")
+    if '' in gbAccs:
+        gbAccs.remove("")
+    gbAccs = list(gbAccs)
+    return gbAccs
+
+def getGenbankAccs(taxId, outFname):
+    " get all protein genbank accessions linked from uniprot for a given taxId, and write to file "
+    upLinkFname = join(mutDataDir, "uniprot.tab.marshal")
+    upData = marshal.load(open(upLinkFname))
+    upToGbs = upData[taxId]["upToGbs"]
+    gbAccs = cleanGbAccs(upToGbs)
+
+    ofh = open(outFname, "w")
+    ofh.write("\n".join(gbAccs))
+    ofh.close()
+    logging.info("Wrote %d uniprot genbank accs to %s" % (len(gbAccs), outFname))
+    #return gbAccs
+
+    
+def getGenbankSeqs(gbIdFname, gbOutFname):
+    " get genbank seqs from markd's tools "
+    #cmd = "gbGetSeqs -accFile=%s -allowMissing -gbRoot=/hive/data/outside/genbank genbank mrna %s -get=seq -db=hg19 -inclVersion -native" % (gbIdFname, gbFname)
+    gbFnames = glob.glob(join(genbankDir, "gbpri*.seq.gz"))
+    open(gbOutFname, "w") # truncate gbOutFname
+    for gbFname in gbFnames:
+        cmd = "gbGetEntries -accFile=%s %s -missingOk >> %s" % (gbIdFname, gbFname, gbOutFname)
+        runCommand(cmd)
+
+def parseGenbankProts(gbFname, protFaFname, protIds):
+    " returns translations of CDS in genbank file as dict protId -> sequence "
+    logging.info("Parsing %s, trying to get %d prot ids" % (gbFname, len(protIds)))
+    record_iterator = SeqIO.parse(gbFname, "genbank")
+    res = {}
+    protIds = set(protIds)
+    for rec in record_iterator:
+        cdsFts = [f for f in rec.features if f.type=='CDS']
+        for cdsFt in cdsFts:
+            if "protein_id" in cdsFt.qualifiers and "translation" in cdsFt.qualifiers:
+                ftProtIds = cdsFt.qualifiers["protein_id"]
+                assert(len(ftProtIds)==1)
+                protId = ftProtIds[0]
+                if protId in protIds:
+                    protSeqs = cdsFt.qualifiers["translation"]
+                    assert(len(protSeqs)==1)
+                    res[protId] = protSeqs[0]
+                else:
+                    logging.debug("protId %s skipped, not target" % protId)
+    logging.info("Got %d protein sequences from genbank file" % len(res))
+    return res
+
+def writeFa(data, outFname):
+    logging.info("Writing %s" %outFname)
+    ofh = open(outFname, "w")
+    for id, seq in data.iteritems():
+        ofh.write(">%s\n%s\n" % (id, seq))
+    ofh.close()
+    
+def loadFaSeqs(protFaFname):
+    " load (append) seqs in a fasta file into a dbm file as compressed sequences "
+    dbmFname = join(mutDataDir, "seqs.dbm")
+    dbm = gdbm.open(dbmFname, "w")
+    faToDbm(protFaFname, dbm)
+    dbm.close()
 
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
-
     step = args[0]
     uniprotDir = join(pubConf.dbRefDir)
+
     global mutDataDir
     mutDataDir = join(pubConf.staticDataDir, "mutFinder")
+    if not isdir(mutDataDir):
+        os.makedirs(mutDataDir)
+
     taxId = 9606
 
-    allSteps = ["genePmids", "geneRefseq", "refseq", "seqs", "uniprot", "refseqMap", "uniprotMap", "snp"]
     if step not in allSteps:
         logging.error("Unknown step %s" % step)
         logging.info("Available steps are: %s" % ",".join(allSteps))
@@ -482,10 +708,16 @@ def main(args, options):
     if step=="genePmids" or step=="all":
         # parse entrez gene into dict pmid -> list of entrez ids
         entrezFname = join(mutDataDir, "pmid2entrez.dbm")
+        # jython doesn't have gdbm, we so also write to a semidbm file
+        dumbEntrezFname = join(mutDataDir, "pmid2entrez.semidbm")
         dbm = gdbm.open(entrezFname, "nf")
-        parseEntrezGenePmids(taxId, dbm)
+        #dumbDbm = dumbdbm.open(dumbEntrezFname, "nf") # dumbdbm was annoyingly slow
+        dbm2 = semidbm.open(dumbEntrezFname, "c")
+        parseEntrezGenePmids(taxId, dbm, dbm2)
+
+        logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dumbEntrezFname))
         dbm.close()
-        logging.info("Wrote pmid -> entrez to %s" % entrezFname)
+        dbm2.close()
 
     if step=="geneRefseq" or step=="all":
         outFname = join(mutDataDir, "entrezToRefseq.%s.tab" % taxId)
@@ -494,60 +726,64 @@ def main(args, options):
     if step=="refseq" or step=="all":
         parseRefseq(taxId, mutDataDir)
 
-    if step=="seqs" or step=="all":
-        loadSeqs(taxId, mutDataDir, uniprotDir)
+    if step=="uniprot" or step=="all":
+        writeUniprotEntrezSymGbLinks(taxId, uniprotDir)
 
     if step=="refseqMap" or step=="all":
         refseqMap(taxId, mutDataDir)
 
     if step=="uniprotMap" or step=="all":
-        upRefseqMap(taxId, uniprotDir)
+        upFaName  = join(uniprotDir, "uniprot.%d.var.fa.gz" % taxId)
+        #pairFname = join(tmpDir, "uniprotRefseq.%d.pairs" % (taxId))
+        #writeUpRefseqPairs(taxId, uniprotDir, "uniprot", pairFname)
+        mapProtToRefseqIndex(taxId, "uniprot", upFaName, uniprotDir)
 
-    if step="oldRefseq":
-        downloadOldRefseq(taxId)
+    # these two go together, but the first one takes really long, ~1 hour
+    if step=="oldRefseqGet":
+        oldRefseqFname = join(mutDataDir, "oldRefseq.%d.prot.gb" % taxId)
+        oldAccs = constructOldRefseqAccs(taxId)
+        downloadFromGenbank(oldAccs.keys(), oldRefseqFname)
+    if step=="oldRefseqMap":
+        oldRefseqFname = join(mutDataDir, "oldRefseq.%d.prot.gb" % taxId)
+        pslDbmFname = join(mutDataDir, "oldRefseqToRefseq.%d.prot.psl.dbm" % taxId)
+        faFname = join(mutDataDir, "oldRefseq.%d.prot.fa" % taxId)
+        gbToFa(oldRefseqFname, faFname)
+        mapOldRefseqToNewRefseqIndex(faFname, taxId, pslDbmFname)
+        loadFaSeqs(faFname)
+
+    # requires the "uniprot" step
+    if step=="genbankGet":
+        gbIdFname = join(mutDataDir, "genbankUniprotIds.%d.txt" % taxId)
+        gbFname = join(mutDataDir, "genbank.%d.gb" % taxId)
+        getGenbankAccs(taxId, gbIdFname)
+        getGenbankSeqs(gbIdFname, gbFname)
+        #downloadFromGenbankFast(accs, gbFname)
+    if step=="genbankParse":
+        gbFname = join(mutDataDir, "genbank.%d.gb" % taxId)
+        #dnaFaFname = join(mutDataDir, "genbank.%d.dna.fa" % taxId)
+
+        upData = parseUniprotLinks(uniprotDir, taxId)
+        gbProtIds = upData["upToGbProt"]
+        gbProtIds = cleanGbAccs(gbProtIds)
+
+        # genbank to fasta
+        protFaFname = join(mutDataDir, "genbank.%d.prot.fa" % taxId)
+        prots = parseGenbankProts(gbFname, protFaFname, gbProtIds)
+        writeFa(prots, protFaFname)
+
+        # add seqs to dbm (duplicates?)
+        loadFaSeqs(protFaFname)
+
+    if step=="genbankMap":
+        protFaFname = join(mutDataDir, "genbank.%d.prot.fa" % taxId)
+        mapProtToRefseqIndex(taxId, "genbank", protFaFname, uniprotDir, stripVersion=True)
+
+    if step=="seqs" or step=="all":
+        loadSeqs(taxId, mutDataDir, uniprotDir)
 
     if step=="snp" or step=="all":
+        " mapping coordinates -> rsId and the reverse"
         dbSnp(taxId, mutDataDir)
-
-    if step=="uniprot" or step=="all":
-        data = {}
-        # parse uniprot seqs (get all variants)
-        faFname = join(uniprotDir, "uniprot.%s.var.fa.gz" % str(taxId))
-        seqDict = maxbio.parseFastaAsDict(faFname)
-        data[taxId] = {}
-        data[taxId]["upSeqs"] = seqDict
-        logging.info("Found %s sequences" % len(seqDict))
-
-        # parse entrez -> uniprot id and up -> symbol and up->genbank
-        entrezToUp, upToSym, upToGb, upToRefseq = parseUniprot(uniprotDir, taxId)
-        data[taxId]["entrezToUp"] = entrezToUp
-        data[taxId]["upToSym"] = upToSym
-        data[taxId]["upToGbs"] = upToGb
-
-        # write to marshal file
-        mutDataDir = join(pubConf.staticDataDir, "mutFinder")
-        if not isdir(mutDataDir):
-            os.makedirs(mutDataDir)
-        mutDataFname = join(mutDataDir, "uniprot.tab.marshal")
-        marshal.dump(data, open(mutDataFname, "w"))
-        logging.info("Wrote to %s" % mutDataFname)
-
-        # also write to tab file
-        mutDataFname = join(mutDataDir, "uniprot.tab")
-        ofh = open(mutDataFname,"w")
-        ofh.write("geneId\tuniprotId\tuniprotSym\tuniprotGbAcc\n")
-        noSym = 0
-        for geneId, upId in entrezToUp.iteritems():
-            sym = upToSym.get(upId, None)
-            if sym==None:
-                sym=""
-                noSym +=1
-            gbAccs = ",".join(upToGb[upId])
-            row = [str(geneId), upId, sym, gbAccs]
-            ofh.write("\t".join(row)+"\n")
-        ofh.close()
-        logging.info("No sym: %d" % noSym)
-        logging.info("Wrote to %s" % mutDataFname)
 
     #if step=="ncbi" or step=="all":
         #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz") 

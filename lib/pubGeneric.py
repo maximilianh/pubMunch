@@ -12,21 +12,24 @@ forceHeadnode = None
 all_chars = (unichr(i) for i in xrange(0x110000))
 specCodes = set(range(0,32))
 goodCodes = set([7,9,10,11,12,13]) # BELL, TAB, LF, NL, FF (12), CR are not counted
-badCharCodes = specCodes - goodCodes 
+badCharCodes = specCodes - goodCodes
 control_chars = ''.join(map(unichr, badCharCodes))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 class Timeout(Exception):
     pass
 
-def runCommandTimeout(command, timeout=30, bufSize=64000):
+def runCommandTimeout(command, timeout=30, bufSize=128000):
     """
-    runs command, returns after timeout
+    runs command, returns after timeout, kills subprocess if it takes longer than timeout seconds
     print run(["ls", "-l"])
     print run(["find", "/"], timeout=3) #should timeout
+
+    returns stdout, stderr, ret
     """
     logging.log(5, "running command %s" % command)
-    proc = subprocess.Popen(command, bufsize=bufSize, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(command, bufsize=bufSize, stdout=subprocess.PIPE, \
+        stderr=subprocess.PIPE, shell=True, close_fds=True)
     poll_seconds = .250
     deadline = time.time()+timeout
     while time.time() < deadline and proc.poll() == None:
@@ -35,7 +38,6 @@ def runCommandTimeout(command, timeout=30, bufSize=64000):
     if proc.poll() == None:
         if float(sys.version[:3]) >= 2.6:
             proc.terminate()
-        #raise Timeout()
         logging.error("process %s timed out" % (str(command)))
 
     stdout, stderr = proc.communicate()
@@ -157,31 +159,38 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
     # add the handler to the root logger
     logging.getLogger('').addHandler(console)
 
-def runConverter(cmdLine, fileContent, fileExt, tempDir):
-    """ create in and output files, write data to infile, run command"""
-    fd, inFname = tempfile.mkstemp(suffix="."+fileExt, dir=tempDir, prefix="pubConvPmc.in.")
-    inFile = os.fdopen(fd, "wb")
-    inFile.write(fileContent)
-    inFile.close()
-
-    fd, outFname = tempfile.mkstemp(suffix=".txt", dir=tempDir, prefix="pubConvPmc.out.")
-    os.close(fd)
-    logging.debug("Created temp files %s and %s" % (inFname, outFname))
-
-    cmdLine = cmdLine.replace("$in", inFname)
-    cmdLine = cmdLine.replace("$out", outFname)
-    logging.debug("running "+cmdLine)
-    skipFile=False
-    #ret = os.system(cmdLine)
-    stdout, stderr, ret = runCommandTimeout(cmdLine, bufSize=10000000, timeout=30)
+def printOut(stdout, stderr):
+    """ send stdout and stderr to logging """
     if len(stdout)!=0:
         logging.debug("stdout: %s" % stdout)
     if len(stderr)!=0:
         if len(stderr) > 1000 or "a4 is redefined" in stderr:
-            logging.debug("not showing stderr, too big or containes annoying message")
+            logging.info("not showing stderr, too big or containes annoying message")
         else:
-            logging.debug("Size of stderr: %d" % len(stderr))
-            logging.debug("stderr: %s" % stderr)
+            logging.info("Size of stderr: %d" % len(stderr))
+            logging.info("stderr: %s" % stderr)
+
+def runConverter(cmdLine, fileContent, fileExt, tempDir):
+    """ create in and output files, write data to infile, run command. file can be supplies
+    as a str in fileContent or as a pathname via locFname"""
+    # create temp file
+    fd, inFname = tempfile.mkstemp(suffix="."+fileExt, dir=tempDir, prefix="pubConvPmc.in.")
+    inFile = os.fdopen(fd, "wb")
+    inFile.write(fileContent)
+    inFile.close()
+    logging.debug("Created in temp file %s" % (inFname))
+
+    fd, outFname = tempfile.mkstemp(suffix=".txt", dir=tempDir, prefix="pubConvPmc.out.")
+    os.close(fd)
+    logging.debug("Created out temp file %s" % (outFname))
+
+    # build cmd line and run
+    cmdLine = cmdLine.replace("$in", inFname)
+    cmdLine = cmdLine.replace("$out", outFname)
+    logging.debug("running "+cmdLine)
+    skipFile=False
+    stdout, stderr, ret = runCommandTimeout(cmdLine, bufSize=10000000, timeout=30)
+
     asciiData = None
 
     if ret==2:
@@ -192,15 +201,11 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
 
     if ret!=0:
         logging.error("error %d occured while executing %s" % (ret, cmdLine))
-        logging.error("output streams are")
-        logging.error("stdout: %s" % stdout)
-        logging.error("stderr: %s" % stderr)
+        printOut(stdout, stderr)
         skipFile=True
     if os.path.getsize(outFname)==0:
         logging.error("zero file size of output file after command %s" % (cmdLine))
-        logging.error("output streams are")
-        logging.error("stdout: %s" % stdout)
-        logging.error("stderr: %s" % stderr)
+        printOut(stdout, stderr)
         skipFile=True
 
     if not skipFile:
@@ -229,14 +234,39 @@ def removeBadChars(string):
     """ replace bad chars with spaces """
     return control_char_re.sub(" ", string)
 
+def getFileExt(fileData, locFname, mimeType):
+    " try to determine best externsion for a file given its fileData dict "
+    url = fileData["url"]
+    fileExt = None
+    if locFname:
+        logging.debug("File extension taken from local file %s" % locFname)
+        filePath = locFname
+    else:
+        logging.debug("File extension taken from url %s" % url)
+        filePath = url
+
+    fileExt = os.path.splitext(filePath)[1].lower().strip(".")
+
+    if fileExt=="" or len(fileExt)>5:
+        logging.debug("bad file extension, trying mime type")
+        # get the mimeType, either local or from dict
+        if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
+            mimeType = fileData["mimeType"]
+        # get extensions from mime TYpe
+        if mimeType:
+            fileExt = pubConf.MIMEMAP.get(mimeType, None)
+            logging.debug("File extension based on mime type %s" % mimeType)
+
+    logging.debug("File extension determined as  %s" % fileExt)
+    return fileExt
+
 def toAscii(fileData, mimeType=None, \
         maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxTxtFileSize, \
         minTxtFileSize=pubConf.minTxtFileSize):
     """ pick out the content from the fileData dictionary, 
     write it to a local file in tempDir and convert it to 
-    ASCII format. Put output back into the content field 
+    ASCII format. Put output back into the content field.
 
-    hint specifies where the files come from. can be elsevier or pmc.
     mimeType will be used if specified, otherwise try to guess
     converter based on url file extension
 
@@ -247,31 +277,31 @@ def toAscii(fileData, mimeType=None, \
     tempDir = pubConf.getTempDir()
 
     fileContent = fileData["content"]
-    fileDebugDesc = ",".join([fileData["url"],fileData["desc"],fileData["fileId"],fileData["articleId"]])
-    if len(fileContent) > maxBinFileSize:
+    fileSize = len(fileContent)
+
+    if "locFname" in fileData:
+        locFname=fileData["locFname"]
+        fileDebugDesc = fileData["externalId"]+"/"+locFname
+    else:
+        locFname = None
+        fileDebugDesc = ",".join([fileData["url"],fileData["desc"],
+            fileData["fileId"],fileData["articleId"]])
+
+    if fileSize > maxBinFileSize:
         logging.warn("binary file size before conversion %d > %d, skipping file %s" % \
             (len(fileContent), maxBinFileSize, fileDebugDesc))
         return None
 
-    url = fileData["url"]
-
-    fileExt=None
-    if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
-        mimeType = fileData["mimeType"]
-
-    if mimeType:
-        fileExt = pubConf.MIMEMAP.get(mimeType, None)
-        logging.debug("File extension determined as %s" % fileExt)
-    if fileExt==None:
-        fileExt = os.path.splitext(url)[1].lower().strip(".")
+    fileExt = getFileExt(fileData, locFname, mimeType)
 
     if fileExt not in converters:
-        logging.debug("Could not convert file %s, no converter for extension %s" % (url, fileExt))
+        logging.info("Could not convert file %s, no converter for extension %s" % \
+            (fileDebugDesc, fileExt))
         return None
-
     cmdLine = converters[fileExt]
 
     if cmdLine=="COPY":
+        # fileData["content"] already contains ASCII text
         pass
         
     elif cmdLine=="XMLTEXT" or cmdLine=="NXMLTEXT":
@@ -286,9 +316,8 @@ def toAscii(fileData, mimeType=None, \
             return None
         fileData["content"]=asciiData
     else:
-        #logging.verbose("data before conversion is %s" % fileContent)
         asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
-        #logging.verbose("Ascii data after conversion is %s" % asciiData)
+        # try to detect corrupted pdf2text output and run second converter
         if fileExt=="pdf" and \
             ((asciiData==None or len(asciiData)<minTxtFileSize) or countBadChars(asciiData)>=10):
             logging.debug("No data or too many non printable characters in PDF, trying alternative program")
@@ -296,6 +325,7 @@ def toAscii(fileData, mimeType=None, \
             asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
 
         if asciiData==None:
+            logging.info("conversion failed for %s" % fileDebugDesc)
             return None
         else:
             fileData["content"]=removeBadChars(asciiData)
@@ -303,11 +333,11 @@ def toAscii(fileData, mimeType=None, \
     fileData = dictToUnicode(fileData)
 
     if len(fileData["content"]) > maxTxtFileSize:
-        logging.debug("ascii file size after conversion too big, ignoring file")
+        logging.info("ascii file size after conversion too big, ignoring file %s" % fileDebugDesc)
         return None
 
     if len(fileData["content"]) < minTxtFileSize:
-        logging.debug("ascii file size after conversion too small, ignoring file")
+        logging.info("ascii file size after conversion too small, ignoring file %s" % fileDebugDesc)
         return None
 
     #charSet = set(fileData["content"])
@@ -317,14 +347,12 @@ def toAscii(fileData, mimeType=None, \
 
     return fileData
 
-def toAsciiEscape(fileData, hint=None, mimeType=None, maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxBinFileSize, minTxtFileSize=pubConf.minTxtFileSize ):
+def toAsciiEscape(fileData, mimeType=None, maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxBinFileSize, minTxtFileSize=pubConf.minTxtFileSize):
     """ convert to ascii, escape special characters 
         returns a fileData dict
     """
-    fileData = toAscii(fileData, mimeType=mimeType, \
+    fileData = toAscii(fileData, mimeType=mimeType,\
             maxBinFileSize=maxBinFileSize, maxTxtFileSize=maxTxtFileSize, minTxtFileSize=minTxtFileSize)
-    if fileData==None:
-        return None
     fileData = pubStore.dictToUtf8Escape(fileData)
     return fileData
 

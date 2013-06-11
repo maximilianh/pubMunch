@@ -8,10 +8,10 @@ from pycbio.hgdata.Psl import Psl
 
 # I highly recommend installing re2, it's way faster than re
 # we fallback to re just in case
-#try:
-    #import re2 as re
-#except ImportError:
-import re
+try:
+    import re2 as re
+except ImportError:
+    import re
 
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
@@ -39,15 +39,17 @@ VariantFields = [
 # A completely resolved mutation
 mutFields = \
     (
-    "varId",       # uniqueId
-    "patType",     # the type of the patterns (sub, del, ins)
     "chrom",       # chromosome
     "start",       # on chrom
     "end",         # on chrom
+    "varId",       # a unique id
+    "inDb",        # list of db names where was found
+    "patType",     # the type of the patterns (sub, del, ins)
     "hgvsProt",    # hgvs on protein, can be multiple, separated with |
     "hgvsCoding",  # hgvs on cdna, can be multiple, separated with |
     "hgvsRna",     # hgvs on refseq, separated by "|"
-    "rsIds",       # rsIds, separated by "|"
+    "comment",     # comment on how mapping was done
+    "rsIds",       # possible rsIds, separated by "|"
     "protId",      # the protein ID that was used for the first mapping
     "texts",        # mutation match in text
     #"mutSupport",  # prot, dna, protDna
@@ -80,11 +82,12 @@ threeToOne = \
      'Ter': '*',   # the termination codon
      'Stop': '*',   # the termination codon
      'Alanine'       : 'A',
-     'Aspartic acid' : 'B',
      'Asparagine'    : 'B',
      'Cysteine'      : 'C',
+     'Aspartate'     : 'D',
      'Aspartic Acid' : 'D',
      'Glutamic Acid' : 'E',
+     'Glutamate'     : 'E',
      'Phenylalanine' : 'F',
      'Glycine'       : 'G',
      'Histidine'     : 'H',
@@ -102,8 +105,6 @@ threeToOne = \
      'Tryptophan'    : 'W',
      'Any'           : 'X',
      'Tyrosine'      : 'Y',
-     'Glutamine'     : 'Z',
-     'Glutamic Acid' : 'Z'
      }
 
 # same but lower case
@@ -114,7 +115,10 @@ oneToThree = \
      'I':'Ile', 'P':'Pro', 'T':'Thr', 'F':'Phe', 'N':'Asn',
      'G':'Gly', 'H':'His', 'L':'Leu', 'R':'Arg', 'W':'Trp',
      'A':'Ala', 'V':'Val', 'E':'Glu', 'Y':'Tyr', 'M':'Met',
-     'U':'Sec', '*':'Stop','X':'Any'} 
+     'U':'Sec', '*':'Stop','X':'Any',
+     'Z':'Glx', # special case: asparagine or aspartic acid
+     'B':'Asx'  # special case: glutamine or glutamic acid
+     }
 
 # from amino acid to all possible codons
 aaToDna = {
@@ -254,6 +258,7 @@ def parseRegex(mutDataDir):
     "pos"         : r'(?P<pos>[1-9][0-9]+)',
     "origAaShort" : r'(?P<origAaShort>[CISQMNPKDTFAGHLRWVEY])',
     "mutAaShort"  : r'(?P<mutAaShort>[CISQMNPKDTFAGHLRWVEY*])',
+    "skipAa"  : r'(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP)',
     "origAaLong"  : r'(?P<origAaLong>(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP))',
     "mutAaLong"  : r'(?P<mutAaLong>(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP))',
     "dna"         : r'(?P<dna>[actgACTG])',
@@ -266,16 +271,16 @@ def parseRegex(mutDataDir):
     regexList = []
     counts = defaultdict(int)
     for row in maxCommon.iterTsvRows(regexTab):
-        logging.debug("Translating %s" % row.pat)
+        logging.verbose("Translating %s" % row.pat)
         patName = row.patName
         if patName=="":
             patName = row.pat
         patFull = row.pat.format(**replDict)
-        logging.debug("full pattern is %s" % patFull)
+        logging.verbose("full pattern is %s" % patFull)
         flags = 0
         if "Long}" in row.pat:
             flags = re.IGNORECASE
-            logging.debug("ignoring case for this pattern")
+            logging.verbose("ignoring case for this pattern")
         patComp = re.compile(patFull, flags=flags)
         regexList.append((row.seqType, row.mutType, patName, patComp))
         counts[(row.seqType, row.mutType)] += 1
@@ -283,6 +288,45 @@ def parseRegex(mutDataDir):
     for regexType, count in counts.iteritems():
             logging.info("regexType %s, Found %d regexes" % (str(regexType), count))
     return regexList
+
+# helper methods for SeqData
+def getPsls(qId, cache, dbm, stripVersion=False):
+    """ load psls from compressed dbm, create Psl objects, use a cache """
+    qId = str(qId)
+    if stripVersion:
+        qId = str(qId).split(".")[0]
+    logging.debug("Getting mapping psl for %s" % qId)
+    if qId in cache:
+        psls = cache[qId]
+    else:
+        if not qId in dbm:
+            logging.error("Could not find PSL for %s" % qId)
+            return []
+        pslLines = zlib.decompress(dbm[qId])
+        psls = []
+        for line in pslLines.split("\n"):
+            psl = Psl(line.split("\t"))
+            psls.append(psl)
+        cache[qId] = psls
+    return psls
+
+def newToOldRefseqs(accs):
+    """ given a list of new accessions return all previous versions
+    >>> newToOldRefseqs(["NM_000325.5"])
+    ['NM_000325.1', 'NM_000325.2', 'NM_000325.3', 'NM_000325.4']
+    """ 
+    oldAccs = []
+    for newAcc in accs:
+        prefix,suffix = newAcc.split(".")
+        version = int(suffix)-1 
+        if version!=0:
+            oldVersions = range(0, version)
+            oldVersions = [ov+1 for ov in oldVersions]
+            for oldVersion in range(0, version):
+                oldVersion = oldVersion+1 
+                oldAcc = prefix+"."+str(oldVersion)
+                oldAccs.append(oldAcc)
+    return oldAccs
 
 class SeqData(object):
     """ functions to get sequences and map between identifiers for entrez genes,
@@ -293,14 +337,15 @@ class SeqData(object):
         if mutDataDir==None:
             return
         self.mutDataDir = mutDataDir
-        # load uniprot into mem
+        # load uniprot data into mem
         logging.info("Reading data")
         fname = join(mutDataDir, "uniprot.tab.marshal")
         logging.debug("Reading uniprot data from %s" % fname)
         data = marshal.load(open(fname))
         self.entrez2Up = data[taxId]["entrezToUp"]
-        self.upSeqs = data[taxId]["upSeqs"]
         self.upToSym = data[taxId]["upToSym"]
+        self.upToIsos = data[taxId]["upToIsos"]
+        self.upToGbProts = data[taxId]["upToGbProts"]
 
         # load entrez -> refseq/refprot/symbol
         fname = join(mutDataDir, "entrezToRefseq.%s.tab.marshal" % taxId)
@@ -317,7 +362,7 @@ class SeqData(object):
         self.pmid2entrez = pmid2entrez
         
         # refseq sequences
-        fname = join(mutDataDir, "refGeneSeqs.dbm")
+        fname = join(mutDataDir, "seqs.dbm")
         logging.info("opening %s" % fname)
         seqs = gdbm.open(fname, "r")
         self.seqs = seqs
@@ -334,12 +379,28 @@ class SeqData(object):
             self.refSeqCds[row.refSeq] = int(row.cdsStart)-1
         self.seqCache = {}
 
+        # -- these four parts could be fused into one
         # refseq to genome
         liftFname = join(mutDataDir, "refGene.%s.psl.dbm" % taxId)
         logging.debug("Opening %s" % liftFname)
         self.refGenePsls = gdbm.open(liftFname, "r")
-        #self.protMap = pslMapBed.indexPsls(liftFname)
         self.refGenePslCache = {}
+        # refseq to old refseq
+        liftFname = join(mutDataDir, "oldRefseqToRefseq.%s.prot.psl.dbm" % taxId)
+        # oldRefseqToRefseq.9606.prot.psl.dbm
+        logging.debug("Opening %s" % liftFname)
+        self.oldRefseqPsls = gdbm.open(liftFname, "r")
+        self.oldRefseqPslCache = {}
+        # uniprot to refseq
+        liftFname = join(mutDataDir, "upToRefseq.%s.psl.dbm" % taxId)
+        logging.debug("Opening %s" % liftFname)
+        self.uniprotPsls = gdbm.open(liftFname, "r")
+        self.uniprotPslCache = {}
+        # genbank to refseq
+        liftFname = join(mutDataDir, "genbankToRefseq.%s.psl.dbm" % taxId)
+        logging.debug("Opening %s" % liftFname)
+        self.genbankPsls = gdbm.open(liftFname, "r")
+        self.genbankPslCache = {}
 
         logging.info("Reading of data finished")
 
@@ -348,8 +409,11 @@ class SeqData(object):
 
     def getSeq(self, seqId):
         " get seq from db , cache results "
+        logging.verbose("Looking up sequence for id %s" % seqId)
         seqId = str(seqId) # gdbm doesn't like unicode
         if seqId not in self.seqCache:
+            if seqId not in self.seqs:
+                return None
             comprSeq = self.seqs[seqId]
             seq = zlib.decompress(comprSeq)
             self.seqCache[seqId] = seq
@@ -367,7 +431,8 @@ class SeqData(object):
             dbm = gdbm.open(fname, "r")
             self.snpDbmCache[chrom] = dbm
 
-        # crazy packing of coordinates, probably too much effort here
+        # crazy bit-packing of coordinates, probably too much effort here
+        # keeps dbsnp file small
         packCoord = struct.pack("<ll", int(start), int(end))
         if packCoord in dbm:
             packRsId = dbm[packCoord]
@@ -377,19 +442,39 @@ class SeqData(object):
             rsId = None
         return rsId
 
-    def entrezToUniProt(self, entrezGene):
-        " return the uniprot IDs for an entrez gene "
-        return self.entrez2Up.get(entrezGene, None)
+    def entrezToUniProtIds(self, entrezGene):
+        " return all uniprot isoform IDs for an entrez gene "
+        upIds = self.entrez2Up.get(entrezGene, [])
+        allIsos = []
+        for upId in upIds:
+            isoIds = self.upToIsos[upId]
+            allIsos.extend(isoIds)
+        logging.debug("entrez gene %s has uniprot IDs %s" % (entrezGene, allIsos))
+        return allIsos
+
+    def entrezToGenbankProtIds(self, entrezGene):
+        " return all genbank protein IDs for an entrez gene "
+        upIds = self.entrez2Up.get(entrezGene, [])
+        allGbIds = []
+        for upId in upIds:
+            gbIds = self.upToGbProts[upId]
+            allGbIds.extend(gbIds)
+        logging.debug("entrez gene %s has genbank IDs %s" % (entrezGene, allGbIds))
+        return allGbIds
 
     def entrezToOtherDb(self, entrezGene, db):
-        " return accession in otherDb for entrezGene "
+        " return accessions (list) in otherDb for entrezGene "
         if db=="refseq":
-            return self.entrezToRefseqProts(entrezGene)
+            protIds = self.entrezToRefseqProts(entrezGene)
+        elif db=="oldRefseq":
+            protIds = self.entrezToOldRefseqProts(entrezGene)
         elif db=="uniprot":
-            return self.entrezToUniProt(entrezGene)
+            protIds = self.entrezToUniProtIds(entrezGene)
+        elif db=="genbank":
+            protIds = self.entrezToGenbankProtIds(entrezGene)
         else:
             assert(False)
-        assert(False)
+        return protIds
 
     def entrezToSym(self, entrezGene):
         entrezGene = int(entrezGene)
@@ -410,6 +495,13 @@ class SeqData(object):
             (entrezGene, ",".join(protIds)))
         return protIds
 
+    def entrezToOldRefseqProts(self, entrezGene):
+        " map entrez gene to old refseq prots "
+        newProtIds = self.entrezToRefseqProts(entrezGene)
+        protIds = newToOldRefseqs(newProtIds)
+        logging.debug("Also trying old refseq protein IDs %s" % protIds)
+        return protIds
+
     def getCdsStart(self, refseqId):
         cdsStart = self.refSeqCds[refseqId]
         return cdsStart
@@ -425,23 +517,33 @@ class SeqData(object):
     def getRefSeqId(self, refProtId):
         return self.refProtToRefSeq[refProtId]
 
+    def getProteinPsls(self, db, protId):
+        if db=="uniprot":
+            return self.getUniprotPsls(protId)
+        elif db=="oldRefseq":
+            return self.getOldRefseqPsls(protId)
+        elif db=="genbank":
+            return self.getGenbankPsls(protId)
+        else:
+            assert(False)
+
+    # ---- these three could be folded into a single method
+    def getOldRefseqPsls(self, protId):
+        psls = getPsls(protId, self.oldRefseqPslCache, self.oldRefseqPsls)
+        return psls
+    def getUniprotPsls(self, uniprotId):
+        psls = getPsls(uniprotId, self.uniprotPslCache, self.uniprotPsls)
+        return psls
+    def getGenbankPsls(self, protId):
+        " strip version of id and return psl "
+        psls = getPsls(protId, self.genbankPslCache, self.genbankPsls, stripVersion=True)
+        return psls
+    #  ---------------------
     def getRefseqPsls(self, refseqId):
         """ return psl objects for regseq Id
-            as Gb doesn't support version numbers, stripping those 
+            as Gb doesn't support version numbers, we're stripping those on input
         """
-        logging.debug("Getting mapping psl for %s" % refseqId)
-        refseqId = str(refseqId).split(".")[0]
-        if refseqId in self.refGenePslCache:
-            psls = self.refGenePslCache[refseqId]
-        else:
-            #print repr(refseqId)
-            #print self.refGenePsls[str('NM_000527.4')]
-            pslLines = zlib.decompress(self.refGenePsls[refseqId])
-            psls = []
-            for line in pslLines.split("\n"):
-                psl = Psl(line.split("\t"))
-                psls.append(psl)
-            self.refGenePslCache[refseqId] = psls
+        psls = getPsls(refseqId, self.refGenePslCache, self.refGenePsls, stripVersion=True)
         return psls
 
     def makeStub(self):
@@ -499,12 +601,14 @@ def parseMatch(match, patName):
     if "origAaLong" in groups:
         origSeq = threeToOneLower[groups["origAaLong"].lower()]
         seqType = "aa"
+
     if "mutAaShort" in groups:
         mutSeq = groups["mutAaShort"]
         seqType = "aa"
     if "mutAaLong" in groups:
         mutSeq = threeToOneLower[groups["mutAaLong"].lower()]
         seqType = "aa"
+
     if "origDna" in groups:
         origSeq = groups["origDna"]
         seqType = "dna"
@@ -733,8 +837,10 @@ class SeqVariant(object):
     " a variant grounded on a sequence, with pieces from the text "
     __slots__ = mutFields
 
-    def __init__(self, varId, protVars, codVars, rnaVars, beds, entrezGene, geneSym, mentions, text):
+    def __init__(self, varId, protVars, codVars, rnaVars, comment, beds, entrezGene, \
+            geneSym, mentions, text):
         self.varId   = varId
+        self.inDb    = ""
         self.patType = "sub"
         self.seqType = "prot"
         self.chrom      = ""
@@ -745,6 +851,7 @@ class SeqVariant(object):
         self.hgvsProt   = makeHgvsSub("p", protVars)
         self.hgvsCoding = makeHgvsSub("c", codVars)
         self.hgvsRna    = makeHgvsSub("r", rnaVars)
+        self.comment    = comment
         self.rsIds      = makeRsIds(beds)
         self.protId     = ""
         self.geneType   = "entrez"
@@ -785,14 +892,18 @@ def ungroundedMutsToFakeSeqVariants(ungroundedMuts, text):
     """
     muts = []
     for mut, mentions in ungroundedMuts:
-        muts.append(SeqVariant("", [], [], [], [], "", "", mentions, text))
+        muts.append(SeqVariant("", [], [], [], [], "", "", "", mentions, text))
     return muts
 
 def isSeqCorrect(protId, variant):
     " check if wild type sequence in protein corresponds to mutation positions "
     protStart = variant.start # uniprot is 1-based, we are 0-based
-    protEnd   = variant.end 
+    protEnd   = variant.end
     seq = geneData.getSeq(protId)
+    if seq==None:
+        # uniprot sometimes uses other species as support
+        logging.debug("sequence %s is not human or not available" % protId)
+        return False
 
     if not protEnd<=len(seq):
         logging.debug("sequence %s is too short" % protId)
@@ -808,36 +919,33 @@ def isSeqCorrect(protId, variant):
             (variant.origSeq, aaSeq, protStart, protEnd, protId))
         return False
 
-def entrezToUniProt(entrezGene):
-    #geneSym = geneData["upToSym"][protId]
-    #seq = geneData["upSeqs"][protId]
-    pass
-
-
-def hasSeqAtPos(protIds, mut):
+def hasSeqAtPos(protIds, variant):
     " check a list of protein IDs return those with a wild-type sequence at a position "
     if protIds==None:
         return []
     # try all protein seqs
     foundProtIds = []
     for protId in protIds:
-        if isSeqCorrect(protId, mut):
+        if isSeqCorrect(protId, variant):
             foundProtIds.append(protId)
     return foundProtIds
 
-def tryProteinDbs(mut, entrezGene):
+def tryProteinDbs(variant, entrezGene):
     " try various protein databases if they have matches for the wildtype aa at the right position "
     logging.debug("Trying entrez gene %s" % entrezGene)
     #for db in ["refseq", "oldRefseq", "uniprot"]:
-    for db in ["refseq"]:
+    #for db in ["refseq", "uniprot", "genbank"]:
+    for db in ["refseq", "oldRefseq", "uniprot", "genbank"]:
         protIds = geneData.entrezToOtherDb(entrezGene, db)
-        foundProtIds = hasSeqAtPos(protIds, mut)
+        if len(protIds)==0:
+            continue
+        foundProtIds = hasSeqAtPos(protIds, variant)
         if len(foundProtIds)!=0:
             return db, foundProtIds
     return None, []
 
 def rewriteToRefProt(variant, protIds):
-    " don't to any mapping, just create MappedVariants, one for each protein Id "
+    " create new MappedVariants, one for each protein Id "
     varList = []
     for protId in protIds:
         varNew = copy.copy(variant)
@@ -846,14 +954,39 @@ def rewriteToRefProt(variant, protIds):
     return varList
 
 def mapToRefProt(db, variant, protIds):
-    " map protein position from some DB to all possible refprots"
-    seqIdLocs = []
+    " map protein position from some DB to refseq proteins"
+    logging.debug("Mapping original variant to refprot: %s" % str(variant))
+    mappedVars = []
+    newVar = None
     for protId in protIds:
-        psl = geneData.getProtMapPsl(protId)
-        newPos = mapPos(psl, variant.start)
-        seqIdLocs.append((protId, newPos))
-    return seqIdLocs
+        psls = geneData.getProteinPsls(db, protId)
+        for psl in psls:
+            newVar = pslMapVariant(variant, psl)
+            if newVar==None:
+                logging.warn("Cannot map a variant to refprot")
+                continue
+            # some variants are in uniprot but cannot be mapped to refseq at all
+            if not hasSeqAtPos([newVar.seqId], newVar):
+                logging.warn("variant is unique to db %s" % db)
+                continue
+            mappedVars.append(newVar)
+    logging.debug("Mapped to refprot variants: %s" % str(newVar))
+    return mappedVars
         
+def pslMapVariant(variant, psl):
+    " map variant through psl on target, given query position, and create a new variant "
+    maker = pslMapBed.PslMapBedMaker()
+    maker.mapQuery(psl, variant.start, variant.end)
+    bed = maker.getBed()
+    if bed==None:
+        return None
+
+    varNew = copy.deepcopy(variant)
+    varNew.seqId = bed[0]
+    varNew.start = int(bed[1])
+    varNew.end = int(bed[2])
+    return varNew
+    
 def mapToGenome(rnaVars, bedName):
     " map to genome, remove duplicate results, return as 12-tuple (=BED) "
     logging.debug("Mapping rnaVars %s to genome" % rnaVars)
@@ -876,10 +1009,11 @@ def mapToGenome(rnaVars, bedName):
         logging.debug("Got bed: %s" % str(bed))
     return beds
     
-def groundMutations(docId, text, mutations, genes):
-    """ ground mutations onto genes and return """
+def groundMutations(docId, text, mutations, genes, dbAnnots):
+    """ ground mutations onto genes and return results """
     groundedMuts = []
     ungroundedMuts = []
+    dbAnnots.nextDocument(docId)
 
     varCount=1
     allBeds = []
@@ -889,24 +1023,34 @@ def groundMutations(docId, text, mutations, genes):
         for entrezGene in genes:
             geneSym = geneData.entrezToSym(entrezGene)
             if not geneSym:
-                logging.warn("No symbol for entrez gene %s ??" % str(entrezGene))
+                logging.warn("No symbol for entrez gene %s. Skipping gene." % str(entrezGene))
                 continue
             db, protIds = tryProteinDbs(variant, entrezGene)
             if len(protIds)==0:
+                # if we cannot find a sequence, still append it to results
                 ungroundedMuts.append((variant,  mentions))
             else:
                 if db=="refseq":
                     protVars = rewriteToRefProt(variant, protIds)
+                    comment  = ""
                 else:
-                    protVars = mapToRefProt(variant, protIds)
+                    protVars = mapToRefProt(db, variant, protIds)
+                    comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
+                    if protVars==None:
+                        logging.warn("found seqs, but no PSLs for %s" % protIds)
+                        continue
 
                 # create dna variants on various levels
                 varId             = str(docId)+"_"+str(varCount)
                 codVars, rnaVars  = mapToCodingAndRna(protVars)
                 beds = mapToGenome(rnaVars, varId)
 
-                groundedMuts.append(SeqVariant(varId, protVars, codVars, rnaVars, beds, entrezGene, \
-                    geneSym, mentions, text))
+                groundedVar = SeqVariant(varId, protVars, codVars, rnaVars, comment, beds, \
+                    entrezGene, geneSym, mentions, text)
+                isInDb = dbAnnots.addCheckVariant(groundedVar)
+                if isInDb:
+                    groundedVar.inDb = "invitae"
+                groundedMuts.append(groundedVar)
                 allBeds.extend(beds)
             varCount += 1
 
@@ -918,18 +1062,19 @@ def writeHeaders(outFh):
     outFh.write("\t".join(prefixHeaders)+"\t"+"\t".join(mutFields)+"\n")
 
 def readFile(inFname):
-    logging.info("Reading file %s" % inFname)
+    logging.debug("Reading file %s" % inFname)
     text = open(inFname).read()
     title = ""
     abstract = ""
     pmid  = splitext(basename(inFname))[0]
     return pmid, title, abstract, text
 
-def findInLocalFile(inFname, writer, regexes):
+def findInLocalFile(inFname, writer, regexes, dbAnnots):
     pmid, title, abstract, text = readFile(inFname)
     variants  = findVariants(regexes, text)
     genes = findGenes(pmid, title, abstract, text)
     if not "entrez" in genes:
+        # XX currently do not run if there is not entrez gene data
         logging.info("No genes for %s" % inFname)
         genes = []
         groundedMuts = []
@@ -937,33 +1082,67 @@ def findInLocalFile(inFname, writer, regexes):
         beds = []
     else:
         genes = genes["entrez"]
-        groundedMuts, ungroundMuts, beds = groundMutations(pmid, text, variants, genes)
-        # XX currently do not run if there is not entrez gene data
+        groundedMuts, ungroundMuts, beds = groundMutations(pmid, text, variants, genes, dbAnnots)
         writer.writeMuts(pmid, "confirmed", groundedMuts)
         writer.writeMuts(pmid, "notConfirmed", ungroundMuts)
         writer.writeBeds(beds)
 
-def findInLocalDir(inDir, writer, regexes):
+def findInLocalDir(inDir, writer, regexes, dbAnnots):
     for fname in glob.glob(join(inDir, "*.txt")):
         logging.info(fname)
-        findInLocalFile(fname, writer, regexes)
+        findInLocalFile(fname, writer, regexes, dbAnnots)
 
+class DbAnnotator(object):
+    def __init__(self, fname):
+        self.docCount = 0
+        self.mutCount = 0
+        self.target = None
+        self.mutHits = 0
+        self.hgvsCount = 0
+        self.predDocRefCount = 0
+        self._parseBench(fname)
+
+    def _parseBench(self, fname):
+        " parse invitae file into dict with pmid -> list of coding HGVS descriptions "
+        logging.debug("Parsing benchmark file %s" % fname)
+        self.target = defaultdict(list)
+        self.benchCount = 0
+        for row in maxCommon.iterTsvRows(fname):
+            self.target[row.Mapping_reference].append(row.HGVS)
+            self.benchCount += 1
+
+    def nextDocument(self, docId):
+        if docId in self.target:
+            self.docCount += 1
+            self.predDocRefCount += len(self.target[docId])
+        self.docId = docId
+
+    def addCheckVariant(self, mut):
+        refs = self.target[self.docId]
+        self.mutCount += 1
+        mutFound = False
+        for hgvs in mut.hgvsCoding.split("|"):
+            self.hgvsCount += 1
+            if hgvs in refs:
+                mutFound = True
+                break
+        if mutFound:
+            self.mutHits += 1
+        return mutFound
+
+    def printResults(self):
+        print ("%d total mutations in db file" % self.benchCount)
+        print ("%d documents processed, %d db mutations for these, %d mutations output, %d hgvs strings, %d hits" % \
+            (self.docCount, self.predDocRefCount, self.mutCount, self.hgvsCount, self.mutHits))
+
+            
 class OutputWriter(object):
     def __init__(self, outFname, benchFname=None):
         self.outFh = maxTables.openFile(outFname, "w")
         self.bedFh = maxTables.openFile(outFname+".bed", "w")
         writeHeaders(self.outFh)
 
-        # benchmarking stuff
-        self.docCount = 0
-        self.mutCount = 0
-        self.target = None
-        self.mutHits = 0
-        if benchFname:
-            self._parseBench(benchFname)
-
     def writeMuts(self, docId, status, muts):
-        self._updateBenchmark(docId, muts)
         for mut in muts:
             prefixFields=[docId, status]
             self.outFh.write("\t".join(prefixFields)+"\t")
@@ -978,34 +1157,6 @@ class OutputWriter(object):
             self.bedFh.write("\t".join(bed))
             self.bedFh.write("\n")
 
-    def _parseBench(self, fname):
-        logging.debug("Parsing benchmark file %s" % fname)
-        self.target = defaultdict(list)
-        self.benchCount = 0
-        for row in maxCommon.iterTsvRows(fname):
-            self.target[row.Mapping_reference].append(row.HGVS)
-            self.benchCount += 1
-            
-    def _updateBenchmark(self, docId, muts):
-        if self.target==None:
-            return
-
-        self.docCount += 1
-        refs = self.target[docId]
-        for mut in muts:
-            self.mutCount += 1
-            mutFound = False
-            for hgvs in mut.hgvsCoding.split("|"):
-                if hgvs in refs:
-                    mutFound = True
-                    break
-            if mutFound:
-                self.mutHits += 1
-
-    def printBenchmark(self):
-        print ("%d total mutations in benchmark file" % self.benchCount)
-        print ("%d documents processed, %d mutations output, %d hits" % (self.docCount, self.mutCount, self.mutHits))
-
     def close(self):
         self.outFh.close()
         
@@ -1014,6 +1165,11 @@ def runTests():
     geneData = SeqData(mutDataDir, 9606)
     assert( geneData.lookupDbSnp("chr4", 111547605,111547606)=="rs143894132")
     assert( geneData.lookupDbSnp("chr4", 111547606,111547606)==None)
+    text = open("test.txt").read()
+    regexes = parseRegex(mutDataDir)
+    variants  = findVariants(regexes, text)
+    for v in variants:
+        print v
 
 def main(args, options):
     if options.test:
@@ -1033,18 +1189,19 @@ def main(args, options):
     geneData = SeqData(mutDataDir, 9606)
     regexes = parseRegex(mutDataDir)
 
-    writer = OutputWriter(outFname, "mutation_annotations.coding.tab")
+    dbAnnots = DbAnnotator("mutation_annotations.coding.tab")
+    writer = OutputWriter(outFname)
 
     if isfile(inFname):
-        findInLocalFile(inFname, writer, regexes)
+        findInLocalFile(inFname, writer, regexes, dbAnnots)
     elif isdir(inFname):
-        findInLocalDir(inFname, writer, regexes)
+        findInLocalDir(inFname, writer, regexes, dbAnnots)
     else:
         assert(False)
 
     logging.info("Wrote output to %s" % outFname)
 
-    writer.printBenchmark()
+    dbAnnots.printResults()
     writer.close()
 
     #protSizeFname = join(mutDataDir, "uniprot.%s.prot.fa.size")

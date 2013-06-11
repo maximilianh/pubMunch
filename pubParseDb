@@ -140,8 +140,10 @@ featTypes = {
 entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId", "name", "accList", \
     "protFullNames", "protShortNames", "protAltNames", "geneName", "geneSynonyms", "isoNames", \
     "geneOrdLocus", "geneOrf", \
-    "hugo", "refSeq", "ncbiGene", "ensemblGene", "ensemblProt", "embl", "pdb", "uniGene", "omim",\
-    "isoIds", "isoSeqs"]
+    "hugo", "refSeq", "refSeqProt", "ncbiGene", "ensemblGene", "ensemblProt", \
+    "embl", "emblProt", "emblDna", "emblDnaProt", \
+    "pdb", \
+    "uniGene", "omim", "isoIds", "isoSeqs"]
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
@@ -414,9 +416,13 @@ def parseDbRefs(entryEl):
     dbRefs = defaultdict(set)
     for dbRefEl in entryEl.findall("dbReference"):
         db = dbRefEl.attrib["type"]
-        id = dbRefEl.attrib["id"]
-        dbRefs[db].add(id)
+        mainId = dbRefEl.attrib["id"]
+        if db=="EMBL": # special case, don't add yet
+            emblId = mainId
+        else:
+            dbRefs[db].add(mainId)
         propEls = dbRefEl.findall("property")
+        emblProtId = "na"
         for propEl in propEls:
             propType = propEl.attrib["type"]
             propDb = db
@@ -432,6 +438,19 @@ def parseDbRefs(entryEl):
             elif db=="Ensembl" and propType=="protein sequence ID":
                 id = propEl.attrib["value"]
                 propDb = "ensemblProt"
+            elif db=="EMBL" and propType=="protein sequence ID":
+                emblProtId = propEl.attrib["value"]
+                continue # don't add yet
+            elif db=="EMBL" and propType=="molecule type":
+                val = propEl.attrib["value"]
+                if val=="mRNA":
+                    # add now
+                    dbRefs["EMBL"].add(emblId)
+                    dbRefs["emblProt"].add(emblProtId)
+                else:
+                    dbRefs["EMBLDna"].add(emblId)
+                    dbRefs["emblDnaProt"].add(emblProtId)
+                continue # don't add any id
             else:
                 id = dbRefEl.attrib["id"]
             dbRefs[propDb].add(id)
@@ -711,12 +730,16 @@ def parseRecInfo(entryEl, entry, isoSeqs):
 
     entry["hugo"] = dbRefs.get("hgncGene", "")
     entry["refSeq"] = dbRefs.get("refseqNucl", "")
+    entry["refSeqProt"] = dbRefs.get("RefSeq", "")
     entry["ensemblProt"] = dbRefs.get("ensemblProt", "")
     entry["ensemblGene"] = dbRefs.get("ensemblGene", "")
     entry["ncbiGene"] = dbRefs.get("GeneId", "")
     entry["uniGene"] = dbRefs.get("UniGene", "")
     entry["omim"] = dbRefs.get("MIM", "")
-    entry["embl"] = dbRefs.get("EMBL", "")
+    entry["embl"] = dbRefs.get("EMBL", "") # mrnas
+    entry["emblProt"] = dbRefs.get("emblProt", "") # the protein accessions for mrnas
+    entry["emblDna"] = dbRefs.get("EMBLDna", "") # anything not an mrna
+    entry["emblDnaProt"] = dbRefs.get("EMBLDnaProt", "") # protein accessions for non-mrnas
     entry["pdb"] = dbRefs.get("PDB", "")
         
     entry["isoIds"]="|".join(isoIds)
@@ -793,8 +816,11 @@ def writeFaSeqs(entry, faFiles, allVariants=False):
         #ofh.write(">%s\n%s\n" % (seqId, seq))
     c = 0
     for seqId, seq in zip(seqIds, seqs):
-        if c==0 and allVariants:
-            seqId = entry.acc
+        # this was to make sure that the first variant has the uniprot ID
+        # sounds like not such a good idea but maybe necessary for the 
+        # uniprot lifter file?
+        #if c==0 and allVariants:
+            #seqId = entry.acc
         ofh.write(">%s\n%s\n" % (seqId, seq))
         c+=1
 

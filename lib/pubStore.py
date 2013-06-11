@@ -11,7 +11,12 @@
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
 import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator
-import zipfile, gzip, re, sqlite3, random
+import zipfile, gzip, re, random
+try:
+    import sqlite3
+except ImportError:
+    logging.warn("No sqlite3 loaded")
+
 import pubGeneric, pubConf, maxCommon, unicodeConvert, maxTables
 
 from os.path import *
@@ -59,6 +64,7 @@ fileDataFields = [
 "fileType", # can be either "main" or "supp"
 "time", # time/day of conversion from PDF/html/etc
 "mimeType", # mimetype of original file before to-text-conversion
+"locFname", # filename of original file before to-text-conversion
 "content" # the data from this file (newline => \a, tab => space, cr => space, \m ==> \a)
 ]
 
@@ -69,7 +75,7 @@ FileDataRec = collections.namedtuple("FileRecord", fileDataFields)
 emptyFileData = FileDataRec(*len(fileDataFields)*[""])
 
 def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=None, \
-    fileType=None, desc=None, externalId=None):
+    fileType=None, desc=None, externalId=None, locFname=None):
     fileData = emptyFileData._asdict()
     if time!=None:
         fileData["time"]=time
@@ -85,6 +91,8 @@ def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=No
         fileData["fileType"]=fileType
     if desc!=None:
         fileData["desc"]=desc
+    if locFname!=None:
+        fileData["locFname"] = locFname
     logging.log(5, "Creating new file record, url=%s, fileType=%s, desc=%s" % (url, fileType, desc))
     return fileData
 
@@ -186,6 +194,8 @@ def listToUtf8Escape(list):
 
 def dictToUtf8Escape(dict):
     """ convert dict of variables to utf8 string as well as possible and replace \n and \t"""
+    if dict==None:
+        return None
     utf8Dict={}
     for key, var in dict.iteritems():
         var = toUnicode(var)
@@ -540,6 +550,35 @@ class PubReaderFile:
             self.articleRows.close()
         if self.fileRows:
             self.fileRows.close()
+
+#class PubReaderPmidDir:
+#    """ reads files from a directory of text files in format <pmid>.txt"""
+#    def __init__(self, dirName):
+#        self.dirName = dirName
+#
+#    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False, onlyMain=False):
+#        class ArtData:
+#            def _replace(self, content=None):
+#                return self
+#
+#            def _asdict(self):
+#                return {"pmid":10, "externalId":"extId000", "articleId":100000000}
+#
+#
+#        for fname in glob.glob(join(self.dirName, "*.txt")):
+#            pmid = splitext(basename(fname))[0]
+#            art = ArtData()
+#            art.articleId = pmid
+#            art.pmid = pmid
+#            art.externalId = 
+#            art.printIssn = "1234-1234"
+#
+#            fileObj = C()
+#            fileObj.fileId = "1001"
+#            fileObj.content = self.text
+#            fileObj.fileType = "main"
+#        
+#        yield art, [fileObj]
 
 class PubReaderTest:
     """ reads only a single text file """

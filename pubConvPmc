@@ -485,7 +485,7 @@ def getNxmlFile(fileDataDict):
     return nxmlName, nxmlData
             
 def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pmcId):
-    " given file data and meta data, create a fileData dictionary "
+    " given file data and meta data, create a list of fileData "
     fileDataList = []
     #urlPrefix = "pmcftp://"+tgzName
     urlPrefix = "http://www.ncbi.nlm.nih.gov/pmc/articles/%s" % pmcId
@@ -496,7 +496,9 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
         content=nxmlData,
         fileType="main",
         desc = "main text (xml)",
-        mimeType="text/xml")
+        mimeType="text/xml",
+        locFname = nxmlName
+        )
     fileDataList.append(xmlFile)
 
     # try to find pdf files and add pdf file data
@@ -507,7 +509,9 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
             content=extractedFiles[pdfName],
             desc = "main text (pdf)",
             fileType="main",
-            mimeType="application/pdf")
+            mimeType="application/pdf",
+            locFname = pdfName
+            )
         fileDataList.append(pdfFile)
         
     # add all suppl files
@@ -522,7 +526,9 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
             content=suppData,
             desc=suppDesc,
             fileType="supp",
-            mimeType=mimeType)
+            mimeType=mimeType,
+            locFname=suppFname
+            )
         fileDataList.append(suppFile)
     return fileDataList
     

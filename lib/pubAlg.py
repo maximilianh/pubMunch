@@ -202,8 +202,12 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
                 outNames.add(inBase)
                 outFullname = join(outDir, inBase)+outExt
                 #mustNotExist(outFullname) # should not hurt to avoid this check...
+                if algName.startswith("java"):
+                    executable = pubConf.jythonCmd
+                else:
+                    executable = sys.executable # just the cpython binary
                 command = "%s %s %s %s %s {check out exists %s} %s" % \
-                    (sys.executable, __file__ , algName, algMethod, inFile, outFullname, paramFname)
+                    (executable, __file__ , algName, algMethod, inFile, outFullname, paramFname)
                 runner.submit(command)
             algCount += 1
 

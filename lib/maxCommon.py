@@ -1,6 +1,7 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
     os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil
 from types import *
+from os.path import isfile, isdir
 
 def errAbort(text):
     raise Exception(text)

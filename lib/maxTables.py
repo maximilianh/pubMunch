@@ -1,6 +1,13 @@
 # Routines for reading/writing tables from/to textfiles or databases
 
-import sys, textwrap, operator, types, logging, re, os, collections, codecs, sqlite3, time
+import sys, textwrap, operator, types, logging, re, os, collections, codecs, time
+
+# jython doesn't have sqlite3
+try:
+    import sqlite3
+except ImportError:
+    pass
+
 from types import *
 
 import maxCommon

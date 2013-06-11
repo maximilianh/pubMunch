@@ -222,6 +222,7 @@ def convSaveFile(writer, externalId, fileType, url, mimeType, fname, fileId, art
         fileDict["url"] = newUrl
         fileDict["mimeType"] = mimeType
         fileDict["content"] = open(fname).read()
+        fileDict["locFname"] = fname
         fileDict = pubGeneric.toAsciiEscape(fileDict)
         if fileDict==None:
             logging.warn("Cannot convert %s, skipping" % fname)

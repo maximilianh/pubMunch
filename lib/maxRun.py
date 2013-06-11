@@ -5,6 +5,7 @@
 # system and then calling the function (see main() and submitPythonFunc)
 
 import os, sys, logging, shutil, types, optparse
+from os.path import isfile, join
 
 class Runner:
     """
@@ -174,11 +175,16 @@ class Runner:
                     sshDir = self.batchDir
                 else:
                     sshDir = os.getcwd()
-                cmd = "ssh %s 'cd %s; para clearSickNodes; para resetCounts; %s'" % \
-                    (self.headNode, sshDir, cmd)
+
+                if isfile(join(sshDir, "batch")):
+                    cleanCmd = "para clearSickNodes; para resetCounts; para freeBatch; "
+                else:
+                    cleanCmd = ""
+
+                cmd = "ssh %s 'cd %s; %s %s'" % \
+                    (self.headNode, sshDir, cleanCmd, cmd)
                 logging.debug("headnode set, full command is %s" % cmd)
 
-            #os.chdir(self.batchDir)
             self._exec(cmd, stopOnError=True)
 
             if wait or self.runNow:

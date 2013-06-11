@@ -126,7 +126,7 @@ FASTTEMPDIR = TEMPDIR
 
 maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
-minTxtFileSize = 1000 # minimum filesize of any file after conversion to ASCII
+minTxtFileSize = 500 # minimum filesize of any file after conversion to ASCII
 mapReduceTmpDir = _pubsDir + "/mapReduceTemp" # cluster-wide directory to collect results
 
 # parasol batches dir
@@ -148,11 +148,15 @@ clusterType = "parasol"
 # base directory for searcher algorithm code, like regex annotation, dna annotation, etc
 scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
 
+# cmdLine to start jython, used to run java annotators
+jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java "+dirname(__file__)+"/jython.jar"
+
 # assignment of pubMap pipeline steps to cluster machines
 # pubMap will ssh into a machine to run these steps
 stepHosts = {"sortCdna" : "localhost", "sortProt" : "localhost", "sortGenome" : "localhost"}
 
 # email for ncbi eutil requests and error email by pubCrawl
+# at ucsc, overriden by local .pubConf
 email = "YOUREMAIL"
 
 # how much to wait between two eutils requests
@@ -218,7 +222,8 @@ MIMEMAP = {
 }
 
 # override the weird highwire delay times for certain URLs with lower values
-# you need to check with Highwire on these personally first
+# you need to check with Highwire on these first
+# at ucsc, this is overriden with our local .pubConf 
 highwireDelayOverride = {
 }
 

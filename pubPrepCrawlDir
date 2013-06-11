@@ -155,7 +155,7 @@ def getPmidsForIssns(outDir, minYear):
     outDirIssns = {}
     for outDirPath in outDirFiles:
         if not isdir(outDirPath):
-            logging.info("ignoring directory %s" % outDirPath)
+            logging.info("ignoring file %s (not a directory)" % outDirPath)
             continue
 
         #if onlyDir!=None and onlyDir!=basename(outDirPath):

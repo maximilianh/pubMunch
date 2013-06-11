@@ -1,5 +1,5 @@
 #!/usr/bin/env tclsh
-set argVars {targetDb queryFa outPsl}
+set argVars {targetDb blastName queryFa outPsl}
 set usage "doBlast $argVars"
 
 if {$argc != [llength $argVars]} {
@@ -14,5 +14,5 @@ foreach var $argVars val $argv {
 file mkdir [file dirname $outPsl]
 set outPslTmp $outPsl.[exec hostname].[pid]
 
-exec $blastAll -p tblastn -F F -d $targetDb -i $queryFa 2>@stderr | blastToPsl stdin $outPslTmp 2>@stderr
+exec $blastAll -p $blastName -F F -d $targetDb -i $queryFa 2>@stderr | blastToPsl stdin $outPslTmp 2>@stderr
 file rename -force $outPslTmp $outPsl
