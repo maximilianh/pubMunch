@@ -28,7 +28,7 @@ import pubGeneric, pubStore, pubConf, maxCommon, pubPubmed
 from pubXml import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local directory with PDFs (name: <PMID>.pdf) and suppl files (name: <PMID>.supp<count>.pdf) to pubtools format. Get article meta information from NCBI Eutils.
+parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local directory with textfiles or PDFs (name: <PMID>.pdf or <PMID>.txt) and suppl files (name: <PMID>.supp<count>.pdf or .txt) to pubtools format. Get article meta information from NCBI Eutils or local medline copy.
 
 Make sure that you set the minId parameter. 
 (ArticleIds should not overlap between different datasets.)
@@ -36,9 +36,9 @@ Example:
     pubConvPdfDir /hive/data/outside/pubs/spliceAid/ /hive/data/inside/literature/text/spliceAid2/ -minId=5000000000
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"]) 
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"])
 parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
 (options, args) = parser.parse_args()
 
@@ -68,7 +68,7 @@ def createIndex(inDir, outDir, minId):
         if not extId.isdigit():
             continue
         chunkId = "0_00000"
-        mainFile = extId+".pdf"
+        mainFile = extId
         files.remove(mainFile)
         row = [chunkId, str(articleId), extId, mainFile, ",".join(files)]
         indexFile.write("\t".join(row)+"\n")
@@ -89,10 +89,15 @@ def createFileData(baseDir, fname, extId, isSupp):
 
     fileData["fileType"] = fileType
     fileData["url"] = fname
-    fileData["mimeType"] = mimetypes.guess_type(fname)[0]
+    mainPath = join(baseDir, fname+".pdf")
+    if not isfile(mainPath):
+        mainPath = join(baseDir, fname+".txt")
+        
+    fileData["mimeType"] = mimetypes.guess_type(mainPath)[0]
 
-    fileData["content"] = open(join(baseDir, fname)).read()
-    fileData = pubGeneric.toAsciiEscape(fileData)
+    fileData["content"] = open(mainPath).read()
+    if fileData["mimeType"]!="text/plain":
+        fileData = pubGeneric.toAsciiEscape(fileData)
     return fileData
 
 def createArticleData(externalId):
@@ -114,7 +119,7 @@ def convertFiles(inDir, outDir, minId, parseFname):
     " index files and convert to pubtools file in outDir, first articleId is minId "
     indexFn = createIndex(inDir, outDir, minId)
 
-    chunkId = "00000"
+    chunkId = "0_00000"
     writer = pubStore.PubWriterFile(join(outDir, chunkId))
     failed = []
 

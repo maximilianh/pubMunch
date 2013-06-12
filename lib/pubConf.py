@@ -149,7 +149,7 @@ clusterType = "parasol"
 scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
 
 # cmdLine to start jython, used to run java annotators
-jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java "+dirname(__file__)+"/jython.jar"
+jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java -jar "+dirname(__file__)+"/jython.jar"
 
 # assignment of pubMap pipeline steps to cluster machines
 # pubMap will ssh into a machine to run these steps
@@ -537,3 +537,8 @@ def getStaticDataDir():
     """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
     """
     return staticDataDir
+
+def getDataDir(name):
+    " somewhat more flexible, can be redirected based on program name "
+    if name=="mutations":
+	return join(staticDataDir, "mutFinder")

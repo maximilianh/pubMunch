@@ -1,4 +1,6 @@
 # some algorithms to run over text files
+# -*- coding: iso-8859-15 -*-
+# coding=utf-8
 
 # includes functions to load algorithms from external python files,
 # run them on pubStores, do map/reduce like algorithms on cluster, etc
@@ -204,10 +206,12 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, paramDict,
                 #mustNotExist(outFullname) # should not hurt to avoid this check...
                 if algName.startswith("java"):
                     executable = pubConf.jythonCmd
+                    pyFname = __file__.replace(".pyc", ".py") # jython doesn't accept .pyc
                 else:
                     executable = sys.executable # just the cpython binary
+                    pyFname = __file__
                 command = "%s %s %s %s %s {check out exists %s} %s" % \
-                    (executable, __file__ , algName, algMethod, inFile, outFullname, paramFname)
+                    (executable, pyFname, algName, algMethod, inFile, outFullname, paramFname)
                 runner.submit(command)
             algCount += 1
 
@@ -808,6 +812,17 @@ def submitAnnotateWrite(runner, algName, textDirs, paramDict, outDir, updateIds=
             runner.submit(command)
     return outNames
 
+def testAlg(algName, paramDict):
+    logging.debug("Testing algorithm %s startup" % algName)
+    alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
+
+    if "annotateFile" not in dir(alg) and "annotateWrite" not in dir(alg):
+        logging.error("Could not find an annotateFile() function in %s" % algName)
+        sys.exit(1)
+
+    if "startup" in dir(alg):
+        alg.startup(paramDict) # to check if at least the algorithm works 
+
 def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, \
     updateIds=None, batchDir=".", runner=None, addFields=[], concat=False):
     """ 
@@ -826,15 +841,8 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
         outDirs = outDirs.split(",")
 
     for algName in algNames:
-        logging.debug("Testing algorithm %s startup" % algName)
-        alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
-
-        if "annotateFile" not in dir(alg) and "annotateWrite" not in dir(alg):
-            logging.error("Could not find an annotateFile() function in %s" % algName)
-            sys.exit(1)
-
-        if "startup" in dir(alg):
-            alg.startup(paramDict) # to check if at least the algorithm works 
+        if not algName.startswith("java"):
+            testAlg(algName, paramDict)
 
     logging.debug("Testing successful, submitting jobs")
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \
@@ -946,7 +954,7 @@ if __name__ == '__main__':
     parser = optparse.OptionParser("""this module is calling itself. 
     syntax: pubAlg.py <algName> map|reduce <inFile> <outFile> <paramPickleFile>
     """)
-    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
     (options, args) = parser.parse_args()
     pubGeneric.setupLogging(__file__, options)

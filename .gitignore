@@ -1,6 +1,9 @@
 # Python compiled files
 *.py[co1]
 
+# java classes
+*.class
+
 # Packages
 *.egg
 *.egg-info

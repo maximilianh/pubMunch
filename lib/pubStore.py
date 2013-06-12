@@ -17,7 +17,7 @@ try:
 except ImportError:
     logging.warn("No sqlite3 loaded")
 
-import pubGeneric, pubConf, maxCommon, unicodeConvert, maxTables
+import pubGeneric, pubConf, maxCommon, unicodeConvert, maxTables, pubPubmed
 
 from os.path import *
 
@@ -968,6 +968,8 @@ def openArticleDb(datasetName):
         con, cur = conCache[datasetName]
     else:
         path = getArtDbPath(datasetName)
+        if not isdir(path):
+            return None, None
         logging.debug("Opening db %s" % path)
         con, cur = maxTables.openSqlite(path, asDict=True)
         conCache[datasetName] = (con,cur)
@@ -982,7 +984,9 @@ def lookupArticleByArtId(artId):
 connCache = {}
 
 def lookupArticleByPmid(datasets, pmid):
-    " convenience method to get article info given pubmed Id, caches db connections "
+    """ convenience method to get article info given pubmed Id, caches db connections.
+        Uses eutils of local medline is not available
+    """
     for dataset in datasets:
         # keep cache of db connections
         if not dataset in connCache:
@@ -991,8 +995,12 @@ def lookupArticleByPmid(datasets, pmid):
         else:
             con, cur = connCache[dataset]
 
-        # lookup article
-        art = lookupArticle(con, cur, "pmid", pmid)
+        if con!=None:
+            # we a local medline, lookup article locally
+            art = lookupArticle(con, cur, "pmid", pmid)
+        else:
+            # we don't have a local medline copy, use eutils
+            art = pubPubmed.getOnePmid(pmid)
         if art!=None:
             return art
     return None

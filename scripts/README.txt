@@ -9,6 +9,9 @@ Run the hugo annotator like this:
 pubAnnotate hugoSearch.py /hive/data/inside/literature/text/pmc/
 /hive/data/inside/literature/ted/hugo/
 
+Note that annotators that start with the word "java" are run via Jython, so
+they can load and call Java classes. See javaSeth.py for an example
+
 * MAP/REDUCE example programs:
 
 Run the DOI map/reducers like this:

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <entry key="database.user">hguser</entry>
+    <entry key="database.password">hguserstuff</entry>
+    <entry key="database.name">dbsnp137</entry> 
+    <entry key="database.host">jdbc:mysql://127.0.0.1:3306/</entry>
+    <entry key="database.driver">com.mysql.jdbc.Driver</entry>
+
+    <entry key="database.hgvs_view">hgvs</entry>
+    <entry key="database.PSM">PSM</entry>
+    <entry key="database.uniprot">uniprot</entry>
+
+    <entry key="database.geneTable">genes</entry>
+    <entry key="database.gene2pubmed">gene2Pubmed</entry>
+
+</properties>

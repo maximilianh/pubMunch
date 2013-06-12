@@ -6,7 +6,7 @@
 
 # load default python packages
 import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, gdbm, re, zlib, cPickle
-import struct, itertools, semidbm
+import struct, itertools, dumbdbm
 import urllib, urllib2
 import xml.etree.ElementTree as et
 from os.path import *
@@ -158,7 +158,7 @@ def parseEntrezGeneRefseq(taxId, outFname):
     marshal.dump(data, open(outFname, "w"))
     logging.info("Wrote %s" % outFname)
     
-def parseEntrezGenePmids(taxId, dbm, dbm2):
+def parseEntrezGenePmids(taxId, dbm):
     pmid2geneFname = join(pubConf.ncbiGenesDir, "gene2pubmed.gz")
     # at ucsc: /hive/data/outside/ncbi/genes/gene2pubmed.gz
     logging.info("Parsing %s" % pmid2geneFname)
@@ -174,14 +174,17 @@ def parseEntrezGenePmids(taxId, dbm, dbm2):
 
     logging.info("Writing to dbm file")
     count = 0
+    data = {}
     for pmid, entrezList in pmidToEntrez.iteritems():
         if count%10000==0:
             print count
         pmid = str(pmid)
         entrezStr = ",".join(entrezList)
         dbm[pmid] = entrezStr
-        dbm2[pmid] = entrezStr
+        #dbm2[pmid] = entrezStr
+        data[int(pmid)] = entrezStr
         count += 1
+    return data
 
 def faToDbm(faName, dbm):
     logging.info("indexing %s into dbm as compressed seqs" % faName)
@@ -403,7 +406,7 @@ def mapProtToRefseq(taxId, tmpDir, protFaName):
         runner.submit(cmd)
     runner.finish(wait=True)
 
-def dbSnp(taxId, mutDataDir):
+def dbSnp(taxId, mutDataDir, doRev=False):
     """ parse dbSnp into dbm files, most of these won't be used as they're in intergenic 
     regions but we keep them for now 
     """
@@ -420,7 +423,7 @@ def dbSnp(taxId, mutDataDir):
     else:
         logging.info("%s already exists, delete if you want to restart" % snpFname)
 
-    # dbm has a huge problem when rec count > 25 million, so we split it
+    # dbm has a huge problem when rec count > 25 million, so we split it over many files
     dbSnpDbms = {}
     coordDbms = {}
     count = 0
@@ -432,29 +435,32 @@ def dbSnp(taxId, mutDataDir):
         # ignore haps and _gl
         if "hap" in chrom or "_gl" in chrom:
             continue
-        # open dbm: lazily create dbms, one for each chrom
-        if chrom not in dbSnpDbms:
-            fname = join(fastTmp, "snp137.%s.dbm" % chrom)
-            logging.info("Creating %s" % fname)
-            dbm = gdbm.open(fname, "nf")
-            dbSnpDbms[chrom] = (fname, dbm)
-        else:
-            dbm = dbSnpDbms[chrom][1]
-        # open dbm2: lazily create reverse dbms, one for each last digit of the rsId
-        lastDigit = rsId[-1]
-        if lastDigit not in coordDbms:
-            fname = join(fastTmp, "snp137.coords.%s.dbm" % lastDigit)
-            logging.info("Creating %s" % fname)
-            coordDbm = gdbm.open(fname, "nf")
-            coordDbms[lastDigit] = (fname, dbm)
-        else:
-            coordDbm = coordDbms[lastDigit][1]
-
-        # pack and save data
         packCoord = struct.pack("<ll", int(start), int(end))
         packRsId = struct.pack("<l", int(rsId[2:]))
-        dbm[packCoord] = packRsId
-        coordDbm[packRsId] = packCoord
+
+        if not doRev:
+            # open dbm: lazily create dbms, one for each chrom
+            if chrom not in dbSnpDbms:
+                fname = join(fastTmp, "snp137.%s.dbm" % chrom)
+                logging.info("Creating %s" % fname)
+                dbm = gdbm.open(fname, "nf")
+                dbSnpDbms[chrom] = (fname, dbm)
+            else:
+                dbm = dbSnpDbms[chrom][1]
+            dbm[packCoord] = packRsId
+        else:
+            # open dbm2: lazily create reverse dbms, one for each last digit of the rsId
+            lastDigit = rsId[-1]
+            if lastDigit not in coordDbms:
+                fname = join(fastTmp, "snp137.coords.%s.dbm" % lastDigit)
+                logging.info("Creating %s" % fname)
+                coordDbm = gdbm.open(fname, "nf")
+                coordDbms[lastDigit] = (fname, coordDbm)
+            else:
+                coordDbm = coordDbms[lastDigit][1]
+            # pack and save data
+            coordDbm[packRsId] = packCoord
+            dbSnpDbms = coordDbms
 
     for tmpFname, dbm in dbSnpDbms.values():
         dbm.close()
@@ -709,15 +715,18 @@ def main(args, options):
         # parse entrez gene into dict pmid -> list of entrez ids
         entrezFname = join(mutDataDir, "pmid2entrez.dbm")
         # jython doesn't have gdbm, we so also write to a semidbm file
-        dumbEntrezFname = join(mutDataDir, "pmid2entrez.semidbm")
         dbm = gdbm.open(entrezFname, "nf")
         #dumbDbm = dumbdbm.open(dumbEntrezFname, "nf") # dumbdbm was annoyingly slow
-        dbm2 = semidbm.open(dumbEntrezFname, "c")
-        parseEntrezGenePmids(taxId, dbm, dbm2)
+        #dbm2 = dumbdbm.open(dumbEntrezFname, "w")
+        #dumbEntrezFname = join(mutDataDir, "pmid2entrez.dumbdbm")
+        dataFname = join(mutDataDir, "pmid2entrez.marshal.gz")
+        data = parseEntrezGenePmids(taxId, dbm)
+        open(dataFname, "w").write(zlib.compress(marshal.dumps(data)))
 
-        logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dumbEntrezFname))
+        #logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dumbEntrezFname))
+        logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dataFname))
         dbm.close()
-        dbm2.close()
+        #dbm2.close()
 
     if step=="geneRefseq" or step=="all":
         outFname = join(mutDataDir, "entrezToRefseq.%s.tab" % taxId)
@@ -783,7 +792,9 @@ def main(args, options):
 
     if step=="snp" or step=="all":
         " mapping coordinates -> rsId and the reverse"
+        # gdbm gave malloc errors if not done in two separate steps
         dbSnp(taxId, mutDataDir)
+        dbSnp(taxId, mutDataDir, doRev=True)
 
     #if step=="ncbi" or step=="all":
         #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz") 

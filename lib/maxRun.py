@@ -9,7 +9,7 @@ from os.path import isfile, join
 
 class Runner:
     """
-    a class that runs commands or python methods on cluster (sge/parasol/local) 
+    a class that runs commands or python methods on cluster or localhost (sge/parasol/local) 
     """
 
     def __init__(self, clusterType="auto", headNode=None, queue=None, dryRun=False, \

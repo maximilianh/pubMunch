@@ -42,17 +42,15 @@ a ":", like "dnaSearch.py:Annotate"
 
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-r", "--runNow", dest="runNow", action="store_true", help="wait until jobs are all finished") 
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout") 
-parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
-parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test, but input file is just a single text file")
+#parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
+parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test and <in> is just a single text file")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. pmid or doi. can be used several times")
-parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs")
-parser.add_option("-c", "--concat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
-parser.add_option("-k", "--keepOldFiles", dest="keepOldFiles", action="store_true", help="do not wipe the output dir before running the annotators")
-parser.add_option("-p", "--addPmid", dest="addPmid", action="store_true", help="try to add PMID to all output rows")
+parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs on the cluster")
+parser.add_option("", "--cat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
+parser.add_option("-k", "--keepOldFiles", dest="keepOldFiles", action="store_true", help="do not wipe the output dir before running the jobs")
+parser.add_option("-p", "--addPmid", dest="addPmid", action="store_true", help="try to add PMID to all output rows (this is the same as -a pmid)")
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -70,35 +68,7 @@ def checkCleanDir(outDir, keepOldFiles):
             os.remove(join(outDir, oldGzFname))
             pm.taskCompleted()
 
-# ----------- MAIN --------------
-if args==[]: 
-    parser.print_help()
-    exit(1)
-
-pubGeneric.setupLogging(progFile, options)
-
-algName, inName, outName = args[:3]
-
-assert("=" not in outName)
-assert("=" not in inName)
-
-runNow = options.runNow
-paramStrings = args[3:]
-
-paramDict = {}
-paramDict = pubGeneric.stringListToDict(paramStrings)
-
-alg = pubAlg.getAlg(algName, "Annotate") # makes sure that algName exists
-
-paramDict["startAnnotId"] = 0
-paramDict["addFields"] = options.addFields
-
-if options.addPmid:
-    if options.addFields==None:
-        options.addFields=[]
-    options.addFields.append("pmid")
-
-if options.test or options.oneText:
+def testMode():
     reload(sys)
     sys.setdefaultencoding('utf-8')
     outName = "stdout"
@@ -116,18 +86,45 @@ if options.test or options.oneText:
         else:
             reader = pubStore.PubReaderFile(inFname)
         pubAlg.runAnnotate(reader, alg, paramDict, outName)
-else:
-    inNames = inName.split(",")
+    sys.exit(0)
+# ----------- MAIN --------------
+if args==[]: 
+    parser.print_help()
+    exit(1)
 
-    if options.realTest:
-        runner = None
-    else:
-        checkCleanDir(outName, options.keepOldFiles)
-        maxJobs = None
-        if options.limitJobs:
-            maxJobs = options.limitJobs
-        inBaseNames = [basename(x) for x in inNames]
-        batchBase = algName+"_"+"".join(inBaseNames)
-        runner = pubGeneric.makeClusterRunner(batchBase, maxJob=maxJobs)
+pubGeneric.setupLogging(progFile, options)
 
-    pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields, concat=options.concat)
+algName, inName, outName = args[:3]
+
+assert("=" not in outName)
+assert("=" not in inName)
+
+paramStrings = args[3:]
+
+paramDict = {}
+paramDict = pubGeneric.stringListToDict(paramStrings)
+
+# we can't test jython algorithms
+if not algName.startswith("java"):
+    alg = pubAlg.getAlg(algName, "Annotate") # makes sure that algName exists
+
+paramDict["startAnnotId"] = 0
+paramDict["addFields"] = options.addFields
+
+if options.addPmid:
+    if options.addFields==None:
+        options.addFields=[]
+    options.addFields.append("pmid")
+
+if options.test or options.oneText:
+    testMode()
+
+inNames = inName.split(",")
+checkCleanDir(outName, options.keepOldFiles)
+maxJobs = None
+if options.limitJobs:
+    maxJobs = options.limitJobs
+inBaseNames = [basename(x) for x in inNames]
+batchBase = algName+"_"+"".join(inBaseNames)
+runner = pubGeneric.makeClusterRunner(batchBase, maxJob=maxJobs)
+pubAlg.annotate(algName, inNames, paramDict, outName, runner=runner, addFields=options.addFields, concat=options.concat)
