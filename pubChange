@@ -75,28 +75,29 @@ def submitJobs(inSpec, pmidFname, outDir):
         inFnames = glob.glob(join(inDir, "*.articles.gz"))
         for inFname in inFnames:
             outFname = join(outDir, basename(inFname))
-            command = "%s %s filterJob {check in exists %s} %s %s" % (sys.executable, __file__, inFname, pmidFname, outFname)
+            command = "%s %s filterJob {check in exists %s} %s %s" % \
+                (sys.executable, __file__, inFname, pmidFname, outFname)
             runner.submit(command)
     runner.finish(wait=True)
 
+def rechunkCmd(args, options):
     #reader = pubStore.PubReaderFile(inFname)
     #artCount = 0
     #chunkCount = 0
     #logging.debug("Writing to %s" % outFname)
     #store = pubStore.PubWriterFile(join(outDir, "0_00000.articles.gz"))
-        #print "Directory: %s" % inDir
-        #pm = maxCommon.ProgressMeter(len(inFnames))
-                #artCount += 1
-                #if artCount % pubConf.chunkArticleCount == 0:
-                    #store.close()
-                    #chunkCount += 1
-                    #store = pubStore.PubWriterFile(join(outDir, "0_%05d.articles.gz" % chunkCount))
-
-                #logging.info("Accepting %s, %d files" % (article.externalId, len(files)))
-
-                #store.writeArticle(article.articleId, article._asdict())
-                #for fileRow in files:
-                    #store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
+    #print "Directory: %s" % inDir
+    #pm = maxCommon.ProgressMeter(len(inFnames))
+    #artCount += 1
+    #if artCount % pubConf.chunkArticleCount == 0:
+    pass
+        #store.close()
+        #chunkCount += 1
+        #store = pubStore.PubWriterFile(join(outDir, "0_%05d.articles.gz" % chunkCount))
+        #logging.info("Accepting %s, %d files" % (article.externalId, len(files)))
+        #store.writeArticle(article.articleId, article._asdict())
+        #for fileRow in files:
+            #store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
             #pm.taskCompleted()
     #store.close()
 

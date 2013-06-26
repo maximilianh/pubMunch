@@ -67,13 +67,42 @@ The table "files" contains the files, one or more per article: the ASCII content
 
 One article can have several fulltext files and several supplemental files. It should have at least one main file (even though in an old version of the tables, there were articles without any file, this should be corrected by now). 
 
-This format allows it to use all the normal UNIX textutils. E.g. to search for all articles that contain the word HOXA2 and get their external IDs (which is the PMID for crawled data) you can use simply zgrep:
+This format allows you to use the normal UNIX textutils. E.g. to search for all articles that contain the word HOXA2 and get their external IDs (which is the PMID for crawled data) you can use simply zgrep:
 
     zgrep HOXA2 *.files.gz | cut -f2 | less
 
-As the files are sorted on the articleId, you can also create a big table that includes both meta information and files in one table by gunzipping all files first and then running a join:
+As the files are sorted on the articleId, you can create a big table that includes both meta information and files in one table by gunzipping all files first and then running a join:
 
     join 0_00000.articles 0_00000.files > textData.tab
+
+# Annotators and Map/Reduce operations
+
+While you can get quite far with the UNIX tools, you might want write your text analysis as python scripts. If your scripts comply with the format required by pubRunAnnotate or pubRunMapReduce, the scripts don't have to do any parsing of the tables themselves, their output format is standardised and they get distributed over the cluster automatically.
+
+The minimum that is required is a variable called "headers" and a function
+called "annotateFile" that accepts an article object and a file object and
+yields rows that are described in "headers". Here is a minimal example that searches
+for the string " FOXO1 " and returns it together with the year of the article:
+
+  headers = ["start", "end", "year", "geneId"]
+
+  def annotateFile(article, file):
+      text = file.content
+      start = text.find(" FOXO1 ")
+      if start!=-1:
+          yield (start, start+8, article.year, "FOXO1")
+
+if you paste this code into a file called foxFinder.py, then run the command
+
+  pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
+
+the tools will submit one cluster job for each chunk of articles, parse the articles from 
+myCrawlText and run them through foxFinder.py. As the function yields fields called "start" and
+"end", 150 characters around each FOXO1-match will be extracted. The output are gzipped tables with the 
+columns articleId, externalId, start, end, year, geneId and snippet. Since we provided the --cat
+option, once the cluster jobs are done, their results will be concatenated into one big table, 
+foxFinderOut.tab. Depending on how big your cluster is, this can be a lot faster than running 
+a grep.
 
 # Installation
 
