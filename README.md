@@ -25,13 +25,10 @@ This is a early testing release, please send error messages to Maximilian Haeuss
         taxon names, import gene models from websites like NCBI or
         UCSC. 
 
-Most start with the prefix "pub", the category and then the 
-data source or publisher. The categories are:
-
 If you plan to use any of these, make sure to go over lib/pubConf.py first.
 Most commands need some settings in the config file adapted to your particular
 server / cluster system. E.g. pubCrawl needs your email address, pubConvX 
-need the cluster system and various input/output directories.
+need the cluster system (SGE or parasol) and various input/output directories.
 
 # An example run
 
@@ -43,17 +40,19 @@ Get a list of PMIDs, put them into the file pmids.txt
 
     echo 17695372 > myCrawl/pmids.txt
 
-Run the crawler in unrestricted mode and with debug output on this list
+Run the crawler in unrestricted mode and with debug output on this list: (in the default, restricted mode, it will only crawl a single publisher) 
 
     pubCrawl -du myCrawl/pmids.txt
 
-The PDFs should be in the subdirectory myCrawl/files. Error messages are in myCrawl/pmidStatus.txt. 
+The PDFs should then be in the subdirectory myCrawl/files. Error messages are in myCrawl/pmidStatus.txt. 
 Metadata is in a sqlite and a tab separated file. 
 
 Convert crawled PDFs to text:
 
     mkdir myCrawlText
     pubConvCrawler myCrawl myCrawlText
+
+This will convert html, xml, pdf, txt, ppt, doc, xls and some other file formats, if you have installed the necessary packages.
 
 # Output format
 
@@ -105,6 +104,9 @@ one big table, foxFinderOut.tab. Depending on how big your cluster is, this can
 be a lot faster than running a grep.
 
 # Installation
+
+Install these packages in ubuntu:
+    sudo apt-get install catdoc xpdf poppler-utils
 
 If text annotation is too slow for you:
 The re2 library for python will make it at least 10 times faster.
