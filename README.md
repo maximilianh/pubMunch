@@ -2,7 +2,7 @@
 
 These are the tools that I wrote for the UCSC Genocoding project, see
 http://text.soe.ucsc.edu. They allow you to download fulltext research
-articles from internet, convert them to text and run text mining algorithms
+articles from the internet, convert them to text and run text mining algorithms
 on them.  All tools start with the prefix "pub". 
 This is a early testing release, please send error messages to Maximilian Haeussler, max@soe.ucsc.edu.
 
@@ -10,8 +10,8 @@ This is a early testing release, please send error messages to Maximilian Haeuss
 
 - pubCrawl = crawl papers from various publishers, needs a directory with a
         textfile "pmids.txt" in it and the data/journalList directory
-- pubGet<PUB> = download files from publisher PUB directly (medline, pmc, elsevier)
-- pubConv<PUB> = convert downloaded files to my pub format (tab-separated table
+- pubGetPUB = download files from publisher PUB directly (medline, pmc, elsevier)
+- pubConvPUB = convert downloaded files to my pub format (tab-separated table
              with fields defined in lib/pubStore.py)
 - pubLoadMysql and pubLoadSqlite = load pub format data into a database system 
 - pubRunAnnot = run an annotator from the scripts directory on text data in
@@ -96,13 +96,13 @@ if you paste this code into a file called foxFinder.py, then run the command
 
     pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
 
-the tools will submit one cluster job for each chunk of articles, parse the articles from 
-myCrawlText and run them through foxFinder.py. As the function yields fields called "start" and
-"end", 150 characters around each FOXO1-match will be extracted. The output are gzipped tables with the 
-columns articleId, externalId, start, end, year, geneId and snippet. Since we provided the --cat
-option, once the cluster jobs are done, their results will be concatenated into one big table, 
-foxFinderOut.tab. Depending on how big your cluster is, this can be a lot faster than running 
-a grep.
+the tools will submit one cluster job for each chunk of articles. Each job will get one chunk of articles from the myCrawlText directory, parse the articles and files tables and run them through foxFinder.py. As our function yields fields called "start" and
+"end", 150 characters around each FOXO1-match will be extracted.
+The results are written to gzipped tables with the columns articleId,
+externalId, start, end, year, geneId and snippet. Since we provided the --cat
+option, once the cluster jobs are done, their results will be concatenated into
+one big table, foxFinderOut.tab. Depending on how big your cluster is, this can
+be a lot faster than running a grep.
 
 # Installation
 
