@@ -298,6 +298,8 @@ class PubWriterFile:
 
         if "externalId" not in fileDict:
             fileDict["externalId"] = fileDict["articleId"]
+        if "locFname" not in fileDict:
+            fileDict["locFname"] = ""
 
         if len(fileDict)!=len(fileDataFields):
             logging.error("column counts between file dict and file objects don't match")

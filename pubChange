@@ -43,9 +43,10 @@ example:
 
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
 #parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -68,14 +69,13 @@ def filterOneChunk(inFname, pmidFname, outFname):
 def submitJobs(inSpec, pmidFname, outDir):
     inDirs = pubConf.resolveTextDirs(inSpec)
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, algName=inSpec)
-
     pmidFname = os.path.abspath(pmidFname)
 
     for inDir in inDirs:
         inFnames = glob.glob(join(inDir, "*.articles.gz"))
         for inFname in inFnames:
             outFname = join(outDir, basename(inFname))
-            command = "%s %s {check in exists %s} %s %s" % (sys.executable, __file__, inFname, pmidFname, outFname)
+            command = "%s %s filterJob {check in exists %s} %s %s" % (sys.executable, __file__, inFname, pmidFname, outFname)
             runner.submit(command)
     runner.finish(wait=True)
 
@@ -102,15 +102,10 @@ def submitJobs(inSpec, pmidFname, outDir):
 
 def filterCmd(args, options):
     inSpec, pmidFname, outSpec = args
-    if isfile(inSpec):
-        # if indir is a file, we got called on the cluster by ourself
-        filterOneChunk(inSpec, pmidFname, outSpec)
-    else:
-        # otherwise got called from command line by user
-        outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
-        assert(outDir!=None)
-        maxCommon.mustBeEmptyDir(outDir)
-        submitJobs(inSpec, pmidFname, outDir)
+    outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
+    assert(outDir!=None)
+    maxCommon.mustBeEmptyDir(outDir)
+    submitJobs(inSpec, pmidFname, outDir)
 
 def parseIdFname(fname):
     res = {}
@@ -178,10 +173,13 @@ def main(args, options):
 
     if cmd=="filter":
         filterCmd(args[1:], options)
+    if cmd=="filterJob":
+        inSpec, pmidFname, outSpec = args[1:]
+        filterOneChunk(inSpec, pmidFname, outSpec)
     elif cmd=="addPmids":
         addPmidCmd(args[1:], options)
     else:
-        raise Exception("Unknown command") 
+        raise Exception("Unknown command %s" % cmd) 
         
 # ----------- MAIN --------------
 if args==[]:

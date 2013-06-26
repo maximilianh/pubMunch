@@ -138,12 +138,13 @@ featTypes = {
 
 # main record info
 entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId", "name", "accList", \
-    "protFullNames", "protShortNames", "protAltNames", "geneName", "geneSynonyms", "isoNames", \
+    "protFullNames", "protShortNames", "protAltFullNames", "protAltShortNames", \
+    "geneName", "geneSynonyms", "isoNames", \
     "geneOrdLocus", "geneOrf", \
-    "hugo", "refSeq", "refSeqProt", "ncbiGene", "ensemblGene", "ensemblProt", \
-    "embl", "emblProt", "emblDna", "emblDnaProt", \
-    "pdb", \
-    "uniGene", "omim", "isoIds", "isoSeqs"]
+    "hgncSym", "hgncId", "refSeq", "refSeqProt", "ncbiGene", "ensemblGene", "ensemblProt", \
+    "emblMrna", "emblMrnaProt", "emblDna", "emblDnaProt", \
+    "pdb", "ec", \
+    "uniGene", "omimGene", "omimPhenotype", "isoIds", "isoSeqs"]
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
@@ -414,6 +415,10 @@ def parseIsoforms(acc, mainSeq, entryEl, isoSeqs):
 def parseDbRefs(entryEl):
     " return dict with db -> id (various special cases) "
     dbRefs = defaultdict(set)
+    dbRefs["emblMrna"] =  []
+    dbRefs["emblMrnaProt"] =  []
+    dbRefs["emblDna"] =  []
+    dbRefs["emblDnaProt"] =  []
     for dbRefEl in entryEl.findall("dbReference"):
         db = dbRefEl.attrib["type"]
         mainId = dbRefEl.attrib["id"]
@@ -423,6 +428,7 @@ def parseDbRefs(entryEl):
             dbRefs[db].add(mainId)
         propEls = dbRefEl.findall("property")
         emblProtId = "na"
+        id = None
         for propEl in propEls:
             propType = propEl.attrib["type"]
             propDb = db
@@ -441,19 +447,28 @@ def parseDbRefs(entryEl):
             elif db=="EMBL" and propType=="protein sequence ID":
                 emblProtId = propEl.attrib["value"]
                 continue # don't add yet
+            elif db=="MIM" and propType=="type":
+                omimCat = propEl.attrib["value"]
+                if omimCat=="phenotype":
+                    dbRefs["omimPhenotype"].add(mainId)
+                elif omimCat=="gene" or omimCat=="gene+phenotype":
+                    dbRefs["omimGene"].add(mainId)
+                else:
+                    assert(False)
             elif db=="EMBL" and propType=="molecule type":
                 val = propEl.attrib["value"]
                 if val=="mRNA":
                     # add now
-                    dbRefs["EMBL"].add(emblId)
-                    dbRefs["emblProt"].add(emblProtId)
+                    dbRefs["emblMrna"].append(emblId)
+                    dbRefs["emblMrnaProt"].append(emblProtId)
                 else:
-                    dbRefs["EMBLDna"].add(emblId)
-                    dbRefs["emblDnaProt"].add(emblProtId)
+                    dbRefs["emblDna"].append(emblId)
+                    dbRefs["emblDnaProt"].append(emblProtId)
                 continue # don't add any id
             else:
                 id = dbRefEl.attrib["id"]
-            dbRefs[propDb].add(id)
+            if id!=None:
+                dbRefs[propDb].add(id)
 
     result = {}
     for db, valList in dbRefs.iteritems():
@@ -709,10 +724,12 @@ def parseRecInfo(entryEl, entry, isoSeqs):
     findSaveList(entryEl, "name", entry, "name")
     findSaveList(entryEl, "accession", entry, "accList")
     entry["acc"] = entry["accList"].split("|")[0]
+    logging.debug("Parsing rec info for acc %s" % entry["acc"])
 
     findSaveList(entryEl, "protein/recommendedName/fullName", entry, "protFullNames")
     findSaveList(entryEl, "protein/recommendedName/shortName", entry, "protShortNames")
-    findSaveList(entryEl, "protein/alternativeName/fullName", entry, "protAltNames")
+    findSaveList(entryEl, "protein/alternativeName/fullName", entry, "protAltFullNames")
+    findSaveList(entryEl, "protein/alternativeName/shortName", entry, "protAltShortNames")
     findSaveList(entryEl, "gene/name", entry, "geneName", attribKey="type", attribVal="primary")
     findSaveList(entryEl, "gene/name", entry, "geneSynonyms", attribKey="type", attribVal="synonym")
     findSaveList(entryEl, "gene/name", entry, "geneOrdLocus", attribKey="type", attribVal="ordered locus")
@@ -728,19 +745,22 @@ def parseRecInfo(entryEl, entry, isoSeqs):
     dbRefs = parseDbRefs(entryEl)
     entry["mainIsoAcc"] = isoIds[0]
 
-    entry["hugo"] = dbRefs.get("hgncGene", "")
+    entry["hgncSym"] = dbRefs.get("hgncGene", "")
+    entry["hgncId"] = dbRefs.get("HGNC", "")
     entry["refSeq"] = dbRefs.get("refseqNucl", "")
     entry["refSeqProt"] = dbRefs.get("RefSeq", "")
     entry["ensemblProt"] = dbRefs.get("ensemblProt", "")
     entry["ensemblGene"] = dbRefs.get("ensemblGene", "")
     entry["ncbiGene"] = dbRefs.get("GeneId", "")
     entry["uniGene"] = dbRefs.get("UniGene", "")
-    entry["omim"] = dbRefs.get("MIM", "")
-    entry["embl"] = dbRefs.get("EMBL", "") # mrnas
-    entry["emblProt"] = dbRefs.get("emblProt", "") # the protein accessions for mrnas
-    entry["emblDna"] = dbRefs.get("EMBLDna", "") # anything not an mrna
-    entry["emblDnaProt"] = dbRefs.get("EMBLDnaProt", "") # protein accessions for non-mrnas
+    entry["omimGene"] = dbRefs.get("omimGene", "")
+    entry["omimPhenotype"] = dbRefs.get("omimPhenotype", "")
+    entry["emblMrna"] = dbRefs.get("emblMrna", "") # mrnas
+    entry["emblMrnaProt"] = dbRefs.get("emblMrnaProt", "") # the protein accessions for mrnas
+    entry["emblDna"] = dbRefs.get("EmblDna", "") # anything not an mrna
+    entry["emblDnaProt"] = dbRefs.get("EmblDnaProt", "") # protein accessions for non-mrnas
     entry["pdb"] = dbRefs.get("PDB", "")
+    entry["ec"] = dbRefs.get("EC", "")
         
     entry["isoIds"]="|".join(isoIds)
     entry["isoSeqs"]="|".join(seqs)

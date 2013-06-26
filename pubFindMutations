@@ -17,6 +17,7 @@ except ImportError:
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
 import pubGeneric, maxCommon, pubConf, maxbio, pubAlg, maxTables, pslMapBed
+import geneFinder
 #import kent.psl, kent.pslTransMap
 
 geneData = None
@@ -27,12 +28,12 @@ geneData = None
 """
 VariantFields = [
     "mutType", # sub, del or ins
-    "seqType", # prot or dna or protdna if not sure
+    "seqType", # prot, dna or dbSnp 
     "seqId",  # protein or nucleotide accession
     "geneId", # entrez gene id, if found nearby in text
     "start",  # original position in text
-    "end",    # ?
-    "origSeq", # wild type seq, used for sub and del
+    "end",    # end position in text
+    "origSeq", # wild type seq, used for sub and del, also used to store rsId for dbSnp variants
     "mutSeq",  # mutated seq, used for sub and ins
     ]
 
@@ -49,11 +50,14 @@ mutFields = \
     "hgvsCoding",  # hgvs on cdna, can be multiple, separated with |
     "hgvsRna",     # hgvs on refseq, separated by "|"
     "comment",     # comment on how mapping was done
-    "rsIds",       # possible rsIds, separated by "|"
+    "rsIds",       # possible rsIds, separated by "|", obtained by mapping from hgvsRna
     "protId",      # the protein ID that was used for the first mapping
     "texts",        # mutation match in text
     #"mutSupport",  # prot, dna, protDna
     #"mutCount",    # how often was this mutation mentioned?
+    "rsIdsMentioned", # mentioned dbSnp IDs that support any of the hgvsRna mutations
+    "dbSnpStarts" ,   # mentioned dbSnp IDs in text, start positions
+    "dbSnpEnds",      # mentioned dbSNP Ids in text, end positions
 
     "geneSymbol",  # symbol of gene
     "geneType",    # why was this gene selected (entrez, symNearby, symInTitle, symInAbstract)
@@ -66,7 +70,8 @@ mutFields = \
     "mutStarts",   # start positions of mutation pattern matches in document
     "mutEnds",     # end positions of mutation pattern matches in document
     "mutSnippets",  # the phrases around the mutation mentions, separated by "|"
-    "geneSnippets"  # the phrases around the gene mentions, separated by "|"
+    "geneSnippets",  # the phrases around the gene mentions, separated by "|"
+    "dbSnpSnippets" # mentioned dbSNP Ids in text, snippets
     )
 
 # fields of the output file
@@ -286,7 +291,7 @@ def parseRegex(mutDataDir):
         counts[(row.seqType, row.mutType)] += 1
 
     for regexType, count in counts.iteritems():
-            logging.info("regexType %s, Found %d regexes" % (str(regexType), count))
+            logging.info("regexType %s, found %d regexes" % (str(regexType), count))
     return regexList
 
 # helper methods for SeqData
@@ -347,8 +352,8 @@ class SeqData(object):
         self.upToIsos = data[taxId]["upToIsos"]
         self.upToGbProts = data[taxId]["upToGbProts"]
 
-        # load entrez -> refseq/refprot/symbol
-        fname = join(mutDataDir, "entrezToRefseq.%s.tab.marshal" % taxId)
+        # load mapping entrez -> refseq/refprot/symbol
+        fname = join(mutDataDir, "entrez.%s.tab.marshal" % taxId)
         logging.debug("Reading entrez data from %s" % fname)
         entrezRefseq = marshal.load(open(fname))
         self.entrez2refseqs = entrezRefseq["entrez2refseqs"]
@@ -356,7 +361,7 @@ class SeqData(object):
         self.entrez2sym = entrezRefseq["entrez2sym"]
 
         # pmid -> entrez genes
-        fname = join(mutDataDir, "pmid2entrez.dbm")
+        fname = join(mutDataDir, "pmid2entrez.gdbm")
         logging.info("opening %s" % fname)
         pmid2entrez = gdbm.open(fname, "r")
         self.pmid2entrez = pmid2entrez
@@ -406,6 +411,7 @@ class SeqData(object):
 
         # dbsnp dbm file handles
         self.snpDbmCache = {}
+        self.rsIdDbmCache = {}
 
     def getSeq(self, seqId):
         " get seq from db , cache results "
@@ -441,6 +447,28 @@ class SeqData(object):
         else:
             rsId = None
         return rsId
+
+    def rsIdToGenome(self, rsId):
+        " given the rs-Id, return chrom, start, end of it"
+        lastDigit = rsId[-1]
+        # lazily open dbms
+        if lastDigit in self.rsIdDbmCache:
+            dbm = self.rsIdDbmCache[lastDigit]
+        else:
+            fname = join(self.mutDataDir, "snp137.coords."+lastDigit+".dbm")
+            logging.debug("Opening %s" % fname)
+            dbm = gdbm.open(fname, "r")
+            self.rsIdDbmCache[lastDigit] = dbm
+
+        rsIdPack = struct.pack("<l", int(rsId))
+        if not rsIdPack in dbm:
+            logging.debug("rsId %s not found in db" % rsId)
+            return None, None, None
+        else:
+            packCoord = dbm[rsIdPack]
+            chrom, start, end = maxbio.unpackChromCoord(packCoord)
+            logging.debug("rsId %s maps to %s, %d, %d" % (rsId, chrom, start, end))
+            return chrom, start, end
 
     def entrezToUniProtIds(self, entrezGene):
         " return all uniprot isoform IDs for an entrez gene "
@@ -546,36 +574,35 @@ class SeqData(object):
         psls = getPsls(refseqId, self.refGenePslCache, self.refGenePsls, stripVersion=True)
         return psls
 
-    def makeStub(self):
-        self.seqCache = {
-        "NP_000518.1": "MGPWGWKLRWTVALLLAAAGTAVGDRCERNEFQCQDGKCISYKWVCDGSAECQDGSDESQETCLSVTCKSGDFSCGGRVNRCIPQFWRCDGQVDCDNGSDEQGCPPKTCSQDEFRCHDGKCISRQFVCDSDRDCLDGSDEASCPVLTCGPASFQCNSSTCIPQLWACDNDPDCEDGSDEWPQRCRGLYVFQGDSSPCSAFEFHCLSGECIHSSWRCDGGPDCKDKSDEENCAVATCRPDEFQCSDGNCIHGSRQCDREYDCKDMSDEVGCVNVTLCEGPNKFKCHSGECITLDKVCNMARDCRDWSDEPIKECGTNECLDNNGGCSHVCNDLKIGYECLCPDGFQLVAQRRCEDIDECQDPDTCSQLCVNLEGGYKCQCEEGFQLDPHTKACKAVGSIAYLFFTNRHEVRKMTLDRSEYTSLIPNLRNVVALDTEVASNRIYWSDLSQRMICSTQLDRAHGVSSYDTVISRDIQAPDGLAVDWIHSNIYWTDSVLGTVSVADTKGVKRKTLFRENGSKPRAIVVDPVHGFMYWTDWGTPAKIKKGGLNGVDIYSLVTENIQWPNGITLDLLSGRLYWVDSKLHSISSIDVNGGNRKTILEDEKRLAHPFSLAVFEDKVFWTDIINEAIFSANRLTGSDVNLLAENLLSPEDMVLFHNLTQPRGVNWCERTTLSNGGCQYLCLPAPQINPHSPKFTCACPDGMLLARDMRSCLTEAEAAVATQETSTVRLKVSSTAVRTQHTTTRPVPDTSRLPGATPGLTTVEIVTMSHQALGDVAGRGNEKKPSSVRALSIVLPIVLLVFLCLGVFLLWKNWRLKNINSINFDNPVYQKTTEDEVHICHNQDGYSYPSRQMVSLEDDVA",
-        "NM_000527.4":"CTCTTGCAGTGAGGTGAAGACATTTGAAAATCACCCCACTGCAAACTCCTCCCCCTGCTAGAAACCTCACATTGAAATGCTGTAAATGACGTGGGCCCCGAGTGCAATCGCGGGAAGCCAGGGTTTCCAGCTAGGACACAGCAGGTCGTGATCCGGGTCGGGACACTGCCTGGCAGAGGCTGCGAGCATGGGGCCCTGGGGCTGGAAATTGCGCTGGACCGTCGCCTTGCTCCTCGCCGCGGCGGGGACTGCAGTGGGCGACAGATGCGAAAGAAACGAGTTCCAGTGCCAAGACGGGAAATGCATCTCCTACAAGTGGGTCTGCGATGGCAGCGCTGAGTGCCAGGATGGCTCTGATGAGTCCCAGGAGACGTGCTTGTCTGTCACCTGCAAATCCGGGGACTTCAGCTGTGGGGGCCGTGTCAACCGCTGCATTCCTCAGTTCTGGAGGTGCGATGGCCAAGTGGACTGCGACAACGGCTCAGACGAGCAAGGCTGTCCCCCCAAGACGTGCTCCCAGGACGAGTTTCGCTGCCACGATGGGAAGTGCATCTCTCGGCAGTTCGTCTGTGACTCAGACCGGGACTGCTTGGACGGCTCAGACGAGGCCTCCTGCCCGGTGCTCACCTGTGGTCCCGCCAGCTTCCAGTGCAACAGCTCCACCTGCATCCCCCAGCTGTGGGCCTGCGACAACGACCCCGACTGCGAAGATGGCTCGGATGAGTGGCCGCAGCGCTGTAGGGGTCTTTACGTGTTCCAAGGGGACAGTAGCCCCTGCTCGGCCTTCGAGTTCCACTGCCTAAGTGGCGAGTGCATCCACTCCAGCTGGCGCTGTGATGGTGGCCCCGACTGCAAGGACAAATCTGACGAGGAAAACTGCGCTGTGGCCACCTGTCGCCCTGACGAATTCCAGTGCTCTGATGGAAACTGCATCCATGGCAGCCGGCAGTGTGACCGGGAATATGACTGCAAGGACATGAGCGATGAAGTTGGCTGCGTTAATGTGACACTCTGCGAGGGACCCAACAAGTTCAAGTGTCACAGCGGCGAATGCATCACCCTGGACAAAGTCTGCAACATGGCTAGAGACTGCCGGGACTGGTCAGATGAACCCATCAAAGAGTGCGGGACCAACGAATGCTTGGACAACAACGGCGGCTGTTCCCACGTCTGCAATGACCTTAAGATCGGCTACGAGTGCCTGTGCCCCGACGGCTTCCAGCTGGTGGCCCAGCGAAGATGCGAAGATATCGATGAGTGTCAGGATCCCGACACCTGCAGCCAGCTCTGCGTGAACCTGGAGGGTGGCTACAAGTGCCAGTGTGAGGAAGGCTTCCAGCTGGACCCCCACACGAAGGCCTGCAAGGCTGTGGGCTCCATCGCCTACCTCTTCTTCACCAACCGGCACGAGGTCAGGAAGATGACGCTGGACCGGAGCGAGTACACCAGCCTCATCCCCAACCTGAGGAACGTGGTCGCTCTGGACACGGAGGTGGCCAGCAATAGAATCTACTGGTCTGACCTGTCCCAGAGAATGATCTGCAGCACCCAGCTTGACAGAGCCCACGGCGTCTCTTCCTATGACACCGTCATCAGCAGAGACATCCAGGCCCCCGACGGGCTGGCTGTGGACTGGATCCACAGCAACATCTACTGGACCGACTCTGTCCTGGGCACTGTCTCTGTTGCGGATACCAAGGGCGTGAAGAGGAAAACGTTATTCAGGGAGAACGGCTCCAAGCCAAGGGCCATCGTGGTGGATCCTGTTCATGGCTTCATGTACTGGACTGACTGGGGAACTCCCGCCAAGATCAAGAAAGGGGGCCTGAATGGTGTGGACATCTACTCGCTGGTGACTGAAAACATTCAGTGGCCCAATGGCATCACCCTAGATCTCCTCAGTGGCCGCCTCTACTGGGTTGACTCCAAACTTCACTCCATCTCAAGCATCGATGTCAACGGGGGCAACCGGAAGACCATCTTGGAGGATGAAAAGAGGCTGGCCCACCCCTTCTCCTTGGCCGTCTTTGAGGACAAAGTATTTTGGACAGATATCATCAACGAAGCCATTTTCAGTGCCAACCGCCTCACAGGTTCCGATGTCAACTTGTTGGCTGAAAACCTACTGTCCCCAGAGGATATGGTTCTCTTCCACAACCTCACCCAGCCAAGAGGAGTGAACTGGTGTGAGAGGACCACCCTGAGCAATGGCGGCTGCCAGTATCTGTGCCTCCCTGCCCCGCAGATCAACCCCCACTCGCCCAAGTTTACCTGCGCCTGCCCGGACGGCATGCTGCTGGCCAGGGACATGAGGAGCTGCCTCACAGAGGCTGAGGCTGCAGTGGCCACCCAGGAGACATCCACCGTCAGGCTAAAGGTCAGCTCCACAGCCGTAAGGACACAGCACACAACCACCCGACCTGTTCCCGACACCTCCCGGCTGCCTGGGGCCACCCCTGGGCTCACCACGGTGGAGATAGTGACAATGTCTCACCAAGCTCTGGGCGACGTTGCTGGCAGAGGAAATGAGAAGAAGCCCAGTAGCGTGAGGGCTCTGTCCATTGTCCTCCCCATCGTGCTCCTCGTCTTCCTTTGCCTGGGGGTCTTCCTTCTATGGAAGAACTGGCGGCTTAAGAACATCAACAGCATCAACTTTGACAACCCCGTCTATCAGAAGACCACAGAGGATGAGGTCCACATTTGCCACAACCAGGACGGCTACAGCTACCCCTCGAGACAGATGGTCAGTCTGGAGGATGACGTGGCGTGAACATCTGCCTGGAGTCCCGTCCCTGCCCAGAACCCTTCCTGAGACCTCGCCGGCCTTGTTTTATTCAAAGACAGAGAAGACCAAAGCATTGCCTGCCAGAGCTTTGTTTTATATATTTATTCATCTGGGAGGCAGAACAGGCTTCGGACAGTGCCCATGCAATGGCTTGGGTTGGGATTTTGGTTTCTTCCTTTCCTCGTGAAGGATAAGAGAAACAGGCCCGGGGGGACCAGGATGACACCTCCATTTCTCTCCAGGAAGTTTTGAGTTTCTCTCCACCGTGACACAATCCTCAAACATGGAAGATGAAAGGGGAGGGGATGTCAGGCCCAGAGAAGCAAGTGGCTTTCAACACACAACAGCAGATGGCACCAACGGGACCCCCTGGCCCTGCCTCATCCACCAATCTCTAAGCCAAACCCCTAAACTCAGGAGTCAACGTGTTTACCTCTTCTATGCAAGCCTTGCTAGACAGCCAGGTTAGCCTTTGCCCTGTCACCCCCGAATCATGACCCACCCAGTGTCTTTCGAGGTGGGTTTGTACCTTCCTTAAGCCAGGAAAGGGATTCATGGCGTCGGAAATGATCTGGCTGAATCCGTGGTGGCACCGAGACCAAACTCATTCACCAAATGATGCCACTTCCCAGAGGCAGAGCCTGAGTCACTGGTCACCCTTAATATTTATTAAGTGCCTGAGACACCCGGTTACCTTGGCCGTGAGGACACGTGGCCTGCACCCAGGTGTGGCTGTCAGGACACCAGCCTGGTGCCCATCCTCCCGACCCCTACCCACTTCCATTCCCGTGGTCTCCTTGCACTTTCTCAGTTCAGAGTTGTACACTGTGTACATTTGGCATTTGTGTTATTATTTTGCACTGTTTTCTGTCGTGTGTGTTGGGATGGGATCCCAGGCCAGGGAAAGCCCGTGTCAATGAATGCCGGGGACAGAGAGGGGCAGGTTGACCGGGACTTCAAAGCCGTGATCGTGAATATCGAGAACTGCCATTGTCGTCTTTATGTCCGCCCACCTAGTGCTTCCACTTCTATGCAAATGCCTCCAAGCCATTCACTTCCCCAATCTTGTCGTTGATGGGTATGTGTTTAAAACATGCACGGTGAGGCCGGGCGCAGTGGCTCACGCCTGTAATCCCAGCACTTTGGGAGGCCGAGGCGGGTGGATCATGAGGTCAGGAGATCGAGACCATCCTGGCTAACACGTGAAACCCCGTCTCTACTAAAAATACAAAAAATTAGCCGGGCGTGGTGGCGGGCACCTGTAGTCCCAGCTACTCGGGAGGCTGAGGCAGGAGAATGGTGTGAACCCGGGAAGCGGAGCTTGCAGTGAGCCGAGATTGCGCCACTGCAGTCCGCAGTCTGGCCTGGGCGACAGAGCGAGACTCCGTCTCAAAAAAAAAAAACAAAAAAAAACCATGCATGGTGCATCAGCAGCCCATGGCCTCTGGCCAGGCATGGCGAGGCTGAGGTGGGAGGATGGTTTGAGCTCAGGCATTTGAGGCTGTCGTGAGCTATGATTATGCCACTGCTTTCCAGCCTGGGCAACATAGTAAGACCCCATCTCTTAAAAAATGAATTTGGCCAGACACAGGTGCCTCACGCCTGTAATCCCAGCACTTTGGGAGGCTGAGCTGGATCACTTGAGTTCAGGAGTTGGAGACCAGGCCTGAGCAACAAAGCGAGATCCCATCTCTACAAAAACCAAAAAGTTAAAAATCAGCTGGGTACGGTGGCACGTGCCTGTGATCCCAGCTACTTGGGAGGCTGAGGCAGGAGGATCGCCTGAGCCCAGGAGGTGGAGGTTGCAGTGAGCCATGATCGAGCCACTGCACTCCAGCCTGGGCAACAGATGAAGACCCTATTTCAGAAATACAACTATAAAAAAATAAATAAATCCTCCAGTCTGGATCGTTTGACGGGACTTCAGGTTCTTTCTGAAATCGCCGTGTTACTGTTGCACTGATGTCCGGAGAGACAGTGACAGCCTCCGTCAGACTCCCGCGTGAAGATGTCACAAGGGATTGGCAATTGTCCCCAGGGACAAAACACTGTGTCCCCCCCAGTGCAGGGAACCGTGATAAGCCTTTCTGGTTTCGGAGCACGTAAATGCGTCCCTGTACAGATAGTGGGGATTTTTTGTTATGTTTGCACTTTGTATATTGGTTGAAACTGTTATCACTTATATATATATATATACACACATATATATAAAATCTATTTATTTTTGCAAACCCTGGTTGCTGTATTTGTTCAGTGACTATTCTCGGGGCCCTGTGTAGGGGGTTATTGCCTCTGAAATGCCTCTTCTTTATGTACAAAGATTATTTGCACGAACTGGACTGTGTGCAACGCTTTTTGGGAGAATGATGTCCCCGTTGTATGTATGAGTGGCTTCTGGGAGATGGGTGTCACTTTTTAAACCACTGTATAGAAGGTTTTTGTAGCCTGAATGTCTTACTGTGATCAATTAAATTTCTTAAATGAACCAATTTGTCTAAAAAAAAAAA"
-        }
-        self.refSeqCds["NM_000527.4"] = 187
-
 Mention = namedtuple("Mention", "patName,start,end")
 
 class MappedVariant(object):
-    """ A mapped variant is a type-range-sequence combination from a text, 
-        located on one or multiple sequences 
+    """ A mapped variant is a type-range-sequence combination from a text,
+        located on one or multiple sequences
+        It has a name, a unified textual description.
     """
     __slots__=VariantFields
 
-    def __init__(self, mutType, seqType, start, end, orig, mut, seqId=""):
-        self.mutType = mutType
-        self.seqType = seqType
+    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None):
+        self.mutType = mutType # sub, del or ins or dbSnp
+        self.seqType = seqType # cds, rna or prot
         self.seqId = seqId
         self.geneId = ""
         self.start = int(start)
         self.end = int(end)
-        self.origSeq = orig
-        self.mutSeq = mut
+        self.origSeq = origSeq
+        self.mutSeq = mutSeq
 
-    def posDesc(self):
-        """ 
-        return a string that describes this variant without any mapping information"
-        """
-        return "%s-%d-%s" % (self.origSeq, self.start, self.mutSeq)
+    def getName(self):
+       " return HGVS text for this variant "
+       #logging.debug("Creating HGVS type %s for vars %s" % (hgvsType, variants))
+       if self.seqId==None:
+           name = "p.%s%d%s" % (self.origSeq, self.start, self.mutSeq)
+       elif self.mutType=="dbSnp":
+           name = self.origSeq
+       else:
+           name = makeHgvsStr(self.seqType, self.seqId, self.origSeq, self.start, self.mutSeq)
+       return name
 
     def asRow(self):
         row =[]
@@ -592,22 +619,40 @@ class MappedVariant(object):
     def __repr__(self):
         return ",".join(self.asRow())
     
-def parseMatch(match, patName):
+def makeMention(match, patName):
+    start = match.start()
+    end = match.end()
+    mention = Mention(patName, start, end)
+    return mention
+
+def parseMatchRsId(match, patName):
+    """ given a regular expression match object, 
+    return special mutation object for rsIds
+    that includes the chromosome coordinates """
+    groups = match.groupdict()
+    mutType = "dbSnp"
+    rsId = groups["rsId"]
+    chrom, start, end = geneData.rsIdToGenome(rsId)
+    var = MappedVariant("dbSnp", "dbSnp", start, end, chrom, "rs"+rsId)
+    return var
+
+def parseMatchSub(match, patName):
+    " given a regular expression match object, return mutation and mention objects "
     groups = match.groupdict()
     # grab long and short versions of amino acid
     if "origAaShort" in groups:
         origSeq = groups["origAaShort"]
-        seqType = "aa"
+        seqType = "prot"
     if "origAaLong" in groups:
         origSeq = threeToOneLower[groups["origAaLong"].lower()]
-        seqType = "aa"
+        seqType = "prot"
 
     if "mutAaShort" in groups:
         mutSeq = groups["mutAaShort"]
-        seqType = "aa"
+        seqType = "prot"
     if "mutAaLong" in groups:
         mutSeq = threeToOneLower[groups["mutAaLong"].lower()]
-        seqType = "aa"
+        seqType = "prot"
 
     if "origDna" in groups:
         origSeq = groups["origDna"]
@@ -615,6 +660,8 @@ def parseMatch(match, patName):
     if "mutDna" in groups:
         mutSeq = groups["mutDna"]
         seqType = "dna"
+
+
     mutSeq = mutSeq.upper()
     origSeq = origSeq.upper()
 
@@ -629,67 +676,64 @@ def parseMatch(match, patName):
 
     var = MappedVariant("sub", seqType, protStart, protEnd, origSeq, mutSeq)
 
-    start = match.start()
-    end = match.end()
-    mention = Mention(patName, start, end)
-
     if (origSeq, protStart, mutSeq) in blackList:
         logging.debug("Variant %s,%d,%s is blacklisted" % (origSeq, protStart, mutSeq))
-        return None, None
+        return None
     else:
-        return var, mention
+        return var
 
 def findGenes(pmid, abstract, title, text):
     """ return dict where [entrez|title|abstract|text] = list of gene mentions 
     """
     geneTypes = {}
+    geneTypes = geneFinder.findMarkersAsDict(text)
+
     entrezGenes = geneData.getEntrezGenes(pmid)
     if entrezGenes!=None:
         geneTypes["entrez"] = entrezGenes
+
     return geneTypes
 
-def findVariants(regexes, text):
+def findVariantMentions(regexes, text):
     """ put mutation mentions from document together into dicts indexed by normal form 
-        return list (variant, list of mentions)
+        return dict of "prot"|"dna"|"dbSnp" -> list of (MappedVariant, list of Mention)
     """
     varMentions = defaultdict(list)
     varDescObj = {}
     for seqType, mutType, patName, pat in regexes:
-        if mutType=="sub":
-            for match in pat.finditer(text):
-                logging.debug("Match: Pattern %s, text %s" % (patName, match.groups()))
-                variant, mention = parseMatch(match, patName)
-                if variant!=None:
-                    varDescObj[variant.posDesc()] = variant
-                    varMentions[variant.posDesc()].append(mention)
-                    debugSnip = pubAlg.getSnippet(text, mention.start, mention.end, maxContext=60)
-                    logging.debug("Found Variant: %s, snippet %s" % (str(variant), debugSnip))
+        for match in pat.finditer(text):
+            logging.debug("Match: Pattern %s, text %s" % (patName, match.groups()))
+            if mutType=="sub":
+                variant = parseMatchSub(match, patName)
+            elif mutType=="dbSnp":
+                variant = parseMatchRsId(match, patName)
+            else:
+                continue
 
-    # convert to list of (variant, mentions)
-    variants = []
-    for varDesc, mentions in varMentions.iteritems():
-        varObj = varDescObj[varDesc]
-        variants.append((varObj, mentions))
+            if variant==None:
+                continue
+            mention = makeMention(match, patName)
+            varDescObj[variant.getName()] = variant
+            varMentions[variant.getName()].append(mention)
+            debugSnip = pubAlg.getSnippet(text, mention.start, mention.end, maxContext=60)
+            logging.debug("Found Variant: %s, snippet %s" % (str(variant), debugSnip))
+
+    # convert to dict of "prot"|"dna"|"dbSnp" -> list (variant, mentions)
+    variants = defaultdict(list)
+    for varName, mentions in varMentions.iteritems():
+        variant = varDescObj[varName]
+        variants[variant.seqType].append((variant, mentions))
     return variants
     
 def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq):
-    if seqType=="p":
+    if seqType=="prot":
         desc = "%s:p.%s%d%s" % (seqId, oneToThree[origSeq], pos+1, oneToThree[mutSeq])
-    elif seqType=="c":
+    elif seqType=="cds":
         desc = "%s:c.%d%s>%s" % (seqId, pos+1, origSeq, mutSeq)
-    elif seqType=="r":
+    elif seqType=="rna":
         desc = "%s:r.%d%s>%s" % (seqId, pos+1, origSeq, mutSeq)
     return desc
   
-def makeHgvsSub(hgvsType, variants):
-   " create |-sep HGVS stringlist for all seqIds and a mutation"
-   #logging.debug("Creating HGVS type %s for vars %s" % (hgvsType, variants))
-   ret = []
-   for protVar in variants:
-       hgvsStr = makeHgvsStr(hgvsType, protVar.seqId, protVar.origSeq, protVar.start, protVar.mutSeq)
-       ret.append(hgvsStr)
-   return "|".join(ret)
-
 def firstDiffNucl(str1, str2):
     """Return pos and letters where strings differ. Returns None if more than one diff char"""
     assert(len(str1)==len(str2))
@@ -807,12 +851,12 @@ def mapToCodingAndRna(protVars):
         for relPos, oldNucl, newNucl in possChanges:
             cdStart = 3 * protVar.start + relPos
             cdEnd   = cdStart+len(origDnaSeq)
-            codVar = MappedVariant(protVar.mutType, "dna", cdStart, cdEnd, oldNucl, newNucl, transId)
+            codVar = MappedVariant(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId)
             codVars.append(codVar)
 
             cdnaNuclStart = cdnaStart + relPos
             cdnaNuclEnd   = cdnaNuclStart + len(newNucl)
-            rnaVar = MappedVariant(protVar.mutType, "dna", cdnaNuclStart, cdnaNuclEnd, \
+            rnaVar = MappedVariant(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
                 oldNucl, newNucl, transId)
             rnaVars.append(rnaVar)
             #hgvsStr = makeHgvsStr("c", transId, oldNucl, nuclPos, newNucl)
@@ -820,7 +864,7 @@ def mapToCodingAndRna(protVars):
     #return "|".join(ret)
     return codVars, rnaVars
 
-def makeRsIds(beds):
+def bedToRsIds(beds):
     " return a comma-sep string of rsIds given bed (12-tuple) features "
     ret = []
     for bed in beds:
@@ -828,54 +872,78 @@ def makeRsIds(beds):
         snpId = geneData.lookupDbSnp(*chromCoord)
         if snpId==None:
             logging.debug("Chromosome location %s does not map to any dbSNP" % str(chromCoord))
+            ret.append("na")
         else:
             logging.debug("Chromosome location %s corresponds to dbSNP %s " % (chromCoord, snpId))
             ret.append(snpId)
-    return "|".join(ret)
+    return ret
 
-class SeqVariant(object):
-    " a variant grounded on a sequence, with pieces from the text "
+def mentionsFields(mentions, text):
+    " convert the mention objects to something that fits into a tab-sep file "
+    mutStarts = []
+    mutEnds = []
+    snippets = []
+    patNames = []
+    texts = []
+    for m in mentions:
+        mutStarts.append(str(m.start))
+        mutEnds.append(str(m.end))
+        snippets.append(pubAlg.getSnippet(text, m.start, m.end).replace("|"," "))
+        patNames.append(m.patName)
+        texts.append(text[m.start:m.end].strip("() -;,."))
+    return mutStarts, mutEnds, patNames, snippets, texts
+
+class SeqVariantData(object):
+    """ the full information about variant located on a sequence, with mentions from the text that support it"""
     __slots__ = mutFields
 
-    def __init__(self, varId, protVars, codVars, rnaVars, comment, beds, entrezGene, \
-            geneSym, mentions, text):
+    def __init__(self, varId="", protVars=[], codVars=[], rnaVars=[], comment="", beds=[], entrezGene="", \
+            geneSym="", rsIds=[], mentionedDbSnpVars={}, mentions=[], text="", seqType="prot", patType="sub"):
         self.varId   = varId
         self.inDb    = ""
-        self.patType = "sub"
-        self.seqType = "prot"
+        self.patType = patType
+        self.seqType = seqType
         self.chrom      = ""
         self.start      = ""
         self.end        = ""
         self.geneSymbol = geneSym
         self.entrezId   = entrezGene
-        self.hgvsProt   = makeHgvsSub("p", protVars)
-        self.hgvsCoding = makeHgvsSub("c", codVars)
-        self.hgvsRna    = makeHgvsSub("r", rnaVars)
+        self.hgvsProt   = "|".join([v.getName() for v in protVars])
+        self.hgvsCoding = "|".join([v.getName() for v in codVars])
+        self.hgvsRna    = "|".join([v.getName() for v in rnaVars])
         self.comment    = comment
-        self.rsIds      = makeRsIds(beds)
+        self.rsIds      = "|".join(rsIds)
         self.protId     = ""
         self.geneType   = "entrez"
         self.geneStarts = ""
         self.geneEnds   = ""
         self.geneSnippets = ""
 
-        mutStarts = []
-        mutEnds = []
+        # for each rsId mentioned, concat their starts/ends/snips
+        # for each mention there is one rsId in rsIdsMentioned
+        starts = []
+        ends = []
         snippets = []
-        patNames = []
-        texts = []
-        for m in mentions:
-            mutStarts.append(str(m.start))
-            mutEnds.append(str(m.end))
-            snippets.append(pubAlg.getSnippet(text, m.start, m.end).replace("|"," "))
-            patNames.append(m.patName)
-            texts.append(text[m.start:m.end].strip("() -;,."))
+        mentionedRsIds = []
+        for rsId, mentions in mentionedDbSnpVars.iteritems():
+            rsStarts, rsEnds, rsPatNames, rsSnips, rsTexts = mentionsFields(dbSnpMentions, text)
+            starts.extend(rsStarts)
+            ends.extend(rsEnds)
+            snippets.extend(rsSnips)
+            # for each mention there is one rsId
+            for m in mentions:
+                mentionedRsIds.append(rsId)
+        self.dbSnpStarts = ",".join(starts)
+        self.dbSnpEnds   = ",".join(ends)
+        self.dbSnpSnippets = "|".join(snippets)
+        self.rsIdsMentioned = "|".join(mentionedRsIds)
 
+        mutStarts, mutEnds, patNames, snippets, texts = mentionsFields(mentions, text)
         self.mutStarts = ",".join(mutStarts)
         self.mutEnds   = ",".join(mutEnds)
         self.mutPatNames= "|".join(patNames)
         self.mutSnippets = "|".join(snippets)
-        self.texts = "|".join(texts)
+        self.texts = "|".join(set(texts))
 
     def asRow(self):
         row =[]
@@ -886,13 +954,20 @@ class SeqVariant(object):
     def __repr__(self):
         return ",".join(self.asRow())
         
+def unmappedRsVarsToFakeVariants(varMentionsList, mappedRsIds, text):
+    muts = []
+    for dbSnpId, mentions in varMentionsList:
+        if not dbSnpId in mappedRsIds:
+            muts.append(SeqVariantData(seqType="dbSnp", mentions=mentions, text=text, patType="dbSnp"))
+    return muts
+
 def ungroundedMutsToFakeSeqVariants(ungroundedMuts, text):
     """ convert mutations that could not be grounded to "fake" variants
-        that not located on any sequence but are easy to write to a file
+        that are not located on any sequence but are easy to write to a file
     """
     muts = []
     for mut, mentions in ungroundedMuts:
-        muts.append(SeqVariant("", [], [], [], [], "", "", "", mentions, text))
+        muts.append(SeqVariantData(seqType=mut.seqType, mentions=mentions, text=text))
     return muts
 
 def isSeqCorrect(protId, variant):
@@ -967,7 +1042,7 @@ def mapToRefProt(db, variant, protIds):
                 continue
             # some variants are in uniprot but cannot be mapped to refseq at all
             if not hasSeqAtPos([newVar.seqId], newVar):
-                logging.warn("variant is unique to db %s" % db)
+                logging.warn("variant %s is unique to db %s" % (newVar, db))
                 continue
             mappedVars.append(newVar)
     logging.debug("Mapped to refprot variants: %s" % str(newVar))
@@ -992,8 +1067,10 @@ def mapToGenome(rnaVars, bedName):
     logging.debug("Mapping rnaVars %s to genome" % rnaVars)
     maker = pslMapBed.PslMapBedMaker()
     beds = []
-    doneBeds = set()
+    #doneBeds = set()
+    #bedToHgvsRna = {}
     for rnaVar in rnaVars:
+        #hgvs = rnaVar.getName()
         maker.clear()
         # get psl
         pslList = geneData.getRefseqPsls(rnaVar.seqId)
@@ -1003,21 +1080,46 @@ def mapToGenome(rnaVars, bedName):
         # map rna var through psl
         maker.mapQuery(mapPsl, rnaVar.start, rnaVar.end)
         bed = maker.getBed(name=bedName)
-        if bed not in doneBeds:
-            beds.append(bed)
-        doneBeds.add(bed)
+        beds.append(bed)
+        #if bed not in doneBeds:
+            #beds.append(bed)
+        #doneBeds.add(bed)
+        #bedToHgvsRna[bed] = hgvs
+
         logging.debug("Got bed: %s" % str(bed))
     return beds
     
+def getSnpMentions(mappedRsIds, varList):
+    """ find all variants + their mentions with any of the mapped rsIds 
+        returns dict rsId -> list of mentions
+    
+    """
+    if len(varList)==0:
+        return {}
+
+    mappedRsIds = set(mappedRsIds)
+    if "na" in mappedRsIds:
+        mappedRsIds.remove("na")
+    if len(mappedRsIds)==0:
+        return {}
+
+    res = defaultdict(list)
+    for var, mentions in varList:
+        rsId = var.origSeq
+        if rsId in mappedRsIds:
+            res[rsId].extend(mentions)
+    return res
+
 def groundMutations(docId, text, mutations, genes, dbAnnots):
     """ ground mutations onto genes and return results """
     groundedMuts = []
     ungroundedMuts = []
-    dbAnnots.nextDocument(docId)
+    dbAnnots.newDocument(docId)
+    mappedRsIds = []
 
     varCount=1
     allBeds = []
-    for variant, mentions in mutations:
+    for variant, mentions in mutations["prot"]:
         logging.debug("Grounding mutation %s onto genes %s" % (variant, genes))
         # try all entrez genes in article
         for entrezGene in genes:
@@ -1030,9 +1132,11 @@ def groundMutations(docId, text, mutations, genes, dbAnnots):
                 # if we cannot find a sequence, still append it to results
                 ungroundedMuts.append((variant,  mentions))
             else:
+                # we found a sequence
                 if db=="refseq":
                     protVars = rewriteToRefProt(variant, protIds)
                     comment  = ""
+                # if needed, map back to refseq from uniprot or genbank
                 else:
                     protVars = mapToRefProt(db, variant, protIds)
                     comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
@@ -1040,13 +1144,17 @@ def groundMutations(docId, text, mutations, genes, dbAnnots):
                         logging.warn("found seqs, but no PSLs for %s" % protIds)
                         continue
 
-                # create dna variants on various levels
-                varId             = str(docId)+"_"+str(varCount)
-                codVars, rnaVars  = mapToCodingAndRna(protVars)
-                beds = mapToGenome(rnaVars, varId)
+                # add variants on coding and rna sequence coordinates
+                varId              = str(docId)+"_"+str(varCount)
+                codVars, rnaVars   = mapToCodingAndRna(protVars)
+                beds               = mapToGenome(rnaVars, varId)
+                # add all relevant dbSnp IDs from the document to this variant 
+                varRsIds           = bedToRsIds(beds)
+                mentionedDbSnpVars = getSnpMentions(varRsIds, mutations["dbSnp"])
+                mappedRsIds.extend(mentionedDbSnpVars.keys())
 
-                groundedVar = SeqVariant(varId, protVars, codVars, rnaVars, comment, beds, \
-                    entrezGene, geneSym, mentions, text)
+                groundedVar = SeqVariantData(varId, protVars, codVars, rnaVars, comment, beds, \
+                    entrezGene, geneSym, varRsIds, mentionedDbSnpVars, mentions, text)
                 isInDb = dbAnnots.addCheckVariant(groundedVar)
                 if isInDb:
                     groundedVar.inDb = "invitae"
@@ -1054,8 +1162,10 @@ def groundMutations(docId, text, mutations, genes, dbAnnots):
                 allBeds.extend(beds)
             varCount += 1
 
-    ungroundedMuts = ungroundedMutsToFakeSeqVariants(ungroundedMuts, text)
-    return groundedMuts, ungroundedMuts, allBeds
+    ungroundVarData = ungroundedMutsToFakeSeqVariants("prot", ungroundedMuts, text)
+    unmappedRsVars = unmappedRsVarsToFakeVariants(mutations["dbSnp"], mappedRsIds, text)
+    ungroundVarData.extend(unmappedRsVars)
+    return groundedMuts, ungroundVarData, allBeds
 
 def writeHeaders(outFh):
     prefixHeaders = ["docId", "isConfirmed"]
@@ -1071,21 +1181,21 @@ def readFile(inFname):
 
 def findInLocalFile(inFname, writer, regexes, dbAnnots):
     pmid, title, abstract, text = readFile(inFname)
-    variants  = findVariants(regexes, text)
-    genes = findGenes(pmid, title, abstract, text)
-    if not "entrez" in genes:
-        # XX currently do not run if there is not entrez gene data
-        logging.info("No genes for %s" % inFname)
-        genes = []
-        groundedMuts = []
-        ungroundMuts = ungroundedMutsToFakeSeqVariants(variants, text)
-        beds = []
-    else:
-        genes = genes["entrez"]
-        groundedMuts, ungroundMuts, beds = groundMutations(pmid, text, variants, genes, dbAnnots)
-        writer.writeMuts(pmid, "confirmed", groundedMuts)
-        writer.writeMuts(pmid, "notConfirmed", ungroundMuts)
-        writer.writeBeds(beds)
+    variants  = findVariantMentions(regexes, text)
+    genes     = findGenes(pmid, title, abstract, text)
+    #if not "entrez" in genes:
+        #logging.info("No genes for %s" % inFname)
+        #genes = []
+        #groundedMuts = []
+        #ungroundMuts = ungroundedMutsToFakeSeqVariants(variants["prot"], text)
+        #ungroundMuts.extend(ungroundedMutsToFakeSeqVariants(variants["dbSnp"], text))
+        #beds = []
+    #else:
+    groundedMuts, ungroundMuts, beds = groundMutations(pmid, text, variants, genes, dbAnnots)
+
+    writer.writeMuts(pmid, "confirmed", groundedMuts)
+    writer.writeMuts(pmid, "notConfirmed", ungroundMuts)
+    writer.writeBeds(beds)
 
 def findInLocalDir(inDir, writer, regexes, dbAnnots):
     for fname in glob.glob(join(inDir, "*.txt")):
@@ -1111,7 +1221,7 @@ class DbAnnotator(object):
             self.target[row.Mapping_reference].append(row.HGVS)
             self.benchCount += 1
 
-    def nextDocument(self, docId):
+    def newDocument(self, docId):
         if docId in self.target:
             self.docCount += 1
             self.predDocRefCount += len(self.target[docId])
@@ -1167,7 +1277,7 @@ def runTests():
     assert( geneData.lookupDbSnp("chr4", 111547606,111547606)==None)
     text = open("test.txt").read()
     regexes = parseRegex(mutDataDir)
-    variants  = findVariants(regexes, text)
+    variants  = findVariantMentions(regexes, text)
     for v in variants:
         print v
 

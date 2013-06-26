@@ -4,9 +4,6 @@ import maxCommon, pubConf, fastFind, logging
 from os.path import join
 
 # create dictionary for fastFind from uniprot accessions and names
-# creates two entries for each record:
-# - one with all accession numbers (refseq, embl, etc), prefixed with "*"
-# - one with all other names (hugo, etc)
 
 def appendAll(idList, inList, prefixList=[""]):
     " all all non-empty parts to list, optionally prefixed by prefixes "
@@ -41,9 +38,11 @@ nucl = set(['a', 'c', 'g', 't'])
 
 ignoredWords = []
 
+debugMode = False
+
 def debug(msg):
     debug = False
-    if debug==True:
+    if debugMode==True:
         print msg
     
 def prepNames(names):
@@ -95,7 +94,7 @@ def prepSymbols(stringList, bncWords):
         if m != None:
             name, num = m.groups()
             if len(name)==1 and len(num)<3:
-                print name, num
+                #print name, num
                 ignoredWords.append(s)
                 debug("ignored: too few letters")
                 continue
@@ -146,31 +145,31 @@ for row in maxCommon.iterTsvRows(uniprotFname):
         continue
 
     accs = set()
-    accs = appendAll(accs, row.accList.split("|"))
-    accs = appendAll(accs, [x.split(".")[0] for x in row.refSeq.split("|")]) # remove version number
-    accs = appendAll(accs, row.ensemblProt.split("|"))
-    accs = appendAll(accs, row.ensemblGene.split("|"))
-    accs = appendAll(accs, row.embl.split("|"))
-    accs = appendAll(accs, row.pdb.split("|"))
-    accs = appendAll(accs, row.uniGene.split("|"))
-    accs = appendAll(accs, row.omim.split("|"), prefixList=["omim ", "OMIM ", "MIM "])
-    accs = list(set(accs))
-    for delChar in ["*", ",", ".", "/", "(", ")"]: 
-        accs = [acc.replace(delChar," ").replace("  ", " ") for acc in accs]
-    dictFh.write("\t".join( ("*"+row.acc, "|".join(accs)) )+"\n")
+    #accs = appendAll(accs, row.accList.split("|"))
+    #accs = appendAll(accs, [x.split(".")[0] for x in row.refSeq.split("|")]) # remove version number
+    #accs = appendAll(accs, row.ensemblProt.split("|"))
+    #accs = appendAll(accs, row.ensemblGene.split("|"))
+    #accs = appendAll(accs, row.embl.split("|"))
+    #accs = appendAll(accs, row.pdb.split("|"))
+    #accs = appendAll(accs, row.uniGene.split("|"))
+    #accs = appendAll(accs, row.omim.split("|"), prefixList=["omim ", "OMIM ", "MIM "])
+    #accs = list(set(accs))
+    #for delChar in ["*", ",", ".", "/", "(", ")"]: 
+        #accs = [acc.replace(delChar," ").replace("  ", " ") for acc in accs]
+    #dictFh.write("\t".join( ("*"+row.acc, "|".join(accs)) )+"\n")
 
     names = set()
     names = appendAll(names,prepNames(row.protFullNames.split("|")))
     names = appendAll(names,prepNames(row.protShortNames.split("|")))
     names = appendAll(names,prepNames(row.protAltNames.split("|")))
 
-    names = appendAll(names,prepSymbols(row.hugo.split("|"), bncWords))
-    names = appendAll(names,prepSymbols(row.geneName.split("|"), bncWords))
-    names = appendAll(names,prepSymbols(row.geneSynonyms.split("|"), bncWords))
+    #names = appendAll(names,prepSymbols(row.hugo.split("|"), bncWords))
+    #names = appendAll(names,prepSymbols(row.geneName.split("|"), bncWords))
+    #names = appendAll(names,prepSymbols(row.geneSynonyms.split("|"), bncWords))
 
     #names = appendAll(names,row.isoNames.split("|"))
-    names = appendAll(names,row.geneOrdLocus.split("|"))
-    names = appendAll(names,row.geneOrf.split("|"))
+    #names = appendAll(names,row.geneOrdLocus.split("|"))
+    #names = appendAll(names,row.geneOrf.split("|"))
     # certain characters cannot be part of a word, replace them with a space
     for delChar in ["*", ",", ".", "/", "(", ")"]:
         names = [name.replace(delChar," ").replace("  ", " ") for name in names if len(name)>2]

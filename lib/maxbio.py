@@ -371,7 +371,7 @@ def unpackCoord(start, end):
     return start, end
 
 def packChromCoord(chrom, start, end):
-    """ pack chrom,start,end into 9 little-endian bytes 
+    """ pack chrom,start,end into 9 little-endian bytes, return a byte string
     >>> s = packCoord("chr21", 1233,123232299)
     >>> unpackCoord(s)
     ('chr21', 1233, 123232299)

@@ -427,6 +427,8 @@ maxColLen = 255
 markerDbDir = "/hive/data/inside/pubs/markerDb/"
 humanDb = "hg19"
 
+hgncDir = "/hive/data/outside/hgnc/042613"
+
 # BLASTP
 #blastBinDir = "/cluster/bin/blast/x86_64/blast-2.2.20/bin"
 blastBinDir = '/hive/data/outside/blast229'
@@ -437,6 +439,7 @@ mysqlDb = 'publications'
 # UNIPROT PARSING ============================
 # only convert records with one of these taxon Ids
 uniProtTaxonIds = [9606, 10090, 10116, 7955]
+
 
 # CLASSIFICATION ==============================
 # directory with the SVMlight binaries
@@ -466,6 +469,14 @@ classDescriptions = {
 
 # the final output of the classification step, for pubMap integration
 classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.tab")
+
+# GENE AND MUTATION RECOGNIZERS ===========================
+
+geneDataDir = join(staticDataDir, "geneData")
+
+# the british national corpus is a list of 30k common words in English
+# used for symbol filtering
+bncFname = '/hive/data/outside/pubs/wordFrequency/bnc/bnc.txt'
 
 # ACCESS METHODS (convenience) ============================
 
@@ -538,7 +549,9 @@ def getStaticDataDir():
     """
     return staticDataDir
 
-def getDataDir(name):
-    " somewhat more flexible, can be redirected based on program name "
-    if name=="mutations":
-	return join(staticDataDir, "mutFinder")
+#def getDataDir(name):
+    #" somewhat more flexible, can be redirected based on program name "
+    #if name=="genes":
+	#return join(staticDataDir, "mutFinder")
+    #else:
+        #assert(False)

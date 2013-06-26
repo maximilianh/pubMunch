@@ -2,6 +2,7 @@ import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
     os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil
 from types import *
 from os.path import isfile, isdir
+from collections import defaultdict
 
 def errAbort(text):
     raise Exception(text)
@@ -135,7 +136,7 @@ def fastIterTsvRows(inFname):
     for line in lines[1:]:
         yield Record(*line.split("\t")), line
 
-def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False):
+def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False, skipLines=None, makeHeadersUnique=False):
     """ 
         parses tab-sep file with headers as field names 
         yields collection.namedtuples
@@ -154,6 +155,10 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
 
         fieldTypes can be a list of types.xxx objects that will be used for type
         conversion (e.g. types.IntType)
+
+        - makeHeadersUnique will append _1, _2, etc to make duplicated headers unique.
+        - skipLines can be used to skip x lines at the beginning of the file.
+        - if encoding is None file will be read as byte strings.
     """
 
     if noHeaderCount:
@@ -170,7 +175,10 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             reader = codecs.getreader(encoding)
             fh = reader(zf)
         else:
-            fh = codecs.open(inFile, encoding=encoding)
+            if encoding!=None:
+                fh = codecs.open(inFile, encoding=encoding)
+            else:
+                fh = open(inFile)
     else:
         fh = inFile
 
@@ -179,6 +187,20 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         line1 = line1.strip("\n").strip("#")
         headers = line1.split(fieldSep)
         headers = [re.sub("[^a-zA-Z0-9_]","_", h) for h in headers]
+
+    if makeHeadersUnique:
+        newHeaders = []
+        headerNum = defaultdict(int)
+        for h in headers:
+            headerNum[h]+=1
+            if headerNum[h]!=1:
+                h = h+"_"+str(headerNum[h])
+            newHeaders.append(h)
+        headers = newHeaders
+
+    if skipLines:
+        for i in range(0, skipLines):
+            fh.readline()
 
     Record = collections.namedtuple('tsvRec', headers)
     for line in fh:
@@ -346,8 +368,8 @@ class ProgressMeter:
         if self.tasksPerMsg!=0 and self.i % self.tasksPerMsg == 0:
             donePercent = (self.i*100) / self.taskCount
             #print "".join(5*[chr(8)]),
-            print ("%.2d%% " % donePercent),
-            sys.stdout.flush()
+            sys.stderr.write("%.2d%% " % donePercent)
+            sys.stderr.flush()
         self.i += count
         if self.i==self.taskCount:
             print ""

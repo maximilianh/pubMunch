@@ -674,8 +674,10 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
         for key, values in nodeData.iteritems():
             if not hasattr(values, "__iter__"):
                 values = [values]
-            data.setdefault(key, []).extend(values)
-        fileCount+=1
+            # major change: append instead of extend
+            # will break existing mr-scripts
+            data.setdefault(key, []).append(values)
+        fileCount += 1
         logging.debug("Reading "+fileName)
         meter.taskCompleted()
 
@@ -925,6 +927,10 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
         logging.info("Creating directory %s" % tmpDir)
         os.makedirs(tmpDir)
 
+    if "batchStartup" in dir(alg):
+        logging.info("Running batchStartup")
+        alg.batchStartup(paramDict)
+
     # before we let this loose on the cluster, make sure that it actually works
     if runTest and not skipMap:
         mapReduceTestRun(textDirs, alg, paramDict, tmpDir, updateIds=updateIds, \
@@ -946,6 +952,10 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
             combFnames = glob.glob(join(tmpDir, "*"+outExt))
         runReduce(algName, paramDict, tmpDir, outFilename, inFnames=combFnames)
 
+    if "cleanup" in dir(alg):
+        logging.info("Running cleanup")
+        alg.cleanup()
+        
     if cleanUp and not skipMap:
         logging.info("Deleting directory %s" % tmpDir)
         shutil.rmtree(tmpDir)

@@ -200,7 +200,6 @@ def prepMarkerDir(markerDir, onlyType):
 
     if onlyType and onlyType=="snp":
         snpBed = join(markerDir, "hg19.snp.bed")
-        snpDict = join(markerDir, "snp.dict.tab.gz")
         mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from snp135Common")
         rewriteSnp(tempFile, snpBed)
         # no snp dict - we use regular expressions for these

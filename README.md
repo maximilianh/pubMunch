@@ -55,6 +55,34 @@ Convert crawled PDFs to text:
     mkdir myCrawlText
     pubConvCrawler myCrawl myCrawlText
 
+# Output format
+
+To allow easy processing on a cluster of metadata and text separately, the tools store the text as gzipped tab-sep tables, split into chunks with several hundred rows each (configurable). There two tables:
+- articles.gz
+- files.gz
+
+The table "articles" contains basic information on articles. The internal article identifier integer numberthe internal article identifier integer number, an "external ID" (PII for Elsevier, PMID for crawled articles, Springer IDs for Springer articles, etc), the article authors, title, abstract, keywords, DOI, year, source of the article, fulltext URL, etc (see lib/pubStore.py for all fields). The internal article identifier (articleId) is a 10 digit number and is unique across all publishers and articles.
+
+The table "files" contains the files, one or more per article: the ASCII content string, the URL for each file, the date when it was downloaded, a MIME type etc. All files also have a column with the external identifier of the article associated to it. The internal fileID is the article identifier plus some additional digits. To get the article for a file, you can either use the externalID (like PMID12345) or the first 10 digits of fileId. 
+
+One article can have several fulltext files and several supplemental files. It should have at least one main file (even though in an old version of the tables, there were articles without any file, this should be corrected by now). 
+
+This format allows it to use all the normal UNIX textutils. E.g. to search for all articles that contain the word HOXA2 and get their external IDs (which is the PMID for crawled data) you can use simply zgrep:
+    zgrep HOXA2 *.files.gz | cut -f2 | less
+
+As the files are sorted on the articleId, you can also create a big table that includes both meta information and files in one table by gunzipping all files first and then running a join:
+    join 0_00000.articles 0_00000.files > textData.tab
+
+# Installation
+
+If text annotation is too slow for you:
+The re2 library for python will make it at least 10 times faster.
+You need to download the C++ source from re2.googlecode.com, compile and install it
+"make;make install" (by default to /usr/local), then install the python wrapper
+with "pip install re2". (If you don't have write access to /usr/local, you need
+to install the re2 library with "make install prefix=<dir>" and then change
+setup.py in the python re2 install package, replace "/usr" with <dir>)
+
 # BUGS to fix:
 
 fixme: illegal DOI landing page
