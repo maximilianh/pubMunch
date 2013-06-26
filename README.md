@@ -56,7 +56,7 @@ This will convert html, xml, pdf, txt, ppt, doc, xls and some other file formats
 
 # Output format
 
-To allow easy processing on a cluster of metadata and text separately, the tools store the text as gzipped tab-sep tables, split into *chunks* of several hundred rows each (configurable). There are two tables:
+To allow easy processing on a cluster of metadata and text separately, the tools store the text as gzipped tab-sep tables, split into *chunks* of several hundred rows each (configurable). There are two tables for each chunk:
 - articles.gz
 - files.gz
 
