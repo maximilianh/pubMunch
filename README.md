@@ -84,17 +84,17 @@ called "annotateFile" that accepts an article object and a file object and
 yields rows that are described in "headers". Here is a minimal example that searches
 for the string " FOXO1 " and returns it together with the year of the article:
 
-  headers = ["start", "end", "year", "geneId"]
-
-  def annotateFile(article, file):
-      text = file.content
-      start = text.find(" FOXO1 ")
-      if start!=-1:
-          yield (start, start+8, article.year, "FOXO1")
+    headers = ["start", "end", "year", "geneId"]
+  
+    def annotateFile(article, file):
+        text = file.content
+        start = text.find(" FOXO1 ")
+        if start!=-1:
+            yield (start, start+8, article.year, "FOXO1")
 
 if you paste this code into a file called foxFinder.py, then run the command
 
-  pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
+    pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
 
 the tools will submit one cluster job for each chunk of articles, parse the articles from 
 myCrawlText and run them through foxFinder.py. As the function yields fields called "start" and
