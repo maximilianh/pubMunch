@@ -56,7 +56,7 @@ This will convert html, xml, pdf, txt, ppt, doc, xls and some other file formats
 
 # Output format
 
-To allow easy processing on a cluster of metadata and text separately, the tools store the text as gzipped tab-sep tables, split into chunks with several hundred rows each (configurable). There two tables:
+To allow easy processing on a cluster of metadata and text separately, the tools store the text as gzipped tab-sep tables, split into *chunks* of several hundred rows each (configurable). There are two tables:
 - articles.gz
 - files.gz
 
@@ -64,7 +64,7 @@ The table "articles" contains basic information on articles. The internal articl
 
 The table "files" contains the files, one or more per article: the ASCII content string, the URL for each file, the date when it was downloaded, a MIME type etc. All files also have a column with the external identifier of the article associated to it. The internal fileID is the article identifier plus some additional digits. To get the article for a file, you can either use the externalID (like PMID12345) or the first 10 digits of fileId. 
 
-One article can have several fulltext files and several supplemental files. It should have at least one main file (even though in an old version of the tables, there were articles without any file, this should be corrected by now). 
+One article can have several main fulltext files and several supplemental files. It should have at least one main file (even though in an old version of the tables, there were articles without any file, this should be corrected by now). 
 
 This format allows you to use the normal UNIX textutils. E.g. to search for all articles that contain the word HOXA2 and get their external IDs (which is the PMID for crawled data) you can use simply zgrep:
 
@@ -102,6 +102,11 @@ externalId, start, end, year, geneId and snippet. Since we provided the --cat
 option, once the cluster jobs are done, their results will be concatenated into
 one big table, foxFinderOut.tab. Depending on how big your cluster is, this can
 be a lot faster than running a grep.
+
+There is a collection of annotators in the directory scripts/. 
+
+The scripts can use Java classes. If the name of the script starts with "java", pubRunAnnot will run the script not in the normal python interpreter, but through Jython. That means that you can add .jar
+files to sys.path in your script and use the Java classes as you would use python classes.
 
 # Installation
 
