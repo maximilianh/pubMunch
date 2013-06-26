@@ -81,15 +81,18 @@ While you can get quite far with the UNIX tools, you might want write your text 
 The minimum that is required is a variable called "headers" and a function
 called "annotateFile" that accepts an article object and a file object and
 yields rows that are described in "headers". Here is a minimal example that searches
-for the string " FOXO1 " and returns it together with the year of the article:
+for the first occurence of the string " FOXO1 " and returns it together with
+the year of the article:
 
     headers = ["start", "end", "year", "geneId"]
   
     def annotateFile(article, file):
         text = file.content
         start = text.find(" FOXO1 ")
+        rows = []
         if start!=-1:
-            yield (start, start+8, article.year, "FOXO1")
+            rows.append( (start, start+8, article.year, "FOXO1") )
+        return rows
 
 if you paste this code into a file called foxFinder.py, then run the command
 
