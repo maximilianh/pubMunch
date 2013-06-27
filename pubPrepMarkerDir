@@ -60,19 +60,40 @@ def makeUniqueNames(bedIn, bedOut):
             ofh.write(line)
         oldNames.add(name)
         
-def addChrom(bedIn, bedOut):
-    " prefix names with chrom, for bands "
+def rewriteBands(bedIn, bedOut):
+    " prefix names with chrom, for bands, and add the larger scale band, too "
     logging.info("Adding chromosome numbers, filtering %s to %s" % (bedIn, bedOut))
-    ofh = open(bedOut, "w")
-    oldNames = set()
+    origBands = {} # dict with [chrom, start, end] tuples
     for line in open(bedIn):
         fields = line.strip().split("\t")
-        name = fields[3]
-        chrom = fields[0]
-        newName = chrom.replace("chr","")+name
-        fields[3] = newName
-        ofh.write("\t".join(fields))
+        chrom, start, end, band = fields
+        chromNum = chrom.replace("chr","")
+        bandName = chromNum+band
+        origBands[bandName] = (chrom, start, end)
+
+    largeBands = {}
+    for bandName, coordTuple in origBands.iteritems():
+        if not "." in bandName:
+            continue
+        chrom, start, end = coordTuple
+        largeBand = bandName.split(".")[0]
+        if not largeBand in largeBands:
+            largeBands[largeBand] = (chrom, start, end)
+        else:
+            oldStart = largeBands[largeBand][1]
+            oldEnd = largeBands[largeBand][2]
+            largeBands[largeBand] = (chrom, min(oldStart, start), max(oldEnd, end))
+
+    allBands = origBands.items()
+    allBands.extend(largeBands.items())
+            
+    ofh = open(bedOut, "w")
+    for bandName, coordTuple in allBands:
+        chrom, start, end = coordTuple
+        row = [chrom, str(start), str(end), bandName]
+        ofh.write("\t".join(row))
         ofh.write("\n")
+    ofh.close()
 
 def rewriteSnp(bedIn, bedOut):
     " massage snp coordinates to force them into normal bed format "
@@ -175,7 +196,7 @@ def prepMarkerDir(markerDir, onlyType):
         bandBed = join(markerDir, "hg19.band.bed")
         bandDict = join(markerDir, "band.dict.tab.gz")
         mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from cytoBand")
-        addChrom(tempFile, bandBed)
+        rewriteBands(tempFile, bandBed)
         writeNames(bandBed, bandDict)
 
     if onlyType and onlyType=="uniprot":

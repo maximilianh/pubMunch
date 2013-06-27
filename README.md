@@ -42,10 +42,9 @@ Get a list of PMIDs, put them into the file pmids.txt
 
 Run the crawler in unrestricted mode and with debug output on this list: (in the default, restricted mode, it will only crawl a single publisher) 
 
-    pubCrawl -du myCrawl/pmids.txt
+    pubCrawl -du myCrawl
 
-The PDFs should then be in the subdirectory myCrawl/files. Error messages are in myCrawl/pmidStatus.txt. 
-Metadata is in a sqlite and a tab separated file. 
+The PDFs should then be in the subdirectory myCrawl/files. Error messages are in myCrawl/pmidStatus.txt, and a crawler log file crawler.log with all sorts of status messages to help me debug problems.  Metadata (authors, title, etc) is in a sqlite database and also a tab separated file in the same directory. 
 
 Convert crawled PDFs to text:
 
@@ -74,7 +73,7 @@ As the files are sorted on the articleId, you can create a big table that includ
 
     join 0_00000.articles 0_00000.files > textData.tab
 
-# Annotators and Map/Reduce operations
+# Annotator scripts
 
 While you can get quite far with the UNIX tools, you might want write your text analysis as python scripts. If your scripts comply with the format required by pubRunAnnotate or pubRunMapReduce, the scripts don't have to do any parsing of the tables themselves, their output format is standardised and they get distributed over the cluster automatically.
 
@@ -111,18 +110,42 @@ There is a collection of annotators in the directory scripts/.
 The scripts can use Java classes. If the name of the script starts with "java", pubRunAnnot will run the script not in the normal python interpreter, but through Jython. That means that you can add .jar
 files to sys.path in your script and use the Java classes as you would use python classes.
 
+# Map/reduce operations
+
+Sometimes you do not want to just concat results but rather
+collect data from the complete text, to do something more complicated, e.g. sum values, take averages, collect word usage statistics or sentence info.  You can use map/reduce style jobs for this (see http://en.wikipedia.org/wiki/MapReduce). 
+
+For this, you need to define (apart from the "headers" variable), two functions: map(file, article, text, resultDict) and reduce (key, valList). "resultDict" is a dictionary of key -> value. The function "map" can add (key,value) pairs to it. These results get written to files on the cluster, one per job. Once all jobs have completed, the pubRunMapReduce script calls your function "reduce" with a key and a list of all values for this key. It can yield rows for the final output file, described by the "headers" variable.
+
+It is a lot easier to understand this with an example:
+ 
+    headers = ["pmid", "textLen"]
+    
+    def map(article, file, text, resultDict):
+        pmid = article.pmid
+        resultDict.setdefault(pmid, 0)
+        resultDict[pmid]+=len(text)
+    
+    def reduce(key, valList):
+        pmid = key
+        textSum = sum(valList)
+        yield pmid, textSum
+
+This example will first create a map with PMID -> length of text on the cluster, then calculate the sum of all the 
+lengths on the cluster headnode and write the result to a tab-sep table with columns "pmid" and "textLen".
+
 # Installation
 
 Install these packages in ubuntu:
-    sudo apt-get install catdoc xpdf poppler-utils
+    sudo apt-get install catdoc poppler-utils
 
-If text annotation is too slow for you:
-The re2 library for python will make it at least 10 times faster.
-You need to download the C++ source from re2.googlecode.com, compile and install it
+- catdoc contains various converters for Microsoft Office files
+- poppler-utils contains the pdftotext converter
+
+If regular-expression based text annotation is too slow:
+The re2 library will make it at least 10 times faster. It is a regular expression engine that avoids backtracking as far as possible, developed originally at Google. To install it, you need to download the C++ source from re2.googlecode.com, compile and install it
 "make;make install" (by default to /usr/local), then install the python wrapper
-with "pip install re2". (If you don't have write access to /usr/local, you need
-to install the re2 library with "make install prefix=<dir>" and then change
-setup.py in the python re2 install package, replace "/usr" with <dir>)
+with "pip install re2". (If you don't have write access to /usr/local, install the re2 library with "make install prefix=<dir>", then hack setup.py in the python re2 install package, by replacing "/usr" with your <dir>)
 
 # BUGS to fix:
 

@@ -39,6 +39,7 @@ genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog {}: reformat uniprot sequences, entrez data etc for mutation finder and write to tools/data/mutFinder """.format("|".join(allSteps)))
 
+parser.add_option("-t", "--runTests", dest="test", action="store_true", help="run tests")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -810,6 +811,24 @@ def loadFaSeqs(protFaFname):
     faToDbm(protFaFname, dbm)
     dbm.close()
 
+def removeBrackets(s):
+    """ remove nested brackets from string s 
+    >>> removeBrackets("hello world (no way)")
+    'hello world'
+    """
+    newS = []
+    brackLevel = 0
+    for c in s:
+        if c=="(":
+            brackLevel+=1
+            continue
+        if c==")":
+            brackLevel-=1
+            continue
+        if brackLevel==0:
+            newS.append(c)
+    return "".join(newS).strip()
+
 def cleanupNames(descToAccs):
     " given a dict with name -> list of accs, remove names with >=2 accs and return as a dict acc->names"
     # only the X most common English words
@@ -861,10 +880,10 @@ def cleanupNames(descToAccs):
     nameToAccs = newNames
 
     # lowercase all names and remove bracketed stuff
-    brackRe = re.compile("[(]([^)]+)[)]")
+    #brackRe = re.compile("[(]([^)]+)[)]") # does not work for nested brackets
     cleanNames = defaultdict(set)
     for n, accs in nameToAccs.iteritems():
-        n = brackRe.sub("", n)
+        n = removeBrackets(n)
         n = n.replace("  ", " ")
         n = n.replace(" , ", ", ")
         cleanNames[n.lower()].update(accs)
@@ -1028,6 +1047,9 @@ def parseHgncNames(data):
         sym = row.Approved_Symbol
 
         if entrez=="":
+            entrez = row.Entrez_Gene_ID_2
+
+        if entrez=="":
             noEntrez.add(sym)
             continue
 
@@ -1078,7 +1100,6 @@ def readDict(fname, symToEntrez, nameDict, justPass=None, ambiguous=None):
                 if not isPass and not isAmb:
                     #logging.warning("name %s is neither pass nor ambiguous, skipping" % str(syms))
                     notFound += 1
-                    continue
 
             nameDict[prefix+entrezId].add(name)
             nameCount +=1
@@ -1244,14 +1265,14 @@ def main(args, options):
 
         dictFname = join(geneDataDir, "geneNames.hgnc.dict.gz")
         writeGzDict(accToNames, dictFname)
-        fastFind.compileDict(dictFname)
+        #fastFind.compileDict(dictFname)
 
         symDictFname = join(geneDataDir, "symbols.hgnc.dict.gz")
         writeGzDict(symToAccs, symDictFname)
-        fastFind.compileDict(symDictFname, wordRe=fastFind.DASHWORDRE)
+        #fastFind.compileDict(symDictFname, wordRe=fastFind.DASHWORDRE)
 
         #fname = join(geneDataDir, "ambigousSyms.dict.gz")
-        writeGzDict(ambigousSyms, fname)
+        #writeGzDict(ambigousSyms, fname)
         
         fname = join(geneDataDir, "hgnc.symToEntrez.marshal.gz")
         fh = gzip.open(fname, "w")
@@ -1300,6 +1321,11 @@ def main(args, options):
         #ofh.close()
 
 
+
+if options.test:
+    import doctest
+    doctest.testmod()
+    sys.exit(0)
 
 if len(args)==0:
     parser.print_help()
