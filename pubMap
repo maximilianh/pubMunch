@@ -108,6 +108,9 @@ pubGeneric.addGeneralOptions(parser)
 # ==== FUNCTIONs =====
 def main(args, options):
 
+    if options.debug:
+        pubMap.DEBUG=True
+
     dataset, command = args
 
     allSteps = ["annot", "filter", "blat", "sort",

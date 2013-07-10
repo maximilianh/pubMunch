@@ -67,6 +67,8 @@ def rewriteBands(bedIn, bedOut):
     for line in open(bedIn):
         fields = line.strip().split("\t")
         chrom, start, end, band = fields
+        start = int(start)
+        end = int(end)
         chromNum = chrom.replace("chr","")
         bandName = chromNum+band
         origBands[bandName] = (chrom, start, end)
@@ -82,7 +84,7 @@ def rewriteBands(bedIn, bedOut):
         else:
             oldStart = largeBands[largeBand][1]
             oldEnd = largeBands[largeBand][2]
-            largeBands[largeBand] = (chrom, min(oldStart, start), max(oldEnd, end))
+            largeBands[largeBand] = (chrom, min(oldStart, start, end), max(oldEnd, start, end))
 
     allBands = origBands.items()
     allBands.extend(largeBands.items())

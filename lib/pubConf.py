@@ -429,6 +429,9 @@ humanDb = "hg19"
 
 hgncDir = "/hive/data/outside/hgnc/042613"
 
+# directory with subdirs, one per db, that contains chrom.sizes files
+genomeDataDir = "/hive/data/genomes"
+
 # BLASTP
 #blastBinDir = "/cluster/bin/blast/x86_64/blast-2.2.20/bin"
 blastBinDir = '/hive/data/outside/blast229'
@@ -479,6 +482,8 @@ geneDataDir = join(staticDataDir, "geneData")
 bncFname = '/hive/data/outside/pubs/wordFrequency/bnc/bnc.txt'
 
 # ACCESS METHODS (convenience) ============================
+
+debug = False
 
 import sys, logging, os.path, time, random
 confName = os.path.expanduser("~/.pubConf")

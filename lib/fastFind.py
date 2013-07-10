@@ -11,6 +11,10 @@ import re
 #WORDRE = re.compile(r"[\w'[\]()-]+")
 # a word is defined to include apostrophes, but not parentheses and dashes, by default
 WORDRE = re.compile(r"[\w']+")
+
+# symbols include bands and therefore can include dots
+SYMRE = re.compile(r"[\w'.]+")
+
 DASHWORDRE = re.compile(r"[\w'-]+")
 
 def recursiveAdd(dict, wordList, id):

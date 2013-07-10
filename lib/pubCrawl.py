@@ -1275,7 +1275,7 @@ def writeReport(baseDir, htmlFname):
         h.li("Crawler is currently running: %s" % isActive)
         h.li("Number of journals: %d" % issnCount)
         h.li("Total PMIDs scheduled: %d" % pmidCount)
-        h.li("Crawler progress rate: %0.2f %%" % (100*len(statusPmids["OK"])/float(pmidCount)))
+        h.li("Crawler progress rate: %0.2f %%" % (100*len(statusPmids.get("OK", ""))/float(pmidCount)))
         h.startUl()
         for status, pmidList in statusPmids.iteritems():
             exampleLinks = [html.pubmedLink(pmid) for pmid in pmidList[:10]]

@@ -667,6 +667,30 @@ def splitAnnotIdString(annotIdString):
     annotId = annotIdString[articleDigits+fileDigits:]
     return articleId, fileId, annotId
 
+def makeTempDir(prefix):
+    """ create unique temp subdir in pubtools temp dir.
+    """
+    tmpDir=pubConf.getTempDir()
+    dirName = tempfile.mktemp(dir=tmpDir, prefix=prefix+".")
+    if not isdir(dirName):
+        os.makedirs(dirName)
+    logging.debug("Created dir %s" % dirName)
+    return dirName
+
+def makeTempFile(prefix, suffix=".psl"):
+    """ create tempfile in pubtools tempdir dir with given prefix, return object and name.
+    Tempfile will auto-delete when file object is destructed, unless debug mode is set. 
+    """
+    tmpDir=pubConf.getTempDir()
+    if pubConf.debug:
+        #tfname = tempfile.mktemp(dir=tmpDir, prefix=prefix+".", suffix=suffix)
+        tfname = join(tmpDir, prefix+suffix)
+        tf = open(tfname, "w")
+        logging.debug("Created tempfile %s, debug-mode: no auto-deletion" % tfname)
+    else:
+        tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=suffix)
+    return tf, tf.name
+
 if __name__=="__main__":
     setupLoggingOptions(None)
     #doctest.testmod()

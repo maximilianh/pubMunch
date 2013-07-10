@@ -13,6 +13,8 @@ import xml.etree.ElementTree as et
 from os.path import *
 from collections import defaultdict
 
+import bedLoci
+
 # add <scriptDir>/lib/ to package search path
 progFile = os.path.abspath(sys.argv[0])
 progDir  = os.path.dirname(progFile)
@@ -30,8 +32,10 @@ import fastFind
 # all possible commands for this script
 allSteps = ["genePmids", "entrez", "refseq", "seqs",
     "uniprot", "refseqMap", "uniprotMap", "snp", "oldRefseqGet", "oldRefseqMap",
+    "oldRefseqProtGet", "oldRefseqProtMap",
     "genbankGet", "genbankParse", "genbankMap", "omim",
-    "geneNames", "geneDict"
+    "geneNames", "geneDict", 
+    "lociNames", "bandLoci"
     ]
 
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
@@ -47,13 +51,19 @@ pubGeneric.addGeneralOptions(parser)
 taxToDb = {9606 : "hg19"}
 geneDataDir = None
 
-def writeGzDict(data, fname):
+def writeGzDict(data, fname, appendFnames=None):
     logging.info("Writing %d keys to %s" % (len(data), fname))
     ofh = gzip.open(fname, "w")
     for key, valList in data.iteritems():
         for val in valList:
             assert("|" not in val)
         ofh.write("%s\t%s\n" % (key, "|".join(valList)))
+    if appendFnames:
+        for fn, prefix in appendFnames.iteritems():
+            logging.info("Appending %s to %s" % (fn, fname))
+            for line in open(fn):
+                ofh.write(prefix)
+                ofh.write(line)
     ofh.close()
 
 def getOmimGeneIds():
@@ -468,6 +478,36 @@ def filterPsls(tmpDir, pairFname, mapFname):
     runCommand(cmd)
     logging.info("Wrote results to %s" % mapFname)
 
+def mapDnaToRefseq(taxId, tmpDir, dnaFaName):
+    logging.debug("mapping %s to refseq, tmpdir %s" % (dnaFaName, tmpDir))
+    refseqFname = join(geneDataDir, "refseq.%s.trans.fa" % str(taxId))
+    targetFname = join(tmpDir, "target.fa")
+    logging.info("Copying %s to %s" % (refseqFname, targetFname))
+    shutil.copy(refseqFname, targetFname)
+
+    # split query into pieces 
+    queryDir = join(tmpDir, "queries")
+    makeOrCleanDir(queryDir)
+    if dnaFaName.endswith(".gz"):
+        cmd = "gunzip %s -c | faSplit about stdin 500 %s/" % (dnaFaName, queryDir)
+    else:
+        cmd = "faSplit about %s 500 %s/" % (dnaFaName, queryDir)
+    maxCommon.runCommand(cmd)
+
+    pslDir = join(tmpDir, "psl")
+    makeOrCleanDir(pslDir)
+
+    jbl = open(join(tmpDir, "jobList"), "w")
+    logging.info("Created %s" % jbl.name)
+    faFnames = glob.glob(join(queryDir, "*.fa"))
+    logging.debug("Found %d query split files" % len(faFnames))
+    runner = pubGeneric.makeClusterRunner("pubPrepMutDir-mapDnaRefseq-%s" % basename(dnaFaName))
+    for fname in faFnames:
+        outPslName = join(pslDir, splitext(basename(fname))[0]+".psl")
+        cmd = "blat %(targetFname)s %(fname)s {check out exists %(outPslName)s} -noHead" % locals()
+        runner.submit(cmd)
+    runner.finish(wait=True)
+
 def mapProtToRefseq(taxId, tmpDir, protFaName):
     """ create a psl file with the best mapping protein -> refseq 
     input is protein fa , output goes into tmpDir/psl
@@ -481,7 +521,6 @@ def mapProtToRefseq(taxId, tmpDir, protFaName):
 
     # split uniprot into pieces 
     queryDir = join(tmpDir, "queries")
-
     makeOrCleanDir(queryDir)
     if protFaName.endswith(".gz"):
         cmd = "gunzip %s -c | faSplit about stdin 2500 %s/" % (protFaName, queryDir)
@@ -574,12 +613,16 @@ def dbSnp(taxId, geneDataDir, doRev=False):
         logging.info("Copied %s to %s and deleted temp" % (tmpFname, finalDbmName))
 
 def loadPslToDbm(pslFname, dbmFname, isProt=False, stripVersion=False):
-    " load psl file into a compressed dbm file "
+    " load psl file into a compressed dbm file, ignore haplotypes and unplaced seqs"
     qNamePsls = defaultdict(list)
     count = 0
     for line in open(pslFname):
         line = line.rstrip("\n")
-        qName = line.split("\t")[9]
+        fields = line.split("\t")
+        qName = fields[9]
+        tName = fields[13]
+        if "hap" in tName or "_gl" in tName:
+            continue
         count += 1
         if isProt:
             p = Psl(line.split("\t"))
@@ -601,7 +644,7 @@ def refseqMap(taxId, geneDataDir):
     " get refseq -> genome map from browser "
     db = taxToDb[taxId]
     refPslFname = join(geneDataDir, "refGene.%d.psl" % taxId)
-    cmd = 'hgsql -NB hg19 -e "select * from refSeqAli" | cut -f2- > %s' % refPslFname
+    cmd = 'hgsql -NB hg19 -e "select * from refSeqAli" | grep -v hap | grep -v _gl | cut -f2- > %s' % refPslFname
     runCommand(cmd)
 
     refPslDbmFname = join(geneDataDir, "refGene.%d.psl.dbm" % taxId)
@@ -618,9 +661,9 @@ def gbToFa(inGbFname, faFname):
     #SeqIO.write(seqs, output_handle, "fasta")
     outfh.close()
 
-def mapOldRefseqToNewRefseqIndex(faFname, taxId, dbmFname):
+def mapOldRefseqToNewRefseqIndex(seqType, faFname, taxId, dbmFname):
     " map old prot refseqs to new refseqs "
-    # convert gb to fa
+    # convert gb to fa - this route does not work - see below
     #raFname = join(geneDataDir, "oldRefseq.%d.ra" % taxId)
     #taFname = join(geneDataDir, "oldRefseq.%d.ta" % taxId)
     #cmd = "gbToFaRa -faInclVer /dev/null %(faFname)s %(raFname)s %(taFname)s %(oldRefseqFname)s" % locals()
@@ -630,9 +673,9 @@ def mapOldRefseqToNewRefseqIndex(faFname, taxId, dbmFname):
     #runCommand(cmd)
 
     # create a pair file oldAcc, newAcc
-    tmpDir    = join(pubConf.mapReduceTmpDir, "oldRefseqMap")
+    tmpDir    = join(pubConf.mapReduceTmpDir, "oldRefseqMap_"+seqType)
     makeOrCleanDir(tmpDir)
-    oldAccs = constructOldRefseqAccs(taxId)
+    oldAccs = constructOldRefseqAccs(taxId, seqType)
     pairFname = join(tmpDir, "oldRefseq.%s.pairs" % taxId)
     pairFh = open(pairFname, "w")
     for old, new in oldAccs.iteritems():
@@ -641,26 +684,33 @@ def mapOldRefseqToNewRefseqIndex(faFname, taxId, dbmFname):
     logging.debug("Wrote pairs to %s" % pairFname)
 
     # create the mapping psl file
-    mapFname = join(geneDataDir, "oldRefseq.%d.prot.psl" % taxId)
-    mapProtToRefseq(taxId, tmpDir, faFname)
+    mapFname = join(geneDataDir, "oldRefseq.%d.%s.psl" % (taxId, seqType))
+    if seqType=="prot":
+        mapProtToRefseq(taxId, tmpDir, faFname)
+    else:
+        mapDnaToRefseq(taxId, tmpDir, faFname)
+        
     filterPsls(tmpDir, pairFname, mapFname)
     loadPslToDbm(mapFname, dbmFname)
 
-def constructOldRefseqAccs(taxId):
+def constructOldRefseqAccs(taxId, seqType):
     refseqInfoFname =  join(geneDataDir, "refseqInfo.tab")
     logging.debug("Parsing %s" % refseqInfoFname)
     accs = []
     for row in maxCommon.iterTsvRows(refseqInfoFname):
-        accs.append(row.refProt)
+        if seqType=="prot":
+            accs.append(row.refProt)
+        else:
+            accs.append(row.refSeq)
     oldAccs = makeOldToNewAccs(accs)
     logging.info("Found %d old accessions" % len(oldAccs))
     return oldAccs
 
-def downloadFromGenbank(oldAccs, oldRefseqFname, oneByOne=True):
+def downloadFromGenbank(oldAccs, oldRefseqFname, oneByOne=True, db="protein"):
     " download oldRefseq or genbank protein accessions "
     logging.info("Writing old refseq data to %s" % oldRefseqFname)
     outFh = open(oldRefseqFname, "w")
-    pubEutils.downloadFromEutils("protein", oldAccs, outFh, retType="gb", \
+    pubEutils.downloadFromEutils(db, oldAccs, outFh, retType="gb", \
         retMax=1000, oneByOne=oneByOne)
     return oldRefseqFname
 
@@ -829,6 +879,12 @@ def removeBrackets(s):
             newS.append(c)
     return "".join(newS).strip()
 
+def updateDict(big, small):
+    " given two dicts -> list, add all entries from small to big "
+    for key, vals in small.iteritems():
+        big[key].update(vals)
+    return big
+
 def cleanupNames(descToAccs):
     " given a dict with name -> list of accs, remove names with >=2 accs and return as a dict acc->names"
     # only the X most common English words
@@ -849,7 +905,9 @@ def cleanupNames(descToAccs):
             commonWords.append(n)
             continue
 
-        if len(n)<8: # hgnc symbols can have 14 chars, but most are under 11
+        # hgnc symbols can have 14 chars, but most are under 11
+        # also assume that all-uppercase words are symbols, even if they are long
+        if len(n)<8 or n.upper()==n: 
             symToAccs[n].update(accs)
         else:
             nameToAccs[n].update(accs)
@@ -894,7 +952,7 @@ def cleanupNames(descToAccs):
     removedNames = {}
     nonUniqueNames = {}
     tooShortNames = {}
-    okNames = {}
+    okNames = defaultdict(set)
     for name, accs in nameToAccs.iteritems():
         if len(accs)>1:
             nonUniqueNames[name] = accs
@@ -903,13 +961,31 @@ def cleanupNames(descToAccs):
         elif len(name)<7:
             tooShortNames[name] = accs
         else:
-            okNames[str(name)] = list(accs)[0]
+            okNames[str(name)] = accs
     nameToAcc = okNames
+
+    # create ambiguous names without the final number
+    # e.g. palmitoyl-protein thioesterase 2 and palmitoyl-protein thioesterase 1
+    # add "palmitoyl-protein thioesterase" -> both accessions
+    noNumbers = defaultdict(set)
+    numCount = 0
+    for name, accs in okNames.iteritems():
+        lastNum = name.split()[-1]
+        if not lastNum.isdigit():
+            continue
+        if int(lastNum)>9:
+            continue
+        newName = " ".join(name.split()[:-1])
+        noNumbers[newName].update(accs)
+        numCount +=1
+    logging.info("Found %d names with trailing number, created %d new names without numbers" % \
+        (numCount, len(noNumbers)))
+    okNames = updateDict(okNames, noNumbers)
 
     # reverse dicts
     accToNames = defaultdict(list)
-    for name, acc in nameToAcc.iteritems():
-        accToNames[acc].append(name)
+    for name, syms in nameToAcc.iteritems():
+        accToNames["/".join(syms)].append(name)
         
     # find non-unique symbols
     nonUniqueSyms = {}
@@ -1111,6 +1187,87 @@ def readList(fname):
     for line in open(fname):
         yield line.strip().split()[0]
     
+def makeLociNames():
+    hgncFn = join(pubConf.hgncDir, "hgnc.txt")
+    symFname = join(pubConf.getTempDir(), "allSym.txt")
+    filterSymCmd = "cut -f2 %(hgncFn)s | grep -v withdrawn > %(symFname)s" % locals()
+    maxCommon.runCommand(filterSymCmd)
+
+    exonFname = join(pubConf.getTempDir(), "exons.bed")
+    cmd = """
+    hgsql hg19 -NB -e 'select geneSymbol, knownGene.* from knownGene JOIN knownCanonical ON (name=transcript) JOIN kgXref ON (name=kgId);' |
+    grep -v hap | grep -v _gl | lstOp filter stdin %(symFname)s | 
+    tawk '{$2=$1; print}' | cut -f2- | cut -f-10 | 
+    genePredToBed stdin stdout | bedToExons stdin stdout |
+    tawk '($4~/^[A-Z0-9]+$/)' |
+    sort -k1,1 -k2,2n > %(exonFname)s
+    """ % locals()
+    # remove haplotype chromosomes
+    # final awk removes -AS and fusion gene symbols
+    maxCommon.runCommand(cmd)
+
+    lociFname = join(geneDataDir, "loci.bed")
+    chromSizesFname = join(pubConf.genomeDataDir, "hg19", "chrom.sizes")
+    outf = open(lociFname, "w")
+    mids = bedLoci.parseBedMids(open(exonFname))
+    chromSizes = bedLoci.slurpdict(chromSizesFname)
+    bedLoci.outputLoci(mids, chromSizes, outf)
+    outf.close()
+    logging.info("Loci coords and names written to %s" % lociFname)
+
+def overlapBeds(selectFname, inFname):
+    " overlap in with select and return a dict inBedNames -> list of selectFnames "
+    tempFn = join(pubConf.getTempDir(), "overlapMerged.tab")
+    cmd = "overlapSelect %(selectFname)s %(inFname)s %(tempFn)s -mergeOutput -overlapThreshold=0.5" \
+        % locals()
+    maxCommon.runCommand(cmd)
+    inToSel = defaultdict(set)
+    for l in open(tempFn):
+        fs = l.strip().split("\t")
+        inId = fs[3]
+        selId = fs[-1]
+        inToSel[inId].add(selId)
+    return inToSel
+
+def makeBandLoci():
+    humanBandFn = join(pubConf.markerDbDir, "hg19.band.bed")
+    lociFn = join(pubConf.geneDataDir, "loci.bed")
+    geneToBand = overlapBeds(humanBandFn, lociFn)
+    bandToGenes = defaultdict(set)
+    for gene, bands in geneToBand.iteritems():
+        for b in bands:
+            bandToGenes[b].add(gene)
+
+    # convert to tab and dict band -> entrezIds
+    symToEntrez = marshal.loads(gzip.open(join(geneDataDir, "hgnc.symToEntrez.marshal.gz")).read())
+    bandLociTab = join(pubConf.geneDataDir, "bandGenes.tab")
+    bandToEntrezList = {}
+    ofh = open(bandLociTab, "w")
+    for band, syms in bandToGenes.iteritems():
+        entrezList = []
+        entrezToSym = {}
+        for sym in syms:
+            #entrezList = [str(symToEntrez[g]) for g in genes]
+            if sym not in symToEntrez:
+                logging.warn("no entrez ID for symbol %s" % sym)
+            else:
+                eId = symToEntrez[sym]
+                entrezList.append(str(eId))
+                entrezToSym[eId] = sym
+
+        row = [band, "|".join(entrezList), "|".join(syms)]
+        bandToEntrezList[band] = entrezToSym
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+    ofh.close()
+
+    logging.info("band-gene mapping written as table to %s" % bandLociTab)
+
+    ascData = marshal.dumps(bandToEntrezList)
+    outFname = join(pubConf.geneDataDir, "bandToEntrez.marshal.gz")
+    gzip.open(outFname, "w").write(ascData)
+    logging.info("band->entrez mapping written as binary to %s" % outFname)
+
 def makeGeneDict():
     """ create fastFind dict for genes: 
     long names and unambigous or rare symbols are taken as they are 
@@ -1147,9 +1304,20 @@ def makeGeneDict():
     fname = join(geneDataDir, "symbols.hgnc.dict.gz")
     readDict(fname, symToEntrez, nameDict, ambiguous=ambSymbols, justPass=goodSymbols)
     
+    #bandLociFname = join(geneDataDir, "bandGenes.dict")
     fname = join(geneDataDir, "symbols.dict.gz")
+    #writeGzDict(nameDict, fname, appendFnames={bandLociFname:"*"})
     writeGzDict(nameDict, fname)
     fastFind.compileDict(fname)
+    
+def mapRefseqOldToNewLoad(seqType, taxId):
+    " create psl from odl to new refseqs and load into dbm, load old refseqs into seq dbm "
+    oldRefseqFname = join(geneDataDir, "oldRefseq.%d.%s.gb" % (taxId, seqType))
+    pslDbmFname = join(geneDataDir, "oldRefseqToRefseq.%d.%s.psl.dbm" % (taxId, seqType))
+    faFname = join(geneDataDir, "oldRefseq.%d.%s.fa" % (taxId, seqType))
+    gbToFa(oldRefseqFname, faFname)
+    mapOldRefseqToNewRefseqIndex(seqType, faFname, taxId, pslDbmFname)
+    loadFaSeqs(faFname)
 
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
@@ -1206,17 +1374,21 @@ def main(args, options):
         mapProtToRefseqIndex(taxId, "uniprot", upFaName, uniprotDir)
 
     # these two go together, but the first one takes really long, ~1 hour
-    if step=="oldRefseqGet":
+    if step=="oldRefseqProtGet":
         oldRefseqFname = join(geneDataDir, "oldRefseq.%d.prot.gb" % taxId)
-        oldAccs = constructOldRefseqAccs(taxId)
+        oldAccs = constructOldRefseqAccs(taxId, "prot")
         downloadFromGenbank(oldAccs.keys(), oldRefseqFname)
+    if step=="oldRefseqProtMap":
+        mapRefseqOldToNewLoad("prot", taxId)
+
+    # same as above, but for DNA
+    if step=="oldRefseqGet":
+        oldRefseqFname = join(geneDataDir, "oldRefseq.%d.dna.gb" % taxId)
+        oldAccs = constructOldRefseqAccs(taxId, "dna")
+        downloadFromGenbank(oldAccs.keys(), oldRefseqFname, db="nucleotide")
     if step=="oldRefseqMap":
-        oldRefseqFname = join(geneDataDir, "oldRefseq.%d.prot.gb" % taxId)
-        pslDbmFname = join(geneDataDir, "oldRefseqToRefseq.%d.prot.psl.dbm" % taxId)
-        faFname = join(geneDataDir, "oldRefseq.%d.prot.fa" % taxId)
-        gbToFa(oldRefseqFname, faFname)
-        mapOldRefseqToNewRefseqIndex(faFname, taxId, pslDbmFname)
-        loadFaSeqs(faFname)
+        mapRefseqOldToNewLoad("dna", taxId)
+
 
     # requires the "uniprot" step
     if step=="genbankProtGet":
@@ -1279,6 +1451,12 @@ def main(args, options):
         fh.write(marshal.dumps(symToEntrez))
         fh.close()
         logging.info("Wrote %s" % fname)
+
+    if step=="lociNames":
+        makeLociNames()
+
+    if step=="bandLoci":
+        makeBandLoci()
 
     if step=="geneDict":
         makeGeneDict()

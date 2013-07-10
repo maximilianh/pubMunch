@@ -254,17 +254,13 @@ def submitSortPslJobs(runner, seqType, inDir, outDir, dbList):
         runner.submit(cmd)
     logging.info("If batch went through: output can be found in %s" % dbOutFile)
         
-def makeTempFile(tmpDir, prefix):
-    " create tempfile in pubtools tempdir dir with given prefix, return object and name "
-    tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=".psl")
-    return tf, tf.name
-
-def concatFiles(inFnames, outFile):
+def concatFiles(inFnames, outFile, cutFields=None):
     # concat all files into some file
     #usfh = open(unsortedPslFname, "w")
     for fn in inFnames:
         outFile.write(open(fn).read())
     outFile.flush() # cannot do close, otherwise temp file will get deleted
+    logging.debug("Concatenated %d files to %s" % (len(inFnames), outFile.name))
 
 def makeBlockSizes(pslList):
     """ generate bed block sizes for a bed from 
@@ -274,9 +270,9 @@ def makeBlockSizes(pslList):
     pslList.sort(key=lambda f: f.tStart) # sort fts by start pos
     minStart = min([f.tStart for f in pslList])
     maxEnd = max([f.tEnd for f in pslList])
-    logging.debug("Creating blockSizes for %d psls, length %d" % (len(pslList), maxEnd-minStart))
+    logging.log(5, "Creating blockSizes for %d psls, length %d" % (len(pslList), maxEnd-minStart))
     for psl in pslList:
-        logging.debug(" - %s" % str(psl))
+        logging.log(5, "psl: %s" % str(psl))
     mask = array.array("b", [0]*(maxEnd-minStart))
 
     for psl in pslList:
@@ -312,7 +308,7 @@ def makeBlockSizes(pslList):
 
 def pslListToBedx(chain, minCover):
     """ create bedx feature and check if chain is long enough """
-    logging.debug("Converting chain with %d psls to bedx" % (len(chain)))
+    logging.log(5, "Converting chain with %d psls to bedx" % (len(chain)))
     blockStarts, blockSizes, blockSizeSum = makeBlockSizes(chain)
     if blockSizeSum>=minCover:
         bedNames = []
@@ -328,12 +324,12 @@ def pslListToBedx(chain, minCover):
             end = max(end, psl.tEnd)
         bedName = ",".join(bedNames)
         bedx = BedxClass(chrom, start, end, bedName, blockSizeSum, "+", start, end, "128,128,128", len(blockSizes), ",".join(blockSizes), ",".join(blockStarts), ",".join(tSeqTypes))
-        logging.debug("final chain %s" % str(bedx))
+        logging.log(5, "final chain %s" % str(bedx))
         return bedx
     else:
-        logging.debug("chain not long enough, skipping featureList, blockSizeSum is %d" % (blockSizeSum))
+        logging.log(5, "chain not long enough, skipping featureList, blockSizeSum is %d" % (blockSizeSum))
         for psl in chain:
-            logging.debug("%s" % str(psl))
+            logging.log(5, "skipped psl: %s" % str(psl))
         return None
 
 def indexByDbChrom(pslList):
@@ -353,15 +349,15 @@ def chainPsls(pslList, maxDistDict):
         chains a query sequence only once and ignores all matches for the same chain
         return a dict chainId -> seqId -> list of psls
     """
-    logging.debug("%d unchained genome hits" % len(pslList))
+    logging.log(5, "%d unchained genome hits" % len(pslList))
     chromPsls = indexByDbChrom(pslList)
 
     chains = {}
     for dbChrom, chromPslList in chromPsls.iteritems():
         db, chrom = dbChrom
-        logging.debug("db %s, chrom %s, %d features" % (db, chrom, len(chromPslList)))
+        logging.log(5, "db %s, chrom %s, %d features" % (db, chrom, len(chromPslList)))
         if "_hap" in chrom:
-            logging.debug("haplotype chromosome, skipping all features")
+            logging.log(5, "haplotype chromosome, skipping all features")
             continue
         chromPslList = maxbio.sortList(chromPslList, "tStart", reverse=False)
         chain = []
@@ -373,17 +369,19 @@ def chainPsls(pslList, maxDistDict):
             if psl.qName in alreadyChained:
                 oldPsl = alreadyChained[psl.qName]
                 if psl.tStart==oldPsl.tStart and psl.tEnd==oldPsl.tEnd and \
-                    psl.blockSizes==oldPsl.blockSizes and psl.tName!=oldPsl.tName:
-                    logging.debug("same match, but different tSequenceType (cdna, prot, genome), keeping hit")
+                    psl.blockSizes==oldPsl.blockSizes and psl.tName != oldPsl.tName:
+                    logging.log(5, "same match, but different tSequenceType (cdna, prot, genome)," \
+                        "keeping hit")
                 else:
-                    logging.debug("weird match, q-sequence already in this chain, skipping %s" % str(psl))
+                    logging.log(5, "weird match, q-sequence already in this chain, skipping %s" % \
+                        str(psl))
                     continue
             if len(chain)>0 and abs(int(psl.tStart) - lastEnd) > maxDist:
                 chainId = chain[0].tName + "-" + str(chain[0].tStart)
                 chains[chainId]=chain
                 alreadyChained = {}
                 chain = []
-            logging.debug("Adding feature %s to chain" % str(psl))
+            logging.log(5, "Adding feature %s to chain" % str(psl))
             chain.append(psl)
             alreadyChained[psl.qName] = psl
             lastEnd = psl.tEnd
@@ -454,16 +452,16 @@ def onlyLongestChains(chains):
     bestChains = {}
     while len(chains)!=0:
         # create score for chains: number of qNames, e.g. chain1->1, chain2->3
-        logging.debug("Starting chain balancing with %d chains" % len(chains))
+        logging.log(5, "Starting chain balancing with %d chains" % len(chains))
         chainScores = {}
         for chainId, qNameDict in chains.iteritems():
             chainScores[chainId] = len(qNameDict.keys())
-        logging.debug("chainScores are: %s" % chainScores)
+        logging.log(5, "chainScores are: %s" % chainScores)
 
         # keep only chains with best scores, create list with their chainIds
         # and create list with  qNames of all their members
         bestChainIds = getBestElements(chainScores)
-        logging.debug("Best chainIds are: %s" % str(bestChainIds))
+        logging.log(5, "Best chainIds are: %s" % str(bestChainIds))
         chainQNames = set()
         for bestChainId in bestChainIds:
             db = bestChainId.split(",")[0]
@@ -472,7 +470,8 @@ def onlyLongestChains(chains):
             for pslList in bestChain.values():
                 for psl in pslList:
                     chainQNames.add(psl.qName)
-        logging.debug("Best chain contains %d sequences, removing these from other chains" % len(chainQNames))
+        logging.log(5, "Best chain contains %d sequences, removing these from other chains" % \
+            len(chainQNames))
 
         # keep only psls with names not in chainQNames 
         newChains = {}
@@ -502,13 +501,13 @@ def chainsToBeds(chains):
             if bedx==None:
                 continue
             if bedx.end - bedx.start > pubConf.maxChainLength:
-                logging.debug("Chain %s is too long, >%d" % (bedx, pubConf.maxChainLength))
+                logging.log(5, "Chain %s is too long, >%d" % (bedx, pubConf.maxChainLength))
                 continue
             bedxList.append(bedx)
             dbPsls.extend(pslList)
 
         if len(bedxList)==0:
-            logging.debug("No bedx for db %s" % db)
+            logging.log(5, "No bedx for db %s" % db)
             continue
         elif len(bedxList) > pubConf.maxFeatures:
             logging.warn("Too many features on db %s, skipping this article" % db)
@@ -537,27 +536,35 @@ def writePslsFuseOverlaps(pslList, outFh):
     for pslLine, seqTypes in pslSeqTypes.iteritems():
         psl = pslLine.split("\t")
         psl.append("".join(seqTypes))
-        #articleId = psl[9][:pubConf.ARTICLEDIGITS]
-        #psl.append(articleId)
         outFh.write("\t".join(psl))
         outFh.write("\n")
 
-def chainPslToBed(tmpPslFname, oneOutFile, maxDist, tmpDir):
+def chainPslToBed(tmpPslFname, oneOutFile, pipeSep=False, onlyFields=None):
     """ read psls, chain and convert to bed 
     output is spread over many files, one per db, at basename(oneOutFile).<db>.bed
 
     filtering out:
     - features on db with too many features for one article
-    - too long chain
+    - too long chains
+
+    returns a dict db -> bedFname
     """
 
+    maxDist = pubConf.maxChainDist
     outBaseName = splitext(splitext(oneOutFile)[0])[0]
     logging.info("Parsing %s" % tmpPslFname)
-    groupIterator = maxCommon.iterTsvGroups(open(tmpPslFname), format="psl", groupFieldNumber=9, useChars=10)
-    outFiles = {} # cache file handles for speed
+    if pipeSep:
+        groupIterator = maxCommon.iterTsvGroups(open(tmpPslFname), format="psl", \
+            groupFieldNumber=9, groupFieldSep="|")
+    else:
+        groupIterator = maxCommon.iterTsvGroups(open(tmpPslFname), format="psl", \
+            groupFieldNumber=9, useChars=10)
 
+    outFiles = {} # cache file handles for speed
+    dbOutBedNames = {}
     for articleId, pslList in groupIterator:
         logging.info("articleId %s, %d matches" % (articleId, len(pslList)))
+        # the filtering happens all here:
         chainDict = chainPsls(pslList, maxDist)
         chains    = onlyLongestChains(chainDict)
         dbBeds    = chainsToBeds(chains)
@@ -573,21 +580,26 @@ def chainPslToBed(tmpPslFname, oneOutFile, maxDist, tmpDir):
                         logging.info("db %s, creating file %s and %s" % (db, fname, pslFname))
                         outFiles[db] = open(fname, "w")
                         outFiles[db+"/psl"] = open(pslFname, "w")
+                        dbOutBedNames[db] = fname
                     outFile = outFiles[db]
 
                     # write all bed features
-                    logging.debug("%d chained matches" % len(bedx))
+                    logging.log(5,"%d chained matches" % len(bedx))
+                    if onlyFields != None:
+                        bedx = bedx[:onlyFields]
                     strList = [str(x) for x in bedx]
                     outFile.write("\t".join(strList))
                     outFile.write("\n")
                 outPslFile = outFiles[db+"/psl"]
                 writePslsFuseOverlaps(pslList, outPslFile)
 
-    # when no data was found on hg19, then the file was not created and parasol thinks
+    # when no match was found on any db, then the file was not created and parasol thinks
     # that the job has crashed. Make Parasol happy by creating a zero-byte outfile 
     if not isfile(oneOutFile):
         logging.info("Creating empty file %s for parasol" % oneOutFile)
         open(oneOutFile, "w").write("")
+
+    return dbOutBedNames
             
 def removeEmptyDirs(dirList):
     """ go over dirs and remove those with only empty files, return filtered list """
@@ -626,8 +638,7 @@ def mergeFilterPsls(inDirs):
     """ merge/sort/filter all psls (separated by db) in inDir into a temp file with all
     psls for all dbs, split into chunked pieces and write them to outDir 
     """
-    tmpFile, tmpPslFname = maxCommon.makeTempFile(tmpDir=pubConf.getTempDir(), \
-                ext=".psl", prefix = "pubMap_split")
+    tmpFile, tmpPslFname = pubGeneric.makeTempFile("pubMap_split.", suffix=".psl")
     tmpFile.close()
     logging.debug("Merging into tmp file %s" % tmpPslFname)
     pslSortTmpDir = join(pubConf.getTempDir(), "pubMap-sortSplitPsls")
@@ -685,11 +696,10 @@ def submitChainFileJobs(runner, pslDir, bedDir, dbList):
     maxCommon.makedirs(bedDir, quiet=True)
     pslFiles = glob.glob(join(pslDir, "*.psl"))
     logging.debug("Found psl files: %s" % str(pslFiles))
-    #runner = d.getRunner()
     for pslFname in pslFiles:
         chunkId = splitext(basename(pslFname))[0]
-        # we can only check out one single output file
-        # altough the chainFile command will write the others
+        # we can only parasol check out one single output file
+        # but the chainFile command will write the others
         outFile = join(bedDir, chunkId+"."+dbList[0]+".bed")
         cmd = clusterCmdLine("chainFile", pslFname, outFile)
         runner.submit(cmd)
@@ -990,7 +1000,7 @@ def parseAnnotationIds(pslDir):
 def stripArticleIds(hitListString):
     """ remove articleIds from hitList string
         input: a string like 01234565789001000000:23-34,01234567890010000001:45-23 
-        return: ("0123456789001000000,01234567890010000001", "23-34,45-23")
+        return: ("0123456789", "0123456789001000000,01234567890010000001", "23-34,45-23")
     """
     artChars = pubConf.ARTICLEDIGITS
     articleId = hitListString[:artChars]
@@ -1000,7 +1010,7 @@ def stripArticleIds(hitListString):
         parts = matchStr.split(":")
         seqIds.append(parts[0])
         matchRanges.append(parts[1])
-    return articleId, ",".join(seqIds), ",".join(matchRanges)
+    return articleId, seqIds, matchRanges
 
 def findBedPslFiles(bedDir):
     " find all pairs of bed and psl files with same basename in input dirs and return list of basenames "
@@ -1020,7 +1030,7 @@ def findBedPslFiles(bedDir):
     logging.info("Total: %d bed/psl files" % (len(basenames)))
     return basenames
 
-def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
+def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset, annotLoci):
     """ read bed, return as dict, indexed by articleId. 
     
         Add various extra fields to bed, like journal, title from artDescs,
@@ -1032,10 +1042,10 @@ def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
     for line in open(bedFname):
         fields = line.strip("\n").split("\t")
         bedName   = fields[3]
-        articleId, seqIdsField, seqRangesField = stripArticleIds(bedName)
+        articleId, seqIds, seqRanges = stripArticleIds(bedName)
         fields[3] = articleId
-        fields.append(seqIdsField)
-        fields.append(seqRangesField)
+        fields.append(",".join(seqIds))
+        fields.append(",".join(seqRanges))
         fields[5] = "" # remove strand 
         articleIdInt = int(articleId)
 
@@ -1055,6 +1065,14 @@ def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset):
         if dataset=="yif":
             classes=["yif"]
         fields.append(",".join(classes))
+
+        # add the locus field
+        loci = set()
+        for seqId in seqIds:
+            loci.add(annotLoci[seqId])
+        locusStr = ",".join(loci)
+        fields.append(locusStr)
+
 
         bedLine = "\t".join(fields)
         bedLines.setdefault(articleIdInt, []).append(bedLine)
@@ -1090,14 +1108,15 @@ def appendPslsWithArticleId(pslFname, articleIds, outFile):
 
 def sortBedFiles(tableDir):
     " sort all bed files in directory "
-    logging.info("Sorting all bed files in %s with bedSort" % tableDir)
+    logging.info("Sorting all bed files in %s with unix sort" % tableDir)
     for bedFname in glob.glob(join(tableDir, "*.bed")):
         logging.info("%s..." % bedFname)
         cmd = "sort -k1,1 -k2,2n %s -o %s" % (bedFname, bedFname)
         maxCommon.runCommand(cmd, verbose=False)
 
-def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impacts, dataset):
-    """ add extended columns with annotationIds, impact, issn, etc
+def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impacts, annotLoci, dataset):
+    """ 
+    add extended columns with annotationIds, impact, issn, etc
     """
     logging.info("- Formatting bed files for genome browser")
     basenames = findBedPslFiles(bedDir)
@@ -1120,7 +1139,7 @@ def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impact
 
         logging.debug("Reformatting %s to %s" % (bedFname, outName))
 
-        bedLines = readReformatBed(bedFname, artDescs, artClasses, impacts, dataset)
+        bedLines = readReformatBed(bedFname, artDescs, artClasses, impacts, dataset, annotLoci)
         articleIds = set()
         outFh   = outBed[db]
         for articleId, bedLines in bedLines.iteritems():
@@ -1824,13 +1843,14 @@ def runTablesStep(d, options):
     logging.info("Reading file descriptions")
     # reformat bed and sequence files
     if not options.skipConvert:
-        # load all additional bed+ data into memory
+        # load all extended bed+ fields data into memory
         artDescs  = parseArtDescs(d.artDescFname)
         artClasses = parseArtClasses(d.textDir, d.updateIds)
         impacts = parseImpacts(pubConf.impactFname)
+        annotLoci = findLociBedDir(d.bedDir, ["hg19"])
 
         rewriteFilterBedFiles(d.bedDir, d.tableDir, pubConf.speciesNames, \
-            artDescs, artClasses, impacts, d.dataset)
+            artDescs, artClasses, impacts, annotLoci, d.dataset)
         sortBedFiles(d.tableDir)
 
         fileDescs  = parseFileDescs(d.fileDescFname)
@@ -1871,6 +1891,91 @@ def dropAllTables(userTablePrefix):
     for db in dbs:
         logging.info("Dropping for db %s" % db)
         maxMysql.dropTablesExpr(db, tablePrefix+"%")
+
+def overlapBeds(selectFname, inFname):
+    " overlap in with select and return a dict inBedNames -> list of selectFnames "
+    tempFn = join(pubConf.getTempDir(), "overlapMerged.tab")
+    cmd = "overlapSelect %(selectFname)s %(inFname)s %(tempFn)s -idOutput" \
+        % locals()
+    maxCommon.runCommand(cmd)
+    inToSel = defaultdict(set)
+    for l in open(tempFn):
+        if l.startswith("#"):
+            continue
+        fs = l.strip().split("\t")
+        inId = fs[0]
+        selId = fs[-1]
+        inToSel[inId].add(selId)
+    return inToSel
+
+def findBedDbFilter(bedDir, dbList):
+    bedFnames = glob.glob(join(bedDir, "*.bed"))
+    assert(len(bedFnames)>0)
+    logging.debug("Getting all beds in %s for dbs %s" % (bedDir, dbList))
+
+    filtBedFnames = []
+    for bFn in bedFnames:
+        logging.debug("checking if %s has the right db" % bFn)
+        found = False
+        for db in dbList:
+            if db in basename(bFn):
+                found = True
+                break
+        if not found:
+            continue
+        filtBedFnames.append(bFn)
+    logging.info("%d bed files to process for dbs %s" % (len(filtBedFnames), dbList))
+    return filtBedFnames
+
+def concatCutFields(inFnames, outFile):
+    """ concat all bed into some file, keep only the annotation Ids """
+    for fn in inFnames:
+        for line in open(fn).read().splitlines():
+            fields = line.split("\t")
+            #  440002039500000000:1-25,440002039500000001:0-23
+            annotIds = [f.split(":")[0] for f in fields[3].split(",")]
+            fields[3] = ",".join(annotIds)
+            l = "\t".join(fields[:4])
+            outFile.write(l)
+            outFile.write("\n")
+    outFile.flush() # cannot do close, otherwise temp file will get deleted
+    logging.debug("Concatenated %d files to %s" % (len(inFnames), outFile.name))
+
+def findLociBedDir(bedDir, dbList):
+    """
+    concat all beds in bedDir with a db in dbList, 
+    cleanup their name fields and return the loci they overlap 
+    return dict annotId -> list of genes
+    """
+    annotToGene = defaultdict(set)
+    logging.info("Getting loci for bed files in %s" % bedDir)
+    for db in dbList:
+        filtBedFnames = findBedDbFilter(bedDir, [db])
+        tmpFh, tmpFname = pubGeneric.makeTempFile("allBeds", suffix=".bed")
+        concatCutFields(filtBedFnames, tmpFh)
+        tmpFh.flush()
+        dbAnnotToGene = findLoci(tmpFname, dbList)
+        tmpFh.close() # deletes the file
+
+        for annot, genes in dbAnnotToGene.iteritems():
+            for g in genes:
+                annotToGene[annot].add(g)
+    return annotToGene
+
+def findLoci(bedFname, db):
+    """ 
+    return gene loci for annotations as a dict annotationId -> list of locusString
+    """
+    lociFname = join(pubConf.geneDataDir, "loci.bed")
+    nameToGenes = overlapBeds(lociFname, bedFname)
+
+    annotIdToGene = {}
+    for name, genes in nameToGenes.iteritems():
+        annotIds = name.split(",")
+        for annotId in annotIds:
+            annotIdToGene[annotId] = genes
+    #print annotIdToGene["44000210370000000"]
+    return annotIdToGene
 
 def runStep(dataset, command, d, options):
     " run one step of the pubMap pipeline with pipeline directories in d "
@@ -1948,6 +2053,10 @@ def runStep(dataset, command, d, options):
     elif command=="tables":
         runTablesStep(d, options)
 
+    elif command=="loci":
+        # find the closest gene for each chained match
+        d = findLociBedDir(d.bedDir, ["hg19"])
+
     # ===== COMMANDS TO LOAD STUFF FROM THE batches/{0,1,2,3...}/tables DIRECTORIES INTO THE BROWSER
     elif command=="load":
         tablePrefix = "Dev"
@@ -1999,5 +2108,5 @@ if __name__ == "__main__":
 
     elif command=="chainFile":
         # called by submitChainFileJobs
-        chainPslToBed(inName, outName, pubConf.maxChainDist, pubConf.getTempDir())
+        chainPslToBed(inName, outName)
 

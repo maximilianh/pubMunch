@@ -27,7 +27,7 @@ class Annotate:
     def __init__(self):
         # this variable has to be defined, otherwise the jobs will not run.
         # The framework will use this for the headers in table output file
-        self.headers = ["start", "end", "type", "recogId", "markerId"]
+        self.headers = ["start", "end", "type", "markerId"]
 
         # let's ignore files with more than X matches
         self.MAXCOUNT = 50
@@ -42,7 +42,7 @@ class Annotate:
     def startup(self, paramDict):
         """ parse dictioary of keywords """
         self.searchTypes = getSearchTypes(paramDict)
-        self.kwDictList = geneFinder.prepRegexAndDicts(self.searchTypes)
+        self.kwDictList = geneFinder.initData(self.searchTypes)
 
     # this method is called for each FILE. one article can have many files
     # (html, pdf, suppl files, etc). article data is passed in the object 
@@ -56,7 +56,7 @@ class Annotate:
             #resultRows.append(["0", "1", "GOODYEAR", "GOODYEAR"])
         text = file.content
         count = 0
-        annots = list(geneFinder.findMarkers(self.kwDictList, text))
+        annots = list(geneFinder.findIdentifiers(text))
         if len(annots)>MAXCOUNT:
             logging.info("more than %d annotations (excel table, list of genes, etc), skipping file" % MAXCOUNT)
             return None

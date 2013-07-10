@@ -18,7 +18,7 @@ from pubXml import *
 parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local mirror of the Pubmed Central FTP server into pubtools format
 
 Example:
-    pubConvPmc /hive/data/outside/pubs/PubMedCentral/ /hive/data/inside/pubs/text/pmc/
+    pubConvPmc /hive/data/outside/pubs/pmc/ /hive/data/inside/pubs/text/pmc/
 
 If in and out are directories:
     The file_list.csv will be split into x chunks, written to
@@ -381,6 +381,10 @@ def parsePmcIds(pmcTabFname):
             Record = collections.namedtuple('pmcRec', headers)
         else:
             # all other lines
+            if len(row)!=len(headers):
+                # bug in Mar 2013 and Jun 2013
+                logging.warn("Line with illegal number of fields in %s" % pmcTabFname)
+                continue
             rec = Record(*row)
             pmid = rec.PMID
             if pmid=="":

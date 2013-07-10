@@ -136,7 +136,7 @@ def fastIterTsvRows(inFname):
     for line in lines[1:]:
         yield Record(*line.split("\t")), line
 
-def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False, skipLines=None, makeHeadersUnique=False):
+def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False, skipLines=None, makeHeadersUnique=False, commentPrefix=None):
     """ 
         parses tab-sep file with headers as field names 
         yields collection.namedtuples
@@ -159,6 +159,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         - makeHeadersUnique will append _1, _2, etc to make duplicated headers unique.
         - skipLines can be used to skip x lines at the beginning of the file.
         - if encoding is None file will be read as byte strings.
+        - commentPrefix specifies a character like "#" that markes lines to skip
     """
 
     if noHeaderCount:
@@ -204,7 +205,10 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
 
     Record = collections.namedtuple('tsvRec', headers)
     for line in fh:
-        fields = line.strip("\n").split(fieldSep)
+        if commentPrefix!=None and line.startswith(commentPrefix):
+            continue
+        line = line.strip("\n")
+        fields = line.split(fieldSep)
         #fields = [x.decode(encoding) for x in fields]
         if fieldTypes:
             fields = [f(x) for f, x in zip(fieldTypes, fields)]
@@ -228,14 +232,18 @@ def iterTsvGroups(fileObject, **kwargs):
     parameters:
         groupFieldNumber: number, the index (int) of the field to group on
         useChar: number, only use the first X chars of the groupField
+        groupFieldSep: a char, uses only the part before this character in the groupField
 
     return:
         (groupId, list of namedtuples)
     """
     groupFieldNumber = kwargs.get("groupFieldNumber", 0)
     useChars = kwargs.get("useChars", None)
+    groupFieldSep = kwargs.get("groupFieldSep", None)
     if "groupFieldNumber" in kwargs:
         del kwargs["groupFieldNumber"]
+    if "groupFieldSep" in kwargs:
+        del kwargs["groupFieldSep"]
     if useChars:
         del kwargs["useChars"]
     assert(groupFieldNumber!=None)
@@ -247,6 +255,8 @@ def iterTsvGroups(fileObject, **kwargs):
         id = rec[groupFieldNumber]
         if useChars:
             id = id[:useChars]
+        if groupFieldSep:
+            id = id.split(groupFieldSep)[0]
         if lastId==None:
             lastId = id
         if lastId==id:
@@ -294,6 +304,8 @@ def iterTsvJoin(files, **kwargs):
 
 def runCommand(cmd, ignoreErrors=False, verbose=False):
     """ run command in shell, exit if not successful """
+    if type(cmd)==types.ListType:
+        cmd = " ".join(cmd)
     msg = "Running shell command: %s" % cmd
     logging.debug(msg)
     if verbose:

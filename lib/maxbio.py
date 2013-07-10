@@ -146,6 +146,18 @@ def sortList(list, field, reverse=True, key=None):
     list.sort(key=key, reverse=reverse)
     return list
 
+def bestIdentifiers(scoredList):
+    """
+    given a list of tuples with a numeric last field and an id field, return the id fields with 
+    the highest last field.
+    >>> bestIdentifiers ([("clinton", 1), ("obama", 3), ("washington", 10), ("lincoln", 10)])
+    ['washington', 'lincoln']
+    """
+    scoredList.sort(key=operator.itemgetter(-1), reverse=True)
+    bestScore = scoredList[0][-1]
+    bestElements = [e[0] for e in scoredList if e[-1] >= bestScore]
+    return bestElements
+
 def bestScoreElements(list, scoreField):
     """ return only those tuples in a list that contain a score >= the best score in the list 
     >>> import namedtuple
@@ -261,7 +273,7 @@ ErrorDetails    = namedtuple.namedtuple("ErrorDetails", "id, expected, predicted
 def benchmark(predDict, refDict):
     """ returns a class with attributes for TP, FN, FP and various other counts and information about prediction errors 
     >>> benchmark({"a" : set([1,2,3]), "b" : set([3,4,5])}, {"a":set([1]), "b":set([4])})
-    BenchResultRec(TP=2, FN=0, FP=4, Prec=0.33333333333333331, Recall=1.0, F=0.5, errList=[ErrorDetails(id='a', expected=set([1]), predicted=set([1, 2, 3])), ErrorDetails(id='b', expected=set([4]), predicted=set([3, 4, 5]))], objCount=2)
+    BenchResultRec(TP=2, FN=0, FP=4, Prec=0.3333333333333333, Recall=1.0, F=0.5, errList=[ErrorDetails(id='a', expected=set([1]), predicted=set([1, 2, 3])), ErrorDetails(id='b', expected=set([4]), predicted=set([3, 4, 5]))], objCount=2)
     """
     OBJECTNAME="documents"
 
@@ -372,13 +384,13 @@ def unpackCoord(start, end):
 
 def packChromCoord(chrom, start, end):
     """ pack chrom,start,end into 9 little-endian bytes, return a byte string
-    >>> s = packCoord("chr21", 1233,123232299)
-    >>> unpackCoord(s)
+    >>> s = packChromCoord("chr21", 1233,123232299)
+    >>> unpackChromCoord(s)
     ('chr21', 1233, 123232299)
-    >>> unpackCoord(packCoord("chrM", 1233,123232299))
+    >>> unpackChromCoord(packChromCoord("chrM", 1233,123232299))
     ('chrM', 1233, 123232299)
-    >>> packCoord("chr6_Hap", 1,2)
-    >>> len(packCoord("chr6", 1,2))
+    >>> packChromCoord("chr6_hap", 1,2)
+    >>> len(packChromCoord("chr6", 1,2))
     9
     """
     if "_gl" in chrom or "hap" in chrom:

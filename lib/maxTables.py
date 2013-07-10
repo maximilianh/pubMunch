@@ -243,9 +243,10 @@ class TableParser:
             yield result
 # ---- parse rows from mysql table ------
 
-def hgSqlConnect(db, **kwargs):
+def hgSqlConnect(db, config=None, **kwargs):
     " connect using information parsed from ~/.hg.conf "
-    config = maxCommon.parseConfig("~/.hg.conf")
+    if config==None:
+        config = maxCommon.parseConfig("~/.hg.conf")
     conn = MySQLdb.connect(host=config["db.host"], user=config["db.user"], \
         passwd=config["db.password"], db=db, **kwargs)
     return conn
