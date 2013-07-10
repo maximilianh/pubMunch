@@ -1,0 +1,295 @@
+#!/usr/bin/env python
+
+# load default python packages
+import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy, struct, operator
+from os.path import join, basename, isfile, dirname, abspath, splitext, isdir
+from collections import defaultdict, Counter, namedtuple
+
+
+# I highly recommend installing re2, it's way faster than re
+# we fallback to re just in case
+try:
+    import re2 as re
+except ImportError:
+    import re
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, maxCommon, pubConf, maxbio, pubAlg, maxTables, pslMapBed, pubMap
+import pubDnaFind
+from pycbio.hgdata.Psl import Psl
+import geneFinder
+import tabfile
+#import kent.psl, kent.pslTransMap
+
+def readFile(inFname):
+    logging.debug("Reading file %s" % inFname)
+    text = open(inFname).read()
+    pmid  = splitext(basename(inFname))[0]
+    return pmid, text
+
+showOnlyErrors = False
+
+typePmids = defaultdict(set)
+pmids = set()
+
+upData = None
+entrez2sym = None
+
+manualAnnots = {
+    9654228: "ocr error, 1 -> l",
+    20472660: "needs OMIM data",
+    20810036: "need OMIM dis",
+    18350644: "this is not an article, but a list of mutations. Accessions are not Genbank",
+    17438609: "this is not an article, but a list of mutations. Accessions are not Genbank",
+    21122112: "would need OMIM to accept any number, no regex, probably impossible"
+}
+
+def findDnaIter(text):
+    """ find dna in text and return as a list of tuples: (start, end, seq)
+    >>> list(findDnaIter(" actg catgtgtg catgtgc  tgactg crap crap crap CGAT ", "mydoc"))
+    [('mydoc|0 False 4', 'actgcatgtgtgcatgtgctgactg')]
+    """
+    #i = 0
+    for row in pubDnaFind.nucleotideOccurrences(text):
+        if row.seq=="": # can only happen if seq is a restriction site
+            continue
+        #seqId = docId+"|"+str(i)
+        #seqId = docId+"|"+str(row.start)+"-"+str(row.end)
+        #seqId = "%s %s %s" % (seqId, row.tainted, row.partCount)
+        yield row.start, row.end, row.seq
+        #i+=1
+
+def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
+    pmid, text = readFile(inFname)
+    if len(text)<30:
+        logging.info("empty text file")
+        return
+    wordCount = len(text.split())
+
+    if pmid not in refGenes:
+        logging.info("no annotations for pmid %s" % pmid)
+        return
+
+    seqCacheFname = join(dirname(inFname), "seqCache.gdbm")
+    logging.debug("Opening seqCache %s" % seqCacheFname)
+    seqCache = gdbm.open(seqCacheFname, "w")
+
+    genes  = geneFinder.findGenesResolve(text, pmid=pmid, seqCache=seqCache)
+
+    mutDataDir = pubConf.geneDataDir
+    global upData, entrez2sym
+    if upData==None:
+        fname = join(mutDataDir, "uniprot.tab.marshal")
+        upData = marshal.load(open(fname))
+        fname = join(mutDataDir, "entrez.9606.tab.marshal")
+        entrezRefseq = marshal.load(open(fname))
+        entrez2sym = entrezRefseq["entrez2sym"]
+
+    pmids.add(pmid)
+
+    allGenesFound = set()
+    foundLines = []
+
+    for mType, geneIdDict in genes.iteritems():
+        if mType=="band":
+            continue
+        for geneId, markerLocs in geneIdDict.iteritems():
+            idStr, locs = markerLocs
+            logging.debug("Found matches for type %s, gene %s, marker %s" % (mType, geneId, idStr))
+            desc = "notAnnotated"
+            if geneId==None:
+                desc = "notValidIdentifier"
+            else:
+                # only count a gene as found if it's an unambiguous symbol match with count > 3
+                # or a not a symbol at all
+                if mType not in ["symbolMaybe", "symbol"] or \
+                    mType=="symbol" and (len(locs)>(wordCount/1200)) or \
+                    mType=="symbolMaybe" and (len(locs)>10):
+                    allGenesFound.add(geneId)
+                    predPair = (pmid, geneId)
+                    foundGenes.add( predPair )
+                if geneId in refGenes[pmid]:
+                    desc = "annotated"
+
+            snips = []
+            hits = []
+            for loc in locs:
+                start, end = loc
+                snip = pubAlg.getSnippet(text, start, end, maxContext=20)
+                snips.append(snip)
+                logging.debug("Snip: %s" % snip)
+                hitText = text[start:end]
+                if hitText not in hits:
+                    hits.append(hitText)
+
+            oneSnip = ""
+            if len(snips)>0:
+                oneSnip = snips[0]
+
+            row = [ pmid, mType, str(idStr), geneFinder.entrezSymbol(geneId), \
+                    ",".join(hits), str(len(locs)), desc, oneSnip]
+            foundLines.append("\t".join(row))
+            if geneId!=None:
+                typePmids[mType].add(pmid)
+
+    annotLines = []
+
+    if pmid in refGenes:
+        entrezList = set(refGenes[pmid])
+        allFound = True
+        for entrez in entrezList:
+            entrez = int(entrez)
+            sym =  entrez2sym[entrez]
+            if entrez in allGenesFound:
+                desc = "found"
+            else:
+                desc = "notFound"
+                allFound = False
+            annotLines.append( "reference annotation: entrezID %d symbol %s %s "% (entrez, sym, desc))
+        if (not showOnlyErrors) or (not allFound):
+
+            print "PMID",pmid
+            meta = paperMetaData.get(str(pmid), None)
+            year = "unknown"
+            if meta!=None:
+                year = meta.year
+
+            print "Size: %d words, publYear %s" % (wordCount, year)
+
+            wc = Counter(text.split())
+            wcParts = []
+            topWords = []
+            for w, count in wc.most_common(5):
+                wcParts.append("%s=%d" % (w, count))
+                topWords.append(w)
+            print "most common words: "+",".join(wcParts)
+            if "the" not in topWords:
+                print "** %s PDF corrupted?" % pmid
+            if "Novel human pathological mutations" in text:
+                print "** %s Not a real article" % pmid
+                
+            if int(pmid) in manualAnnots:
+                print "**", manualAnnots.get(int(pmid), "")
+
+            print "\n".join(annotLines)
+            print "\n".join(foundLines)
+            print "-----"
+
+    else:
+        print "PMID %s NOT FOUND" % str(pmid)
+        
+
+def parsePaperData(inDir):
+    fname = join(inDir, "textData.tab")
+    if not isfile(fname):
+        return {}
+
+    data = {}
+    for row in maxCommon.iterTsvRows(fname):
+        data[row.pmid] = row
+    return data
+
+def findInLocalDir(inDir, refGenes):
+    fnames = glob.glob(join(inDir, "*.txt"))
+    #fnames = glob.glob(join(inDir, "100*.txt"))
+    pm = maxCommon.ProgressMeter(len(fnames))
+    foundGenes = set()
+    paperData = parsePaperData(inDir)
+    for fname in fnames:
+        #logging.info(fname)
+        findInLocalFile(fname, refGenes, foundGenes, paperData)
+        pm.taskCompleted()
+
+    # cleanup the refgenes dict, remove pmids without any annotations
+    newRefGenes = {}
+    for pmid, genes in refGenes.iteritems():
+        if len(genes)!=0:
+            newRefGenes[pmid]=genes
+    refGenes = newRefGenes
+        
+    print "----"
+    global pmids
+    print "total PMIDs searched: %d" % len(pmids)
+    #refGenesDict = dict([(pmid, refGenes[pmid]) for pmid in pmids])
+    pmidsWithRefs = pmids.intersection(refGenes)
+    print "total PMIDs searched with gene annotations: %d" % len(pmidsWithRefs)
+    #print pmidsWithRefs
+
+    refPairs = set()
+    for pmid in pmidsWithRefs:
+        genes = refGenes[pmid]
+        for gene in genes:
+            refPairs.add( (str(pmid), gene) )
+    print "total (PMID, gene)-pairs to find (searched and with ref annotations): %d" % len(refPairs)
+    #print refPairs
+    print "total (PMID, gene)-pairs found: %d" % len(foundGenes)
+    #print foundGenes
+    matchPairs = foundGenes.intersection(refPairs)
+    #print matchPairs, refPairs
+    print "total (PMIDs, gene) matches: %d" % len(matchPairs)
+    print "total PMIDs with at least one gene match: %d" % len(set([x for x,y in matchPairs]))
+
+    # output how often identifiers were found
+    global typePmids
+    typePmids = typePmids.items()
+    typeCounts = []
+    for mType, pmids in typePmids:
+        typeCounts.append ((mType, len(pmids)))
+    typeCounts.sort(key=operator.itemgetter(1), reverse=True)
+    for mType, pmidCount in typeCounts:
+        print "DocCount %s %d" % (mType, pmidCount)
+
+def parseRefs(fname):
+    data = defaultdict(list)
+    for row in maxCommon.iterTsvRows(fname):
+        data[row.pmid].append(int(row.gene))
+    return data
+
+def main(args, options):
+    if options.test:
+        import doctest
+        doctest.testmod()
+        #runTests()
+        sys.exit(0)
+
+    if options.debug:
+        pubConf.debug = True
+
+    global showOnlyErrors
+    showOnlyErrors = options.onlyErrors
+
+    pubGeneric.setupLogging("", options)
+    inFname, refName = args
+    refGenes = parseRefs(refName)
+
+    geneFinder.initData()
+
+    if isfile(inFname):
+        paperMetaData = parsePaperData(dirname(inFname))
+        findInLocalFile(inFname, refGenes, set(), paperMetaData)
+    elif isdir(inFname):
+        findInLocalDir(inFname, refGenes)
+    else:
+        assert(False)
+
+    #logging.info("Wrote output to %s" % outFname)
+
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] annotDir - use all possible means to resolve mutations""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
+parser.add_option("-e", "--onlyErrors", dest="onlyErrors", action="store_true", help="print output only if a gene has been missed")
+
+(options, args) = parser.parse_args()
+
+if args==[] and not options.test:
+    parser.print_help()
+    exit(1)
+
+pubGeneric.setupLogging(__file__, options)
+main(args, options)
