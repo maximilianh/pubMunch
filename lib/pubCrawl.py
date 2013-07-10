@@ -116,10 +116,19 @@ class pubGetError(Exception):
 
 # ===== FUNCTIONS =======
 
+def resolveDoiWithSfx(sfxServer, doi):
+    " return the fulltext url for doi using the SFX system "
+    logging.debug("Resolving doi %s with SFX" % doi)
+    xmlQuery = '%s/SFX_API/sfx_local?XML=<?xml version="1.0" ?><open-url><object_description><global_identifier_zone><id>doi:%s</id></global_identifier_zone><object_metadata_zone><__service_type>getFullTxt</__service_type></object_metadata_zone></object_description></open-url>' % (sfxServer, str(doi))
+    return resolveWithSfx(sfxServer, xmlQuery)
+
 def resolvePmidWithSfx(sfxServer, pmid):
     " return the fulltext url for pmid using the SFX system "
     logging.debug("Resolving pmid %s with SFX" % pmid)
     xmlQuery = '%s/SFX_API/sfx_local?XML=<?xml version="1.0" ?><open-url><object_description><global_identifier_zone><id>pmid:%s</id></global_identifier_zone><object_metadata_zone><__service_type>getFullTxt</__service_type></object_metadata_zone></object_description></open-url>' % (sfxServer, str(pmid))
+    return resolveWithSfx(sfxServer, xmlQuery)
+
+def resolveWithSfx(sfxServer, xmlQuery):
     sfxResult = delayedWget(xmlQuery, forceDelaySecs=0)
     xmlResult = sfxResult["data"]
     soup = BeautifulStoneSoup(xmlResult, convertEntities=BeautifulSoup.HTML_ENTITIES, smartQuotesTo=None)

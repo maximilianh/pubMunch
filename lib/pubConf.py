@@ -81,6 +81,7 @@ crawlPubIds = {
 # SFX server for pubmed entries without an outlink
 # YOU NEED TO DEFINE THIS IF YOU WANT TO USE SFX
 # the UC SFX server is "http://ucelinks.cdlib.org:8888"
+# the UR SFX server is "http://sfx.bib-bvb.de/sfx_ubr"
 # but please use your own SFX server at your university
 # google for it or ask your library for the URL
 crawlSfxServer = None
