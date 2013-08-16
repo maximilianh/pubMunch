@@ -102,7 +102,7 @@ class Runner:
                     self.clusterType="local"
             logging.info("Cluster type autodetect: %s" % self.clusterType)
 
-        elif self.clusterType=="parasol":
+        if self.clusterType=="parasol":
             self.jobListFname = os.path.join(self.batchDir, "jobList")
             self.jobListFh = open(self.jobListFname, "w")
             logging.info("Created jobList file in %s" % self.jobListFname)
