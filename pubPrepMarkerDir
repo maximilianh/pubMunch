@@ -217,16 +217,19 @@ def prepMarkerDir(markerDir, markerType):
         upBedFname = join(markerDir, "hg19.uniprot.bed")
         upDictFname = join(markerDir, "uniprot.dict.tab.gz")
         # write all uniprot accessions to the dict file
-        upFname = join(pubConf.dbRefDir, "uniprot.tab")
+        upFnames = ["uniprot.tab", "uniprotTrembl.tab"]
         accs = set()
-        logging.info("Parsing %s to get a list of all accession IDs" % upFname)
-        for row in maxCommon.iterTsvRows(upFname):
-            accList = row.accList.split("|")
-            accs.update(accList)
-        accs = list(accs)
-        accs.sort()
+        for upFname in upFnames:
+            upFname=join(pubConf.dbRefDir, upFname)
+            logging.info("Parsing %s to get a list of all accession IDs" % upFname)
+            for row in maxCommon.iterTsvRows(upFname):
+                accList = row.accList.split("|")
+                accs.update(accList)
+
         logging.info("Got %s uniprot accessions, writing to %s" % (len(accs), upDictFname))
         ofh = gzip.open(upDictFname, "w")
+        accs = list(accs)
+        accs.sort() # better compression
         for acc in accs:
             ofh.write(acc)
             ofh.write("\n")

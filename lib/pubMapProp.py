@@ -85,7 +85,12 @@ class PipelineConfig:
 
         # define current batch id by searching for:
         # first batch that is not at tables yet
-        batchDir = self.batchDir
+        if not isdir(self.batchDir) or len(self._batchIds())==0:
+            self.batchId  = None
+            self.batchDir = None
+            return
+        else:
+            batchDir = self.batchDir
             
         # --- now define all other directories relative to batchDir
 
@@ -167,8 +172,11 @@ class PipelineConfig:
     def createNewBatch(self):
         " increment batch id and update the current batch id file"
         # define the dir
-        self.batchId = self.batchId+1
-        logging.debug("Increasing batchId, new batchId is %s" % self.batchId)
+        if self.batchId is None:
+            self.batchId = 0
+        else:
+            self.batchId = self.batchId+1
+            logging.debug("Increasing batchId, new batchId is %s" % self.batchId)
         self.batchDir = join(self.baseDirBatches, str(self.batchId))
 
         # create the dir
@@ -256,7 +264,7 @@ class PipelineConfig:
         for batchId in batchIds:
             updFname = join(self.baseDirBatches, batchId, "updateIds.txt")
             if isfile(updFname):
-                batchUpdateIds = open(updFname).read().strip("\n").split(",")
+                batchUpdateIds = open(updFname).read().split("\n")
                 doneUpdateIds.update(batchUpdateIds)
 
         return doneUpdateIds

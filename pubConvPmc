@@ -15,7 +15,7 @@ import pubGeneric, maxRun, pubStore, pubConf, maxCommon
 from pubXml import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local mirror of the Pubmed Central FTP server into pubtools format
+parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local mirror of the Pubmed Central FTP server to pubtools format
 
 Example:
     pubConvPmc /hive/data/outside/pubs/pmc/ /hive/data/inside/pubs/text/pmc/
@@ -554,7 +554,7 @@ def convertOneChunk(inIndexFile, outFile):
         nxmlName, nxmlData = getNxmlFile(extractedFiles)
         if nxmlData==None:
             continue
-        articleData = pubStore.createEmptyArticleDict(publisher="")
+        articleData = pubStore.createEmptyArticleDict(publisher="pmc")
         articleData, suppFileDict = parsePmcXml(nxmlData, articleData)
 
         fileWritten = False

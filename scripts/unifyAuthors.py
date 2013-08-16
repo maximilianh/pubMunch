@@ -121,7 +121,7 @@ class UnifyAuthors:
 def getFirstAuthor(string):
     """ get first author family name and remove all special chars from it
     
-    XX terribly hacky way to get output from two tables.
+    XX terribly hacky way to get output from two tables to two separate files
     XX this was propped on very late and should be redone one day in a cleaner way
     
     """
@@ -168,9 +168,9 @@ class GetFileDesc:
             desc, url = valList[0]
             fileId = docId.strip('f')
             yield (fileId, desc, url)
+
         elif docId.startswith("a"):
             row = valList[0]
-            print row
             line = docId.strip("a")+"\t"+u'\t'.join(row)+"\n"
             logging.debug("Writing %s" % line)
             self.artFh.write(line.encode('utf8'))
@@ -181,5 +181,5 @@ class GetFileDesc:
         # this solves a very weird bug due to the hackiness of this whole 
         # solution. The test run will open the file but not close it.
         # and the main run will write into the same old file.
-        # So we need to close our outfiles.
+        # So we need to close ALL our outfiles.
         self.artFh.close()

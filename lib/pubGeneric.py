@@ -414,17 +414,16 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
         logging.debug("Creating dir %s" % batchDir)
         os.makedirs(batchDir)
     clusterType = pubConf.clusterType
+
     if headNode==None:
         headNode = pubConf.clusterHeadNode
 
     if forceHeadnode!=None:
         headNode = forceHeadnode
-        logging.info("Headnode forced from command line to %s, ignoring default" % headNode)
+        logging.info("Headnode set from command line to %s, ignoring default" % headNode)
 
-    logging.info("Preparing cluster run, batchDir %(batchDir)s, type %(clusterType)s, headNode %(headNode)s" % locals())
+    logging.info("Preparing cluster run, batchDir %(batchDir)s, default type %(clusterType)s, headNode %(headNode)s" % locals())
 
-    if headNode=="localhost":
-        clusterType="local"
     runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
         headNode=headNode, batchDir = batchDir, runNow=runNow)
     return runner

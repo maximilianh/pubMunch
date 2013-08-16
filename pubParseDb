@@ -877,9 +877,11 @@ def parseUniprot(db, inDir, outDir, taxonIds):
         if db=="uniprot":
             xmlBase = "uniprot_sprot.xml.gz"
             outPrefix = "uniprot"
+            recCount = 500000
         elif db=="uniprotTrembl":
             xmlBase = "uniprot_trembl.xml.gz"
             outPrefix = "uniprotTrembl"
+            recCount = 500000*37
         else:
             raise Exception("unknown db")
         xmlFile = gzip.open(join(inDir, xmlBase))
@@ -896,7 +898,7 @@ def parseUniprot(db, inDir, outDir, taxonIds):
 
     emptyEntry = dict(zip(entryHeaders, len(entryHeaders)*[""]))
 
-    pm = maxCommon.ProgressMeter(550000)
+    pm = maxCommon.ProgressMeter(recCound)
     for _, entryEl in etree.iterparse(xmlFile, tag='{http://uniprot.org/uniprot}entry'):
         strip_namespace_inplace(entryEl) # die, die stupid namespaces!!
         entry = copy.copy(emptyEntry)

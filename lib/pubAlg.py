@@ -866,7 +866,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
 
 def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=False, keepOutFile=False):
     " do a map reduce run only on one random file, no cluster submission, for testing "
-    if updateIds!=None:
+    if updateIds!=None and len(updateIds)!=0:
         updateId = updateIds[0]
     else:
         updateId = None

@@ -132,3 +132,10 @@ cd xfam
 wget ftp://ftp.sanger.ac.uk/pub/databases/Pfam/releases/Pfam27.0/database_files/literature_references.txt.gz -O - | zcat | cut -f2 | sort -u > pfam.txt 
 wget ftp://ftp.sanger.ac.uk/pub/databases/Rfam/11.0/database_files/literature_references.txt.gz -O - | zcat | cut -f2 | sort -u | egrep ^[0-9]+$ > rfam.txt
 cat *.txt | sort -u | grep -v ^0$ | grep -v ^999999999$ > ../pos.xfam.txt
+
+# SGD - Saccaromyves Genome Database - yeastgenome.org
+# interactions
+wget http://downloads.yeastgenome.org/curation/literature/interaction_data.tab -O - | grep manually | cut -f11 | cut -d: -f3 | sort -u > pos.sgdInt.txt
+ wget http://downloads.yeastgenome.org/curation/literature/phenotype_data.tab -O - | cut -f5 | grep PMID | cut -d'|' -f1 | cut -d' ' -f2 | sort -u > pos.sgdPhen.txt
+# got sgd/result.tsv.gz from yeastmine
+ zless sgd/result.tsv.gz | grep -v Additional | cut -f1 | sort -u | egrep ^[0-9]+$ > pos.sgd.txt

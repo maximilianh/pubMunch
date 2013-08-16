@@ -41,24 +41,31 @@ class Runner:
             delayTime, maxPush, maxJob are only used for parasol
             queue is only used for SGE
         """
-        self.jobListFh = None
         self.clusterType = clusterType
         self.logDir = logDir
         self.dryRun = dryRun
+        self.runNow = runNow  # whether to wait until all commands have completed
+        self.jobCount = 0
+
+        # only relevant for SGE
         self.queue = queue
+
+        # these are only used for parasol right now
+        self.jobListFh = None
         self.delayTime = delayTime
         self.maxPush = maxPush
         self.maxJob = maxJob
         self.batchDir = batchDir
-        self.runNow = runNow
         self.maxRam = maxRam
-        self.jobCount = 0
+
         self.commands = [] # for smp commands
         if not os.path.isdir(batchDir):
             logging.debug("creating dir %s" % batchDir)
             os.makedirs(batchDir)
 
-        if ":" in headNode:
+        # the headnode string can contain the cluster type or alternatively the 
+        # number of CPUs to use locally
+        if headNode!=None and ":" in headNode:
             head, cType = headNode.split(":")
             if head=="localhost":
                 self.clusterType="smp"
@@ -68,14 +75,25 @@ class Runner:
                 self.headNode = head
         else:
             self.headNode = headNode
+        
+        if headNode=="localhost":
+            self.headNode = None
+            self.clusterType = "local"
 
         # auto-detect cluster type
         if self.clusterType=="auto":
-            ret = os.system("ssh %s ps aux | grep paraHub > /dev/null" % self.headNode)
+            # if we got a headNode, but no cluster system, need to ssh there
+            if self.headNode is not None:
+                prefixCmd = "ssh %s " % self.headNode
+            else:
+                prefixCmd = ""
+
+            # run a few commands to detect cluster system, fallback to localhost
+            ret = os.system("%s ps aux | grep paraHub > /dev/null" % prefixCmd)
             if ret==0:
                 self.clusterType="parasol"
             else:
-                ret = os.system("ssh %s echo $SGE_ROOT | grep SGE > /dev/null" % self.headNode)
+                ret = os.system("%s echo $SGE_ROOT | grep SGE > /dev/null" % prefixCmd)
                 #sge = os.environ.get("SGE_ROOT", None)
                 #if sge!=None:
                 if ret ==0:
