@@ -97,6 +97,11 @@ if you paste this code into a file called foxFinder.py, then run the command
 
     pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
 
+For a parasol cluster, the command looks like this:
+    pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab --cluster pk:parasol
+To use 10 local CPUs, run it like this: 
+    pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab --cluster localhost:10
+
 the tools will submit one cluster job for each chunk of articles. Each job will get one chunk of articles from the myCrawlText directory, parse the articles and files tables and run them through foxFinder.py. As our function yields fields called "start" and
 "end", 150 characters around each FOXO1-match will be extracted and appended to
 the rows as a field "snippet".
@@ -139,8 +144,9 @@ It is a lot easier to understand this with an example:
         textSum = sum(valList)
         yield pmid, textSum
 
-This example will first create a map with PMID -> length of text on the cluster, then calculate the sum of all the 
-lengths on the cluster headnode and write the result to a tab-sep table with columns "pmid" and "textLen".
+This example will first create a map with PMID -> length of text on the
+cluster, then calculate the sum of all the lengths on the cluster headnode and
+write the result to a tab-sep table with columns "pmid" and "textLen".
 
 # Installation
 
