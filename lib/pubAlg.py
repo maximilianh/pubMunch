@@ -329,7 +329,8 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
     annotDigits = int(pubConf.ANNOTDIGITS)
     fileDigits = int(pubConf.FILEDIGITS)
     annotIdStart = (int(fileData.fileId) * (10**annotDigits)) + annotIdAdd
-    logging.debug("fileId %s, annotIdStart %d, fileLen %d" % (fileData.fileId, annotIdStart, len(fileData.content)))
+    logging.debug("extId %s, fileId %s, annotIdStart %d, fileLen %d" \
+        % (articleData.externalId, fileData.fileId, annotIdStart, len(fileData.content)))
 
     text = fileData.content.replace("\a", "\n")
 
@@ -371,7 +372,10 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
                 for addField in addFields:
                     fields.append(artDict.get(addField, ""))
             # add other fields
-            fields.extend(row)
+            try:
+                fields.extend(row)
+            except TypeError:
+                raise Exception("return type from annotator is not iterable. It needs to be a list, set or similar")
 
             # check if alg actually returns coordinates
             if alg.headers[0]=="start" and alg.headers[1]=="end":
@@ -408,6 +412,8 @@ def writeHeaders(alg, outFh, doSectioning, addFields):
         logging.error("headers variable not found.")
         logging.error("You need to define a variable 'headers' in your python file or class")
         sys.exit(1)
+
+    assert(type(alg.headers)==types.ListType)
 
     headers = copy.copy(alg.headers)
     headers.insert(0, "annotId")

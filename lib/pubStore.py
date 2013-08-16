@@ -231,6 +231,13 @@ def removeTabNl(var):
     #logging.debug("cleaned string is %s" % repr(newStr))
     return cleanString
 
+def articleDictToTuple(artDict):
+    " convert a dict to an article tuple "
+    for key in articleFields:
+        if key not in artDict:
+            artDict[key] = ""
+    artTuple = ArticleRec(**artDict)
+    return artTuple
 
 class PubWriterFile:
     """ 
@@ -651,11 +658,15 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
         logging.debug("Found 1 file, %s" % textDir)
     else:
         fileNames = glob.glob(os.path.join(textDir, baseMask))
-        if updateIds!=None:
+        if updateIds!=None and len(updateIds)!=0:
             logging.debug("Restricting fulltext files to updateIds %s" % str(updateIds))
-            filteredFiles = set()
+            filteredFiles = []
             for updateId in updateIds:
-                filteredFiles.update([f for f in fileNames if f.startswith(str(updateId)+"_")])
+                for fname in fileNames:
+                    if basename(fname).startswith(str(updateId)+"_"):
+                        filteredFiles.append(fname)
+                logging.debug("Update Id %s, %d files" % (str(updateId), len(filteredFiles)))
+            fileNames = list(filteredFiles)
 
         logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))
 
@@ -669,7 +680,7 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
         fcount+=1
         if type=="articles":
             for articleData in reader.articleRows:
-                if "publisher" not in articleData._fields: # temporary bugfix as I have some old files
+                if "publisher" not in articleData._fields: # XX temporary bugfix as I have some old files
                     articleData = list(articleData)
                     articleData.insert(2, "")
                     articleData[3] = ""
@@ -759,17 +770,19 @@ def parseUpdatesTab(outDir, minArticleId):
 
 def listAllUpdateIds(textDir):
     " return set of possible update Ids in textDir "
+    logging.info("Getting list of available update ids in text directory")
     inFname = join(textDir, "updates.tab")
     updateIds = set()
     if not isfile(inFname):
-	logging.info("Could not find %s" % inFname)
+	logging.info("Could not find %s, using filenames to get updates" % inFname)
         inNames = glob.glob(join(textDir, "*.articles.gz"))
         updateIds = set([basename(x).split("_")[0] for x in inNames])
-	logging.info("Found update ids from filenames: %s" % updateIds)
+	logging.info("Found text update ids from filenames: %s" % updateIds)
         return updateIds
 
     for row in maxTables.TableParser(inFname).lines():
         updateIds.add(row.updateId)
+    logging.info("Text update ids in %s: %s" % (inFname, updateIds))
     return updateIds
 
 def guessChunkSize(outDir):
@@ -902,6 +915,8 @@ def sortPubFnames(fnames):
 
 def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     " load pubDoc files into sqlite db table, keep track of loaded file names "
+    if len(tsvFnames)==0:
+        return
     logging.debug("Loading %d files into table %s, db %s" %(len(tsvFnames), tableName, dbFname))
     firstFname = tsvFnames[0]
     if firstFname.endswith(".gz"):

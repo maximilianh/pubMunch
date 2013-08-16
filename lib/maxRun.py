@@ -4,12 +4,29 @@
 # can also run python functions instead of commands by calling itself on the cluster
 # system and then calling the function (see main() and submitPythonFunc)
 
-import os, sys, logging, shutil, types, optparse
+import os, sys, logging, shutil, types, optparse, multiprocessing, subprocess, shlex, time
 from os.path import isfile, join
+
+def removeFinishedProcesses(processes):
+    " given a list of (commandString, process), remove those that have completed and return "
+    newProcs = []
+    for pollCmd, pollProc in processes:
+        retCode = pollProc.poll()
+        if retCode==None:
+            # still running
+            newProcs.append((pollCmd, pollProc))
+        elif retCode!=0:
+            # failed
+            raise Exception("Command %s failed" % pollCmd)
+        else:
+            logging.info("Command %s completed successfully" % pollCmd)
+    return newProcs
 
 class Runner:
     """
     a class that runs commands or python methods on cluster or localhost (sge/parasol/local) 
+
+    messy code.
     """
 
     def __init__(self, clusterType="auto", headNode=None, queue=None, dryRun=False, \
@@ -26,7 +43,6 @@ class Runner:
         """
         self.jobListFh = None
         self.clusterType = clusterType
-        self.headNode = headNode
         self.logDir = logDir
         self.dryRun = dryRun
         self.queue = queue
@@ -34,31 +50,49 @@ class Runner:
         self.maxPush = maxPush
         self.maxJob = maxJob
         self.batchDir = batchDir
-        self.runNow = runNow 
+        self.runNow = runNow
         self.maxRam = maxRam
         self.jobCount = 0
+        self.commands = [] # for smp commands
         if not os.path.isdir(batchDir):
             logging.debug("creating dir %s" % batchDir)
             os.makedirs(batchDir)
 
+        if ":" in headNode:
+            head, cType = headNode.split(":")
+            if head=="localhost":
+                self.clusterType="smp"
+                self.maxCpu = cType
+            else:
+                self.clusterType = cType
+                self.headNode = head
+        else:
+            self.headNode = headNode
+
         # auto-detect cluster type
         if self.clusterType=="auto":
-            ret = os.system("para 2> /dev/null")
-            if ret==65280:
+            ret = os.system("ssh %s ps aux | grep paraHub > /dev/null" % self.headNode)
+            if ret==0:
                 self.clusterType="parasol"
             else:
-                sge = os.environ.get("SGE_ROOT", None)
-                if sge!=None:
+                ret = os.system("ssh %s echo $SGE_ROOT | grep SGE > /dev/null" % self.headNode)
+                #sge = os.environ.get("SGE_ROOT", None)
+                #if sge!=None:
+                if ret ==0:
                     self.clusterType="sge"
                 else:
                     self.clusterType="local"
             logging.info("Cluster type autodetect: %s" % self.clusterType)
 
-        if self.clusterType=="parasol":
+        elif self.clusterType=="parasol":
             self.jobListFname = os.path.join(self.batchDir, "jobList")
             self.jobListFh = open(self.jobListFname, "w")
             logging.info("Created jobList file in %s" % self.jobListFname)
-        elif self.clusterType in ["sge","local"]:
+        elif self.clusterType.startswith("localhost:"):
+            self.maxCpu = int(self.clusterType.split(":")[1])
+            assert(self.maxCpu <= multiprocessing.cpu_count())
+            self.clusterType="smp"
+        elif self.clusterType in ["sge","local","smp"]:
             pass
         else:
             logging.error("Illegal cluster type")
@@ -95,7 +129,7 @@ class Runner:
         if type(command)==types.ListType:
             command = " ".join(command)
 
-        if self.clusterType in ["sge", "local"]:
+        if self.clusterType in ["sge", "local", "smp"]:
             # remove parasol tags
             removeTags = [ "}",
                 "{check in line",
@@ -128,6 +162,9 @@ class Runner:
         elif self.clusterType=="local":
             logging.info("Running command: %s" % command)
             self._exec(command, stopOnError=True)
+
+        elif self.clusterType=="smp":
+            self.commands.append(command)
 
         elif self.clusterType=="parasol":
             self.jobListFh.write(command)
@@ -201,6 +238,25 @@ class Runner:
 
         elif self.clusterType=="sge":
             pass
+
+        elif self.clusterType=="smp":
+            # adapted from http://stackoverflow.com/questions/4992400/running-several-system-commands-in-parallel
+            processes = []
+            for command in self.commands:
+                logging.info("Starting process %s" % command)
+                proc =  subprocess.Popen(shlex.split(command))
+                procTuple = (command, proc)
+                processes.append(procTuple)
+                while len(processes) >= self.maxCpu:
+                    time.sleep(.2)
+                    processes = removeFinishedProcesses(processes)
+
+            # wait for all processes
+            while len(processes)>0:
+                time.sleep(0.5)
+                processes = removeFinishedProcesses(processes)
+            logging.info("All processes completed")
+
 
 def loadModule(moduleFilename):
     """ load py file dynamically  """

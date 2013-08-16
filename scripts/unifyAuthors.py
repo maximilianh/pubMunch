@@ -145,7 +145,7 @@ class GetFileDesc:
         fileId = fileData.fileId
         desc   = fileData.desc
         url    = fileData.url
-        result["f"+fileId] = [ (desc, url) ]
+        result["f"+fileId] = (desc, url)
 
         a = articleData
         firstAuthor = getFirstAuthor(a.authors)
@@ -153,7 +153,7 @@ class GetFileDesc:
         # ff and chrome seem to show unicode in mouseovers just fine
         title = pubStore.prepSqlString(a.title)
 
-        artRow = [ (a.publisher, a.externalId, a.pmid, a.doi, a.printIssn, a.journal, title, firstAuthor, a.year) ]
+        artRow = (a.publisher, a.externalId, a.pmid, a.doi, a.printIssn, a.journal, title, firstAuthor, a.year)
         result["a"+articleData.articleId] = artRow
 
     def reduceStartup(self, resultDict, paramDict, outFh):
@@ -170,6 +170,7 @@ class GetFileDesc:
             yield (fileId, desc, url)
         elif docId.startswith("a"):
             row = valList[0]
+            print row
             line = docId.strip("a")+"\t"+u'\t'.join(row)+"\n"
             logging.debug("Writing %s" % line)
             self.artFh.write(line.encode('utf8'))

@@ -35,7 +35,8 @@ allSteps = ["genePmids", "entrez", "refseq", "seqs",
     "oldRefseqProtGet", "oldRefseqProtMap",
     "genbankGet", "genbankParse", "genbankMap", "omim",
     "geneNames", "geneDict", 
-    "lociNames", "bandLoci"
+    "lociNames", "bandLoci",
+    "cells"
     ]
 
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
@@ -316,7 +317,7 @@ def tabToDbm(fname):
         dbm[key] = val
     dbm.close()
 
-def parseRa(raName, tabName):
+def parseRaWriteToTab(raName, tabName):
     " write refseqId.version, refProt ID and cds Start to a tabular file "
     logging.info("Parsing ra")
     ofh = open(tabName, "w")
@@ -386,7 +387,7 @@ def parseRefseq(taxId, geneDataDir):
     cmd = "gbGetSeqs -gbRoot=/hive/data/outside/genbank RefSeq mrna %s -get=ra -db=hg19 -inclVersion -native" % raName
     maxCommon.runCommand(cmd)
     refseqInfoFname =  join(geneDataDir, "refseqInfo.tab")
-    accList = parseRa(raName, refseqInfoFname)
+    accList = parseRaWriteToTab(raName, refseqInfoFname)
     os.remove(raName)
 
 def loadSeqs(taxId, geneDataDir, uniprotDir):
@@ -1319,6 +1320,36 @@ def mapRefseqOldToNewLoad(seqType, taxId):
     mapOldRefseqToNewRefseqIndex(seqType, faFname, taxId, pslDbmFname)
     loadFaSeqs(faFname)
 
+def makeCellNames():
+    " parse cellosaurus to get cell line names "
+    url = "ftp://ftp.nextprot.org/pub/current_release/controlled_vocabularies/cellosaurus.txt"
+    tmpFname = join(pubConf.getTempDir(), "cellosaurus.txt")
+    if not isfile(tmpFname):
+        cmd = "wget %s -O %s" % (url, tmpFname)
+        maxCommon.runCommand(cmd)
+
+    names = []
+    for line in open(tmpFname):
+        if line.startswith("ID"):
+            name = line.strip()[5:]
+            names.append(name)
+        if line.startswith("SY"):
+            syns = line.strip()[5:]
+            syns = syns.split("; ")
+            for s in syns:
+                names.append(s)
+        
+    likeMuts = []
+    mutRe = re.compile("^([ABCDEFGHIKLMNPQRSTVWXY])([0-9]{1,5})([ABCDEFGHIKLMNPQRSTVWXY])$")
+    for n in names:
+        m = mutRe.match(n)
+        if m!=None:
+            let1, num, let2 = m.groups()
+            num = int(num)
+            likeMuts.append( (let1, num, let2) )
+    print likeMuts
+
+
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
     step = args[0]
@@ -1461,6 +1492,8 @@ def main(args, options):
     if step=="geneDict":
         makeGeneDict()
 
+    if step=="cells":
+        makeCellNames()
     #if step=="ncbi" or step=="all":
         #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz") 
         #logging.info("Parsing gene<->refseq ids out of %s" % entrezTabFname)

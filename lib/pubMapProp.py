@@ -28,11 +28,13 @@ class PipelineConfig:
     """ a class with tons of properties to hold all directories for the pipeline 
         Most of these are relative to a BATCH (=one full run of the pipeline)
     """
-    def __init__(self, dataset):
+    def __init__(self, dataset, outDir):
         self.markerCountsBase   = MARKERCOUNTSBASE
         self.markerDirBase      = MARKERDIRBASE
-        self.pubMapBaseDir = pubConf.pubMapBaseDir
-        maxCommon.mustExistDir(pubConf.pubMapBaseDir, makeDir=True)
+        assert(outDir!=None and outDir!="")
+        self.pubMapBaseDir = outDir
+        maxCommon.mustExistDir(self.pubMapBaseDir, makeDir=True)
+        logging.debug("Main pipeline outdir is %s" % outDir)
 
         self.dataset = dataset
         if "," in dataset:
@@ -43,43 +45,46 @@ class PipelineConfig:
         if self.textDir==None:
             raise Exception("dataset %s can not be resolved to a directory" % dataset)
 
+        # base dir for dataset
+        self.baseDir = join(self.pubMapBaseDir, self.dataset)
+
+        self.batchId = self._findCurrentBatchDir()
+        self.batchDir = join(self.baseDirBatches, str(self.batchId))
         self._defineBatchDirectories()
+
+    def _findCurrentBatchDir(self):
+        """ find the directory of the highest batchId that is not at "tables" yet """
+        # mkdir if there is no batch dir
+        if not self._anyBatchSetup() and not isdir(self.baseDirBatches):
+            logging.debug("Creating batchDir")
+            os.makedirs(self.baseDirBatches)
+
+        batchId = 0
+        for nextBatchId in self._batchIds():
+            logging.debug("checking batch %s" % nextBatchId)
+            progressDir = join(self.baseDirBatches, str(nextBatchId), "progress")
+            if self.batchIsPastStep("tables", progressDir=progressDir):
+                batchId = nextBatchId
+            else:
+                break
+        batchId = int(batchId)
+        logging.info("First valid batchId is %d" % (batchId))
+        return batchId
 
     def _defineBatchDirectories(self):
         """ 
-        
-        search for the highest free batch directory
-        add attributes for all input and output directories in this batchDir to object d
-        if the batch directory exists
-        
+        Set attributes for all input and output directories relative to self.batchDir 
         """
         if "," in self.dataset:
             logging.debug("comma in dataset description, deferring config")
             return
 
         logging.debug("Defining batch directories for %s" % self.pubMapBaseDir)
-        # base dir for dataset
-        self.baseDir = join(self.pubMapBaseDir, self.dataset)
-        global baseDir
-        baseDir = self.baseDir
+        #global baseDir
+        #baseDir = self.baseDir
 
         # define current batch id by searching for:
         # first batch that is not at tables yet
-
-        # bailout if there is no single batch setup yet for this dataset
-        if not self._anyBatchSetup():
-            self.batchId = None
-            return
-
-        for batchId in self._batchIds():
-            progressDir = join(self.baseDirBatches, str(batchId), "progress")
-            if not self.batchIsPastStep("tables", progressDir=progressDir):
-                break
-
-        self.batchId = int(batchId)
-        logging.info("First valid batchId is %d" % (self.batchId))
-
-        self.batchDir = join(self.baseDirBatches, str(self.batchId))
         batchDir = self.batchDir
             
         # --- now define all other directories relative to batchDir
@@ -90,7 +95,7 @@ class PipelineConfig:
         # updateIds as part of this batch
         self.updateIdFile = join(self.batchDir, "updateIds.txt")
         self.updateIds = readList(self.updateIdFile)
-        logging.debug("UpdateIds: %s" % self.updateIds)
+        logging.debug("Batch is linked to these text update IDs: %s" % self.updateIds)
 
         # list of textfiles that were processed in batch
         self.chunkListFname = join(batchDir, "annotatedTextChunks.tab")
@@ -103,7 +108,7 @@ class PipelineConfig:
         self.markerAnnotDir = join(batchDir, "annots", "markers") # same for markers
 
         # tables for genome browser 
-        self.tableDir     = join(batchDir, "tables") 
+        self.tableDir     = join(batchDir, "tables")
 
         # non-blat files
         self.fileDescFname      = join(batchDir, "files.tab") # file descriptions for browser tables
@@ -117,7 +122,7 @@ class PipelineConfig:
 
         self.textConfigFname = join(batchDir, "textDir.conf") # directory where text files are stored
 
-        # filter step
+        # files for filter step
 
         filterDir = "filter"
         # unique sequences per article, dups removed
@@ -161,17 +166,12 @@ class PipelineConfig:
 
     def createNewBatch(self):
         " increment batch id and update the current batch id file"
-        if self.batchId==None:
-            self.batchId=0
-        else:
-            self.batchId = self.batchId+1
-        # update the directory object with the new batchDir
-        #self.writeCurrentBatch()
-
+        # define the dir
+        self.batchId = self.batchId+1
+        logging.debug("Increasing batchId, new batchId is %s" % self.batchId)
         self.batchDir = join(self.baseDirBatches, str(self.batchId))
-        os.makedirs(self.batchDir)
-        self._defineBatchDirectories()
 
+        # create the dir
         if isdir(self.batchDir):
             if not len(os.listdir(self.batchDir))==0:
                 raise Exception("%s contains files, is this really a new run?" % self.batchDir)
@@ -179,19 +179,29 @@ class PipelineConfig:
             logging.debug("Creating dir %s" % self.batchDir)
             os.makedirs(self.batchDir)
 
+        # define all other dirs
+        self._defineBatchDirectories()
+
     def _batchIds(self):
+        " return sorted list of all possible batchIds "
         subDirs = os.listdir(self.baseDirBatches)
         subDirs = [s for s in subDirs if s.isdigit()]
+        subDirs = [int(s) for s in subDirs]
+        subDirs.sort()
+        subDirs = [str(s) for s in subDirs]
+        logging.debug("Existing batch ids: %s" % subDirs)
         return subDirs
 
     def _anyBatchSetup(self):
-        " return if batches have been setup "
+        " return True if any batchDir exists "
         # no if there is not yet any batch yet at all
+        logging.debug("Checking if any batchDir exists")
         self.baseDirBatches = join(self.baseDir, "batches")
+        # if there is no batch dir, there is clearly no batch yet
         if not isdir(self.baseDirBatches):
             return False
 
-        # no, if batches dir does not contain any numbered directories, there is no old
+        # if the batch dir does not contain any numbered directories, there is no old
         # batch yet
         if len(self._batchIds())==0:
             return False
@@ -201,6 +211,7 @@ class PipelineConfig:
     def completedSteps(self):
         " return list of steps completed in this batch "
 
+        logging.debug("Checking completed steps for this batch")
         if not self._anyBatchSetup():
             return []
 
@@ -217,33 +228,35 @@ class PipelineConfig:
         if progressDir==None:
             progressDir = self.progressDir
 
-        if not self._anyBatchSetup():
-            return False
-
         progressFname = join(progressDir, stepName)
         if isfile(progressFname)==True:
-            logging.debug("%s exists, step was completed" % (progressFname))
+            logging.debug("%s exists, step was completed in this batch" % (progressFname))
             return True
         else:
-            logging.debug("No progress file, not at %s yet" % stepName)
+            logging.debug("checking %s: this batch is not at %s yet" % (str(progressDir), stepName))
             return False
         
-    def getAllUpdateIds(self):
+    def getUpdateIds(self, batchIds):
         """ 
-        go over all subdirs of baseDirBatches, read the updateIds.txt files.
+        go over all subdirs of baseDirBatches, read the updateIds.txt files and return 
+        their values. Can be limited to a given set of batchDirs.
         """
-        # parse textDir
-
         # parse tracking file and get all updateIds
-        logging.debug("Parsing subdirs of %s to find all updateIds.txt files" % self.baseDirBatches)
-        doneUpdateIds = set()
-        for batchDir in os.listdir(self.baseDirBatches):
-            if not batchDir.isdigit():
-                continue
+        logging.debug("Looking in %s, getting updateIds.txt files for batches %s (None=all)" % \
+            (self.baseDirBatches, batchIds))
 
-            updFname = join(self.baseDirBatches, batchDir, "updateIds.txt")
+        if batchIds==None:
+            batchIds = []
+            for batchId in os.listdir(self.baseDirBatches):
+                if not batchId.isdigit():
+                    continue
+                batchIds.append(batchId)
+
+        doneUpdateIds = set()
+        for batchId in batchIds:
+            updFname = join(self.baseDirBatches, batchId, "updateIds.txt")
             if isfile(updFname):
-                batchUpdateIds = open(updFname).read().split(",")
+                batchUpdateIds = open(updFname).read().strip("\n").split(",")
                 doneUpdateIds.update(batchUpdateIds)
 
         return doneUpdateIds
@@ -264,12 +277,17 @@ class PipelineConfig:
         #row = [str(self.batchId), step, time.asctime()]
         #batchFh.write("\t".join(row)+"\n")
 
-    def updateUpdateIds(self):
-        " update self.updateIds with all new updateIds in baseDir relative to textDir "
-        allUpdateIds = pubStore.listAllUpdateIds(self.textDir)
-        doneUpdateIds = self.getAllUpdateIds()
-        self.updateIds = set(allUpdateIds).difference(doneUpdateIds)
-        logging.info("Updates that have not been annotated yet: %s" % self.updateIds)
+    def findUnannotatedUpdateIds(self):
+        """ 
+        find out which text-updates we have already annotated in any batch.
+        Update self.updateIds with the these updateIds.
+        """
+        textUpdateIds = pubStore.listAllUpdateIds(self.textDir)
+        batchIds = self.findBatchesAtStep("annot")
+        doneUpdateIds = self.getUpdateIds(batchIds)
+        self.updateIds = set(textUpdateIds).difference(doneUpdateIds)
+        logging.info("text: %s, done: %s" % (textUpdateIds, doneUpdateIds))
+        logging.info("Text-Updates that have not been annotated yet: %s" % self.updateIds)
 
     def findTableFiles(self, ignoreFilenames):
         """ find all table files across all batches in batchDir, find all files.
@@ -319,14 +337,16 @@ class PipelineConfig:
     def findBatchesAtStep(self, step):
         """ return the list of batchIds that have run through 'step'
         """
-        #def findProcessedBatches(mainBaseDir, step, currentBatchId=None):
-        batchIds = os.listdir(self.baseDirBatches)
-        batchIds = [x for x in batchIds if x.isdigit()]
+        #batchIds = os.listdir(self.baseDirBatches)
+        #batchIds = [x for x in batchIds if x.isdigit()]
+        batchIds = self._batchIds()
+        logging.debug("Found batches: %s" % set(batchIds))
 
         okBatchIds = []
         for bid in batchIds:
-            progressFname = join(self.baseDirBatches, bid, self.progressDir, step)
-            logging.info("checking if %s exists" % progressFname)
+            #logging.debug("batchId is %s" % bid)
+            progressFname = join(self.baseDirBatches, bid, "progress", step)
+            #logging.debug("checking if %s exists" % progressFname)
             if isfile(progressFname):
                 okBatchIds.append(bid)
         logging.debug("batchIds in %s with '%s' done: %s" % (self.baseDirBatches, step, okBatchIds))

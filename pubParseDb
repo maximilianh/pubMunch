@@ -831,7 +831,10 @@ def writeFaSeqs(entry, faFiles, allVariants=False):
         seqIds = [entry.acc]
         seqs   = [entry.isoSeqs.split("|")[0]]
     taxonId = entry.taxonId
-    ofh = faFiles[taxonId]
+    if "all" in faFiles:
+        ofh = faFiles["all"]
+    else:
+        ofh = faFiles[taxonId]
     #for seqId, seq in zip(seqIds, seqs):
         #ofh.write(">%s\n%s\n" % (seqId, seq))
     c = 0
@@ -846,6 +849,9 @@ def writeFaSeqs(entry, faFiles, allVariants=False):
 
 def openFaFiles(taxonIds, outDir, outPrefix, seqType="base"):
     faFiles = {}
+    if taxonIds == None:
+        taxonIds = ["all"]
+
     for taxonId in taxonIds:
         taxonId = str(taxonId)
         seqQual = ""
@@ -856,7 +862,7 @@ def openFaFiles(taxonIds, outDir, outPrefix, seqType="base"):
         logging.info("Writing fasta seqs for taxon %s to %s (seqType: %s)" % (taxonId, faFname, seqType))
     return faFiles
 
-def parseUniprot(inDir, outDir, taxonIds):
+def parseUniprot(db, inDir, outDir, taxonIds):
     " parse uniprot, write records and refs to outdir "
 
     if options.parse:
@@ -868,9 +874,16 @@ def parseUniprot(inDir, outDir, taxonIds):
         outPrefix = "temp"
     else:
         isoSeqs, recCount = readIsoforms(inDir)
-        xmlFile = gzip.open(join(inDir, "uniprot_sprot.xml.gz"))
+        if db=="uniprot":
+            xmlBase = "uniprot_sprot.xml.gz"
+            outPrefix = "uniprot"
+        elif db=="uniprotTrembl":
+            xmlBase = "uniprot_trembl.xml.gz"
+            outPrefix = "uniprotTrembl"
+        else:
+            raise Exception("unknown db")
+        xmlFile = gzip.open(join(inDir, xmlBase))
         logging.info("Parsing main XML file %s" % xmlFile.name)
-        outPrefix = "uniprot"
 
     entryOf = openOutTabFile(outDir, outPrefix+".tab", entryHeaders)
     refOf = openOutTabFile(outDir, outPrefix+".refs.tab", refHeaders)
@@ -890,7 +903,7 @@ def parseUniprot(inDir, outDir, taxonIds):
 
         pm.taskCompleted()
 
-        if int(entryEl.find("organism/dbReference").attrib["id"]) not in taxonIds:
+        if taxonIds!=None and int(entryEl.find("organism/dbReference").attrib["id"]) not in taxonIds:
             continue
 
         entryRow = parseRecInfo(entryEl, entry, isoSeqs)
@@ -927,17 +940,15 @@ def main(args, options):
 
     if db=="pdb":
         dbDir = pubConf.pdbBaseDir
-    elif db=="uniprot":
-        dbDir = pubConf.uniProtBaseDir
-    else:
-        assert(False) # illegal db arg
-
-    if db=="pdb":
         #parsePdb("/hive/data/outside/pdb/o9/pdb1o91.ent.gz", refDir)
         parsePdb(dbDir, refDir)
-    elif db=="uniprot":
-        taxonIds = set(pubConf.uniProtTaxonIds)
-        parseUniprot(dbDir, refDir, taxonIds)
+    elif db in ["uniprot", "uniprotTrembl"]:
+        dbDir = pubConf.uniProtBaseDir
+        #taxonIds = set(pubConf.uniProtTaxonIds)
+        taxonIds = None
+        parseUniprot(db, dbDir, refDir, taxonIds)
+    else:
+        assert(False) # illegal db arg
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===

@@ -68,7 +68,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
         return
     wordCount = len(text.split())
 
-    if pmid not in refGenes:
+    if pmid not in refGenes and not len(refGenes)==0:
         logging.info("no annotations for pmid %s" % pmid)
         return
 
@@ -76,7 +76,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
     logging.debug("Opening seqCache %s" % seqCacheFname)
     seqCache = gdbm.open(seqCacheFname, "w")
 
-    genes  = geneFinder.findGenesResolve(text, pmid=pmid, seqCache=seqCache)
+    genes = geneFinder.findGenesResolveByType(text, pmid=pmid, seqCache=seqCache)
 
     mutDataDir = pubConf.geneDataDir
     global upData, entrez2sym
@@ -93,24 +93,23 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
     foundLines = []
 
     for mType, geneIdDict in genes.iteritems():
-        if mType=="band":
-            continue
         for geneId, markerLocs in geneIdDict.iteritems():
             idStr, locs = markerLocs
             logging.debug("Found matches for type %s, gene %s, marker %s" % (mType, geneId, idStr))
+            logging.debug("Text: %s" % [text[start:end] for start, end in locs])
             desc = "notAnnotated"
             if geneId==None:
                 desc = "notValidIdentifier"
             else:
                 # only count a gene as found if it's an unambiguous symbol match with count > 3
-                # or a not a symbol at all
+                # or something better than a symbol
                 if mType not in ["symbolMaybe", "symbol"] or \
                     mType=="symbol" and (len(locs)>(wordCount/1200)) or \
                     mType=="symbolMaybe" and (len(locs)>10):
                     allGenesFound.add(geneId)
                     predPair = (pmid, geneId)
                     foundGenes.add( predPair )
-                if geneId in refGenes[pmid]:
+                if pmid in refGenes and geneId in refGenes[pmid]:
                     desc = "annotated"
 
             snips = []
@@ -136,8 +135,8 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
 
     annotLines = []
 
-    if pmid in refGenes:
-        entrezList = set(refGenes[pmid])
+    if pmid in refGenes or len(refGenes)==0:
+        entrezList = set(refGenes.get(pmid, []))
         allFound = True
         for entrez in entrezList:
             entrez = int(entrez)
@@ -170,7 +169,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
             if "Novel human pathological mutations" in text:
                 print "** %s Not a real article" % pmid
                 
-            if int(pmid) in manualAnnots:
+            if pmid.isdigit() and int(pmid) in manualAnnots:
                 print "**", manualAnnots.get(int(pmid), "")
 
             print "\n".join(annotLines)
@@ -261,8 +260,12 @@ def main(args, options):
     showOnlyErrors = options.onlyErrors
 
     pubGeneric.setupLogging("", options)
-    inFname, refName = args
-    refGenes = parseRefs(refName)
+    inFname = args[0]
+    if len(args)>1:
+        refName = args[1]
+        refGenes = parseRefs(refName)
+    else:
+        refGenes = {}
 
     geneFinder.initData()
 

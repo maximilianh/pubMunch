@@ -3,7 +3,7 @@
 
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
     glob, operator, doctest, ftplib
-import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun
+import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables
 from os.path import *
 
 forceHeadnode = None
@@ -43,41 +43,6 @@ def runCommandTimeout(command, timeout=30, bufSize=128000):
     stdout, stderr = proc.communicate()
     return stdout, stderr, proc.returncode
 
-def relpath(target, base=os.curdir):
-    """
-    Return a relative path to the target from either the current dir or an optional base dir.
-    Base can be a directory specified either as absolute or relative to current dir.
-    BACKPORT for <= python2.6
-    """
-
-    if target==base:
-        return ""
-    if not os.path.exists(target):
-        raise OSError, 'Target does not exist: '+target
-
-    if not os.path.isdir(base):
-        raise OSError, 'Base is not a directory or does not exist: '+base
-
-    base_list = (os.path.abspath(base)).split(os.sep)
-    target_list = (os.path.abspath(target)).split(os.sep)
-
-    # On the windows platform the target may be on a completely different drive from the base.
-    if os.name in ['nt','dos','os2'] and base_list[0] <> target_list[0]:
-        raise OSError, 'Target is on a different drive to base. Target: '+target_list[0].upper()+', base: '+base_list[0].upper()
-
-    # Starting from the filepath root, work out how much of the filepath is
-    # shared by base and target.
-    for i in range(min(len(base_list), len(target_list))):
-        if base_list[i] <> target_list[i]: break
-    else:
-        # If we broke out of the loop, i is pointing to the first differing path elements.
-        # If we didn't break out of the loop, i is pointing to identical path elements.
-        # Increment i so that in all cases it points to the first differing path elements.
-        i+=1
-
-    rel_list = [os.pardir] * (len(base_list)-i) + target_list[i:]
-    return os.path.join(*rel_list)
-
 def findFiles(dir, extensions):
     """ find all files in or below dir with one of several extensions 
     extensions is a list, e.g. [".tab", ".txt"] or just a string like ".psl"
@@ -108,10 +73,11 @@ def verboseFunc(message):
     " we add this to logging "
     logging.log(5, message)
 
-def addGeneralOptions(parser):
+def addGeneralOptions(parser, noCluster=False):
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
-    parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
+    if not noCluster:
+        parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
     return parser
 
 def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
@@ -184,6 +150,8 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     os.close(fd)
     logging.debug("Created out temp file %s" % (outFname))
 
+    # allow %(name)s syntax in cmdLine string to use variables from pubConf
+    cmdLine = cmdLine % pubConf.__dict__
     # build cmd line and run
     cmdLine = cmdLine.replace("$in", inFname)
     cmdLine = cmdLine.replace("$out", outFname)
@@ -569,9 +537,9 @@ def sectionRanges(text):
     # get start pos of section headers, create list ('header',0), ('discussion', 400), etc
     sectionStarts = []
     for section, regex in sectionRes.iteritems():
-        logging.debug("Looking for %s" % section)
+        logging.log(5, "Looking for %s" % section)
         for match in regex.finditer(text):
-            logging.debug("Found at %d" % match.start())
+            logging.log(5, "Found at %d" % match.start())
             sectionStarts.append((section, match.start()))
     sectionStarts.sort(key=operator.itemgetter(1))
     sectionStarts.insert(0, ('header', 0))
@@ -585,22 +553,22 @@ def sectionRanges(text):
         sectionStartDict[section].append( secStart )
 
     if len(sectionStartDict)-2<2:
-        logging.warn("Fewer than 2 sections, found %s, aborting sectioning" % sectionStarts)
+        logging.log(5, "Fewer than 2 sections, found %s, aborting sectioning" % sectionStarts)
         return None
 
     # convert to list with section -> (best start)
     bestSecStarts = []
     for section, starts in sectionStartDict.iteritems():
         if len(starts)>2:
-            logging.warn("Section %s appears more than twice, aborting sectioning" % section)
+            logging.log(5, "Section %s appears more than twice, aborting sectioning" % section)
             return None
         if len(starts)>1:
-            logging.debug("Section %s appears more than once, using only second instance" % section)
+            logging.log(5, "Section %s appears more than once, using only second instance" % section)
             startIdx = 1
         else:
             startIdx = 0
         bestSecStarts.append( (section, starts[startIdx]) )
-    logging.debug("best sec starts %s" % bestSecStarts)
+    logging.log(5, "best sec starts %s" % bestSecStarts)
 
     # skip sections that are not in order
     filtSecStarts = []
@@ -609,7 +577,7 @@ def sectionRanges(text):
         if start >= lastStart:
             filtSecStarts.append( (section, start) )
             lastStart = start
-    logging.debug("filtered sec starts %s" % filtSecStarts)
+    logging.log(5, "filtered sec starts %s" % filtSecStarts)
 
     # convert to dict with section -> start, end
     secRanges = orderedDict.OrderedDict()
@@ -627,10 +595,10 @@ def sectionRanges(text):
         start, end = secRange
         secSize = end - start
         if secSize > maxSectSize:
-            logging.warn("Section %s too long, aborting sectioning" % section)
+            logging.debug("Section %s too long, aborting sectioning" % section)
             return None
         elif secSize < minSectSize and section not in ["abstract", "ack"]:
-            logging.warn("Section %s too short, aborting sectioning" % section)
+            logging.debug("Section %s too short, aborting sectioning" % section)
             return None
         else:
             pass
@@ -690,6 +658,31 @@ def makeTempFile(prefix, suffix=".psl"):
     else:
         tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=suffix)
     return tf, tf.name
+
+def concatDelLogs(inDir, outDir, outFname):
+    " concat all log files to outFname in outDir and delete them "
+    outPath = join(outDir, outFname)
+    inMask = join(inDir, "*.log")
+    logFnames = glob.glob(inMask)
+    ofh = open(outPath, "w")
+    logging.info("Concatting %d logfiles from %s to %s" % (len(logFnames), inMask, outPath))
+    for inFname in logFnames:
+        ofh.write("---- LOGFILE %s ------\n" % inFname)
+        ofh.write(open(inFname).read())
+        ofh.write("\n")
+        os.remove(inFname)
+    ofh.close()
+
+def concatDelIdFiles(inDir, outDir, outFname):
+    """ concat all id files in outDir, write to outFname, delete all id files when finished 
+    """
+    outPath = join(outDir, outFname)
+    inMask = join(inDir, "*ids.tab")
+    idFnames = glob.glob(inMask)
+    logging.debug("Concatting %s to %s" % (inMask, outPath))
+    maxTables.concatHeaderTabFiles(idFnames, outPath)
+    maxCommon.deleteFiles(idFnames)
+    return outPath
 
 if __name__=="__main__":
     setupLoggingOptions(None)

@@ -24,7 +24,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
+import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed, pubCompare
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -108,6 +108,7 @@ def submitJobs(inDir, outDir, minId, idStep, useCluster):
 
     runner.finish(wait=True)
     pubStore.appendToUpdatesTxt(outDir, updateId, chunkArticleId, newFiles)
+    return updateId
 
 def convertOneChunk(fileMinId, inFile, outFile):
     """ 
@@ -159,12 +160,15 @@ pubGeneric.setupLogging(progFile, options)
 if os.path.isdir(inDir):
     maxCommon.mustExistDir(outDir)
     #maxCommon.mustBeEmptyDir(outDir)
-    submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
+    updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
+    pubCompare.createWriteFingerprints(outDir, updateIds = [updateId])
+
 else:
     inFile = inDir
     outFile = outDir
     chunkMinId = args[2]
     convertOneChunk(int(chunkMinId), inFile, outFile)
+
 
 if options.updateDb:
     tsvFnames = glob.glob(join(outDir,"*.articles.gz"))

@@ -98,7 +98,9 @@ if you paste this code into a file called foxFinder.py, then run the command
     pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
 
 the tools will submit one cluster job for each chunk of articles. Each job will get one chunk of articles from the myCrawlText directory, parse the articles and files tables and run them through foxFinder.py. As our function yields fields called "start" and
-"end", 150 characters around each FOXO1-match will be extracted.
+"end", 150 characters around each FOXO1-match will be extracted and appended to
+the rows as a field "snippet".
+
 The results are written to gzipped tables with the columns articleId,
 externalId, start, end, year, geneId and snippet. Since we provided the --cat
 option, once the cluster jobs are done, their results will be concatenated into
@@ -109,6 +111,12 @@ There is a collection of annotators in the directory scripts/.
 
 The scripts can use Java classes. If the name of the script starts with "java", pubRunAnnot will run the script not in the normal python interpreter, but through Jython. That means that you can add .jar
 files to sys.path in your script and use the Java classes as you would use python classes.
+
+The annotators can set a few additional special variables, apart from "headers":
+- "sectioning": If this is true, the document is sent in separate chunks, one per "intro", "material", "results" and "discussion" section. The sectioning is very rough at the moment and does not always work.
+- "onlyMain": If this is set to True, the annotator will only be run on the main files, not the supplemental data.
+- "onlyMeta": If True, annotator will only be run on the metadata, not the fulltext
+- "bestMain": If True, annotator will only be run on the XML fulltext, not any PDF fulltext versions, if both are available. If only PDF is available, it will still be used.
 
 # Map/reduce operations
 
@@ -137,10 +145,12 @@ lengths on the cluster headnode and write the result to a tab-sep table with col
 # Installation
 
 Install these packages in ubuntu:
-    sudo apt-get install catdoc poppler-utils
+    sudo apt-get install catdoc poppler-utils docx2text gnumeric
 
 - catdoc contains various converters for Microsoft Office files
 - poppler-utils contains the pdftotext converter
+- docx2text is a perl script for docx files
+- gnumeric includes the ssconvert tools for xslx Excel files
 
 If regular-expression based text annotation is too slow:
 The re2 library will make it at least 10 times faster. It is a regular expression engine that avoids backtracking as far as possible, developed originally at Google. To install it, you need to download the C++ source from re2.googlecode.com, compile and install it

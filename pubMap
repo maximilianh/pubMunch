@@ -37,9 +37,13 @@ If target directory already exists, will only process updateIds which have not b
 
 STEPS FOR SCANNING TEXT FOR SEQUENCES:
 
-"annot": extract DNA seqs from text files (annotator)
+"annot": extract DNA/protein seqs and accessions from text files 
+(annotators: scripts/dnaFinder.py, scripts/protFinder.py, scripts/markerFinder.py)
    example:
-     pubMap pmc annots
+     pubMap pmc annot
+
+optional:
+"annotMarkers": runs only the accession finder, for testing
 
 STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
 
@@ -73,11 +77,12 @@ STEPS FOR LOADING RESULTS INTO GENOME BROWSER:
 
 "tables": create tables for hgLoadxxx
    - reads in articleIds.lst from <baseDir>/markers
+   - reads impacts, article descriptions and article classification results
    - reads sequence info from <outDir>/seqs
    - uses textDir.conf to find the fulltext files and parse
      out basic article information
    - writes article and seq info to tab-files in <outDir>/tables/
-   pubMap pmc tables
+   example: pubMap pmc tables
 
 "load": load all tables with hgLoadSql/hgLoadBed into browser
    example:
@@ -97,11 +102,15 @@ OTHER COMMANDS:
     <type> can be either "all" or a range, like "annot-load"
     "steps:all" is the same as "steps:annot-tables"
 
+dropAll: remove all tables (by default the pubsDev... tables)
+switchOver: move all tables from the pubsDev to the pubs prefix
+
 """)
 parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true", help="do not convert sequences or convert to fasta or sort/chain, only do the second part of the processing for blat, blatCdna or chain. Used for debugging.", default=False)
+parser.add_option("-o", "--outDir", dest="outDir", action="store", help="overwrite the default output directory from pubConf, default %default", default=pubConf.pubMapBaseDir)
 parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubMap.<date>.log", default=False)
 parser.add_option("", "--onlyDb", dest="onlyDb", action="append", help="only use certain genomes for blatting, can be specified several times")
-parser.add_option("", "--loadFinal", dest="loadFinal", action="store_true", help="by default, the 'load' step will load into tables with the pubsDev prefix. You need to supply this parameter to load into the real pubs tables. This is to protect the tables on hgwdev from accidental overwriting.")
+parser.add_option("", "--tablePrefix", dest="tablePrefix", action="store", help="by default, the 'load' step will load into tables with the pubsDev prefix. If you want to load into final tables, set this to ''. Default value %default", default="Dev")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -116,7 +125,7 @@ def main(args, options):
     allSteps = ["annot", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]
 
-    dirs = pubMapProp.PipelineConfig(dataset)
+    dirs = pubMapProp.PipelineConfig(dataset, options.outDir)
 
     if "-" in command:
         stepFrom, stepTo = command.split("-")

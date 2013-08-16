@@ -1,6 +1,6 @@
 import logging, optparse, os, glob, zipfile, types, re, tempfile, shutil, sys, gzip
 from os.path import *
-import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml
+import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubCompare
 
 # load lxml parser, with fallback to default python parser
 try:
@@ -45,7 +45,7 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
     """
     logging.info("Writing to %s" % indexFilename)
     indexFile = open(indexFilename, "w")
-    headers = ["articleId", "chunkId", "baseDir", "zipFilename", "filename"]
+    headers = ["articleId", "chunkId", "zipFilename", "filename"]
     indexFile.write("\t".join(headers)+"\n")
 
     logging.debug("Processing these files in %s: %s" % (inDir, zipFilenames))
@@ -81,7 +81,7 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
 
             chunkId = ((numId-minId) / chunkSize)
             chunkString = "%d_%05d" % (updateId, chunkId)
-            data = [str(numId), chunkString, inDir, zipRelName, fileName]
+            data = [str(numId), chunkString, zipRelName, fileName]
             indexFile.write("\t".join(data)+"\n")
             numId+=1
     indexFile.close()
@@ -98,16 +98,14 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
     #lastChunkId = max([int(x) for x in chunkIds])
     #return lastChunkId, lastArticleId
 
-def submitJobs(runner, splitDir, outDir):
-    #runner = maxRun.Runner(delayTime=3, maxJob=maxJob)
-    #runner = maxRun.Runner(delayTime=3, maxJob=maxJob)
-    chunkIds = os.listdir(splitDir)
+def submitJobs(runner, zipDir, chunkIds, splitDir, idFname, outDir):
+    #chunkIds = os.listdir(splitDir)
     for chunkId in chunkIds:
         chunkFname = join(splitDir, chunkId)
         outFname = os.path.join(outDir, chunkId+".articles.gz")
         maxCommon.mustNotExist(outFname)
         thisFilePath = __file__
-        command = "%s %s {check in line %s} {check out exists+ %s}" % (sys.executable, thisFilePath, chunkFname, outFname)
+        command = "%s %s %s {check in line %s} {check in line %s} {check out exists+ %s}" % (sys.executable, thisFilePath, zipDir, idFname, chunkFname, outFname)
         runner.submit(command)
     runner.finish(wait=True)
 
@@ -342,52 +340,79 @@ def createFileData(articleData, mimeType, asciiString):
     fileData["fileType"] = "main"
     return fileData
 
-def parseDoi2Pmid(baseDir):
-    " parse doi2pmid.tab.gz and return as dict "
-    fname = join(baseDir, "doi2pmid.tab.gz")
-    if not isfile(fname):
-        logging.info("Could not find %s, not adding external PMIDs" % fname)
-        return {}
-    else:
-        logging.info("Found %s, reading external PMIDs" % fname)
-    lines = gzip.open(fname)
-    data = {}
-    for line in lines:
-        line = line.strip()
-        fields = line.split("\t")
-        if len(fields)!=2:
-            logging.error("Could not parse line %s" % line)
-            continue
-        doi, pmid = fields
-        pmid = int(pmid)
-        data[doi]=pmid
-    return data
+#def parseDoi2Pmid(baseDir):
+    #" parse doi2pmid.tab.gz and return as dict "
+    #fname = join(baseDir, "doi2pmid.tab.gz")
+    #if not isfile(fname):
+        #logging.info("Could not find %s, not adding external PMIDs" % fname)
+        #return {}
+    #else:
+        #logging.info("Found %s, reading external PMIDs" % fname)
+    #lines = gzip.open(fname)
+    #data = {}
+    #for line in lines:
+        #line = line.strip()
+        #fields = line.split("\t")
+        #if len(fields)!=2:
+            #logging.error("Could not parse line %s" % line)
+            #continue
+        #doi, pmid = fields
+        #pmid = int(pmid)
+        #data[doi]=pmid
+    #return data
 
-def convertOneChunk(inIndexFile, outFile):
+def parseDoneIds(fname):
+    " parse all already converted identifiers from inDir "
+    print fname
+    doneIds = set()
+    if os.path.getsize(fname)==0:
+        return doneIds
+
+    for row in maxCommon.iterTsvRows(fname):
+        doneIds.add(row.pii)
+    logging.info("Found %d identifiers of already parsed articles" % len(doneIds))
+    return doneIds
+            
+def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     """ 
     get files from inIndexFile, parse Xml, 
     write everything to outfile in ascii format
     """ 
     store = pubStore.PubWriterFile(outFile)
+    # read all already done IDs
+    donePiis = parseDoneIds(inIdFile)
+
+    # open output id files
+    idFname = join(dirname(outFile), basename(outFile).split(".")[0]+".ids.tab")
+    logging.debug("Writing ids to %s" % idFname)
+    idFh = open(idFname, "w")
+    idFh.write("#articleId\tdoi\tpii\tpmid\n")
 
     i = 0
     inRows = list(maxCommon.iterTsvRows(inIndexFile))
-    doi2pmid = None
-    logging.info("Converting %d files" % len(inRows))
+    #doi2pmid = None
     convCount = 0
+    pmidFinder = pubCompare.PmidFinder()
+    logging.info("Converting %d files" % len(inRows))
     for row in inRows:
         # read line
         i+=1
-        articleId, baseDir = row.articleId, row.baseDir
+        articleId = row.articleId
         zipFilename, filename = row.zipFilename, row.filename
         articleId=int(articleId)
 
+        pii = splitext(basename(filename))[0]
+        if pii in donePiis:
+            logging.warn("PII %s has already been converted, skipping" % pii)
+            continue
+        donePiis.add(pii)
+
         # open file from zipfile
-        fullZipPath = join(baseDir, zipFilename)
+        fullZipPath = join(zipDir, zipFilename)
         zipFile = zipfile.ZipFile(fullZipPath)
         logging.debug("Parsing %s, file %s, %d files left" % (fullZipPath, filename, len(inRows)-i))
-        if doi2pmid==None:
-            doi2pmid = parseDoi2Pmid(baseDir)
+        #if doi2pmid==None:
+            #doi2pmid = parseDoi2Pmid(baseDir)
         xmlString = zipFile.open(filename).read()
         try:
             xmlTree   = pubXml.etreeFromXml(xmlString)
@@ -401,13 +426,13 @@ def convertOneChunk(inIndexFile, outFile):
         if articleData==None:
             logging.warn("Parser got no data for %s" % filename)
             continue
-        articleData["origFile"]="consyn://"+zipFilename+"/"+filename
-        if articleData["doi"] in doi2pmid:
-           articleData["pmid"] = doi2pmid[articleData["doi"]]
+        articleData["origFile"]=zipFilename+":"+filename
+        #if articleData["doi"] in doi2pmid:
+           #articleData["pmid"] = doi2pmid[articleData["doi"]]
 
-        pii = splitext(basename(filename))[0]
-        articleData["externalId"]="PII"+pii
+        articleData["externalId"]=pii
         articleData["fulltextUrl"]="http://www.sciencedirect.com/science/svapps/pii/"+pii
+        articleData["pmid"]  = pmidFinder.lookupPmid(articleData)
 
         # convert to ascii
         asciiString, mimeType = treeToAscii_Elsevier(xmlTree)
@@ -416,13 +441,38 @@ def convertOneChunk(inIndexFile, outFile):
             continue
         store.writeArticle(articleId, articleData)
 
+        # write IDs to separate file 
+        idRow = [str(articleData["articleId"]), articleData["doi"], articleData["externalId"], str(articleData["pmid"])]
+        idFh.write("\t".join(idRow))
+        idFh.write("\n")
+
         # write to output
         fileData = createFileData(articleData, mimeType, asciiString)
         store.writeFile(articleId, (1000*(articleId))+1, fileData, externalId=articleData["externalId"])
         convCount += 1
     logging.info("Converted %d files" % convCount)
     store.close()
+    idFh.close()
 
+def concatPiis(inDir, outDir, outFname):
+    " concat all piis of id files in inDir to outFname "
+    outPath = join(outDir, outFname)
+    inMask = join(inDir, "*_ids.tab")
+    idFnames = glob.glob(inMask)
+    logging.debug("Concatting PIIs from %s to %s" % (inMask, outPath))
+    piis = []
+    for inFname in idFnames:
+        for row in maxCommon.iterTsvRows(inFname):
+            piis.append(row.pii)
+
+    ofh = open(outPath, "w")
+    ofh.write("#pii\n")
+    for pii in piis:
+        ofh.write("%s\n" % pii)
+    ofh.close()
+
+    return outPath
+    
 def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     """ convert Consyn ZIP files from inDir to outDir 
         split files into chunks and submit chunks to cluster system
@@ -436,7 +486,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     assert(chunkSize!=None)
 
     finalOutDir= outDir
-    outDir     = tempfile.mktemp(dir = outDir, prefix = "temp.pubConvElsevier.update.")
+    outDir     = tempfile.mktemp(dir = outDir, prefix = "elsevierUpdate.tmp.")
     os.mkdir(outDir)
 
     inFiles = os.listdir(inDir)
@@ -454,14 +504,20 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     indexFilename = join(outDir, "%d_index.tab" % updateId)
     maxArticleId  = createIndexFile(inDir, processFiles, indexFilename, updateId, minId, chunkSize)
     indexSplitDir = indexFilename+".tmp.split"
-    pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
-    submitJobs(runner, indexSplitDir, outDir)
-    pubStore.moveFiles(outDir, finalOutDir)
-    shutil.rmtree(outDir)
+    chunkIds = pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
+    idFname = concatPiis(finalOutDir, indexSplitDir, "doneArticles.tab")
+
+    submitJobs(runner, inDir, chunkIds, indexSplitDir, idFname, outDir)
+
+    pubGeneric.concatDelIdFiles(outDir, finalOutDir, "%d_ids.tab" % updateId)
+    pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
 
     if isdir(indexSplitDir): # necessary? how could it not be there? 
         logging.info("Deleting directory %s" % indexSplitDir)
         shutil.rmtree(indexSplitDir) # got sometimes exception here...
+    pubStore.moveFiles(outDir, finalOutDir)
+    shutil.rmtree(outDir)
+
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
 
 # this is a job script, so it is calling itself via parasol/bsub/qsub
@@ -473,6 +529,7 @@ if __name__=="__main__":
         parser.print_help()
         exit(1)
 
-    inIndexFile, outFile = args
-    pubGeneric.setupLogging(__file__, options)
-    convertOneChunk(inIndexFile, outFile)
+    zipDir, inIdFile, inIndexFile, outFile = args
+    logFname = join(dirname(outFile), basename(outFile).split(".")[0]+".log")
+    pubGeneric.setupLogging(__file__, options, logFileName=logFname)
+    convertOneChunk(zipDir, inIndexFile, inIdFile, outFile)

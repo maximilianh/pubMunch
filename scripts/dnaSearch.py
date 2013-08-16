@@ -1,6 +1,6 @@
 import pubDnaFind, orgDetect, pubConf
 
-def findDbs(self, text):
+def findDbs(text):
     """ find species in text """
     for genome, keywords in pubConf.speciesNames.iteritems():
         for keyword in keywords:
@@ -10,7 +10,9 @@ def findDbs(self, text):
             #end   = start+len(keyword)
             #yield [start, end, genome]
             yield genome
-            break # we stop once we have detected a single species
+            break 
+            # we stop once we have detected one species name for each db
+            # no need to find the others
 
 """ interface to pubtools to pubDnaFind """
 class Annotate:

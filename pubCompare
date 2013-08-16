@@ -9,127 +9,29 @@ from os.path import *
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, pubConf, maxCommon
-
-noIssuePage = 0
-noIssn = 0
-
-def remove_accents(input_str):
-    nkfd_form = unicodedata.normalize('NFKD', unicode(input_str))
-    return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
-
-def getFingerprint2(row):
-    " fp2 is based on authors, year, title words "
-    if row.year=="":
-        return None
-    authors = row.authors.split(";")
-    authors = [x.strip() for x in authors]
-    famNames = [a.split(",")[0] for a in authors][:5]
-    famNameStr = "-".join(famNames)
-    if len(famNameStr)<5:
-        return None
-    famNameStr = remove_accents(famNameStr).lower()
-    #page = row.page.split()[0].split("-")[0].split(",")[0]
-    title1 = row.title.split(".")[0]
-    titleWords = title1.strip().strip(".").split()
-    if len(titleWords) <= 3:
-        return None
-    title = (titleWords[0]+"-"+titleWords[-1]).lower()
-    fprint = "|".join((famNameStr, row.year, title))
-    logging.debug("fingerprint2: %s" % fprint)
-    return fprint
-
-def getFingerprint(row, withEIssn = False):
-    global noIssuePage
-    global noIssn
-
-    if row.page=="" or (row.page!="" and (row.vol=="" or row.issue=="")):
-        noIssuePage +=1
-        logging.debug("No issue and no page: %s" % str(row))
-        return None
-
-    issn = row.printIssn
-    if issn=="" or withEIssn:
-        issn = row.eIssn
-
-    if issn=="":
-        if not withEIssn:
-            logging.debug("No issn: %s" % str(row))
-        noIssn += 1
-        return None
-
-    issue=row.issue
-    if len(issue)!=0:
-        issue = issue.split()[0].split("-")[0]
-    page = row.page.split()[0].split("-")[0]
-    fprint = "|".join((issn, row.vol, issue, page))
-    logging.debug("fingerprint1: %s" % fprint)
-    return fprint
-
-def addFprint(data, fprint, articleId):
-    #if fprint!=None and fprint not in skipPrints:
-        #if fprint in data:
-            #del data[fprint]
-            #skipPrints.add(fprint)
-        #else:
-    # do not filter for duplicates anymore
-    # we can have duplicates on both sides (medline and elsevier)
-    # just get one match
-    data[fprint] = articleId
-
-def lookupFprint(fprint, artMap, artIds):
-    if fprint==None:
-        return None
-    artId = artMap.get(fprint, None)
-    if artId==None:
-        return None
-    match = artIds[artId]
-    extId, doi, pmid = match
-    return (artId, extId, doi, str(pmid))
+import pubGeneric, pubConf, maxCommon, pubCompare, pubStore
 
 def main(args, options):
-    step, dataSet1, dataSet2 = args
+    step, dataSet1 = args[:2]
     dir1 = pubConf.resolveTextDir(dataSet1)
-    dir2 = pubConf.resolveTextDir(dataSet2)
     pubGeneric.setupLogging("", options)
+    updateIds = options.updateIds
 
-    mapStoreFname = join(dir1, "fingerprints.marshal")
-    outputFname = join(dir2, "%s.ids.tab" % dataSet1)
-
-    noMatchFname = join(dir2, "%s.ids.noMatch.tab" % dataSet1)
-    noPrintFname = join(dir2, "%s.ids.noFingerprint.tab" % dataSet1)
-
-    global noIssuePage
     if step=="index":
-        map1 = {}
-        map2 = {}
-        artIds = {}
-        #skipPrints = set()
-        logging.info("Indexing %s" % dir1)
-        count = 0
-        for row in maxCommon.iterTsvDir(dir1, ext=".articles.gz"):
-            articleId = int(row.articleId)
-            fprint = getFingerprint(row)
-            addFprint(map1, fprint, articleId)
-
-            fprint2 = getFingerprint2(row)
-            addFprint(map2, fprint2, articleId)
-
-            artIds[articleId] = (row.externalId, row.doi, int(row.pmid))
-            count += 1
-
-        logging.info("Processed %d articles" % count)
-        logging.info("No Issn = %d, no issue,page = %d" % (noIssn, noIssuePage))
-
-        logging.info("Writing results to %s" % mapStoreFname)
-        ofh = open(mapStoreFname, "w")
-        data = (map1, map2, artIds)
-        marshal.dump(data, ofh)
+        pubCompare.createWriteFingerprints(dir1, updateIds)
 
     elif step=="lookup":
+        dataSet2 = args[2]
+        dir2 = pubConf.resolveTextDir(dataSet2)
+        outputFname = join(dir2, "%s.ids.tab" % dataSet1)
+        noMatchFname = join(dir2, "%s.ids.noMatch.tab" % dataSet1)
+        noPrintFname = join(dir2, "%s.ids.noFingerprint.tab" % dataSet1)
+
+        # read fingerprints from dir1
+        mapStoreFname = join(dir1, "fingerprints.marshal")
         logging.info("Reading %s" % mapStoreFname)
         ifh = open(mapStoreFname)
-        map1, map2, artIds = marshal.load(ifh)
+        map0, map1, map2, artIds = marshal.load(ifh)
 
         ofh = open(outputFname, "w")
         headers = ["fingerprint", "artId1", "extId1", "doi1", "articleId", "extId", "doi", "pmid"]
@@ -138,57 +40,36 @@ def main(args, options):
 
         noPrints = []
         noMatches = []
-        for row in maxCommon.iterTsvDir(dir2, ext=".articles.gz"):
-            # first try a lookup with the normal fingerprint
-            fprint = getFingerprint(row)
-            matchFprint = fprint
-            artData = lookupFprint(fprint, map1, artIds)
-            if artData==None:
-                # retry normal fingerprint with eIssn if the first one failed
-                fprint = getFingerprint(row, withEIssn=True)
-                matchFprint = fprint
-                artData = lookupFprint(fprint, map1, artIds)
-                if artData==None:
-                    # if eIssn failed, try fingerprint 2
-                    fprint2 = getFingerprint2(row)
-                    if fprint2==None:
-                        logging.debug("No fingerprint: %s" % str(row))
-                        noPrints.append(row)
-                    matchFprint = fprint2
-                    artData = lookupFprint(fprint2, map2, artIds)
-
-            if artData==None:
-                if not fprint2==None:
-                    noMatches.append(row)
-                    logging.debug("No match: %s" % str(row))
-                    logging.debug("fingerprints: %s and %s" % (fprint, fprint2))
+        for artData in maxCommon.iterTsvDir(dir2, ext=".articles.gz"):
+            artIdTuple = lookupArtIds(artData, map0, map1, map2, artIds, noPrints, noMatches)
+            if artIdTuple==None:
                 continue
 
-            artId, extId, doi, pmid = artData
-            row = (matchFprint, row.articleId, row.externalId, row.doi, artId, extId, doi, pmid)
+            matchFprint, artId, extId, doi, pmid = artIdTuple
+            row = (matchFprint, artData.articleId, artData.externalId, \
+                   artData.doi, artId, extId, doi, pmid)
             row = [unicode(x) for x in row]
             ofh.write("\t".join(row).encode("utf8"))
             ofh.write("\n")
 
+        # write the non-matching articles to two files
         mfh = open(noPrintFname, "w")
         for p in noPrints:
-            #logging.info("No fingerprint: %s" % str(p))
             mfh.write("\t".join(p).encode("utf8")+"\n")
         mfh = open(noMatchFname, "w")
         for m in noMatches:
-            #logging.info("No match: %s" % str(m))
             mfh.write("\t".join(m).encode("utf8")+"\n")
 
-        logging.info("No fingerprint %d, no match %d" % (len(noPrints), len(noMatches)))
+        logging.info("No fingerprint for %d articles, no match %d" % (len(noPrints), len(noMatches)))
         logging.info("Results written to %s" % outputFname)
         logging.info("non-matching articles written to %s and %s" % (noPrintFname, noMatchFname))
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <map> <sourceDataset> <targetDataset> - infer PMIDs from a dataset by comparing with medline. Uses fingerprints of papers. 
+parser = optparse.OptionParser("""usage: %prog [options] <command> <sourceDataset> <targetDataset> - map between datasets by comparing fingerprints of papers. Source is usually Medline.
 
 step can either be 'index' or 'lookup'
 
-'index' will create a file fingerprints.marshal in the source directory
+'index' will create a file fingerprints.marshal in the source directory and also some dbms.
 'lookup' will read this file and create a file medline.ids.tab in target directory.
 
 medline.ids.tab lists matching articles from both sets
@@ -200,6 +81,7 @@ of 99.99%.
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-u", "--updateIds", dest="updateIds", action="append", help="updateIds to process for the 'index' command, can be specified multiple times")
 #parser.add_option("-s", "--wordList", dest="wordList", action="store", help="optional list of words to use")
 (options, args) = parser.parse_args()
 

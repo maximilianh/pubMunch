@@ -1448,9 +1448,10 @@ def initTempDir(dirName):
     os.makedirs(tempMarkerDir)
     return tempMarkerDir
 
-def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTablePrefix, skipSnps):
+def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTablePrefix, skipSnps, baseOutDir):
     """ 
         Loads files that are NOT yet in hgFixed.pubLoadedFile
+        Also generates the bed files with article counts for the markers
     """
 
     datasets = datasetList.split(",")
@@ -1470,7 +1471,7 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
     # first create the marker bed files (for all basedirs) and load them
     # this is separate because we pre-calculate the counts for all marker beds
     # instead of doing this in hgTracks on the fly
-    datasetDirs = [pubMapProp.PipelineConfig(dataset) for dataset in datasets]
+    datasetDirs = [pubMapProp.PipelineConfig(dataset, baseOutDir) for dataset in datasets]
     tempMarkerDir = initTempDir("pubMapLoadTemp")
 
     markerFileDict = findRewriteMarkerBeds(datasetDirs, markerDbDir, tempMarkerDir, skipSnps)
@@ -1602,7 +1603,7 @@ def liftCdna(inDir, outDir):
         maxCommon.runCommand(cmd)
     
 def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFile, markerCountFile):
-    " reformat marker annot tables for mysql, write articleIds to file "
+    " rewrite marker annot tables for mysql and write articleIds to file "
     # open outfiles
     idFh = open(markerArticleFile, "w")
     markerCountFh = open(markerCountFile, "w")
@@ -1619,16 +1620,16 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
     markerCounts = defaultdict(int) # store the count of articles for each marker
 
     for fname in fnames:
-        fileMarkerArticles = defaultdict(set) # the list of article Ids for each marker in current file
+        # the list of article Ids for each marker in current file
+        fileMarkerArticles = defaultdict(set)
         for row in maxCommon.iterTsvRows(fname):
             articleId, fileId, annotId = pubGeneric.splitAnnotIdString(row.annotId)
             fullFileId = articleId+fileId
             snippet = pubStore.prepSqlString(row.snippet, maxLen=3000)
-            #fileDesc, fileUrl = unicode(fileDescs.get(fullFileId, ("", "")))
             fileAnnot = fileDescs[int(fullFileId)]
             fileDesc, fileUrl = fileAnnot
-            if row.type not in ["band", "snp", "symbol"]:
-                continue
+            #if row.type not in ["band", "snp", "symbol"]:
+                #continue
             newRow = [articleId, fileId, annotId, fileDesc, fileUrl, \
                 row.type, row.markerId, row.section, unicode(snippet)]
             fileMarkerArticles[row.markerId].add(articleId)
@@ -1681,7 +1682,7 @@ def switchOver():
     maxMysql.renameTables("hg19", devTables, prodTables)
 
 def annotToFasta(dataset, useExtArtId=False):
-    """ export one or more dataset to fasta files 
+    """ export one or more datasets to fasta files 
 
     output is writtent pubConf.faDir
     
@@ -1743,15 +1744,15 @@ def runStepSsh(host, dataset, step):
         logging.info("error during SSH")
         sys.exit(1)
 
-def runAnnotStep(d):
+def runAnnotStep(d, onlyMarkers=False):
     """ 
     run jobs to annotate the text files, directory names for this are 
-    stored as attributed on the object d
+    stored as attributes on the object d
     """
     # if the old batch is not over tables yet, squirk and die
-    if d.batchId!=None and not d.batchIsPastStep("tables"):
-        raise Exception("Found one batch in %s that is not at the tables step yet. "
-            "It might have crashed. You can try rm -rf %s to restart this batch" % \
+    if d.batchId!=None and d.batchIsPastStep("annot") and not d.batchIsPastStep("tables"):
+        raise Exception("Found one batch in %s that is past annot but not past tables yet. "
+            "A previous run might have crashed. You can try rm -rf %s to restart this batch" % \
                 (d.progressDir, d.batchDir))
 
     d.createNewBatch()
@@ -1760,31 +1761,40 @@ def runAnnotStep(d):
         raise Exception("Annot was already run on this batch, see %s. Stopping." % \
             d.progressDir)
 
-    # find updates to annotate
-    d.updateUpdateIds()
+    # find text updates to annotate
+    d.findUnannotatedUpdateIds()
     if d.updateIds==None or len(d.updateIds)==0:
         maxCommon.errAbort("All data files have been processed. Skipping all steps.")
 
     # get common uppercase words for protein filter
-    maxCommon.mustExistDir(d.dnaAnnotDir, makeDir=True)
-    maxCommon.mustExistDir(d.protAnnotDir, makeDir=True)
     maxCommon.mustExistDir(d.markerAnnotDir, makeDir=True)
-    wordCountBase = "wordCounts.tab"
-    runner = d.getRunner("upcaseCount")
-    wordFile = countUpcaseWords(runner, d.baseDir, wordCountBase, d.textDir, d.updateIds)
+    if not onlyMarkers:
+        maxCommon.mustExistDir(d.dnaAnnotDir, makeDir=True)
+        maxCommon.mustExistDir(d.protAnnotDir, makeDir=True)
+        wordCountBase = "wordCounts.tab"
+        runner = d.getRunner("upcaseCount")
+        wordFile = countUpcaseWords(runner, d.baseDir, wordCountBase, d.textDir, d.updateIds)
+    else:
+        wordFile = ""
 
     # submit jobs to batch system to run the annotators on the text files
     # use the startAnnoId parameter to avoid duplicate annotation IDs
+    # aid = annotationId
     aidOffset = pubConf.specDatasetAnnotIdOffset.get(d.dataset, 0) # special case for e.g. yif
 
-    outDirs = "%s,%s,%s" % (d.markerAnnotDir, d.dnaAnnotDir, d.protAnnotDir)
+    if onlyMarkers:
+        outDirs = "%s" % (d.markerAnnotDir)
+        algNames = "markerSearch.py"
+    else:
+        outDirs = "%s,%s,%s" % (d.markerAnnotDir, d.dnaAnnotDir, d.protAnnotDir)
+        algNames = "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py"
+
     options = {"wordFile":wordFile, \
         "startAnnotId.dnaSearch":0+aidOffset, "startAnnotId.protSearch":15000+aidOffset, \
         "startAnnotId.markerSearch" : 30000+aidOffset }
     runner = pubGeneric.makeClusterRunner("pubMap-annot-"+d.dataset)
     chunkNames = pubAlg.annotate(
-        "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py",
-        d.textDir, options, outDirs, updateIds=d.updateIds, \
+        algNames, d.textDir, options, outDirs, updateIds=d.updateIds, \
         cleanUp=True, runNow=True, runner=runner)
 
     d.writeChunkNames(chunkNames)
@@ -1844,10 +1854,10 @@ def runTablesStep(d, options):
     # reformat bed and sequence files
     if not options.skipConvert:
         # load all extended bed+ fields data into memory
-        artDescs  = parseArtDescs(d.artDescFname)
+        artDescs   = parseArtDescs(d.artDescFname)
         artClasses = parseArtClasses(d.textDir, d.updateIds)
-        impacts = parseImpacts(pubConf.impactFname)
-        annotLoci = findLociBedDir(d.bedDir, ["hg19"])
+        impacts    = parseImpacts(pubConf.impactFname)
+        annotLoci  = findLociBedDir(d.bedDir, ["hg19"])
 
         rewriteFilterBedFiles(d.bedDir, d.tableDir, pubConf.speciesNames, \
             artDescs, artClasses, impacts, annotLoci, d.dataset)
@@ -1910,7 +1920,7 @@ def overlapBeds(selectFname, inFname):
 
 def findBedDbFilter(bedDir, dbList):
     bedFnames = glob.glob(join(bedDir, "*.bed"))
-    assert(len(bedFnames)>0)
+    #assert(len(bedFnames)>0)
     logging.debug("Getting all beds in %s for dbs %s" % (bedDir, dbList))
 
     filtBedFnames = []
@@ -1985,10 +1995,13 @@ def runStep(dataset, command, d, options):
     if command=="annot":
         runAnnotStep(d)
 
+    elif command=="annotMarker":
+        runAnnotStep(d, onlyMarkers=True)
+
     elif command=="filter":
         # remove duplicates & short sequence & convert to fasta
         # need to re-read d.chunkNames
-        dirs = pubMapProp.PipelineConfig(d.dataset)
+        #dirs = pubMapProp.PipelineConfig(d.dataset, options.outDir)
         if not options.skipConvert:
             maxCommon.mustBeEmptyDir([d.seqDir, d.fastaDir, d.protSeqDir, d.protSeqDir, d.protFastaDir], makeDir=True)
             runner = d.getRunner(command)
@@ -2055,19 +2068,17 @@ def runStep(dataset, command, d, options):
 
     elif command=="loci":
         # find the closest gene for each chained match
+        # this is now part of the tables step!
         d = findLociBedDir(d.bedDir, ["hg19"])
 
     # ===== COMMANDS TO LOAD STUFF FROM THE batches/{0,1,2,3...}/tables DIRECTORIES INTO THE BROWSER
     elif command=="load":
-        tablePrefix = "Dev"
-        if options.loadFinal:
-            tablePrefix = ""
-
+        tablePrefix = options.tablePrefix
         runLoadStep(dataset, pubConf.speciesNames, d.markerCountsBase, \
-            d.markerDirBase, tablePrefix, options.skipConvert)
+            d.markerDirBase, tablePrefix, options.skipConvert, options.outDir)
 
     elif command=="dropAll":
-        tablePrefix = "Dev"
+        tablePrefix = options.tablePrefix
         if options.loadFinal:
             tablePrefix = ""
         dropAllTables(tablePrefix)

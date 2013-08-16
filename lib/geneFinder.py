@@ -17,8 +17,8 @@
 # format 
 # <identifier><tab> <syn>|<syn2>|...
 # Some identifiers have synonyms that can be resolved using dictionaries.
-# Some identifier formats are so general that they need a dictionary to find
-# the right ones (e.g. uniprot)
+# Some identifier formats are so general that they need a dictionary to reduce the noise
+# (e.g. uniprot)
 
 # The main function returns the fields 'recogId' with the recognized synonym
 # and the field 'markerId' with the final resolved identifier 
@@ -41,7 +41,7 @@ except:
 # skip genbank lists like A1234-A1240 with more identifiers than this
 MAXGBLISTCOUNT=20
 
-# ignore articles with more than X markers found
+# ignore articles with more than X accessions found
 MAXROWS = 500
 
 # initData will read dictionaries and bed files from this directory
@@ -65,12 +65,15 @@ stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','C
 
 # Some identifiers are so general that we want to restrict our search
 # to documents that contain some keyword
-# the neededWordDict hash sets up the lists of keywords in the document
+# the reqWordDict hash sets up the lists of keywords in the document
 # that are required for certain identifiers
-genbankKeywords = ["genbank", "accession", " embl", "ddbj", "insdc", " ena ", "european nucleotide", " acc. "]
+genbankKeywords = ["genbank", "accession", " embl", "ddbj", "insdc", " ena ", "european nucleotide", " acc. ", "ncbi", "gene access"]
+
+# some words are valid identifiers but are actually not used as such
+notIdentifiers = set(["1rho", "U46619"])
 
 # keywords are case insensitive
-neededWordDict = {
+reqWordDict = {
     "genbank" :     genbankKeywords,
     "genbankList" : genbankKeywords,
     #"symbol" : ["gene", "protein", "locus"],
@@ -78,12 +81,12 @@ neededWordDict = {
     "hg18" : ["hg18"],
     "hg19" : ["hg19"],
     "hg17" : ["hg17"],
-    "flybase": ["flybase", "drosophila", "melanogaster"]
+    "flybase": ["flybase", "drosophila", "melanogaster"],
 }
 
 # some data types need filters to reduce the garbage output to a reasonable level
 requiresFilter = ["pdb", "uniprot"]
-# filter are lazily loaded into this global dict
+# filters are lazily loaded into this global dict
 filterDict = {}
 
 # compiled regexes are kept in a global var
@@ -105,23 +108,19 @@ startSepDash = r'[\s,.();:=[-]'
 # Regular expressions need to define a group named "id"
 # see python re engine doc: instead of (bla) -> (?P<id>bla)
 
-# received regex by email from Guy Cochrane, EBI
+# received genbank regex by email from Guy Cochrane, EBI
 
 # == CODE COMMON FOR ANNOTATOR AND MAP TASK 
-def compileREs():
+def compileREs(addOptional=False):
     " compile REs and return as dict type -> regex object "
     genbankRe = re.compile("""[ ;,.()](?P<id>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)%s""" % endSep)
-    genbankListRe = re.compile("""[ ;,.()](?P<id1>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)-(?P<id2>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)%s""" % (endSep))
-    snpRsRe = re.compile("""[ ;,.()](?P<id>rs[ #-]?[0-9]{4,10})%s""" % (endSep))
+    genbankListRe = re.compile(r'[ ;,.()](?P<id1>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)-(?P<id2>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)%s' % (endSep))
+    #snpRsRe = re.compile(r'[ ;,.()]rs[ #-]?(?P<id>[0-9]{4,10})%s' % (endSep))
+    snpRsRe = re.compile(r'%s(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ :]?(?P<id>[0-9]{4,19})' % (startSep))
     snpSsRe = re.compile("""[ ;,.()](?P<id>ss[0-9]{4,16})%s""" % (endSep))
     coordRe = re.compile("%s(?P<id>(chr|chrom|chromosome)[ ]*[0-9XY]{1,2}:[0-9,]{4,12}[ ]*-[ ]*[0-9,]{4,12})%s" % (startSep, endSep))
     bandRe = re.compile("""[ ,.()](?P<id>(X|Y|[1-9][0-9]?)(p|q)[0-9]+(\.[0-9]+)?)%s""" % (endSep))
     symbolRe = re.compile("""[ ;,.()-](?P<id>[A-Z][A-Z0-9-]{2,8})%s""" % (endSepDash))
-
-    # http://flybase.org/static_pages/docs/nomenclature/nomenclature3.html#2.
-    flybaseRe = re.compile("""[ ;,.()-](?P<id>(CG|CR)[0-9]{4,5})%s""" % (endSepDash))
-    # http://flybase.org/static_pages/docs/refman/refman-F.html
-    flybase2Re = re.compile("""[ ;,.()-](?P<id>FB(ab|al|ba|cl|gn|im|mc|ms|pp|rf|st|ti|tp|tr)[0-9]{7})%s""" % (endSepDash))
 
     # http://www.uniprot.org/manual/accession_numbers
     # letter + number + 3 alphas + number,eg A0AAA0
@@ -155,12 +154,89 @@ def compileREs():
               "hg17" : coordRe,
               "hg18" : coordRe,
               "hg19" : coordRe,
-              "flybase" : flybaseRe,
               "omim" : omimRe,
               "ec" : ecRe,
               "entrez" : entrezRe,
               "sts" : stsRe
               }
+
+    if addOptional:
+        arrayExprRe = re.compile(r'%s(?P<id>E-[A-Z]{4}-[0-9]+)' % (startSep))
+        geoRe = re.compile(r'%s(?P<id>GSE[0-9]{2,8})' % (startSepDash))
+        interproRe = re.compile(r'%s(?P<id>IPR[0-9]{5})' % (startSepDash))
+        pfamRe = re.compile(r'%s(?P<id>PF[0-9]{5})' % (startSepDash))
+        printsRe = re.compile(r'%s(?P<id>PR[0-9]{5})' % (startSepDash))
+        pirsfRe = re.compile(r'%s(?P<id>PIRSF[0-9]{6})' % (startSepDash))
+        prositeRe = re.compile(r'%s(?P<id>PS[0-9]{5})' % (startSepDash))
+        smartRe = re.compile(r'%s(?P<id>SM[0-9]{5})' % (startSepDash))
+        supFamRe = re.compile(r'%s(?P<id>SSF[0-9]{5})' % (startSepDash))
+        ccdsRe = re.compile(r'%s(?P<id>CCDS[0-9]{1,8})' % (startSepDash))
+        affyRe = re.compile(r'%s(?P<id>[0-9]{5,8}(_[sa])?_at)' % (startSepDash))
+        keggRe = re.compile(r'%s(?P<id>hsa:[0-9]{5,8})' % (startSepDash))
+        hprdRe = re.compile(r'%s(HPRD|hprd)[: ](id [: ])?(?P<id>[0-9]{5,8})' % (startSepDash))
+        pharmGkbRe = re.compile(r'%s(?P<id>PA[0-9]{3,6})' % (startSepDash))
+        chemblRe = re.compile(r'%s(?P<id>CHEMBL[0-9]{3,6})' % (startSepDash))
+        hInvRe = re.compile(r'%s(?P<id>HIX[0-9]{3,7})' % (startSepDash))
+        hgncRe = re.compile(r'%s(?P<id>HGNC:[0-9]{2,7})' % (startSepDash))
+        ucscRe = re.compile(r'%s(?P<id>uc[0-9]{3}[a-z]{3})' % (startSepDash))
+        goRe = re.compile(r'%s(?P<id>GO:[0-9]{6})' % (startSepDash))
+        uniGeneRe = re.compile(r'%s(?P<id>Hs\.[0-9]{3,6})' % (startSepDash))
+        vegaRe = re.compile(r'%s(?P<id>OTTHUM[TPG][0-9]{11})' % (startSepDash))
+        cosmicRe = re.compile(r'%s(?P<id>COSM[0-9]{6})' % (startSepDash))
+        mgiRe = re.compile(r'%s(MGI|MGI accession no.|MGI id|MGI accession|MGI acc.)[: ](?P<id>[0-9]{3,8})' % (startSepDash))
+        # http://flybase.org/static_pages/docs/nomenclature/nomenclature3.html#2.
+        flybaseRe = re.compile("""[ ;,.()-](?P<id>(CG|CR)[0-9]{4,5})""" )
+        # http://flybase.org/static_pages/docs/refman/refman-F.html
+        flybase2Re = re.compile("""[ ;,.()-](?P<id>FB(ab|al|ba|cl|gn|im|mc|ms|pp|rf|st|ti|tp|tr)[0-9]{7})%s""" )
+        wormbaseRe = re.compile(r'%s(?P<id>(WBGene[0-9]{8}|WP:CE[0-9]{5}))' % (startSepDash))
+        sgdRe = re.compile(r'%s(?P<id>Y[A-Z]{2}[0-9]{3}[CW](-[AB])?|S[0-9]{9})' % (startSepDash))
+        zfinRe = re.compile(r'%s(?P<id>ZDB-GENE-[0-9]{6,8}-[0-9]{2,4})' % (startSepDash))
+
+        # a more or less random selection, not sure if this is really necessary
+        global reqWordDict
+        reqWordDict.update({
+            "arrayExpress": ["arrayexpress"],
+            "geo": ["geo"],
+            "interpro": ["interpro"],
+            "pfam": ["pfam"],
+            "pirsf": ["pirsf"],
+            "smart": ["smart"],
+            "prints": ["prints"],
+            "pharmgkb": ["pharmgkb"],
+            "flybase": ["flybase"],
+            "wormbase": ["wormbase"],
+            "sgd": ["sgd"],
+        })
+
+        reDict.update({
+            "arrayExpress" : arrayExprRe,
+            "geo"          : geoRe,
+            "interpro"     : interproRe,
+            "pfam"         : pfamRe,
+            "prints"       : printsRe,
+            "pirsf"        : pirsfRe,
+            "smart"        : smartRe,
+            "supFam"       : supFamRe,
+            "affymetrix"   : affyRe,
+            "kegg"         : keggRe,
+            "hprd"         : hprdRe,
+            "pharmGkb"     : pharmGkbRe,
+            "chembl"       : chemblRe,
+            "hInv"         : hInvRe,
+            "hgnc"         : hgncRe,
+            "ucsc"         : ucscRe,
+            "go"           : goRe,
+            "uniGene"      : uniGeneRe,
+            "vega"         : vegaRe,
+            "cosmic"       : cosmicRe,
+            "mgi"          : mgiRe,
+            "flybase"      : flybaseRe,
+            "flybase2"     : flybase2Re,
+            "wormbase"     : wormbaseRe,
+            "sgd"          : sgdRe,
+            "zfin"         : zfinRe
+            })
+
     return reDict
 
 def readBestWords(fname, count):
@@ -176,13 +252,13 @@ def readBestWords(fname, count):
             break
     return set(vals)
 
-def initData(markerTypes=None, exclMarkerTypes=None):
+def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
     """ compile regexes and read filter files.
     
     MarkerTypes is the list of markers to prepare, some can be excluded with exclMarkerTypes
     """
     # setup list of marker types as specified
-    reDict = compileREs()
+    reDict = compileREs(addOptional)
     if markerTypes==None:
         markerTypes = set(reDict.keys())
         markerTypes.add("geneName")
@@ -239,6 +315,7 @@ def initData(markerTypes=None, exclMarkerTypes=None):
 
     global markerDictList
     markerDictList = kwDictList
+    logging.debug("Loaded marker dict for these types: %s" % [x for x,y in markerDictList])
 
 def pmidDbLookup(pmid):
     """ get genes annotated in databases
@@ -317,7 +394,9 @@ def textContainsAny(text, keywords):
     return False
 
 def rangeInSet(start, end, posSet):
-    " contains true if any position from start-end is in posSet "
+    " return true if any position from start-end is in posSet "
+    if len(posSet)==0:
+        return False
     for i in range(start, end):
         if i in posSet:
             return True
@@ -342,11 +421,13 @@ def resolveSeqs(seqDict, seqCache=None):
         return {}
 
     if seqCache!=None:
-        logging.debug("Using seqCache")
         key = marshal.dumps(seqDict)
+        logging.debug("Lookup in seq cache")
         if key in seqCache:
             logging.debug("seq mapping result found in seqCache")
             return marshal.loads(seqCache[key])
+        else:
+            logging.debug("no result in seqCache")
         
     dnaMapper = seqMapLocal.DnaMapper(blatClient)
     dbList = ["hg19"]
@@ -526,15 +607,19 @@ def flipUnsureSymbols(text, annotatedGenes):
         del annotatedGenes["symbolMaybe"]
     return annotatedGenes
 
-
-def justGenes(text, pmid=None, seqCache=None):
+def findGenes(text, pmid=None, seqCache=None):
     """
-    just return the genes as a list of entrez IDs, nothing else
+    return the genes as a dict of entrez ID -> mType -> (markerId, list of (start, end))
+    >>> dict(findGenes(" OMIM:609883 NM_000325  ASM "))
+    {5308: {'refseq': [('NM_000325', [(13, 22)])]}, 54903: {'omim': [('609883', [(6, 12)])]}}
+
+    Also return a list of positions in text that are part of genes.
     """
     wordCount = len(text.split())
 
-    entrezIds = set()
-    genes  = findGenesResolve(text, pmid=pmid, seqCache=seqCache)
+    genesSupport = {}
+    genePosList = []
+    genes  = findGenesResolveByType(text, pmid=pmid, seqCache=seqCache)
     for mType, geneIdDict in genes.iteritems():
         for geneId, markerLocs in geneIdDict.iteritems():
             idStr, locs = markerLocs
@@ -543,10 +628,14 @@ def justGenes(text, pmid=None, seqCache=None):
             if mType not in ["symbolMaybe", "symbol"] or \
                     mType=="symbol" and (len(locs)>(wordCount/1200)) or \
                     mType=="symbolMaybe" and (len(locs)>10):
-                entrezIds.add(geneId)
-    return entrezIds
+                #entrezIds.add(geneId)
+                genesSupport.setdefault(geneId, {}).setdefault(mType, []).append((idStr, locs))
+            for start, end in locs:
+                genePosList.extend(range(start, end))
+
+    return genesSupport, set(genePosList)
     
-def findGenesResolve(text, pmid=None, seqCache=None):
+def findGenesResolveByType(text, pmid=None, seqCache=None):
     """ 
     find markers in text, resolve them to genes and return as dict geneId -> list of (start, end)
 
@@ -561,10 +650,11 @@ def findGenesResolve(text, pmid=None, seqCache=None):
     geneDict.update(symDict)
 
     if "dnaSeq" in markers:
-        seqDict        = resolveSeqs(markers["dnaSeq"], seqCache)
+        seqDict            = resolveSeqs(markers["dnaSeq"], seqCache)
         geneDict["dnaSeq"] = seqDict
 
     genes          = flipUnsureSymbols(text, geneDict)
+
     # now we don't need the bands anymore
     if "band" in genes:
         del genes["band"]
@@ -576,7 +666,7 @@ def findMarkersAsDict(text, pmid=None):
     Use markerToGenes to resolve a marker to entrez geneIds.
 
     >>> dict(findMarkersAsDict(" OMIM:609883 NM_000325   actgtagatcgtacacc CGAT ATGc hi hi  ASM "))
-    {'omim': {'609883': [(6, 12)]}, 'refseq': {'NM_000325': [(13, 22)]}, 'symbolMaybe': {'283120/6609': [(60, 63)]}, 'dnaSeq': {'actgtagatcgtacaccCGATATGc': [(25, 52)]}}
+    {'refseq': {'NM_000325': [(13, 22)]}, 'omim': {'609883': [(6, 12)]}, 'symbolMaybe': {'283120/6609': [(60, 63)]}, 'dnaSeq': {'actgtagatcgtacaccCGATATGc': [(25, 52)]}}
     """
     # find DB identifiers
     res = defaultdict(dict)
@@ -586,24 +676,27 @@ def findMarkersAsDict(text, pmid=None):
 
     # find DNA sequences
     dnaPos = set()
-    for annot in findSequences(text):
-        start, end, seq = annot
-        res["dnaSeq"].setdefault(str(seq), []).append( (start, end) )
-        dnaPos.update(range(start, end))
+    if "dnaSeq" in searchTypes:
+        for annot in findSequences(text):
+            start, end, seq = annot
+            res["dnaSeq"].setdefault(str(seq), []).append( (start, end) )
+            dnaPos.update(range(start, end))
 
-    # find gene names and symbols (remove those that overlap a DNA sequence)
-    for annot in findGeneNames(text):
-        start, end, markerType, geneId = annot
-        if not rangeInSet(start, end, dnaPos):
-            res[markerType].setdefault(str(geneId), []).append( (start, end) )
+    # find gene names and symbols, removing those that overlap a DNA sequence
+    if "symbol" in searchTypes or "geneName" in searchTypes:
+        for annot in findGeneNames(text):
+            start, end, markerType, geneId = annot
+            if not rangeInSet(start, end, dnaPos):
+                res[markerType].setdefault(str(geneId), []).append( (start, end) )
 
     # add the entrez Db lookup results
-    if pmid!=None:
-        entrezData = {}
-        for gene in pmidDbLookup(pmid):
-            entrezData[str(gene)] = {}
-        if len(entrezData)!=0:
-            res["entrezDb"] = entrezData
+    if "entrezDb" in searchTypes:
+        if pmid!=None:
+            entrezData = {}
+            for gene in pmidDbLookup(pmid):
+                entrezData[str(gene)] = {}
+            if len(entrezData)!=0:
+                res["entrezDb"] = entrezData
 
     return res
 
@@ -639,12 +732,14 @@ def markerToGenes(markerType, markerId):
     {2717: 'GLA'}
     >>> markerToGenes("entrez", "2717")
     {2717: 'GLA'}
-    >>> markerToGenes("entrez", "57760")
-    {57760: None} 
+    >>> markerToGenes("entrez", "57760") # this is an old gene, not located on any chromosome but still in entrez
+    {}
     >>> markerToGenes("entrez", "2717/5308")
     {5308: 'PITX2', 2717: 'GLA'}
     >>> markerToGenes("ec", "3.2.1.22")
     {2717: 'GLA'}
+    >>> markerToGenes("ec", "2.3.2.13")
+    {2162: 'GLA'}
     >>> markerToGenes("uniprot", "P06280")
     {2717: 'GLA'}
     >>> markerToGenes("refprot", "NP_000160.1")
@@ -687,15 +782,20 @@ def markerToGenes(markerType, markerId):
             if markerType=="entrez" and sym==None:
                 logging.debug("entrez %s is probably not mapped to genome")
                 continue
-            data[int(markerId)] = sym 
+            data[int(markerId)] = sym
         return data
 
     # uniprot needs only one step
     if markerType=="uniprot":
         sym = upToSym.get(markerId, "")
-        return {upToEntrez[markerId][0] : sym}
+        entrezList = upToEntrez.get(markerId, None)
+        if entrezList==None:
+            logging.warn("No entrez ID for uniprot acc %s" % markerId)
+            return {}
+        else:
+            return {entrezList[0] : sym}
 
-    # for bands we have a direct mapping
+    # for bands we have a special mapping
     if markerType=="band":
         entrezIdSyms = bandToEntrezSyms.get(markerId, "")
         return entrezIdSyms
@@ -707,11 +807,11 @@ def markerToGenes(markerType, markerId):
     # - genbank-like dbs don't need versions
     elif markerType in ["refprot", "refseq", "genbank"]:
         markerId = markerId.split(".")[0]
-    # - we define: pdb IDs are always uppercase
+    # - pdb IDs are always uppercase for us
     elif markerType == "pdb":
         markerId = markerId.upper()
 
-    # two-step resolution acc -> uniprot -> entrez gene
+    # normal case for most markers: two-step resolution acc -> uniprot -> entrez gene
     if markerId in accToUps:
         #logging.debug("%s is in accToups" % markerId)
         upIds = accToUps[markerId]
@@ -729,7 +829,7 @@ def findGeneNames(text):
     look for gene names and symbols. Some symbols need flanking trigger words. If these 
     are not present, they are returned as "symbolMaybe"
 
-    >>> initData()
+    >>> initData(addOptional=True)
     >>> list(findGeneNames("thyroid hormone receptor, beta"))
     [(0, 30, 'geneName', '7068')]
     >>> list(findGeneNames("FATE1"))
@@ -786,14 +886,14 @@ def findIdentifiers(text):
     >>> list(findIdentifiers("(NHS,"))
     []
     >>> list(findIdentifiers(" rs 123544 "))
-    [[1, 10, 'snp', 'rs 123544']]
+    [[4, 10, 'snp', '123544']]
     >>> list(findIdentifiers("MIM# 609883"))
     [[5, 11, 'omim', '609883']]
     >>> list(findIdentifiers("OMIM: 609883"))
     [[6, 12, 'omim', '609883']]
-    >>> list(findIdentifiers(" 1abz protein data bank"))
+    >>> list(findIdentifiers(" 1abz protein data bank "))
     [[1, 5, 'pdb', '1abz']]
-    >>> list(findIdentifiers(" 1ABZ PDB"))
+    >>> list(findIdentifiers(" 1ABZ PDB "))
     [[1, 5, 'pdb', '1abz']]
     >>> list(findIdentifiers(" B7ZGX9 P12345 ")) # p12345 is not a uniprot ID
     [[1, 7, 'uniprot', 'B7ZGX9']]
@@ -811,15 +911,20 @@ def findIdentifiers(text):
     [[4, 12, 'ec', '3.2.1.22']]
     >>> list(findIdentifiers(" [EC 3.2.1.22 "))
     [[5, 13, 'ec', '3.2.1.22']]
-    >>> list(findIdentifiers(" UniSTS Accession 12343"))
+    >>> list(findIdentifiers(" UniSTS Accession 12343 "))
     [[18, 23, 'sts', '12343']]
+    >>> list(findIdentifiers(" sgd YGL163C "))
+    [[5, 12, 'sgd', 'YGL163C']]
+    >>> list(findIdentifiers(" sgd S000003131"))
+    [[5, 15, 'sgd', 'S000003131']]
     """
     global markerDictList
     global stopWords
 
     rows = []
+    textLower = text.lower()
     for markerType, markerRe in markerDictList:
-        textLower = text.lower()
+        logging.debug("Looking for markers of type %s" % markerType)
         # special case list of genbank identifiers like AF0000-AF0010  
         if markerType=="genbankList":
             for row in iterGenbankRows(markerRe, markerType, text):
@@ -827,13 +932,16 @@ def findIdentifiers(text):
             continue
 
         # first check if the text contains the required words for this type
-        if markerType in neededWordDict:
-            keywords = neededWordDict[markerType]
+        if markerType in reqWordDict:
+            keywords = reqWordDict[markerType]
             if not textContainsAny(textLower, keywords):
                 continue
 
         filterSet = filterDict.get(markerType, None)
         for match in markerRe.finditer(text):
+            if len(rows)>1000:
+                logging.warn("More than 1000 identifiers in document for %s, stop" % markerType)
+                break
             logging.debug("Found %s, for %s/%s" % (match.group(), markerType, markerRe.pattern))
             word = match.group("id")
             if word in stopWords:
@@ -855,18 +963,13 @@ def findIdentifiers(text):
                     logging.log(5, "%s not in filter" % word)
                     continue
 
-            #if markerDict==None:
-                #idList = [word]
-            #else:
-                #idList = markerDict.get(word, None)
-
+            if word in notIdentifiers:
+                logging.log(5, "%s is blacklisted" % word)
+                continue
+                
             start = match.start("id")
             end = match.end("id")
-            #for recogId in idList:
-                #if word==recogId:
-                    #word=""
             row = [ start, end, markerType, word]
-            #yield result
             rows.append(row)
 
     if len(rows)<MAXROWS:

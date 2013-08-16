@@ -41,6 +41,16 @@ def makeOrCleanDir(path):
        shutil.rmtree(path)
     os.makedirs(path)
         
+def deleteFiles(fnames):
+    " remove all files "
+    if len(fnames)==0:
+        logging.debug("Not deleting any files")
+        return
+
+    logging.debug("Deleting %d files (%s,...)" % (len(fnames), fnames[0]))
+    for fn in fnames:
+        os.remove(fn)
+
 def mustBeEmptyDir(path, makeDir=False):
     " exit if path does not exist or it not empty. do an mkdir if makeDir==True "
     if type(path)==types.ListType:
@@ -101,10 +111,10 @@ def iterCsvRows(path, headers=None):
         fields = Rec(*row)
         yield fields
 
-def iterTsvDir(inDir, ext=".tab.gz", headers=None, format=None, fieldTypes=None, \
+def iterTsvDir(inDir, ext=".tab.gz", prefix="", headers=None, format=None, fieldTypes=None, \
             noHeaderCount=None, encoding="utf8", fieldSep="\t", onlyFirst=False):
     " run iterTsvRows on all .tab or .tab.gz files in inDir "
-    inMask = os.path.join(inDir, "*"+ext)
+    inMask = os.path.join(inDir, prefix+"*"+ext)
     inFnames = glob.glob(inMask)
     logging.debug("Found files %s" % inFnames)
     pm = ProgressMeter(len(inFnames))
@@ -169,6 +179,9 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
     if format=="psl":
         headers =      ["score", "misMatches", "repMatches", "nCount", "qNumInsert", "qBaseInsert", "tNumInsert", "tBaseInsert", "strand",    "qName",    "qSize", "qStart", "qEnd", "tName",    "tSize", "tStart", "tEnd", "blockCount", "blockSizes", "qStarts", "tStarts"]
         fieldTypes =   [IntType, IntType,      IntType,      IntType,  IntType,      IntType,       IntType,       IntType,      StringType,  StringType, IntType, IntType,  IntType,StringType, IntType, IntType,  IntType,IntType ,     StringType,   StringType,StringType]
+    elif format=="bed12":
+        headers =      ["chrom", "chromStart", "chromEnd", "name", "score", "strand", "thickStart", "thickEnd", "itemRgb",    "blockCount",    "blockSizes", "blockStarts"]
+        fieldTypes =   [StringType, IntType,    IntType,    StringType,IntType,StringType,IntType,   IntType,      StringType,  IntType,        StringType, StringType]
 
     if isinstance(inFile, str):
         if inFile.endswith(".gz") or isGzip:

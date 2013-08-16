@@ -10,23 +10,29 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, util
+import pubConf, pubGeneric, util, maxCommon
 from os.path import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog : Download marker info from UCSC database and manualMarkers directory, write to directory specified in pubConf.py
+parser = optparse.OptionParser("""usage: %prog <markerType>: Download marker info from UCSC database and manualMarkers directory, write to directory specified in pubConf.py
+
+markerType can be gene, snp, genbank, refseq, ensembl or "all"
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
-parser.add_option("-o", "--only", dest="only", action="store", help="only create data for one type, e.g. symbol, band, uniprot, snp") 
+#parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
+#parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
+#parser.add_option("-o", "--only", dest="only", action="store", help="only create data for one type, e.g. symbol, band, uniprot, snp") 
+pubGeneric.addGeneralOptions(parser, noCluster=True)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONS =====
-def mysqlToFile(fname, db, sql):
+def mysqlToFile(fname, db, sql, append=False):
     " write mysql cmd output to file "
     logging.info("Writing %s, mysql query: %s" % (fname, sql))
-    cmd = "mysql %s -NB -e '%s' > %s"  % (db, sql, fname)
+    redirSym = ">"
+    if append==True:
+        redirSym = ">>"
+    cmd = "mysql %s -NB -e '%s' %s %s"  % (db, sql, redirSym, fname)
     util.execCmdLine(cmd)
 
 def writeNames(fname, outFname):
@@ -41,14 +47,21 @@ def writeNames(fname, outFname):
         ofh.write(name)
         ofh.write("\n")
 
-def makeUniqueNames(bedIn, bedOut):
+def makeUniqueNames(bedIn, bedOut, stripVersion=False):
     " write from bedIn to bedOut, skip all lines with a duplicate name field or spaces in name or hap chroms"
     logging.info("Filtering %s to %s" % (bedIn, bedOut))
     ofh = open(bedOut, "w")
     oldNames = set()
+    inCount = 0
+    outCount = 0
     for line in open(bedIn):
+        inCount += 1
         fields = line.strip().split("\t")
         name = fields[3]
+        if stripVersion:
+            name = name.split(".")[0]
+            fields[3] = name
+            line = "\t".join(fields)+"\n"
         chrom = fields[0]
         if name in ["unknown"] or len(name)<=2:
             continue
@@ -57,8 +70,11 @@ def makeUniqueNames(bedIn, bedOut):
         if "hap" in chrom:
             continue
         if name not in oldNames:
+            outCount += 1
             ofh.write(line)
         oldNames.add(name)
+    logging.info("input lines %d, output lines %d, removed %d lines with duplicate names" % \
+        (inCount, outCount, outCount - inCount))
         
 def rewriteBands(bedIn, bedOut):
     " prefix names with chrom, for bands, and add the larger scale band, too "
@@ -173,7 +189,7 @@ def writePdbFnames(pdbDir, pdbDictFname):
         ofh.write("\n")
     ofh.close()
 
-def prepMarkerDir(markerDir, onlyType):
+def prepMarkerDir(markerDir, markerType):
     " config targetdir for blatCdna "
 
     if not isdir(markerDir):
@@ -182,34 +198,47 @@ def prepMarkerDir(markerDir, onlyType):
 
     tempFile = join(pubConf.TEMPDIR, "filter.tmp.bed")
 
-    if onlyType and onlyType=="symbol":
+    if markerType=="all" or markerType=="gene":
         # gene symbols
-        symbolBedFname = join(markerDir, "hg19.symbol.bed")
-        symbolDictFname = join(markerDir, "symbol.dict.tab.gz")
+        symbolBedFname = join(markerDir, "hg19.gene.bed")
         mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.geneSymbol from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name')
         makeUniqueNames(tempFile, symbolBedFname)
-        writeNames(symbolBedFname, symbolDictFname)
+        #symbolDictFname = join(markerDir, "gene.dict.tab.gz")
+        #writeNames(symbolBedFname, symbolDictFname)
 
-    #if onlyType and onlyType=="geneAcc":
-        #geneDictFname = join(markerDir, "geneAcc.dict.tab.gz")
-        #makeGeneDict(geneDictFname)
-
-    if onlyType and onlyType=="band":
+    if markerType=="all" or markerType=="band":
         bandBed = join(markerDir, "hg19.band.bed")
         bandDict = join(markerDir, "band.dict.tab.gz")
         mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from cytoBand")
         rewriteBands(tempFile, bandBed)
         writeNames(bandBed, bandDict)
 
-    if onlyType and onlyType=="uniprot":
+    if markerType=="all" or markerType=="uniprot":
         upBedFname = join(markerDir, "hg19.uniprot.bed")
         upDictFname = join(markerDir, "uniprot.dict.tab.gz")
-        # everything is based on uniprot ids
-        mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.spID from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name where spID<>"" and not spId like "%-%"')
-        makeUniqueNames(tempFile, upBedFname)
-        writeNames(upBedFname, upDictFname)
+        # write all uniprot accessions to the dict file
+        upFname = join(pubConf.dbRefDir, "uniprot.tab")
+        accs = set()
+        logging.info("Parsing %s to get a list of all accession IDs" % upFname)
+        for row in maxCommon.iterTsvRows(upFname):
+            accList = row.accList.split("|")
+            accs.update(accList)
+        accs = list(accs)
+        accs.sort()
+        logging.info("Got %s uniprot accessions, writing to %s" % (len(accs), upDictFname))
+        ofh = gzip.open(upDictFname, "w")
+        for acc in accs:
+            ofh.write(acc)
+            ofh.write("\n")
+        ofh.close()
+            
+        # write a map for uniprot on hg19 
+        logging.info("Creating hg19 map")
+        mysqlToFile(upBedFname, "hg19", 'SELECT chrom, txStart, txEnd, kgXref.spID from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name where spID<>"" and not spId like "%-%"')
+        # rather keep duplicates
+        #makeUniqueNames(tempFile, upBedFname)  
 
-    if onlyType and onlyType=="pdb":
+    if markerType=="all" or markerType=="pdb":
         pdbBedFname = join(markerDir, "hg19.pdb.bed")
         mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, uniProt.extDbRef.extAcc1 from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name JOIN uniProt.extDbRef ON (spID=acc) JOIN uniProt.extDb ON (id=extDb) WHERE extDb.val="PDB" AND kgXref.spID<>"" AND NOT kgXref.spId like "%-%"')
         makeUniqueNames(tempFile, pdbBedFname)
@@ -219,18 +248,35 @@ def prepMarkerDir(markerDir, onlyType):
         pdbDictFname = join(markerDir, "pdb.dict.tab.gz")
         writePdbFnames(pdbDir, pdbDictFname)
 
-    os.remove(tempFile)
-
-    if onlyType and onlyType=="snp":
+    if markerType=="all" or markerType=="snp":
         snpBed = join(markerDir, "hg19.snp.bed")
-        mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from snp135Common")
+        mysqlToFile(tempFile, "hg19", "SELECT chrom, chromStart, chromEnd, name from snp137")
         rewriteSnp(tempFile, snpBed)
         # no snp dict - we use regular expressions for these
 
-if len(args)!=0:
+    if markerType=="genbank" or markerType=="all":
+        gbBed = join(markerDir, "hg19.genbank.bed")
+        mysqlToFile(tempFile, "hg19", "SELECT tName, tStart, tEnd, qName from gbDnaBigChain")
+        mysqlToFile(tempFile, "hg19", "SELECT tName, tStart, tEnd, qName from all_est", append=True)
+        mysqlToFile(tempFile, "hg19", "SELECT tName, tStart, tEnd, qName from all_mrna", append=True)
+        makeUniqueNames(tempFile, gbBed, stripVersion=True)
+
+    if markerType=="refseq" or markerType=="all":
+        refBed = join(markerDir, "hg19.refseq.bed")
+        mysqlToFile(refBed, "hg19", "SELECT chrom, txStart, txEnd, name from refGene")
+
+    if markerType=="ensembl" or markerType=="all":
+        refBed = join(markerDir, "hg19.ensembl.bed")
+        mysqlToFile(refBed, "hg19", "SELECT chrom, txStart, txEnd, name2 from ensGene")
+
+    if isfile(tempFile):
+        os.remove(tempFile)
+
+if len(args)==0:
     parser.print_help()
     exit(1)
 
 pubGeneric.setupLogging(progFile, options)
 markerDir = pubConf.markerDbDir
-prepMarkerDir(markerDir, options.only)
+markerType = args[0]
+prepMarkerDir(markerDir, markerType)

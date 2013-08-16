@@ -146,8 +146,10 @@ clusterHeadNode = "swarm.cse.ucsc.edu"
 # type of cluster, either parasol or sge
 clusterType = "parasol"
 
+_sourceDir = "/cluster/home/max/projects/pubs/tools"
+
 # base directory for searcher algorithm code, like regex annotation, dna annotation, etc
-scriptDir = "/cluster/home/max/projects/pubs/tools/scripts"
+scriptDir = _sourceDir+"/scripts"
 
 # cmdLine to start jython, used to run java annotators
 jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java -jar "+dirname(__file__)+"/jython.jar"
@@ -157,7 +159,7 @@ jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java -jar "+dirname(__file__
 stepHosts = {"sortCdna" : "localhost", "sortProt" : "localhost", "sortGenome" : "localhost"}
 
 # email for ncbi eutil requests and error email by pubCrawl
-# at ucsc, overriden by local .pubConf
+# at UCSC: overriden by local .pubConf
 email = "YOUREMAIL"
 
 # how much to wait between two eutils requests
@@ -180,6 +182,7 @@ ANNOTDIGITS=5 # number of digits to use for annotation ID
 identifierStart = {
     "pmc"      : 1000000000,
     "elsevier" : 2000000000,
+    "springer" : 2500000000,
     "medline"  : 3000000000,
     "genbank"  : 4000000000,
     "imgt"     : 4300000000,
@@ -189,13 +192,18 @@ identifierStart = {
     "free"     : 6000000000  # to indicate end of list, always keep this here
     # the "free" entry is necessary to indicate the range of the 2nd to last entry
 }
+
+extToolDir = _sourceDir+"/external"
+
 # commands to convert various filetypes to ascii text 
 # $in and $out will be replaced with temp filenames
 # pdf2 is only used if output of pdf contains more than 10 unprintable characters
 # as pdfbox is quite slow
 CONVERTERS = {
     "doc":"catdoc $in > $out",
+    "docx":"%(extToolDir)s/docx2txt-1.2/docx2txt.sh $in > $out",
     "xls":"xls2csv $in > $out",
+    "xlsx":"ssconvert $in $out",
     "ppt":"catppt $in > $out",
     "htm":"html2text -nobs $in > $out",
     "csv":"COPY",
@@ -476,7 +484,7 @@ classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.t
 
 # GENE AND MUTATION RECOGNIZERS ===========================
 
-geneDataDir = join(staticDataDir, "geneData")
+geneDataDir = _pubsDir+"/geneData"
 
 # the british national corpus is a list of 30k common words in English
 # used for symbol filtering
