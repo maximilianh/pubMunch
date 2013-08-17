@@ -14,6 +14,8 @@ sys.path.insert(0, pubToolsLibDir)
 import pubGeneric, maxRun, pubStore, pubConf, maxCommon
 from pubXml import *
 
+MAXFILESIZE = 50000000 # don't even try to convert files bigger than 50MB
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local mirror of the Pubmed Central FTP server to pubtools format
 
@@ -466,6 +468,11 @@ def extractTgz(baseDir, fname):
         if tarinfo.isfile():
             fileObj = tarObject.extractfile(tarinfo)
             fileName = os.path.basename(tarinfo.name)
+            fileSize = tarinfo.size
+            if fileSize > MAXFILESIZE:
+                logging.warn("%s:%s has size %d, bigger than %d, skipping" % \
+                    (fname, fileName, fileSize, MAXFILESIZE))
+                continue
             fileData[fileName] = fileObj.read()
     logging.debug("Filenames in tgz file: %s" % str(fileData.keys()))
     return fileData
