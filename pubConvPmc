@@ -501,7 +501,7 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
         fileType="main",
         desc = "main text (xml)",
         mimeType="text/xml",
-        locFname = nxmlName
+        locFname = tgzName+":"+nxmlName
         )
     fileDataList.append(xmlFile)
 
@@ -514,7 +514,7 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
             desc = "main text (pdf)",
             fileType="main",
             mimeType="application/pdf",
-            locFname = pdfName
+            locFname = tgzName+":"+pdfName
             )
         fileDataList.append(pdfFile)
         
@@ -531,7 +531,7 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
             desc=suppDesc,
             fileType="supp",
             mimeType=mimeType,
-            locFname=suppFname
+            locFname=tgzName+":"+suppFname
             )
         fileDataList.append(suppFile)
     return fileDataList

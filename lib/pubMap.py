@@ -1209,22 +1209,23 @@ def loadTable(db, tableName, fname, sqlName, fileType, tableSuffix, appendMode):
 def upcaseFirstLetter(string):
     return string[0].upper() + string[1:] 
 
-def filterBedAddCounts(oldBed, newBed, counts):
+def filterBedAddCounts(oldBed, bedFh, counts, markerType):
     " write bed from oldBed to newBed, keeping only features name in counts, add one field with count "
-    logging.info("Filtering bed %s to %s" % (oldBed, newBed))
-    ofh = open(newBed, "w")
+    logging.info("Filtering bed %s to %s" % (oldBed, bedFh.name))
+    #ofh = open(newBed, "w")
     readCount = 0
     writeCount = 0
     for line in open(oldBed):
         fields = line.strip().split("\t")
+        fields.append(markerType)
         name = fields[3]
         count = counts.get(name, 0)
         readCount += 1
         if count==0:
             continue
         fields.append("%d" % count)
-        ofh.write("\t".join(fields))
-        ofh.write("\n")
+        bedFh.write("\t".join(fields))
+        bedFh.write("\n")
         writeCount += 1
     logging.info("Kept %d features out of %d features" % (writeCount, readCount))
     
@@ -1265,19 +1266,31 @@ def findRewriteMarkerBeds(dirs, markerDbDir, markerOutDir, skipSnps, tableSuffix
 
     markerTypes = getMarkers(markerDbDir)
 
+    fnameDict = {}
     fileDict = {}
+    #dbs = set([mt[0] for my in markerTypes])
     for db, markerType, inputBedFname in markerTypes:
+    #for db in dbs:
         if skipSnps and markerType=="snp":
             logging.info("Skipping SNPs to gain speed")
             continue
         upMarkerType = upcaseFirstLetter(markerType) # e.g. snp -> Snp
-        newBedFname = join(markerOutDir, db+".marker%s.bed" % upMarkerType)
-        filterBedAddCounts(inputBedFname, newBedFname, counts)
+        #newBedFname = join(markerOutDir, db+".marker%s.bed" % upMarkerType)
+        newBedFname = join(markerOutDir, db+".marker.bed")
+        if newBedFname in fileDict:
+            bedFh = fileDict[newBedFname]
+        else:
+            bedFh = open(newBedFname, "w")
+            fileDict[newBedFname] = bedFh
+        filterBedAddCounts(inputBedFname, bedFh, counts, markerType)
 
-        tableName = "marker"+upMarkerType # e.g. markerBand
-        fileDict[(tableName, "bed")] = {}
-        fileDict[(tableName, "bed")][db] = [newBedFname]
-    return fileDict
+        # keep track of the filenames for later loading
+        #tableName = "marker"+upMarkerType # e.g. markerBand
+        #tableName = "marker"+upMarkerType # e.g. markerBand
+        tableName = "marker"
+        fnameDict[(tableName, "bed")] = {}
+        fnameDict[(tableName, "bed")][db] = [newBedFname]
+    return fnameDict
 
 def findUpdates(baseDir, updateId):
     " search baseDir for possible update directories, if updateId !=0 otherwise return just updateId "
@@ -1456,8 +1469,7 @@ def runLoadStep(datasetList, dbList, markerCountBasename, markerOutDir, userTabl
 
     datasets = datasetList.split(",")
 
-    tablePrefix = "pubs"
-    tablePrefix = tablePrefix + userTablePrefix
+    tablePrefix = "pubs" + userTablePrefix
 
     sqlDir          = pubConf.sqlDir
     markerDbDir     = pubConf.markerDbDir

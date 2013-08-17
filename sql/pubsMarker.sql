@@ -4,6 +4,7 @@ CREATE TABLE `t2g` (
   `chromStart` int(10) unsigned NOT NULL, # start position on chromosome
   `chromEnd` int(10) unsigned NOT NULL, # end position on chromosome
   `name` varchar(255) NOT NULL, #name of marker, e.g. gene like TP53 or rs12345
+  `markerType` varchar(255) NOT NULL, #type of marker, e.g. snp, genbank or refseq
   `matchCount` int(10), # number of articles that contain matches for this marker
   KEY `name` (`name`(16)),
   KEY `chrom` (`chrom`(6)),
