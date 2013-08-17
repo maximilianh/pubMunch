@@ -394,10 +394,11 @@ def parsePmcIds(pmcTabFname):
             data[rec.PMCID]=pmid
     return data
 
-def splitIndexAndSubmitConvertJobs(pmcDirectory, outDir, minId, useCluster):
+def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, useCluster):
     " create and split index file and submit jobs to cluster system, one per index chunk "
     # parse info from last runs
-    updateId, articleId, donePmcIds = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
+    updateId, articleId, donePmcIds = pubStore.parseUpdatesTab(finalOutDir, minArticleId=minId)
+    outDir     = tempfile.mktemp(dir = finalOutDir, prefix = "update%d.tmp." % updateId)
 
     # get correct PMIDs (10% of PMIDs are wrong in XML)
     pmcTabFname = join(pmcDirectory, "PMC-ids.csv.gz")
@@ -411,7 +412,7 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, outDir, minId, useCluster):
         chunkSize = None
     else:
         logging.debug("This is not the first run, need to guess chunk size")
-        chunkSize = pubStore.guessChunkSize(outDir)
+        chunkSize = pubStore.guessChunkSize(finalOutDir)
 
     lastArticleId, newPmcIds = createIndexFile(pmcDirectory, fileListFname, pmcToPmid, indexFile, updateId, \
         chunkSize, chunkCount, articleId, donePmcIds)
@@ -434,7 +435,10 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, outDir, minId, useCluster):
         command = "%s %s {check in line %s} {check out exists+ %s}" % (sys.executable, progFile, chunkFname, outFname)
         runner.submit(command)
     runner.finish(wait=True)
-    pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmcIds)
+    pubStore.moveFiles(outDir, finalOutDir)
+    pubStore.appendToUpdatesTxt(finalOutDir, updateId, lastArticleId, newPmcIds)
+    pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
+    shutil.rmtree(outDir)
 
 def extractTgz(baseDir, fname):
     """ extract all files from pmc tarfile, returns dict with 'filename' -> content
@@ -617,5 +621,7 @@ if os.path.isdir(pmcDir):
 else:
     inIndexFile = pmcDir
     outFile = outDir
+    logFname = join(dirname(outFile), basename(outFile).split(".")[0]+".log")
+    pubGeneric.setupLogging(__file__, options, logFileName=logFname)
     convertOneChunk(inIndexFile, outFile)
 

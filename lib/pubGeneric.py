@@ -661,7 +661,7 @@ def makeTempFile(prefix, suffix=".psl"):
 def concatDelLogs(inDir, outDir, outFname):
     " concat all log files to outFname in outDir and delete them "
     outPath = join(outDir, outFname)
-    inMask = join(inDir, "*.log")
+    inMask = join(inDir, "*_*.log")
     logFnames = glob.glob(inMask)
     ofh = open(outPath, "w")
     logging.info("Concatting %d logfiles from %s to %s" % (len(logFnames), inMask, outPath))
