@@ -188,6 +188,7 @@ def writePdbFnames(pdbDir, pdbDictFname):
         ofh.write(acc)
         ofh.write("\n")
     ofh.close()
+    pubGeneric.indexKvFile(pdbDictFname)
 
 def prepMarkerDir(markerDir, markerType):
     " config targetdir for blatCdna "
@@ -215,25 +216,32 @@ def prepMarkerDir(markerDir, markerType):
 
     if markerType=="all" or markerType=="uniprot":
         upBedFname = join(markerDir, "hg19.uniprot.bed")
-        upDictFname = join(markerDir, "uniprot.dict.tab.gz")
+        upDictFname = join(markerDir, "uniprotAccs.txt.gz")
         # write all uniprot accessions to the dict file
         upFnames = ["uniprot.tab", "uniprotTrembl.tab"]
+        #upFnames = ["uniprot.test.tab"]
         accs = set()
+        ofh = gzip.open(upDictFname, "w")
         for upFname in upFnames:
             upFname=join(pubConf.dbRefDir, upFname)
             logging.info("Parsing %s to get a list of all accession IDs" % upFname)
+            i = 0
             for row in maxCommon.iterTsvRows(upFname):
                 accList = row.accList.split("|")
-                accs.update(accList)
-
-        logging.info("Got %s uniprot accessions, writing to %s" % (len(accs), upDictFname))
-        ofh = gzip.open(upDictFname, "w")
-        accs = list(accs)
-        accs.sort() # better compression
-        for acc in accs:
-            ofh.write(acc)
-            ofh.write("\n")
+                #logging.info("Got %d keys" % len(accList))
+                for acc in accList:
+                    ofh.write("%s\n" % acc)
         ofh.close()
+        pubGeneric.indexKvFile(upDictFname)
+
+        #logging.info("Got %s uniprot accessions, writing to %s" % (len(accs), upDictFname))
+        #ofh = gzip.open(upDictFname, "w")
+        #accs = list(accs)
+        #accs.sort() # better compression
+        #for acc in accs:
+            #ofh.write(acc)
+            #ofh.write("\n")
+        #ofh.close()
             
         # write a map for uniprot on hg19 
         logging.info("Creating hg19 map")
@@ -242,14 +250,19 @@ def prepMarkerDir(markerDir, markerType):
         #makeUniqueNames(tempFile, upBedFname)  
 
     if markerType=="all" or markerType=="pdb":
+        # get all pdb accessions
+        #pdbDir = join(pubConf.pdbBaseDir, "pdb")
+        pdbDir = pubConf.pdbBaseDir
+        pdbDictFname = join(markerDir, "pdbAccs.txt.gz")
+        writePdbFnames(pdbDir, pdbDictFname)
+        pubGeneric.indexKvFile(pdbDictFname)
+
+        # genome map file
         pdbBedFname = join(markerDir, "hg19.pdb.bed")
         mysqlToFile(tempFile, "hg19", 'SELECT chrom, txStart, txEnd, uniProt.extDbRef.extAcc1 from knownGene JOIN kgXref ON kgXref.kgID=knownGene.name JOIN uniProt.extDbRef ON (spID=acc) JOIN uniProt.extDb ON (id=extDb) WHERE extDb.val="PDB" AND kgXref.spID<>"" AND NOT kgXref.spId like "%-%"')
         makeUniqueNames(tempFile, pdbBedFname)
         #writeNames(upBedFname, upDictFname)
 
-        pdbDir = join(pubConf.dbBaseDir, "pdb")
-        pdbDictFname = join(markerDir, "pdb.dict.tab.gz")
-        writePdbFnames(pdbDir, pdbDictFname)
 
     if markerType=="all" or markerType=="snp":
         snpBed = join(markerDir, "hg19.snp.bed")

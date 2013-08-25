@@ -76,7 +76,7 @@ class Runner:
         else:
             self.headNode = headNode
         
-        if headNode=="localhost":
+        if headNode=="localhost" or headNode=="local":
             self.headNode = None
             self.clusterType = "local"
 

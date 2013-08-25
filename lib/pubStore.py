@@ -608,11 +608,13 @@ class PubReaderTest:
         art.pmid = "10"
         art.externalId = "extId000"
         art.printIssn = "1234-1234"
+        art.url =  "http://sgi.com"
 
         fileObj = C()
         fileObj.fileId = "1001"
         fileObj.content = self.text
         fileObj.fileType = "main"
+        fileObj.externalId = "file0000"
         
         yield art, [fileObj]
 
@@ -657,7 +659,10 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
         fileNames = [textDir]
         logging.debug("Found 1 file, %s" % textDir)
     else:
-        fileNames = glob.glob(os.path.join(textDir, baseMask))
+        fileMask = os.path.join(textDir, baseMask)
+        fileNames = glob.glob(fileMask)
+        logging.debug("Looking for all fulltext files in %s, found %d files" % \
+            (fileMask, len(fileNames)))
         if updateIds!=None and len(updateIds)!=0:
             logging.debug("Restricting fulltext files to updateIds %s" % str(updateIds))
             filteredFiles = []

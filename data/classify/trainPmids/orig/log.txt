@@ -139,3 +139,16 @@ wget http://downloads.yeastgenome.org/curation/literature/interaction_data.tab -
  wget http://downloads.yeastgenome.org/curation/literature/phenotype_data.tab -O - | cut -f5 | grep PMID | cut -d'|' -f1 | cut -d' ' -f2 | sort -u > pos.sgdPhen.txt
 # got sgd/result.tsv.gz from yeastmine
  zless sgd/result.tsv.gz | grep -v Additional | cut -f1 | sort -u | egrep ^[0-9]+$ > pos.sgd.txt
+
+# RGD - Rat Genome Database - http://rgd.mcw.edu/
+ grep -v ^# GENES_RAT.txt  | cut -f19 | sort -u | tr ';' '\n' | sort -u > pos.rgd.txt
+ wget ftp://rgd.mcw.edu/pub/data_release/GENES_RAT.txt | grep -v ^# | cut -f19 > temp.txt
+
+# HGMD - Human Gene Mutation Database - http://hgmd.cf.ac.uk/
+# via email from frank schacherer
+# biobasePgx - Pharmacogenomics variants - ?
+# via email from frank schacherer
+# transfacSite - Transfac Binding Sites - gene-regulation.org
+# via email from frank schacherer
+# transfacMatrix - Transfac Matrices - gene-regulation.org
+# via email from frank schacherer

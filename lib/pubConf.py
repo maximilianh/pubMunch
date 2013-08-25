@@ -527,27 +527,27 @@ def getUcscScriptDir():
     dirname(__file__)
     
 def getMaxBinFileSize():
-    return MAXBINFILESIZE
+    return maxBinFileSize
 
 def getMaxTxtFileSize():
-    return MAXTXTFILESIZE
+    return maxTxtFileSize
 
 def resolveTextDir(dataDir, makeDir=False):
     " check if dataDir exists, if not: try if subdir of textDir exists and return "
     inName = dataDir
-    if os.path.isfile(dataDir):
-        return dataDir
-    if not os.path.isdir(dataDir):
-        dataDir2 = os.path.join(textBaseDir, dataDir)
-        if os.path.isdir(dataDir2):
-            dataDir = dataDir2
+    dataDir2 = os.path.join(textBaseDir, dataDir)
+    if not os.path.isdir(dataDir2):
+        logging.debug("Couldn't find %s" % dataDir2)
+        if os.path.isdir(dataDir):
+            return dataDir
         else:
             if makeDir:
-                logging.info("Creating directory %s" % dataDir2)
-                os.makedirs(dataDir2)
+                logging.info("Creating directory %s" % dataDir)
+                os.makedirs(dataDir)
             else:
-                raise Exception("Neither %s not %s are directories" % (dataDir, dataDir2))
-                dataDir = None
+                raise Exception("Neither %s not %s are directories" % (dataDir2, dataDir))
+    else:
+        dataDir = dataDir2
     logging.debug("Resolved dataset name %s to dataset directory %s" % (inName, dataDir))
     return dataDir
 

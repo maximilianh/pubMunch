@@ -2,8 +2,9 @@
 # ascii-conversion, section splitting etc
 
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
-    glob, operator, doctest, ftplib
+    glob, operator, doctest, ftplib, random, shutil
 import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables
+import leveldb
 from os.path import *
 
 forceHeadnode = None
@@ -18,6 +19,106 @@ control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 class Timeout(Exception):
     pass
+
+class LevelDb(object):
+    " wrapper around leveldb, store and query key/val pais "
+    def __init__(self, fname, sync=False, newDb=False):
+        self.dbName = fname+".levelDb"
+        if newDb and isdir(self.dbName):
+            logging.debug("Removing %s" % self.dbName)
+            shutil.rmtree(self.dbName)
+        logging.debug("Opening %s with leveldb" % self.dbName)
+        self.db = leveldb.LevelDB(self.dbName)
+        self.sync = sync
+
+    def put(self, key, val):
+        return self.db.Put(key, val, sync=self.sync)
+        
+    def get(self, key):
+        try:
+            val = self.db.Get(key, sync=self.sync)
+        except KeyError:
+            val = None
+        return val
+    
+    def __contains__(self, key):
+        try:
+            self.db.Get(key)
+            return True
+        except KeyError:
+            return False
+
+    def __getitem__(self, key):
+        val = self.db.Get(key)
+        return val
+
+    def __setitem__(self, key, val):
+        if val==None:
+            val=""
+        return self.db.Put(key, val, sync=self.sync)
+
+def getKeyValDb(dbName, newDb=False):
+    " factory placeholder if we want to change leveldb to sth else one day "
+    return LevelDb(dbName, newDb=newDb)
+
+def indexKvFile(fname):
+    " load a key-value tab-sep file with two fields into a key-value DB "
+    db  = getKeyValDb(fname, newDb=True)
+    ifh = maxTables.openFile(fname)
+    i = 0
+    for line in ifh:
+        if line.startswith("#"):
+            continue
+        fields = line.rstrip("\n").split("\t")
+        fCount = len(fields)
+        if fCount==2:
+            key, val = fields
+        elif fCount==1:
+            key = fields[0]
+            val = None
+        else:
+            raise Exception("cannot load more than two fields or empty line")
+
+        if i%50000==0:
+            logging.info("Wrote %d records..." % i)
+        db[key] = val
+        i+=1
+    logging.info("Wrote %d records into db %s" % (i, db.dbName))
+
+def createDirRace(dirPath):
+    """ create a directory, trying to fix race conditions """
+    if not os.path.isdir(dirPath):
+        time.sleep(random.randint(1,3)) # make sure that we are not all trying to create it at the same time
+        if not os.path.isdir(dirPath):
+            try:
+                os.makedirs(dirPath)
+            except OSError:
+                logging.debug("Ignoring OSError, directory %s seems to exist already" % dirPath)
+
+def getFromCache(fname):
+    """ Given a network path, try to find a copy of this file on the local temp disk.
+    Return the path on the local disk. If there is no copy yet, copy it over first.
+    """
+    locCacheDir = join(pubConf.getTempDir(), "fileCache")
+    createDirRace(locCacheDir)
+    locPath = join(locCacheDir, basename(fname))
+    logging.debug("Getting a local cache path for %s" % fname)
+    if isfile(locPath):
+        return locPath
+    # it doesn't exist
+    #fobj, locTmpName = makeTempFile(prefix=basename(fname), suffix=".tmp")
+    locTmpName = tempfile.mktemp(prefix=basename(fname), suffix=".tmp")
+    time.sleep(random.randint(1,3)+random.random()) # let's add some randomness
+    logging.debug("Copying %s to %s" % (fname, locTmpName))
+    shutil.copy(fname, locTmpName)
+    # maybe another process copied it over by now
+    if isfile(locPath):
+        #fobj.close() # = delete
+        os.remove(locTmpName)
+        return locPath
+    logging.debug("Moving %s to %s" % (locTmpName, locPath))
+    shutil.move(locTmpName, locPath)
+    return locPath
 
 def runCommandTimeout(command, timeout=30, bufSize=128000):
     """

@@ -23,5 +23,6 @@ CREATE TABLE pubsArticle (
     PRIMARY KEY(articleId),
     KEY extIdx(extId),
     KEY pmidIdx(pmid),
+    KEY doiIdx(doi),
     FULLTEXT INDEX (citation, title, authors, abstract)
 );

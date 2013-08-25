@@ -58,6 +58,7 @@ class Annotate:
     # objects please see the file ../lib/pubStore.py, search for "DATA FIELDS"
     def annotateFile(self, article, file):
         " go over words of text and check if they are in dict "
+        print dir(file)
         text = file.content
         count = 0
         rows = []
@@ -81,9 +82,9 @@ class Annotate:
                     row = [start, end, markerType, markerId, "", ""]
                     rows.append(row)
             
-        if len(rows)>MAXCOUNT:
-            logging.info("more than %d annotations (e.g. excel table), skipping file" % MAXCOUNT)
-            return None
+            if len(rows)>MAXCOUNT:
+                logging.info("%d annotations, too mant, skipping file %s" % (MAXCOUNT, file.externalId))
+                return None
         return rows
             
 # === MAP/REDUCE TASK ====

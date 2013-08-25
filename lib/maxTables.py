@@ -1,6 +1,6 @@
 # Routines for reading/writing tables from/to textfiles or databases
 
-import sys, textwrap, operator, types, logging, re, os, collections, codecs, time
+import sys, textwrap, operator, types, logging, re, os, collections, codecs, time, gzip
 
 # jython doesn't have sqlite3
 try:
@@ -26,6 +26,8 @@ def openFile(fname, mode="r"):
     """ open and return filehandle, open stdin if fname=="stdin", do nothing if none """
     if fname=="stdin":
         return sys.stdin
+    elif fname.endswith(".gz"):
+        return gzip.open(fname)
     elif fname=="stdout":
         return sys.stdout
     elif fname=="none" or fname==None:

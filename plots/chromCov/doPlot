@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+import os,sys,glob,shutil
+from os.path import *
+
+# create a trackhub and a barplot with coverage on chrom 21
+
+if not isdir("data"):
+    os.makedirs("data")
+
+cmds = sys.argv[1].split(",")
+
+if cmds[0]=='all':
+    cmds = ['sql', 'bed', 'bw', 'tracks', 'barplot']
+
+if "sql" in cmds:
+    for year in range(1994, 2012, 6):
+            yearEnd = year+6
+            cmd = "hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from pubsDevBlat where year>=%(year)d and year<%(yearEnd)d' > data/%(year)d.bed" % locals()
+            print cmd
+            os.system(cmd)
+
+if "bed" in cmds:
+    fnames = glob.glob("data/*.bed")
+    for fname in fnames:
+        fbase = splitext(basename(fname))[0]
+        cmd = "bedChromDensity %s -d 100000 > data/%s.wig" % (fname, fbase)
+        os.system(cmd)
+
+if "bw" in cmds:
+    fnames = glob.glob("data/*.wig")
+    for fname in fnames:
+        fbase = splitext(basename(fname))[0]
+        cmd = "bedGraphToBigWig data/%s.wig /scratch/data/hg19/chrom.sizes data/%s.bw" % (fbase, fbase)
+        print cmd
+        os.system(cmd)
+
+if "tracks" in cmds:
+    outDir = "/cluster/home/max/public_html/pubs/plots/chromCov/"
+    trackDir = join(outDir, "hg19")
+    if not isdir(trackDir):
+        os.makedirs(trackDir)
+    
+    cmd = "cp data/*.bw %s" % trackDir
+    print cmd
+    os.system(cmd)
+
+    ofh = open("%s/trackDb.txt" % trackDir, "w")
+    ofh.write('''track pubYears
+container multiWig
+shortLabel pubYears
+longLabel publication density by year
+type bigWig 0 30000
+viewLimits 0:100
+visibility full
+maxHeightPixels 150:30:11
+aggregate transparentOverlay
+showSubtrackColorOnUi on
+windowingFunction mean
+priority 1.4
+configurable on
+autoScale on
+
+''')
+
+    colors = {1994: "255,180,180", 2000:"180,255,180", 2006:"180,180,255"}
+    for year in range(1994, 2012, 6):
+        endYear = year+6
+        color = colors[year]
+        ofh.write('''track pubYear%(year)d
+bigDataUrl http://hgwdev.soe.ucsc.edu/~max/pubs/plots/chromCov/hg19/hg19.%(year)d.bw
+shortLabel %(year)d-%(endYear)d
+longLabel %(year)d-%(endYear)d
+parent pubYears
+type bigWig
+color %(color)s
+
+''' % locals())
+    ofh.write('\n')
+
+    ofh.close()
+       
+    hubFname = outDir+"/hub.txt"
+    open(hubFname, "w").write("""hub pubsDensityHub
+    shortLabel pubsDensityHub
+    longLabel Publication Density
+    genomesFile genomes.txt
+    email max@soe.ucsc.edu
+    """)
+
+    genomesFname = outDir+"/genomes.txt"
+    open(genomesFname, "w").write("""genome hg19
+    trackDb hg19/trackDb.txt
+        """)
+
+if "barplot" in cmds:
+    cmd = "bedChromDensity -d 500000 data/*.bed -p chr21.png -c chr21"
+    os.system(cmd)
+    cmd = "cp chr21.png ~/public_html/temp.png"
+    os.system(cmd)

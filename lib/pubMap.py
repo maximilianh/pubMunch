@@ -836,13 +836,15 @@ def annotToArticleId(annotId):
     articleDivider = 10**(pubConf.FILEDIGITS+pubConf.ANNOTDIGITS)
     return int(annotId) / articleDivider
 
-def addHumanForMarkers(articleDbs, markerArticleFname):
+def addMarkerDbs(articleDbs, markerArticleFname):
     " add a human genome entry to articleId -> db dict, for all article Ids in file "
-    humanDb = (pubConf.humanDb)
+    #humanDb = (pubConf.humanDb)
+    db = basename(markerArticleFname).split(".")[0]
     articleCount = 0
+    logging.debug("Reading %s to find articleIds with markers, db=%s" % (markerArticleFname, db))
     for articleId in open(markerArticleFname):
         articleId = articleId.strip()
-        articleDbs[int(articleId)] = [humanDb]
+        articleDbs[int(articleId)].add(db)
         articleCount += 1
     logging.info("Found %d articles with markers in %s" % (articleCount, markerArticleFname))
     return articleDbs
@@ -947,7 +949,7 @@ def parseBeds(bedDirs):
         logging.info("Found %d bed files in directory %s" % (len(dirBeds), bedDir))
 
     logging.info("Parsing %d bed files" % len(bedFiles))
-    articleDbs = {}
+    articleDbs = defaultdict(set)
     dbPointers = {}
     annotToCoord = {}
     pm = maxCommon.ProgressMeter(len(bedFiles))
@@ -1217,13 +1219,13 @@ def filterBedAddCounts(oldBed, bedFh, counts, markerType):
     writeCount = 0
     for line in open(oldBed):
         fields = line.strip().split("\t")
-        fields.append(markerType)
         name = fields[3]
         count = counts.get(name, 0)
         readCount += 1
         if count==0:
             continue
         fields.append("%d" % count)
+        fields.append(markerType)
         bedFh.write("\t".join(fields))
         bedFh.write("\n")
         writeCount += 1
@@ -1643,7 +1645,7 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
             #if row.type not in ["band", "snp", "symbol"]:
                 #continue
             newRow = [articleId, fileId, annotId, fileDesc, fileUrl, \
-                row.type, row.markerId, row.section, unicode(snippet)]
+                row.type, row.markerId, row.recogType, row.recogId, row.section, unicode(snippet)]
             fileMarkerArticles[row.markerId].add(articleId)
 
             outFile.write(u'\t'.join(newRow))
@@ -1884,7 +1886,7 @@ def runTablesStep(d, options):
     else:
         articleDbs, annotLinks = parseBeds([d.tableDir])
 
-    articleDbs = addHumanForMarkers(articleDbs, d.markerArticleFile)
+    articleDbs = addMarkerDbs(articleDbs, d.markerArticleFile)
 
     # reformat articles
     writeArticleTables(articleDbs, d.textDir, d.tableDir, d.updateIds)
@@ -2091,8 +2093,6 @@ def runStep(dataset, command, d, options):
 
     elif command=="dropAll":
         tablePrefix = options.tablePrefix
-        if options.loadFinal:
-            tablePrefix = ""
         dropAllTables(tablePrefix)
 
     elif command==("switchOver"):

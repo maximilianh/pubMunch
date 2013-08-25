@@ -110,7 +110,7 @@ parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true"
 parser.add_option("-o", "--outDir", dest="outDir", action="store", help="overwrite the default output directory from pubConf, default %default", default=pubConf.pubMapBaseDir)
 parser.add_option("-l", "--activateLog", dest="activateLog", action="store_true", help="write logging to pubMap.<date>.log", default=False)
 parser.add_option("", "--onlyDb", dest="onlyDb", action="append", help="only use certain genomes for blatting, can be specified several times")
-parser.add_option("", "--tablePrefix", dest="tablePrefix", action="store", help="by default, the 'load' step will load into tables with the pubsDev prefix. If you want to load into final tables, set this to ''. Default value %default", default="Dev")
+parser.add_option("", "--tablePrefix", dest="tablePrefix", action="store", help="by default, the 'load' step will load into tables with the pubsDev prefix. If you want to load into final tables, set this to ''. Default value %default. The prefix 'pubs' is always added to the prefix.", default="Dev")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 

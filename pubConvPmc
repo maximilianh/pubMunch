@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # default python packages
-import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math, glob
+import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math, glob, tempfile, shutil
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -33,35 +33,16 @@ If in and out are files:
 to debug xml parser: just specify one xml file, will output to stdout
 """)
 
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default", default=2000)
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pmc"]) 
 parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
-parser.add_option("-c", "--cluster", dest="useCluster", action="store_true", help="use cluster to do conversion")
 #parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
 parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export data to sqlite db defined in pubConf") 
+pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
+
 # ==== FUNCTIONs =====
-def nxmlHasBody(inData):
-    """ try to find out if a PMC xml file has some text in it or if 
-        it's just scanned pages """
-    #xml  = codecs.open(nxmlName, encoding="utf8").read()
-    try:
-        root = etreeFromXml(inData)
-        body = findChild(root, "body")
-        scans = findChildren(body,"supplementary-material", reqAttrName="content-type", reqAttrValue='scanned-pages')
-        if body!=None and len(scans)==0:
-            logging.debug("Found body tag, no scanned pages within it, seems to contain normal fulltext")
-            return True
-        else:
-            logging.debug("No body tag or only scanned pages: No fulltext")
-            return False
-    except IOError:
-        logging.error("IOError while searching for body tag in xml file")
-        return False
-    
 def metaInfoFromTree(metaInfo, field, etree, path, convertToAscii=False, reqAttrName=None, reqAttrValue=None, squeak=True, isAbstract=False):
     """ helper function for parsePmcXml: get text of xml tree given path
     expression, put into metaInfo[field] if path matches several elements,
@@ -195,7 +176,7 @@ def parseSupplMatEl(suppData):
         descParts.append("Supp. File %d" % (mediaCount+1))
         if labelText!=None:
             descParts.append(labelText)
-        descParts.append("filename: "+fname)
+        #descParts.append("filename: "+fname)
         desc = " - ".join(descParts)
         logging.debug("Found suppl file fname=%s, desc=%s" % (fname, desc))
         suppFileInfo[fname]=desc
@@ -225,7 +206,7 @@ def parseSupplMatList(suppDataList):
         for media in medias:
             desc = suppData.findtext("label")
             fname = media.attrib.get("href","")
-            suppDescParts.append("filename: %s" % fname)
+            #suppDescParts.append("filename: %s" % fname)
             suppDesc = " - ".join(suppDescParts)
             suppFileInfo[fname]=suppDesc
             suppCount += 1
@@ -345,7 +326,7 @@ def createIndexFile( inDir, inFname, pmcToPmid, \
         chunkCount = int(math.ceil(float(len(pmcIdsFiles)) / chunkSize))
         logging.info("Number of chunks is %d (=%d / %d)" % (chunkCount, len(pmcIdsFiles), chunkSize))
 
-    # then output new index file for unproc pmcIds
+    # then output new index file 
     outList = open(outFname, "w")
     headers = ["articleId", "chunkId", "pmcId", "pmid", "srcDir", "filePath"]
     outList.write("#"+"\t".join(headers)+"\n")
@@ -394,17 +375,18 @@ def parsePmcIds(pmcTabFname):
             data[rec.PMCID]=pmid
     return data
 
-def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, useCluster):
+def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner):
     " create and split index file and submit jobs to cluster system, one per index chunk "
     # parse info from last runs
     updateId, articleId, donePmcIds = pubStore.parseUpdatesTab(finalOutDir, minArticleId=minId)
-    outDir     = tempfile.mktemp(dir = finalOutDir, prefix = "update%d.tmp." % updateId)
 
     # get correct PMIDs (10% of PMIDs are wrong in XML)
     pmcTabFname = join(pmcDirectory, "PMC-ids.csv.gz")
     pmcToPmid = parsePmcIds(pmcTabFname)
 
     # write big index
+    outDir     = tempfile.mktemp(dir = finalOutDir, prefix = "update%d.tmp." % updateId)
+    os.makedirs(outDir)
     indexFile = join(outDir, "%d_index.tab" % updateId)
     fileListFname = "file_list.txt" 
     if int(updateId)==0:
@@ -421,11 +403,6 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, useCluster)
 
     indexDir = join(outDir, "index.tmp.split")
     chunkIds = pubStore.splitTabFileOnChunkId(indexFile, indexDir)
-
-    if useCluster:
-        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
-    else:
-        runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
 
     for chunkId in chunkIds:
         logging.debug("submitting job for chunk %s" % chunkId)
@@ -607,14 +584,17 @@ maxCommon.mustExist(pmcDir)
 minId = options.minId
 chunkCount = options.chunkCount
 dryRun = options.dryRun
-useCluster = options.useCluster
 
 pubGeneric.setupLogging(progFile, options)
+if options.cluster:
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+else:
+    runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
 
 if os.path.isdir(pmcDir):
     maxCommon.mustExistDir(outDir)
     if not options.updateDb:
-        splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, useCluster)
+        splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, runner)
     tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
     dbPath = join(outDir, "articles.db")
     pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

@@ -29,7 +29,7 @@
 # standard python libraries for regex
 import sys, logging, os.path, gzip, glob, doctest, marshal, gdbm, types, operator 
 from collections import defaultdict
-import fastFind, pubConf, maxbio, pubDnaFind, seqMapLocal
+import fastFind, pubConf, maxbio, pubDnaFind, seqMapLocal, pubGeneric
 from os.path import *
 
 # try to use re2 if possible
@@ -100,10 +100,10 @@ bandToEntrezSyms = None
 pmidToEntrez = None
 
 # separators before or after the regular expressions below
-endSep = r'(?=[\s:,.()])'
-endSepDash = r'(?=[\s:,.()-])'
-startSep = r'[\s,.();:=[]'
-startSepDash = r'[\s,.();:=[-]'
+endSep = r'''(?=["'\s:,.()])'''
+endSepDash = r'''(?=["'\s:,.()-])'''
+startSep = r'''["'\s,.();:=[]'''
+startSepDash = r'''["'\s,.();:=[-]'''
 
 # Regular expressions need to define a group named "id"
 # see python re engine doc: instead of (bla) -> (?P<id>bla)
@@ -308,9 +308,12 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
         markerRe = reDict[markerType]
         kwDictList.append((markerType, markerRe))
         if markerType in requiresFilter:
-            filterFname = os.path.join(DICTDIR, markerType+".dict.tab.gz")
-            logging.info("Reading %s" % filterFname)
-            filterSet = set(gzip.open(filterFname).read().splitlines())
+            #filterFname = os.path.join(DICTDIR, markerType+"b.gz")
+            filterFname = os.path.join(DICTDIR, markerType+"Accs.txt.gz")
+            #filterFname = pubGeneric.getFromCache(filterFname)
+            logging.info("Opening %s" % filterFname)
+            #filterSet = set(gzip.open(filterFname).read().splitlines())
+            filterSet = pubGeneric.getKeyValDb(filterFname)
             filterDict[markerType] = filterSet
 
     global markerDictList
@@ -960,7 +963,7 @@ def findIdentifiers(text):
 
             if filterSet!=None:
                 if word not in filterSet:
-                    logging.log(5, "%s not in filter" % word)
+                    logging.debug("%s not in filter" % word)
                     continue
 
             if word in notIdentifiers:

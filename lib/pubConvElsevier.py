@@ -73,7 +73,7 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
             # do not import a PII twice
             pii = splitext(basename(fileName))[0]
             if pii in donePiis:
-                logging.warn("file %s: already seen PII %s before, in file %s" % (fileName, pii, donePiis[pii]))
+                logging.debug("file %s: already seen PII %s before, in file %s" % (fileName, pii, donePiis[pii]))
                 duplCount +=1
                 continue
             donePiis[pii] = (zipFilename, fileName)
@@ -392,6 +392,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     inRows = list(maxCommon.iterTsvRows(inIndexFile))
     #doi2pmid = None
     convCount = 0
+    skipCount = 0
     pmidFinder = pubCompare.PmidFinder()
     logging.info("Converting %d files" % len(inRows))
     for row in inRows:
@@ -403,7 +404,8 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
 
         pii = splitext(basename(filename))[0]
         if pii in donePiis:
-            logging.warn("PII %s has already been converted, skipping" % pii)
+            logging.debug("PII %s has already been converted, skipping" % pii)
+            skipCount += 1
             continue
         donePiis.add(pii)
 
@@ -450,7 +452,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
         fileData = createFileData(articleData, mimeType, asciiString)
         store.writeFile(articleId, (1000*(articleId))+1, fileData, externalId=articleData["externalId"])
         convCount += 1
-    logging.info("Converted %d files" % convCount)
+    logging.info("Converted %d files, skipped %d" % (convCount, skipCount))
     store.close()
     idFh.close()
 

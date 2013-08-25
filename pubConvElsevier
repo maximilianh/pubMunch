@@ -84,7 +84,7 @@ if not os.path.isdir(inDir):
     sys.exit(1)
 
 if options.cluster:
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 else:
     runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
 pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)

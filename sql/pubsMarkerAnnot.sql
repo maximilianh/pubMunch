@@ -14,6 +14,6 @@ CREATE TABLE pubsMarkerAnnot (
     snippet varchar(5000) not null,	# flanking text around marker match
         # Indices
     KEY articleIdx(articleId),
-    KEY markerIdx(markerType, markerId)
-    KEY markerIdx(recogMarkerType, recogMarkerId)
+    KEY markerIdx1(markerType, markerId),
+    KEY markerIdx2(recogMarkerType, recogMarkerId)
 );
