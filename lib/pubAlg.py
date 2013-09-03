@@ -573,7 +573,6 @@ def runAnnotate(reader, alg, paramDict, outName):
         moveTempToFinal(tmpOutFname, outName)
 
 def unmarshal(fname):
-    print fname
     if fname.endswith(".gz"):
         with gzip.open(fname, "rb") as f:
             raw = f.read()

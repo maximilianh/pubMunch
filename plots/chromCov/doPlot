@@ -34,7 +34,7 @@ if "bw" in cmds:
         print cmd
         os.system(cmd)
 
-if "tracks" in cmds:
+if "hub" in cmds:
     outDir = "/cluster/home/max/public_html/pubs/plots/chromCov/"
     trackDir = join(outDir, "hg19")
     if not isdir(trackDir):
@@ -91,6 +91,7 @@ color %(color)s
     open(genomesFname, "w").write("""genome hg19
     trackDb hg19/trackDb.txt
         """)
+    print "http://hgwdev.soe.ucsc.edu/~max/pubs/plots/chromCov/hub.txt"
 
 if "barplot" in cmds:
     cmd = "bedChromDensity -d 500000 data/*.bed -p chr21.png -c chr21"

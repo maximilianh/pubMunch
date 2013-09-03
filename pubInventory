@@ -22,7 +22,7 @@ steps are:
 "publishers - create a table publisher -> journals by guessing the "real" publisher for all
               journals in the NLM catalog and other lists (Highwire, Wiley). Write these
               to data/publishers/
-"journals" - create a table with journalUid -> articleCount from medline, pubCounts.tab
+"journals" - create a table with journalUid -> articleCount from medline, to pubCounts.tab
 "here" - determine which documents of publishers we have here, in the form of pmids.txt
 "pubs" - create a table with publishers, their post-2000 article counts and how many we have on disk
 
@@ -55,7 +55,7 @@ issnCountFname = join(pubConf.journalDataDir, "issnCounts.marshal")
 # table with information on journals, coverage, eISSN, etc.
 journalCoverageFname = join(pubConf.journalDataDir, "journalCoverage.tab")
 # datasets to collect PMIDs from
-datasets = "elsevier,crawler,pmc"
+datasets = "elsevier,crawler,pmc,springer"
 
 minYear = 2000
 minCount = 50 # minimum number of articles in any journal

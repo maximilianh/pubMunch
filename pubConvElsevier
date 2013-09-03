@@ -39,7 +39,7 @@ to add them manually ("updated since=xxx"). More info on consyn.elsevier.com
 
 """)
 
-parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=3500) 
+parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=2000) 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
 parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
@@ -83,12 +83,10 @@ if not os.path.isdir(inDir):
     print "first parameter must be a directory"
     sys.exit(1)
 
-if options.cluster:
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
-else:
-    runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
+runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
 
+# if this fails, updates.tab will still be OK... maybe think about this one day...
 tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
 dbPath = join(outDir, "articles.db")
 pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

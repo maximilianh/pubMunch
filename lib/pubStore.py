@@ -124,7 +124,7 @@ def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=Non
         metaInfo["abstract"]=abstract
     return metaInfo
 
-def splitTabFileOnChunkId(filename, outDir, chunkSize=None):
+def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
     """ 
     use the chunkId field of a tab-sep file as the output filename.
     if chunkSize is specified, ignore the chunkId field and make sure that each piece
@@ -144,12 +144,14 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None):
     logging.info("Reading %s, splitting into pieces" % filename)
     data = {}
     i = 0
-    for row in maxCommon.iterTsvRows(filename):
-        if chunkSize==None:
+    for row in maxCommon.iterTsvRows(filename, encoding=None):
+        if chunkSize==None and chunkCount==None:
             chunkId = row.chunkId
-        else:
-            chunkId = i % chunkSize
-        data.setdefault(chunkId, []).append("\t".join(row)+"\n")
+        elif chunkSize!=None:
+            chunkId = "%05d" % (i / chunkSize)
+        elif chunkCount!=None:
+            chunkId = "%05d" % (i % chunkSize)
+        data.setdefault(str(chunkId), []).append("\t".join(row)+"\n")
         i += 1
 
     # write to outDir
@@ -158,7 +160,7 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None):
     for chunkIdString, lines in data.iteritems():
         outfname = os.path.join(outDir, chunkIdString)
         logging.debug("Writing to %s" % outfname)
-        fh = codecs.open(outfname, "w", encoding="utf8")
+        fh = open(outfname, "w")
         fh.write(headerLine)
         for line in lines:
             fh.write(line)
@@ -376,7 +378,9 @@ class PubWriterFile:
 
         self.fileFh.close()
         if self.articlesWritten==0:
-            logging.warn("No articles received, not writing anything")
+            logging.warn("No articles received, not writing anything, but a 0 sized file for parasol")
+            # just create a 0-size file for parasol
+            open(self.finalArticleName, "w")
             
         if self.filesWritten > 0 or keepEmpty:
             self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
@@ -706,6 +710,8 @@ control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 def replaceSpecialChars(string):
     " replace all special characters with space and linebreaks to \a = ASCII 7 = BELL"
+    if string==None:
+        return ""
     string = string.replace(u'\u2028', '\n') # one of the crazy unicode linebreaks
     string = "\n".join(string.splitlines()) # get rid of other crazy unicode linebreaks
     string = string.replace("\m", "\a") # old mac text files

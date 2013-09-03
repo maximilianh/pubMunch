@@ -1,6 +1,6 @@
 # Routines for reading/writing tables from/to textfiles or databases
 
-import sys, textwrap, operator, types, logging, re, os, collections, codecs, time, gzip
+import sys, textwrap, operator, types, logging, re, os, collections, codecs, time, gzip, shutil
 
 # jython doesn't have sqlite3
 try:
@@ -10,7 +10,7 @@ except ImportError:
 
 from types import *
 
-import maxCommon
+import maxCommon, pubGeneric
 
 # Routines for handling fasta sequences and tab sep files
 try:
@@ -587,8 +587,12 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
         tsvFnames = [tsvFnames]
     if os.path.isfile(dbFname):
         lockDb = False
+        finalDbFname = None
     else:
         lockDb = True
+        finalDbFname = dbFname
+        dbFname = pubGeneric.getFastUniqueTempFname()
+        logging.info("writing first to db on ramdisk %s" % dbFname)
     con, cur = openSqlite(dbFname, lockDb=lockDb)
 
     # drop old table 
@@ -619,6 +623,12 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     for idxSql in idxSqls:
         cur.execute(idxSql)
         con.commit()
+
+    con.close()
+
+    if finalDbFname!=None:
+        logging.info("moving over ramdisk db to %s" % dbFname)
+        shutil.move(dbFname, finalDbFname)
 
 def insertSqliteRow(cur, con, tableName, headers, row):
     " append a row to an sqlite cursor "

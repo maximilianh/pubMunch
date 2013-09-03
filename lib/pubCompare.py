@@ -3,7 +3,7 @@
 # Try to find PMID for an article by comparing fingerprints of article data against medline
 # fingerprints. 
 
-import logging, optparse, sys, os, marshal, unicodedata, gdbm, unidecode
+import logging, optparse, sys, os, marshal, unicodedata, gdbm, unidecode, gzip
 import pubGeneric, pubConf, maxCommon, pubStore
 from os.path import isfile, join
 
@@ -50,21 +50,32 @@ def getFingerprint1(row, withEIssn = False):
     logging.debug("fingerprint1: %s" % fprint)
     return remove_accents(fprint)
 
+def removePrefixes(famNameStr):
+    " remove these annoying prefixes from a family name"
+    for p in ["van ", "von ", "de ", "al ", "el ", "van der ", "de la", "des ", "du ", "van de ", \
+              "Van ", "Von ", "De ", "Al ", "El ", "Van der ", "De la", "Des ", "Du ", "Van de "]:
+        if p in famNameStr:
+            famNameStr = famNameStr.replace(p, "")
+            break
+    return famNameStr
+
 def getFingerprint2(row):
     """ fp2 is: first five authors, year, first and last word of title, separated by | 
     returns None if authors or title is too short or no year.
     """
-    if row.year=="":
+    if row.year=="" or row.title==None:
         return None
     authors = row.authors.split(";")
     authors = [x.strip() for x in authors]
-    famNames = [a.split(",")[0] for a in authors][:5]
+    famNames = [a.split(",")[0].lower() for a in authors][:5]
+    famNames = [removePrefixes(a) for a in famNames]
     famNameStr = "-".join(famNames).lower()
+    famNameStr = unidecode.unidecode(famNameStr)
     if len(famNameStr)<5:
         return None
     #famNameStr = remove_accents(famNameStr).lower()
     #page = row.page.split()[0].split("-")[0].split(",")[0]
-    title1 = row.title.split(".")[0]
+    title1 = row.title.strip("[]()\n ").split(".")[0]
     titleWords = title1.strip().strip(".").split()
     if len(titleWords) <= 3:
         return None
@@ -89,13 +100,15 @@ def addFprint(data, fprint, articleId):
 def lookupFprint(fprint, artMap, artIds):
     " lookup fprint in artMap dictionary, optionally join on artIds "
     if fprint==None:
+        logging.debug("fingerprint is empty")
         return None
     # does not work with gdmb:
     # artId = artMap.get(fprint, None) 
     # gdbm does not implement __contains__ so might be better to use has_key() instead of "in"
-    if artMap.has_key(fprint):
-        artId = artMap[fprint]
-    else:
+    #if artMap.has_key(fprint):
+    artId = artMap.get(fprint, None)
+    if artId==None:
+        logging.debug("No match for %s" % fprint)
         return None
 
     if artIds==None:
@@ -137,8 +150,38 @@ def createFingerprints(inDir, updateIds=None):
         count += 1
     return artIds, map0, map1, map2, noIssn, noIssuePage
 
+def writeDicts(mapList, outFname, articleIds):
+    """ mapList is a list of dictionaries fingerprint -> id and articleIds is a
+    dict id -> pmid. Write/Append a table fingerprint -> pmid to outFname and return offset
+    where we started to write. """
+    if isfile(outFname):
+        logging.info("Appending to %s" % outFname)
+        ofh = gzip.open(outFname, "a")
+        offset = ofh.tell()
+    else:
+        logging.info("Creating new file %s" % outFname)
+        ofh = gzip.open(outFname, "w")
+        ofh.write("#fingerprint\tpmid\n")
+        offset = 0
+
+    fprintType = 0
+    typeDesc = {0:"doi", 1:"issn|vol|issue|page", 2:"author|year|titlewords"}
+    for fprints in mapList:
+        
+        logging.info("Writing %d fingerprints, type %s" % (len(fprints), typeDesc[fprintType]))
+        pm = maxCommon.ProgressMeter(len(fprints))
+        for fprint, artId in fprints.iteritems():
+            artData = articleIds[int(artId)]
+            pmid = str(artData[-1])
+            ofh.write("%s\t%s\n" % (fprint, pmid))
+            pm.taskCompleted()
+        fprintType+=1
+    logging.info("Wrote %s" % outFname)
+    ofh.close()
+    return offset
+
 def addDictsToDbms(mapList, dbmList, articleIds):
-    " write fingerprints to dbm file as fingerprint -> pmid "
+    " write fingerprints to tab sep file as fingerprint -> pmid "
     assert(len(mapList)==len(dbmList))
     fprintType = 0
     for fprints, dbm in zip(mapList, dbmList):
@@ -152,32 +195,31 @@ def addDictsToDbms(mapList, dbmList, articleIds):
         fprintType+=1
 
 def openDbms(outDir, mode):
-    fnames = []
-    fnames.append( join(outDir, "doi2pmid.gdbm"))
-    fnames.append( join(outDir, "issnVolPage2pmid.gdbm"))
-    fnames.append( join(outDir, "authorTitle2pmid.gdbm"))
-    logging.info("Opening DBM files: %s" % str(fnames))
+    #fnames = []
+    #fnames.append( join(outDir, "doi2pmid.gdbm"))
+    #fnames.append( join(outDir, "issnVolPage2pmid.gdbm"))
+    #fnames.append( join(outDir, "authorTitle2pmid.gdbm"))
+    #logging.info("Opening DBM files: %s" % str(fnames))
+    #if not isfile(fnames[0]):
+        #logging.error("File not found: %s, PMID LOOKUP DEACTIVATED" % fnames[0])
+        #return None
 
-    dbms = []
-    for fname in fnames:
-        dbms.append(gdbm.open(fname, mode))
-    return dbms
+    #dbms = []
+    #for fname in fnames:
+        #dbms.append(gdbm.open(fname, mode))
+    fname = join(outDir, "fingerprints.tab.gz")
+    db = pubGeneric.getKeyValDb(fname)
+    return db
 
 def closeDbms(dbms):
     logging.info("Closing DBM files")
     for d in dbms:
         d.close()
 
-def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
-    " merge all fingerprints into existing out files in outDir "
-    # update the dbm files
-    logging.info("Writing fingerprint -> pmid as dbm")
-    dbms = openDbms(outDir, "wfu")
-    addDictsToDbms([map0, map1, map2], dbms, artIds)
-    closeDbms(dbms)
-
-    # update the marshal file
-    mapStoreFname = join(outDir, "fingerprints.marshal")
+def writeAsMarshal(map0, map1, map2, artIds, mapStoreFname):
+    """ marshal three dicts into a file. If the file exists,
+      merge them into the existing dicts first.
+    """
     if isfile(mapStoreFname):
         logging.info("Found %s, merging new fingerprints into old ones" % mapStoreFname)
         logging.info("Loading %s" % mapStoreFname)
@@ -201,6 +243,21 @@ def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
     ofh = open(mapStoreFname, "w")
     data = (map0, map1, map2, artIds)
     marshal.dump(data, ofh)
+    ofh.close()
+
+def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
+    " merge all fingerprints into existing out files in outDir "
+    # update the dbm files
+    #db = openDbms(outDir, "wfu")
+    outFname = join(outDir, "fingerprints.tab.gz")
+    #addDictsToDbms([map0, map1, map2], dbms, artIds)
+    offset = writeDicts([map0, map1, map2], outFname, artIds)
+    #closeDbms(dbms)
+    pubGeneric.indexKvFile(outFname, offset)
+
+    # update the marshal file
+    mapStoreFname = join(outDir, "fingerprints.marshal")
+    writeAsMarshal(map0, map1, map2, artIds, mapStoreFname)
 
 def createWriteFingerprints(textDir, updateIds=[]):
     " create fingerprints for all articles in textDir with given updateIds and save to this directory "
@@ -226,24 +283,28 @@ def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
     no match was found, for debugging.
     """
     # first try a lookup with just the DOI
+    logging.debug("Trying DOI lookup")
     fprint0   = getFingerprint0(articleData)
     matchData = lookupFprint(fprint0, map0, artIds)
     if matchData!=None:
         return matchData
 
     # then try a lookup with fingerprint1
+    logging.debug("Trying issn/vol/page")
     fprint1 = getFingerprint1(articleData)
     matchData = lookupFprint(fprint1, map1, artIds)
     if matchData!=None:
         return matchData
 
     # retry fingerprint1 with eIssn instead of printIssn
+    logging.debug("Trying eissn/vol/page")
     fprint1b = getFingerprint1(articleData, withEIssn=True)
     matchData = lookupFprint(fprint1b, map1, artIds)
     if matchData!=None:
         return matchData
 
     # if still no match (strange page numbers etc), try fingerprint2 
+    logging.debug("Trying authors,title,year")
     fprint2 = getFingerprint2(articleData)
     if fprint1==None and fprint1b==None and fprint2==None:
         logging.debug("All fingerprints failed: %s" % str(articleData))
@@ -253,7 +314,7 @@ def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
     matchData = lookupFprint(fprint2, map2, artIds)
     if matchData==None:
             noMatches.append(articleData)
-            logging.debug("No match at all: %s" % str(articleData))
+            logging.log(5, "No match at all: %s" % str(articleData))
             logging.debug("fingerprints: %s, %s, %s, %s" % (fprint0, fprint1, fprint1b, fprint2))
 
     return matchData
@@ -261,24 +322,28 @@ def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
 class PmidFinder:
     def __init__(self):
         textDir = pubConf.resolveTextDir("medline")
-        self.dbms = openDbms(textDir, "ru")
+        fname = join(textDir, "fingerprints.tab.gz")
+        self.db = pubGeneric.getKeyValDb(fname)
         self.noPrints = []
         self.noMatches = []
         
     def lookupPmid(self, articleDict):
         """ lookup the pmid on-disk using fingerprints in dbm files 
         """
+        if self.db==None:
+            logging.debug("no db, not returning any pmid")
+            return ""
         artTuple = pubStore.articleDictToTuple(articleDict)
-        pmid = lookupArtIds(artTuple, self.dbms[0], self.dbms[1], self.dbms[2], None, \
+        pmid = lookupArtIds(artTuple, self.db, self.db, self.db, None, \
             self.noPrints, self.noMatches)
         if pmid==None:
             pmid = ""
         return pmid
 
     def __exit__(self):
-        closeDbms(self.dbms)
+        self.db.close()
 
     def close(self):
-        closeDbms(self.dbms)
+        self.db.close()
 
     

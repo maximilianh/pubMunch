@@ -13,9 +13,17 @@ import pubGeneric, pubConf, maxCommon, pubCompare, pubStore
 
 def main(args, options):
     step, dataSet1 = args[:2]
-    dir1 = pubConf.resolveTextDir(dataSet1)
     pubGeneric.setupLogging("", options)
     updateIds = options.updateIds
+
+    if step=="testDoi":
+        pf = pubCompare.PmidFinder()
+        ad = pubStore.createEmptyArticleDict()
+        ad["doi"] = dataSet1
+        print "PMID:", pf.lookupPmid(ad)
+        sys.exit(0)
+
+    dir1 = pubConf.resolveTextDir(dataSet1)
 
     if step=="index":
         pubCompare.createWriteFingerprints(dir1, updateIds)
@@ -67,10 +75,11 @@ def main(args, options):
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <command> <sourceDataset> <targetDataset> - map between datasets by comparing fingerprints of papers. Source is usually Medline.
 
-step can either be 'index' or 'lookup'
+step can either be 'index' or 'lookup' or for testing 'testdoi' with a DOI
 
 'index' will create a file fingerprints.marshal in the source directory and also some dbms.
 'lookup' will read this file and create a file medline.ids.tab in target directory.
+'testdoi': to lookup a single doi or other fingerprint
 
 medline.ids.tab lists matching articles from both sets
 

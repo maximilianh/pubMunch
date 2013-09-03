@@ -18,7 +18,8 @@ def concatFiles(inFnames, outFile):
     outFile.flush() # cannot do close, otherwise temp file will get deleted
 
 def runCommand(cmd, ignoreErrors=False, verbose=False):
-    """ run command in shell, exit if not successful """
+    """ run command in shell, exit if not successful.
+    cmd can be a list or a string. """
     msg = "Running shell command: %s" % cmd
     print(msg)
 

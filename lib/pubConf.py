@@ -1,7 +1,7 @@
 from os.path import *
 
 # GENERAL SETTINGS   ================================================
-# baseDir for internal data, accessible from cluster (if there is one)
+# baseDir for internal data, accessible from cluster 
 # used for data created during pipeline runs
 pubsDataDir = '/hive/data/inside/pubs'
 
@@ -142,7 +142,7 @@ faDir = _pubsDir + "/fastaExport/"
 logDir = _pubsDir + "/log/"
 
 # head node of cluster
-clusterHeadNode = "swarm.cse.ucsc.edu"
+clusterHeadNode = "ku.sdsc.edu"
 # type of cluster, either parasol or sge
 clusterType = "parasol"
 
@@ -184,6 +184,7 @@ identifierStart = {
     "elsevier" : 2000000000,
     "springer" : 2500000000,
     "medline"  : 3000000000,
+    "bing"     : 3500000000,
     "genbank"  : 4000000000,
     "imgt"     : 4300000000,
     "pdfDir"   : 4400000000,
@@ -205,15 +206,17 @@ CONVERTERS = {
     "xls":"xls2csv $in > $out",
     "xlsx":"ssconvert $in $out",
     "ppt":"catppt $in > $out",
-    "htm":"html2text -nobs $in > $out",
+    "htm":"html2text -nobs $in | tr -s ' ' > $out",
+    "html":"html2text -nobs $in | tr -s ' ' > $out",
+    #"htm":"links -dump $in -dump-charset utf8 > $out",
+    #"html":"links -dump $in -dump-charset utf8 > $out",
     "csv":"COPY",
     "txt":"COPY",
     "asc":"COPY",
     "xml":"XMLTEXT",
     "nxml":"NXMLTEXT",
-    "html":"html2text -nobs $in > $out",
     "pdf":"pdftotext -q -nopgbrk -enc UTF-8 -eol unix $in $out",
-    "pdf2":"java -Xmx512m -jar /scratch/pdfbox/pdfbox-app-1.6.0.jar ExtractText $in $out -encoding utf8"
+    "pdf2":"java -Xmx512m -jar %(extToolDir)s/pdfbox-app-1.6.0.jar ExtractText $in $out -encoding utf8"
 }
 
 # sometimes (e.g. if downloaded from the web) we don't have a file extension, but only 

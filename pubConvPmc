@@ -586,10 +586,7 @@ chunkCount = options.chunkCount
 dryRun = options.dryRun
 
 pubGeneric.setupLogging(progFile, options)
-if options.cluster:
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
-else:
-    runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
+runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 
 if os.path.isdir(pmcDir):
     maxCommon.mustExistDir(outDir)

@@ -120,7 +120,7 @@ def main(args, options):
     if options.debug:
         pubMap.DEBUG=True
 
-    dataset, command = args
+    command, dataset = args
 
     allSteps = ["annot", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]

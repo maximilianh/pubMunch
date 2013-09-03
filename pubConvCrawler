@@ -159,10 +159,7 @@ def submitJobs(inDir, outDir, useCluster):
     donePmids = set([int(x) for x in pmids])
     logging.info("Found %d PMIDs that are already done" % (len(donePmids)))
 
-    if useCluster:
-        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
-    else:
-        runner = maxRun.Runner(maxJob=pubConf.convertMaxJob, clusterType="local")
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 
     tmpIndexDir = join(outDir, "jobfiles.tmp")
     tabExt = ".crawlArticles.tab"

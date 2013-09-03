@@ -13,9 +13,9 @@ except ImportError:
     import xml.etree.cElementTree as etree # this is the slower, python2.5 default package
 
 # ==== FUNCTIONs =====
-def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSize):
+def createIndexFile(inDir, inFnames, indexFilename, updateId, minId, chunkSize):
     """ 
-    write xml.Meta-filenames in zipfiles in inDir to indexFilename in format
+    write xml.Meta-filenames in inFnames in inDir to indexFilename in format
     (numId, chunkId, zipName, fileName), starting id is minId 
 
     returns the last articleId that was assigned
@@ -25,38 +25,53 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
     headers = ["articleId", "chunkId", "zipFilename", "filename"]
     indexFile.write("\t".join(headers)+"\n")
 
-    logging.debug("Processing these files in %s: %s" % (inDir, zipFilenames))
-    if len(zipFilenames)==0:
+    #logging.debug("Processing these files in %s: %s" % (inDir, inFnames))
+    if len(inFnames)==0:
         logging.info("Nothing to convert, all files are already marked done in updates.tab")
         sys.exit(0)
 
     numId = minId
     xmlCount = 0
     i = 0
-    for fname in zipFilenames:
-        zipFilename = join(inDir, fname)
-        logging.info("Indexing %s, %d files left" % (zipFilename, len(zipFilenames)-i))
+    plainXmlCount = 0
+    pm = maxCommon.ProgressMeter(len(inFnames))
+
+    for fname in inFnames:
+        inPath = join(inDir, fname)
         i+=1
-        try:
-            zipNames = zipfile.ZipFile(zipFilename).namelist()
-        except zipfile.BadZipfile:
-            logging.error("Bad zipfile: %s" % zipFilename)
-            continue
+        chunkId = ((numId-minId) / chunkSize)
+        chunkString = "%d_%05d" % (updateId, chunkId)
 
-        zipRelName = basename(zipFilename)
-        for fileName in zipNames:
-            if not fileName.endswith(".xml.Meta"):
+        if inPath.lower().endswith(".zip"):
+            logging.debug("Indexing %s" % (inPath))
+            zipFilename = inPath
+            # get all relevant names from zipfile
+            try:
+                zipNames = zipfile.ZipFile(zipFilename).namelist()
+            except zipfile.BadZipfile:
+                logging.error("Bad zipfile: %s" % zipFilename)
                 continue
-            xmlCount += 1
-
-            chunkId = ((numId-minId) / chunkSize)
-            chunkString = "%d_%05d" % (updateId, chunkId)
-            data = [str(numId), chunkString, zipRelName, fileName]
+            zipRelName = basename(zipFilename)
+            for fileName in zipNames:
+                if not fileName.endswith(".xml.Meta"):
+                    continue
+                xmlCount += 1
+                data = [str(numId), chunkString, zipRelName, fileName]
+                indexFile.write("\t".join(data)+"\n")
+                numId+=1
+        else:
+            # just append the filename to the index file
+            assert(fname.lower().endswith(".meta"))
+            data = [str(numId), chunkString, "", fname]
             indexFile.write("\t".join(data)+"\n")
             numId+=1
+            plainXmlCount += 1
+        pm.taskCompleted()
+
+
     indexFile.close()
-    logging.info("Processed %d zip files, with %d xml files" % \
-        (i, xmlCount))
+    logging.info("Processed %d zip files, with %d xml files in them, and %d plain xml files" % \
+        (i, xmlCount, plainXmlCount))
     return numId
 
 def submitJobs(runner, zipDir, splitDir, idFname, outDir):
@@ -66,7 +81,7 @@ def submitJobs(runner, zipDir, splitDir, idFname, outDir):
         outFname = os.path.join(outDir, chunkId+".articles.gz")
         maxCommon.mustNotExist(outFname)
         thisFilePath = __file__
-        command = "%s %s %s {check in line %s} {check in line %s} {check out exists+ %s}" % \
+        command = "%s %s %s {check in exists %s} %s {check out exists+ %s}" % \
             (sys.executable, thisFilePath, zipDir, chunkFname, idFname, outFname)
         runner.submit(command)
     runner.finish(wait=True)
@@ -82,6 +97,7 @@ def parseXml(tree, data):
     """
     use elementTree to parse Springer A++, fill dict data with results or None if not succesful
     """
+    logging.debug("Parsing Springer fields from tree")
     hasFulltext = False
 
     data["source"]          = "springer"
@@ -91,7 +107,11 @@ def parseXml(tree, data):
     data["eIssn"]           = findText(jiEl, "JournalElectronicISSN")
     data["journal"]         = findText(jiEl, "JournalTitle")
     subjGroupEl = jiEl.find("JournalSubjectGroup")
-    data["articleSection"]  = findText(subjGroupEl, "SubjectCollection")
+
+    keywords = []
+    if subjGroupEl!=None:
+        for kwEl in subjGroupEl.findall("JournalSubject"):
+            keywords.append(kwEl.text)
 
     volEl = journalEl.find("Volume/VolumeInfo")
     data["vol"]             = findText(volEl, "VolumeIDStart")
@@ -107,7 +127,11 @@ def parseXml(tree, data):
     artEl = journalEl.find("Volume/Issue/Article/ArticleInfo")
     doi = findText(artEl, "ArticleDOI")
     data["doi"]             = doi
-    data["title"]           = findText(artEl, "ArticleTitle")
+    titleEl = artEl.find("ArticleTitle")
+    if titleEl!=None:
+        data["title"]           = pubXml.treeToAsciiText(titleEl)
+    else:
+        data["title"] = ""
     data["articleType"]     = findText(artEl, "ArticleCategory")
     data["page"]            = findText(artEl, "ArticleFirstPage")
 
@@ -126,8 +150,11 @@ def parseXml(tree, data):
         givenNames = []
         for givenEl in authEl.findall("AuthorName/GivenName"):
             givenNames.append(givenEl.text)
+        givenNames = [x for x in givenNames if x!=None]
         givenName = " ".join(givenNames)
         famName = findText(authEl, "AuthorName/FamilyName")
+        if famName==None:
+            famName = ""
         name = famName+", "+givenName
         names.append(name)
 
@@ -135,6 +162,8 @@ def parseXml(tree, data):
         if emailEl!=None:
             emails.append(emailEl.text)
     data["authors"] = "; ".join(names)
+
+    emails = [e for e in emails if e!=None]
     data["authorEmails"] = "; ".join(emails)
 
     abEl = headEl.find("Abstract")
@@ -152,17 +181,21 @@ def parseXml(tree, data):
                     headCount += 1
                     continue
                 else:
-                    abParts.append("<b>"+childEl.text+": <b>")
-            if childEl.tag=="Para":
-                abParts.append(childEl.text+"<p>")
+                    # we are now in some sort of named section
+                    if childEl.text!=None:
+                        abParts.append("<b>"+childEl.text+": <b>")
+            elif childEl.tag=="Para":
+                abParts.append(pubXml.treeToAsciiText(childEl))
+                #abParts.append(childEl.text+"<p>")
         data["abstract"] = "".join(abParts).rstrip("<p>")
 
     kwGroupEl = headEl.find("KeywordGroup")
-    kwList = []
+    #keywords = []
     if kwGroupEl!=None:
         for kwEl in kwGroupEl.findall("Keyword"):
-            kwList.append(kwEl.text)
-    data["keywords"] = "; ".join(kwList)
+            keywords.append(kwEl.text)
+    keywords = [k.replace(";", ",") for k in keywords if k!=None]
+    data["keywords"] = "; ".join(keywords)
 
     data["publisher"] = "springer"
     data["externalId"] = data["doi"]
@@ -177,30 +210,8 @@ def createFileData(articleData, mimeType, asciiString):
     fileData["fileType"] = "main"
     return fileData
 
-def parseDoi2Pmid(baseDir):
-    " parse doi2pmid.tab.gz and return as dict "
-    fname = join(baseDir, "doi2pmid.tab.gz")
-    if not isfile(fname):
-        logging.info("Could not find %s, not adding external PMIDs" % fname)
-        return {}
-    else:
-        logging.info("Found %s, reading external PMIDs" % fname)
-    lines = gzip.open(fname)
-    data = {}
-    for line in lines:
-        line = line.strip()
-        fields = line.split("\t")
-        if len(fields)!=2:
-            logging.error("Could not parse line %s" % line)
-            continue
-        doi, pmid = fields
-        pmid = int(pmid)
-        data[doi]=pmid
-    return data
-
 def parseDoneIds(fname):
     " parse all already converted identifiers from inDir "
-    print fname
     doneIds = set()
     if os.path.getsize(fname)==0:
         return doneIds
@@ -210,11 +221,77 @@ def parseDoneIds(fname):
     logging.info("Found %d identifiers of already parsed files" % len(doneIds))
     return doneIds
             
+def getDiskData(diskDir, filename):
+    " return tuple (xmlString, pdfString) with contents of files, pull them out of disk dir "
+    xmlFname = abspath(join(diskDir, filename))
+    try:
+        xmlString = open(xmlFname).read()
+    except IOError:
+        logging.error("Could not open XML file %s, this should not happen" % xmlFname)
+        return None, None
+
+    xmlDir = dirname(xmlFname)
+    xmlBase = basename(xmlFname).replace(".xml.Meta","")
+    pdfFname = join(xmlDir, "BodyRef", "PDF", xmlBase+".pdf")
+    
+    if not isfile(pdfFname):
+        logging.error("Could not find pdf file %s, skipping article" % pdfFname)
+        return None, None
+    pdfString = open(pdfFname).read()
+
+    logging.debug("Returning contents of %s and %s" % (xmlFname, pdfFname))
+    return xmlString, pdfString
+
+#lastZipFname = None
+#zipFile = None
+
+def zipExtract(tmpDir, zipName, filename):
+    """ extract filename in zipName to tmpDir, delete tmpfile and return as string 
+    thought that this was faster than python's zipfile, but it isn't
+    """
+    cmd = ["unzip", "-d", tmpDir, zipName, filename]
+    ret = maxCommon.runCommand(cmd, ignoreErrors=True)
+    if ret!=0:
+        return None
+    tmpFname = join(tmpDir, filename)
+    data = open(tmpFname).read()
+    os.remove(tmpFname)
+    return data
+
+def getUpdateData(tmpDir, zipDir, zipFilename, filename):
+    " return tuple (xmlString, pdfString) with contents of files, pull them out of update zips "
+    # construct pdf filename from xml filename
+    xmlDir = dirname(filename)
+    xmlBase = basename(filename).split(".")[0]
+    pdfFname = join(xmlDir, "BodyRef", "PDF", xmlBase+".pdf")
+
+    # open xml and pdf files from zipfile
+    global lastZipFname
+    global zipFile
+    zipPath = join(zipDir, zipFilename)
+    #if lastZipFname!=zipPath:
+        #logging.debug("Opening %s" % zipPath)
+        #zipFile = zipfile.ZipFile(zipPath)
+    logging.debug("Extracting %s, file %s" % (zipPath, filename))
+    #xmlString = zipFile.read(filename)
+    xmlString = zipExtract(tmpDir, zipPath, filename)
+    pdfString = zipExtract(tmpDir, zipPath, pdfFname)
+    #try:
+        #logging.debug("Extracting %s, file %s" % (zipPath, pdfFname))
+        #pdfString = zipFile.read(pdfFname)
+    #except KeyError:
+    if pdfString==None:
+        logging.error("Could not find pdf file %s, skipping article" % pdfFname)
+        return None, None
+    return xmlString, pdfString
+
 def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     """ 
     get files from inIndexFile, parse Xml, 
     write everything to outfile in ascii format
     """ 
+    diskDir = abspath(join(zipDir, "..", "disk"))
+
     store = pubStore.PubWriterFile(outFile)
 
     # read all already done IDs
@@ -228,6 +305,9 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
 
     pmidFinder = pubCompare.PmidFinder()
 
+    unzipTmp = pubGeneric.makeTempDir(prefix="pubConvSpringerUnzip", tmpDir=pubConf.getFastTempDir())
+    maxCommon.delOnExit(unzipTmp)
+
     i = 0
     inRows = list(maxCommon.iterTsvRows(inIndexFile))
     logging.info("Converting %d files" % len(inRows))
@@ -239,33 +319,29 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
         articleId = row.articleId
         zipFilename, filename = row.zipFilename, row.filename
         
-        # construct pdf filename from xml filename
-        xmlDir = dirname(filename)
-        xmlBase = basename(filename).split(".")[0]
-        pdfFname = join(xmlDir, "BodyRef", "PDF", xmlBase+".pdf")
+        articleData = pubStore.createEmptyArticleDict(publisher="springer")
+        if zipFilename=="":
+            xmlString, pdfString = getDiskData(diskDir, filename)
+            articleData["origFile"] = filename
+        else:
+            xmlString, pdfString = getUpdateData(unzipTmp, zipDir, zipFilename, filename)
+            articleData["origFile"] = zipFilename+":"+filename
+
+        if pdfString==None:
+            pdfNotFound+=1
+            logging.error("Could not open pdf or xml file")
+            continue
 
         articleId=int(articleId)
 
-        # open xml and pdf files from zipfile
-        fullZipPath = join(zipDir, zipFilename)
-        zipFile = zipfile.ZipFile(fullZipPath)
-        logging.debug("Parsing %s, file %s, %d files left" % (fullZipPath, filename, len(inRows)-i))
-        xmlString = zipFile.open(filename).read()
-        try:
-            pdfString = zipFile.open(pdfFname).read()
-        except KeyError:
-            logging.error("Could not find pdf file %s, skipping article" % pdfFname)
-            pdfNotFound += 1
-            continue
-
         # parse xml
+        logging.debug("Parsing XML")
         try:
             xmlTree   = pubXml.etreeFromXml(xmlString)
         except lxml.etree.XMLSyntaxError:
             logging.error("XML parse error, skipping file %s, %s" % (zipFilename, filename))
             continue
 
-        articleData = pubStore.createEmptyArticleDict(publisher="springer")
         articleData = parseXml(xmlTree, articleData)
 
         if articleData==None:
@@ -281,6 +357,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
 
         # convert pdf to ascii
         fileData = createFileData(articleData, "application/pdf", pdfString)
+        logging.debug("converting pdf to ascii")
         pubGeneric.toAscii(fileData, "application/pdf")
 
         # write to output
@@ -318,8 +395,26 @@ def concatDois(inDir, outDir, outFname):
 
     return outPath
     
-def createChunksSubmitJobs(zipDir, outDir, minId, runner, chunkSize):
-    """ submit jobs to convert ZIP files from zipDir to outDir
+def parseDiskFnames(diskDir):
+    " parse fileList.txt in diskDir "
+    listFname = join(diskDir, "fileList.txt")
+    if not isfile(listFname):
+        raise Exception("Could not find %s. Please run 'find | grep Meta$ > fileList.txt' in %s." \
+            % (listFname, diskDir))
+
+    logging.info("Parsing %s" % listFname)
+    fnames = []
+    for line in open(listFname):
+        line = line.rstrip("\n")
+        if line.endswith(".Meta"):
+            fnames.append(line)
+    logging.info("Found %d XML files in disk directory" % len(fnames))
+    return fnames
+            
+
+    
+def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
+    """ submit jobs to convert zip and disk files from inDir to outDir
         split files into chunks and submit chunks to cluster system
         write first to temporary dir, and copy over at end of all jobs
         This is based on pubConvElsevier.py
@@ -327,25 +422,36 @@ def createChunksSubmitJobs(zipDir, outDir, minId, runner, chunkSize):
     maxCommon.mustExistDir(outDir)
 
     updateId, minId, alreadyDoneFiles = pubStore.parseUpdatesTab(outDir, minId)
-    #if chunkSize==None:
-        #chunkSize  = pubStore.guessChunkSize(outDir)
     assert(chunkSize!=None)
 
     finalOutDir= outDir
     outDir     = tempfile.mktemp(dir = outDir, prefix = "springerUpdate.tmp.")
     os.mkdir(outDir)
 
-    inFiles = os.listdir(zipDir)
-    inFiles = [x for x in inFiles if x.endswith(".zip")]
-    # keep order of input of input files for first run
-    if len(alreadyDoneFiles)!=0:
-        processFiles = set(inFiles).difference(alreadyDoneFiles)
+    # getting filenames from the disk
+    diskDir = join(inDir, "disk")
+    if int(updateId)==0 and isdir(diskDir):
+        inDiskFiles = parseDiskFnames(diskDir)
     else:
-        processFiles = inFiles
+        logging.info("Not first update or no directory %s, not parsing files from springer disk" % diskDir)
+
+    # getting filenames from the updates
+    zipDir = join(inDir, "updates")
+    inZipFiles = os.listdir(zipDir)
+    inZipFiles = [x for x in inZipFiles if x.endswith(".zip")]
+    logging.info("Found %d update zip files" % len(inZipFiles))
+    # keep order of input files for first run
+
+    if len(alreadyDoneFiles)==0:
+        processFiles = inDiskFiles+inZipFiles
+    else:
+        processFiles = set(inZipFiles).difference(alreadyDoneFiles)
 
     if len(processFiles)==0:
         logging.info("All updates done, not converting anything")
         return None
+    else:
+        logging.info("Total number of files to convert: %d" % (len(processFiles)))
 
     indexFilename = join(outDir, "%d_index.tab" % updateId)
     maxArticleId  = createIndexFile(zipDir, processFiles, indexFilename, updateId, minId, chunkSize)

@@ -1,8 +1,46 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil
+    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil, atexit
 from types import *
 from os.path import isfile, isdir
 from collections import defaultdict
+
+tmpDirs = []
+
+def delTemp():
+    for tmpDir in tmpDirs:
+        if tmpDir!=None and isdir(tmpDir):
+            logging.info("Deleting dir+subdirs %s" % tmpDir)
+            shutil.rmtree(tmpDir)
+        elif tmpDir!=None and isfile(tmpDir):
+            logging.info("Deleting file %s" % tmpDir)
+            os.remove(tmpDir)
+        else:
+            # has already been deleted
+            pass
+
+def delOnExit(path):
+    "make sure that path or file gets deleted upon program exit"
+    global tmpDirs
+    atexit.register(delTemp)
+    tmpDirs.append(path)
+
+def which(program):
+    import os
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
 
 def errAbort(text):
     raise Exception(text)
@@ -185,14 +223,16 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
 
     if isinstance(inFile, str):
         if inFile.endswith(".gz") or isGzip:
-            zf = gzip.open(inFile, 'rb')
-            reader = codecs.getreader(encoding)
-            fh = reader(zf)
+            #zf = gzip.open(inFile, 'rb')
+            fh = gzip.open(inFile, 'rb')
+            #reader = codecs.getreader(encoding)
+            #fh = reader(zf)
         else:
-            if encoding!=None:
-                fh = codecs.open(inFile, encoding=encoding)
-            else:
-                fh = open(inFile)
+            fh = open(inFile)
+            #if encoding!=None:
+                #fh = codecs.open(inFile, encoding=encoding)
+            #else:
+                #fh = open(inFile)
     else:
         fh = inFile
 
@@ -222,6 +262,8 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             continue
         line = line.strip("\n")
         fields = line.split(fieldSep)
+        if encoding!=None:
+            fields = [f.decode(encoding) for f in fields]
         #fields = [x.decode(encoding) for x in fields]
         if fieldTypes:
             fields = [f(x) for f, x in zip(fieldTypes, fields)]
@@ -233,7 +275,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             logging.error("Line was: %s" % line)
             logging.error("Does number of fields match headers?")
             logging.error("Headers are: %s" % headers)
-            sys.exit(1)
+            raise Exception("wrong field count")
         # convert fields to correct data type
         yield rec
 
@@ -317,8 +359,8 @@ def iterTsvJoin(files, **kwargs):
 
 def runCommand(cmd, ignoreErrors=False, verbose=False):
     """ run command in shell, exit if not successful """
-    if type(cmd)==types.ListType:
-        cmd = " ".join(cmd)
+    #if type(cmd)==types.ListType:
+        #cmd = " ".join(cmd)
     msg = "Running shell command: %s" % cmd
     logging.debug(msg)
     if verbose:
@@ -328,13 +370,17 @@ def runCommand(cmd, ignoreErrors=False, verbose=False):
         ret = os.system(cmd)
     elif type(cmd)==types.ListType:
         ret = subprocess.call(cmd)
+        cmd = " ".join(cmd) # for debug output
+    else:
+        assert(False) # has to be called with string or list
 
     if ret!=0:
         if ignoreErrors:
-            logging.info("Could not run command %s" % cmd)
-            logging.info("Error message ignored, program will continue")
+            logging.info("Could not run command %s, retcode %s" % (cmd, str(ret)))
+            return None
         else:
             raise Exception("Could not run command (Exitcode %d): %s" % (ret, cmd))
+    return ret
 
 def makedirs(path, quiet=False):
     try:

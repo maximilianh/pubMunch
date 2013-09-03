@@ -105,7 +105,7 @@ def submitJobs(runner, zipDir, chunkIds, splitDir, idFname, outDir):
         outFname = os.path.join(outDir, chunkId+".articles.gz")
         maxCommon.mustNotExist(outFname)
         thisFilePath = __file__
-        command = "%s %s %s {check in line %s} {check in line %s} {check out exists+ %s}" % (sys.executable, thisFilePath, zipDir, idFname, chunkFname, outFname)
+        command = "%s %s %s {check in line %s} {check in line %s} {check out exists %s}" % (sys.executable, thisFilePath, zipDir, idFname, chunkFname, outFname)
         runner.submit(command)
     runner.finish(wait=True)
 
@@ -487,9 +487,11 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
         chunkSize  = pubStore.guessChunkSize(outDir)
     assert(chunkSize!=None)
 
+    # create temp dir
     finalOutDir= outDir
-    outDir     = tempfile.mktemp(dir = outDir, prefix = "elsevierUpdate.tmp.")
+    outDir     = tempfile.mktemp(dir = outDir, prefix = "elsevierUpdate%s.tmp." % str(updateId))
     os.mkdir(outDir)
+    maxCommon.delOnExit(outDir)
 
     inFiles = os.listdir(inDir)
     inFiles = [x for x in inFiles if x.endswith(".ZIP")]

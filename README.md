@@ -151,12 +151,13 @@ write the result to a tab-sep table with columns "pmid" and "textLen".
 # Installation
 
 Install these packages in ubuntu:
-    sudo apt-get install catdoc poppler-utils docx2text gnumeric
+    sudo apt-get install catdoc poppler-utils docx2text gnumeric python-lxml
 
 - catdoc contains various converters for Microsoft Office files
 - poppler-utils contains the pdftotext converter
 - docx2text is a perl script for docx files
 - gnumeric includes the ssconvert tools for xslx Excel files
+- python-lxml is a fast xml/html parser
 
 If regular-expression based text annotation is too slow:
 The re2 library will make it at least 10 times faster. It is a regular expression engine that avoids backtracking as far as possible, developed originally at Google. To install it, you need to download the C++ source from re2.googlecode.com, compile and install it

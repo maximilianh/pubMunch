@@ -45,12 +45,12 @@ Or alternatively with something like:
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
 parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserver space for x entries in numerical namespace, default %default", default=300000) 
 parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
-parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
+#parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
-def submitJobs(inDir, outDir, minId, idStep, useCluster):
+def submitJobs(inDir, outDir, minId, idStep, headNode):
     " create one job per input medline file, process only new files "
     flagFnames = glob.glob(join(inDir, "newVersion.*"))
     assert(len(flagFnames))<=1
@@ -80,10 +80,7 @@ def submitJobs(inDir, outDir, minId, idStep, useCluster):
         sys.exit(1)
 
     doneFiles = set(doneFiles)
-    if useCluster:
-        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob)
-    else:
-        runner = maxRun.Runner(maxJob=pubConf.convertMaxJob)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 
     chunkArticleId = firstArticleId
     chunkId = 0
@@ -139,7 +136,18 @@ def convertOneChunk(fileMinId, inFile, outFile):
 if options.parse!=None:
     fname = options.parse
     xmlString = open(fname).read()
+    xmlString = xmlString.replace("&lt;", "<").replace("&gt;", ">")
+    xmlString = xmlString.replace("<pre>", "").replace("</pre>", "")
+    xmlLines  = xmlString.split("\n")
+    xmlLines  = [x for x in xmlLines if not x.startswith("<!")]
+    xmlString = "\n".join(xmlLines)
+    print xmlString
+    # input file can come from medline or pubmed, try medline
     for articleData in pubPubmed.parsePubmedMedlineIter(xmlString, fromMedline=True):
+        for key, val in articleData.iteritems():
+            print key, val.encode("utf8")
+    # try pubmed
+    for articleData in pubPubmed.parsePubmedMedlineIter(xmlString):
         for key, val in articleData.iteritems():
             print key, val.encode("utf8")
     sys.exit(0)
@@ -163,6 +171,11 @@ if os.path.isdir(inDir):
     updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
     pubCompare.createWriteFingerprints(outDir, updateIds = [updateId])
 
+    # write article info into sql db
+    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+    dbPath = join(outDir, "articles.db")
+    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+
 else:
     inFile = inDir
     outFile = outDir
@@ -170,7 +183,3 @@ else:
     convertOneChunk(int(chunkMinId), inFile, outFile)
 
 
-if options.updateDb:
-    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-    dbPath = join(outDir, "articles.db")
-    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

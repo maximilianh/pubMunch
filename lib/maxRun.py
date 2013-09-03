@@ -5,6 +5,7 @@
 # system and then calling the function (see main() and submitPythonFunc)
 
 import os, sys, logging, shutil, types, optparse, multiprocessing, subprocess, shlex, time
+import pubGeneric
 from os.path import isfile, join
 
 def removeFinishedProcesses(processes):
@@ -21,6 +22,21 @@ def removeFinishedProcesses(processes):
         else:
             logging.info("Command %s completed successfully" % pollCmd)
     return newProcs
+
+def removeParasolTags(command):
+    " removes the special parasol check tags from a command "
+    removeTags = [ "}",
+        "{check in line",
+        "{check out line+",
+        "{check out line",
+        "{check out exists+",
+        "{check out exists",
+        "{check in exists+",
+        "{check in exists"
+        ]
+    for tag in removeTags:
+        command = command.replace(tag, "")
+    return command
 
 class Runner:
     """
@@ -147,19 +163,9 @@ class Runner:
         if type(command)==types.ListType:
             command = " ".join(command)
 
-        if self.clusterType in ["sge", "local", "smp"]:
+        if self.clusterType != "parasol":
             # remove parasol tags
-            removeTags = [ "}",
-                "{check in line",
-                "{check out line+",
-                "{check out line",
-                "{check out exists+",
-                "{check out exists",
-                "{check in exists+",
-                "{check in exists"
-                ]
-            for tag in removeTags:
-                command = command.replace(tag, "")
+            command = removeParasolTags(command)
 
         if self.clusterType=="sge":
             options = ""
@@ -189,9 +195,21 @@ class Runner:
             self.jobListFh.write("\n")
 
     def submitPythonFunc(self, moduleName, funcName, params, jobName=None):
-        """ this will call our wrapper to run a python function instead of 
-        an executable program. The list of parameters should not contain any special characters (=only filenames)
+        """ 
+        Submit a cluster job to run a python function with some parameters.
+
+        This will call this module (see main() below) to run a python function instead of 
+        an executable program. 
+        The list of parameters should not contain any special characters (=only filenames)
+        By default, searches moduleName in the same path as this module is located.
         """
+
+        if not isfile(moduleName):
+            libDir = os.path.dirname(__file__)
+            moduleName = join(libDir, moduleName)
+            assert(isfile(moduleName))
+        if self.clusterType!="parasol":
+            params = [removeParasolTags(p) for p in params]
         command = " ".join([sys.executable, __file__ , moduleName, funcName, " ".join(params)])
         # will to resolve to something like:
         # /usr/bin/python <dir>/maxRun.py myMod myFunc hallo test
@@ -309,13 +327,17 @@ def testCall(text):
 def main():
     " this is the wrapper called by the submitPythonFunc() function "
     parser = optparse.OptionParser("%s pythonFile functionName param1 param2 ... - call function with params, this is supposed to be used from a batch system to call python functions")
+    pubGeneric.addGeneralOptions(parser)
     (options, args) = parser.parse_args()
+    pubGeneric.setupLogging(__file__, options)
 
     modName, methodName = args[:2]
     params = args[2:]
 
     mod = loadModule(modName)
+    assert(mod!=None) # module not found?
     func = mod.__dict__.get(methodName)
+    assert(func!=None) # function not found?
     func(*params)
 
 def test():

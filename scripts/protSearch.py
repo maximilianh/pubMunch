@@ -82,9 +82,11 @@ class UpcaseCounter:
                 else:
                     results[word].add(file.fileId)
 
-    def reduce(self, word, articleIds):
+    def reduce(self, word, artSets):
         sum = 0
-        articleIds = set(articleIds)
+        articleIds = set()
+        for artSet in artSets:
+            articleIds.update(artSet)
         if len(word)<MINLEN:
             yield None
         if len(articleIds)<MINCOUNT:

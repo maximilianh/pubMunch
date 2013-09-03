@@ -1,4 +1,4 @@
-import os, sys, logging, traceback
+import os, sys, logging, traceback, re
 
 # load lxml parser
 try:
@@ -41,17 +41,22 @@ def recursiveToAscii(tree, _addtail=True, addNewlineTags=None):
             result.append("\n")
     if tree.text is not None:
         result.append(" ")
-        result.append(tree.text.replace("\t", "").replace("\n", ""))
+        result.append(tree.text.replace("\t", "").replace("\n", "").strip())
     for elem in tree:
         result.extend(recursiveToAscii(elem,True, addNewlineTags))
     if _addtail and tree.tail is not None:
         result.append(" ")
-        result.append(tree.tail.replace("\t","").replace("\n", ""))
+        result.append(tree.tail.replace("\t","").replace("\n", "").strip())
     return result
 
-def pmcAbstractToHtml(element):
-    " substitute some common PMC-xml elements with normal html that make sense "
-    xmlStr = etree.tostring(element)
+def pmcCleanXmlStr(xmlStr):
+    """ 
+    substitute some common PMC-xml elements with normal html that makes more sense 
+    
+    >>> pmcCleanXmlStr("<abstract namespace=nonsense>Hi there</abstract>")
+    'Hi there'
+
+    """
     xmlStr = xmlStr.replace("<sec>","<p>")
     xmlStr = xmlStr.replace("</sec>","</p>")
     xmlStr = xmlStr.replace("<title>","<b>")
@@ -61,9 +66,17 @@ def pmcAbstractToHtml(element):
     xmlStr = xmlStr.replace("<bold>","<b>")
     xmlStr = xmlStr.replace("</bold>","</b>")
     xmlStr = xmlStr.replace("<abstract>","")
-    xmlStr = xmlStr.replace('<abstract xmlns:xlink="http://www.w3.org/1999/xlink">',"") # bad hack
+    #xmlStr = xmlStr.replace('<abstract xmlns:xlink="http://www.w3.org/1999/xlink">',"") # bad hack
+    xmlStr = re.sub(r'<abstract [^>]+>', '', xmlStr) # another bad hack
     xmlStr = xmlStr.replace("</abstract>","")
     return xmlStr
+
+def pmcAbstractToHtml(element):
+    """ substitute some common PMC-xml elements with normal html that make sense 
+    
+    """
+    xmlStr = etree.tostring(element)
+    return pmcCleanXmlStr(xmlStr)
 
 def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
     """ Takes a parsed ET structure and does an in-place removal of all namespaces,
@@ -203,3 +216,7 @@ def findChildren(tree, path, convertToAscii=False, reqAttrName=None, reqAttrValu
 
 def toXmlString(element):
     return etree.tostring(element)
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

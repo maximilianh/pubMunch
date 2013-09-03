@@ -4,12 +4,19 @@
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
     glob, operator, doctest, ftplib, random, shutil
 import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables
-import leveldb
 from os.path import *
 
+import sqlite3 as sqlite
+
+try:
+    import leveldb
+except:
+    pass
+
+# global var for the current headnode as specified on command line
 forceHeadnode = None
 
-# for countBadChars
+# some data for countBadChars
 all_chars = (unichr(i) for i in xrange(0x110000))
 specCodes = set(range(0,32))
 goodCodes = set([7,9,10,11,12,13]) # BELL, TAB, LF, NL, FF (12), CR are not counted
@@ -17,30 +24,125 @@ badCharCodes = specCodes - goodCodes
 control_chars = ''.join(map(unichr, badCharCodes))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
+def getFastUniqueTempFname():
+    " create unique tempdir on ramdisk, delete on exit "
+    tempFname = tempfile.mktemp(dir=pubConf.getFastTempDir)
+    maxCommon.delOnExit(tempFname)
+    return tempFname
+
 class Timeout(Exception):
     pass
 
+class SqliteKvDb(object):
+    """ wrapper around sqlite to create an on-disk key/value database
+        On ramdisk, this can write 40k pairs / sec, tested on 40M pairs
+    """
+    def __init__(self, fname, singleProcess=False, newDb=False):
+        self.finalDbName = None
+        self.dbName = "%s.sqlite" % fname
+        if newDb and isfile(self.dbName):
+            os.remove(self.dbName)
+        isolLevel = None
+        self.singleProcess = singleProcess
+        if singleProcess:
+            isolLevel = "exclusive"
+        if not os.path.isfile(self.dbName):
+            # create a new temp db on ramdisk
+            self.finalDbName = self.dbName
+            self.dbName = join(pubConf.getFastTempDir(), basename(self.dbName))
+            if isfile(self.dbName):
+                os.remove(self.dbName)
+            maxCommon.delOnExit(self.dbName)
+            self.con = sqlite.connect(self.dbName, isolation_level=isolLevel)
+            self.con.execute("create table IF NOT EXISTS data (key PRIMARY KEY,value)")
+        else:
+            self.con = sqlite.connect(self.dbName)
+
+        self.cur = self.con
+        if singleProcess:
+            self.cur.execute("PRAGMA synchronous=OFF") # recommended by
+            self.cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
+            self.cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+            self.cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
+            self.cur.execute("PRAGMA temp_store=memory") 
+            self.con.commit()
+    
+    def get(self, key, default):
+        try:
+            val = self[key]
+        except KeyError:
+            val = default
+        return val
+
+    def __contains__(self, key):
+        row = self.con.execute("select key from data where key=?",(key,)).fetchone()
+        return row!=None
+    
+    def __getitem__(self, key):
+        row = self.con.execute("select value from data where key=?",(key,)).fetchone()
+        if not row: raise KeyError
+        return row[0]
+    
+    def __setitem__(self, key, item):
+        logging.debug("Writing %s, %s" % (key, item))
+        if self.con.execute("select key from data where key=?",(key,)).fetchone():
+            self.con.execute("update data set value=? where key=?",(item,key))
+        else:
+            self.con.execute("INSERT OR REPLACE INTO data (key,value) VALUES (?,?)",(key, item))
+
+        self.con.commit()
+               
+    def __delitem__(self, key):
+        if self.con.execute("select key from data where key=?",(key,)).fetchone():
+            self.con.execute("delete from data where key=?",(key,))
+            self.con.commit()
+        else:
+             raise KeyError
+             
+    def addAll(self, keyValPairs):
+        sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
+        self.cur.executemany(sql, keyValPairs)
+        self.con.commit()
+        
+    def update(self, keyValPairs):
+        self.addAll(keyValPairs)
+
+    def keys(self):
+        return [row[0] for row in self.con.execute("select key from data").fetchall()]
+
+    def close(self):
+        if self.finalDbName!=None:
+            logging.info("Copying %s to %s" % (self.dbName, self.finalDbName))
+            shutil.copy(self.dbName, self.finalDbName)
+            os.remove(self.dbName)
+
 class LevelDb(object):
-    " wrapper around leveldb, store and query key/val pais "
-    def __init__(self, fname, sync=False, newDb=False):
+    """ wrapper around leveldb, store and query key/val pais.
+    Not very useful, as it always locks the database, only one process can read!!
+    """
+    def __init__(self, fname, singleProcess=False, newDb=False):
         self.dbName = fname+".levelDb"
         if newDb and isdir(self.dbName):
             logging.debug("Removing %s" % self.dbName)
             shutil.rmtree(self.dbName)
         logging.debug("Opening %s with leveldb" % self.dbName)
         self.db = leveldb.LevelDB(self.dbName)
-        self.sync = sync
+        self.sync = not singleProcess
 
     def put(self, key, val):
         return self.db.Put(key, val, sync=self.sync)
         
-    def get(self, key):
+    def get(self, key, default=None):
         try:
-            val = self.db.Get(key, sync=self.sync)
+            val = self.db.Get(key)
         except KeyError:
-            val = None
+            val = default
         return val
     
+    def has_key(self, key):
+        # old python way
+        self.__contains__(key)
+
     def __contains__(self, key):
         try:
             self.db.Get(key)
@@ -57,15 +159,25 @@ class LevelDb(object):
             val=""
         return self.db.Put(key, val, sync=self.sync)
 
-def getKeyValDb(dbName, newDb=False):
-    " factory placeholder if we want to change leveldb to sth else one day "
-    return LevelDb(dbName, newDb=newDb)
+    def close(self):
+        pass
 
-def indexKvFile(fname):
+def getKeyValDb(dbName, newDb=False, singleProcess=False):
+    " factory placeholder if we want to change leveldb to sth else one day "
+    #return LevelDb(dbName, newDb=newDb)
+    # possible candidates: redis, mdb, cdb, hamsterdb
+    return SqliteKvDb(dbName, newDb=newDb, singleProcess=singleProcess)
+
+def indexKvFile(fname, startOffset=0):
     " load a key-value tab-sep file with two fields into a key-value DB "
-    db  = getKeyValDb(fname, newDb=True)
+    db  = getKeyValDb(fname, singleProcess=True)
     ifh = maxTables.openFile(fname)
+    ifh.seek(startOffset)
     i = 0
+    logging.info("Indexing %s to db %s" % (fname, db.dbName))
+    chunkSize = 100000
+            
+    pairs = []
     for line in ifh:
         if line.startswith("#"):
             continue
@@ -79,14 +191,21 @@ def indexKvFile(fname):
         else:
             raise Exception("cannot load more than two fields or empty line")
 
-        if i%50000==0:
+        pairs.append ( (key, val) )
+
+        if i%chunkSize==0:
+            db.addAll(pairs)
             logging.info("Wrote %d records..." % i)
-        db[key] = val
+            pairs = []
+        #db[key] = val
         i+=1
+    if len(pairs)!=0:
+        db.addAll(pairs)
+    db.close()
     logging.info("Wrote %d records into db %s" % (i, db.dbName))
 
 def createDirRace(dirPath):
-    """ create a directory, trying to fix race conditions """
+    """ create a directory on a cluster node, trying to fix race conditions """
     if not os.path.isdir(dirPath):
         time.sleep(random.randint(1,3)) # make sure that we are not all trying to create it at the same time
         if not os.path.isdir(dirPath):
@@ -96,8 +215,8 @@ def createDirRace(dirPath):
                 logging.debug("Ignoring OSError, directory %s seems to exist already" % dirPath)
 
 def getFromCache(fname):
-    """ Given a network path, try to find a copy of this file on the local temp disk.
-    Return the path on the local disk. If there is no copy yet, copy it over first.
+    """ Given a network path, try to find a copy of this file on the local temp disk of a cluster node.
+    Return the path on the local disk. If there is no copy yet, copy it over and return the path.
     """
     locCacheDir = join(pubConf.getTempDir(), "fileCache")
     createDirRace(locCacheDir)
@@ -107,15 +226,17 @@ def getFromCache(fname):
         return locPath
     # it doesn't exist
     #fobj, locTmpName = makeTempFile(prefix=basename(fname), suffix=".tmp")
+    # copy over to local temp name, takes a while
     locTmpName = tempfile.mktemp(prefix=basename(fname), suffix=".tmp")
     time.sleep(random.randint(1,3)+random.random()) # let's add some randomness
     logging.debug("Copying %s to %s" % (fname, locTmpName))
     shutil.copy(fname, locTmpName)
-    # maybe another process copied it over by now
+    # if another process copied it over by now: roll back
     if isfile(locPath):
         #fobj.close() # = delete
         os.remove(locTmpName)
         return locPath
+    # move on local node to final name
     logging.debug("Moving %s to %s" % (locTmpName, locPath))
     shutil.move(locTmpName, locPath)
     return locPath
@@ -175,6 +296,7 @@ def verboseFunc(message):
     logging.log(5, message)
 
 def addGeneralOptions(parser, noCluster=False):
+    """ add options that most cmd line programs accept to optparse parser object """
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
     if not noCluster:
@@ -184,7 +306,7 @@ def addGeneralOptions(parser, noCluster=False):
 def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
         debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
-    if "cluster" in options.__dict__ and options.cluster!=None:
+    if options!=None and "cluster" in options.__dict__ and options.cluster!=None:
         global forceHeadnode
         # for makeClusterRunner
         forceHeadnode = options.cluster
@@ -227,7 +349,7 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
     logging.getLogger('').addHandler(console)
 
 def printOut(stdout, stderr):
-    """ send stdout and stderr to logging """
+    """ send two strings to logging """
     if len(stdout)!=0:
         logging.debug("stdout: %s" % stdout)
     if len(stderr)!=0:
@@ -238,8 +360,9 @@ def printOut(stdout, stderr):
             logging.info("stderr: %s" % stderr)
 
 def runConverter(cmdLine, fileContent, fileExt, tempDir):
-    """ create in and output files, write data to infile, run command. file can be supplies
-    as a str in fileContent or as a pathname via locFname"""
+    """ create local temp in and output files, write data to infile, run
+    command. file can be supplied as a str in fileContent["content"] or
+    alternatively as a pathname via 'locFname' """
     # create temp file
     fd, inFname = tempfile.mkstemp(suffix="."+fileExt, dir=tempDir, prefix="pubConvPmc.in.")
     inFile = os.fdopen(fd, "wb")
@@ -307,24 +430,27 @@ def getFileExt(fileData, locFname, mimeType):
     " try to determine best externsion for a file given its fileData dict "
     url = fileData["url"]
     fileExt = None
-    if locFname:
-        logging.debug("File extension taken from local file %s" % locFname)
-        filePath = locFname
-    else:
-        logging.debug("File extension taken from url %s" % url)
-        filePath = url
 
-    fileExt = os.path.splitext(filePath)[1].lower().strip(".")
+    logging.debug("trying mime type to get extension")
+    # get the mimeType, either local or from dict
+    if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
+        mimeType = fileData["mimeType"]
+        logging.debug("mime type is %s" % mimeType)
+    # get extensions from mime TYpe
+    elif mimeType!=None:
+        fileExt = pubConf.MIMEMAP.get(mimeType, None)
+        logging.debug("File extension based on mime type %s" % mimeType)
 
-    if fileExt=="" or len(fileExt)>5:
-        logging.debug("bad file extension, trying mime type")
-        # get the mimeType, either local or from dict
-        if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
-            mimeType = fileData["mimeType"]
-        # get extensions from mime TYpe
-        if mimeType:
-            fileExt = pubConf.MIMEMAP.get(mimeType, None)
-            logging.debug("File extension based on mime type %s" % mimeType)
+    # this used to be different - did it break something?
+    if fileExt==None:
+        if locFname:
+            logging.debug("File extension taken from local file %s" % locFname)
+            filePath = locFname
+        else:
+            logging.debug("File extension taken from url %s" % url)
+            filePath = url
+
+        fileExt = os.path.splitext(filePath)[1].lower().strip(".")
 
     logging.debug("File extension determined as  %s" % fileExt)
     return fileExt
@@ -406,7 +532,8 @@ def toAscii(fileData, mimeType=None, \
         return None
 
     if len(fileData["content"]) < minTxtFileSize:
-        logging.info("ascii file size after conversion too small, ignoring file %s" % fileDebugDesc)
+        logging.info("ascii file size only %d bytes < %d, ignoring %s" % \
+            (len(fileData["content"]), minTxtFileSize, fileDebugDesc))
         return None
 
     #charSet = set(fileData["content"])
@@ -735,10 +862,11 @@ def splitAnnotIdString(annotIdString):
     annotId = annotIdString[articleDigits+fileDigits:]
     return articleId, fileId, annotId
 
-def makeTempDir(prefix):
+def makeTempDir(prefix, tmpDir=None):
     """ create unique temp subdir in pubtools temp dir.
     """
-    tmpDir=pubConf.getTempDir()
+    if tmpDir==None:
+        tmpDir=pubConf.getTempDir()
     dirName = tempfile.mktemp(dir=tmpDir, prefix=prefix+".")
     if not isdir(dirName):
         os.makedirs(dirName)

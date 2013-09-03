@@ -58,7 +58,6 @@ class Annotate:
     # objects please see the file ../lib/pubStore.py, search for "DATA FIELDS"
     def annotateFile(self, article, file):
         " go over words of text and check if they are in dict "
-        print dir(file)
         text = file.content
         count = 0
         rows = []

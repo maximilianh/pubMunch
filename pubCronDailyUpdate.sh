@@ -39,7 +39,7 @@ echo __DOWNLOADING PUBMEDCENTRAL
 $PYTHON $BIN/pubGetPmc $PMCDOWNLOADDIR
 
 echo __CONVERT MEDLINE and update DB__ 
-cd $JOBDIR; time $PYTHON $BIN/pubConvMedline --cluster=localhost $MEDLINEDOWNLOADDIR $MEDLINECONVDIR --updateDb
+cd $JOBDIR; time $PYTHON $BIN/pubConvMedline --cluster=localhost $MEDLINEDOWNLOADDIR $MEDLINECONVDIR
 echo __CONVERT ELSEVIER___
 cd $JOBDIR; $PYTHON $BIN/pubConvElsevier --cluster=localhost $ELSDOWNLOADDIR $ELSCONVDIR
 echo __CONVERT PMC___
