@@ -4,5 +4,4 @@ Most of it is converted from external sources and can be recreated with pubPrepx
 
 
 classify - lists of PMIDs contained in various biological databases
-extJournalLists - lists of journals from various hosters (NLM catalog, wiley, highwire)
 publishers - converted lists of journals from extJournalLists, by pubInventory

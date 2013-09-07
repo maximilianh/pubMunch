@@ -189,7 +189,7 @@ def submitBlatJobs(runner, faDir, pslDir, onlyDbs, cdnaDir=None, \
     dbFaFiles = indexFilesByTypeDb(faDir, blatOptions)
     for seqType, dbFiles in dbFaFiles.iteritems():
         for db, faNames in dbFiles.iteritems():
-            if len(onlyDbs)!=0 and db not in onlyDbs:
+            if (onlyDbs!=None and len(onlyDbs)!=0) and db not in onlyDbs:
                 continue
             logging.debug("seqtype %s, db %s, query file file count %d" % (seqType, db, len(faNames)))
             blatOpt, filterOpt = blatOptions[seqType]
@@ -811,7 +811,7 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
             else:
                 annotLinkString = ",".join(annotLinkList)
 
-            snippet = pubStore.prepSqlString(annot.snippet, maxLen=3000)
+            snippet = pubStore.prepSqlString(annot.snippet, maxLen=1000)
             outRowCount+=1
             if fileDesc == "" or fileDesc==None:
                 logging.debug("Cannot find file description for file id %d" % articleFileId)
@@ -1071,7 +1071,7 @@ def readReformatBed(bedFname, artDescs, artClasses, impacts, dataset, annotLoci)
         # add the locus field
         loci = set()
         for seqId in seqIds:
-            loci.add(annotLoci[seqId])
+            loci.update(annotLoci[seqId])
         locusStr = ",".join(loci)
         fields.append(locusStr)
 
@@ -2017,7 +2017,9 @@ def runStep(dataset, command, d, options):
         # need to re-read d.chunkNames
         #dirs = pubMapProp.PipelineConfig(d.dataset, options.outDir)
         if not options.skipConvert:
-            maxCommon.mustBeEmptyDir([d.seqDir, d.fastaDir, d.protSeqDir, d.protSeqDir, d.protFastaDir], makeDir=True)
+            checkDirs = [d.seqDir, d.fastaDir, d.protSeqDir, \
+                d.protSeqDir, d.protFastaDir]
+            maxCommon.mustBeEmptyDir(checkDirs, makeDir=True)
             runner = d.getRunner(command)
             submitFilterJobs(runner, d.chunkNames, d.dnaAnnotDir, d.seqDir)
             submitFilterJobs(runner, d.chunkNames, d.protAnnotDir, d.protSeqDir, isProt=True)
@@ -2029,7 +2031,8 @@ def runStep(dataset, command, d, options):
         pubToFasta(d.seqDir, d.fastaDir, pubConf.speciesNames, pubConf.queryFaSplitSize, \
             pubConf.shortSeqCutoff)
         splitSizes = pubConf.cdnaFaSplitSizes
-        pubToFasta(d.protSeqDir, d.protFastaDir, pubConf.speciesNames, splitSizes, 0, forceDbs=cdnaDbs)
+        pubToFasta(d.protSeqDir, d.protFastaDir, pubConf.speciesNames, \
+            splitSizes, 0, forceDbs=cdnaDbs)
         
     elif command=="blat":
         # convert to fasta and submit blat jobs
@@ -2044,8 +2047,9 @@ def runStep(dataset, command, d, options):
         # cdna
         submitBlatJobs(runner, d.fastaDir, d.cdnaPslDir, onlyDbs, cdnaDir=pubConf.cdnaDir)
         # proteins
-        submitBlatJobs(runner, d.protFastaDir, d.protPslDir, onlyDbs, cdnaDir=pubConf.cdnaDir, \
-            blatOptions=pubConf.protBlatOptions, noOocFile=True)
+        submitBlatJobs(runner, d.protFastaDir, d.protPslDir, onlyDbs, \
+            cdnaDir=pubConf.cdnaDir, blatOptions=pubConf.protBlatOptions, \
+            noOocFile=True)
         runner.finish(wait=True)
         d.appendBatchProgress(command)
 

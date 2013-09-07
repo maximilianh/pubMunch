@@ -29,7 +29,7 @@
 # standard python libraries for regex
 import sys, logging, os.path, gzip, glob, doctest, marshal, gdbm, types, operator 
 from collections import defaultdict
-import fastFind, pubConf, maxbio, pubDnaFind, seqMapLocal, pubGeneric
+import fastFind, pubConf, maxbio, pubDnaFind, seqMapLocal, pubGeneric, pubKeyVal
 from os.path import *
 
 # try to use re2 if possible
@@ -313,7 +313,7 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
             #filterFname = pubGeneric.getFromCache(filterFname)
             logging.info("Opening %s" % filterFname)
             #filterSet = set(gzip.open(filterFname).read().splitlines())
-            filterSet = pubGeneric.getKeyValDb(filterFname)
+            filterSet = pubKeyVal.openDb(filterFname)
             filterDict[markerType] = filterSet
 
     global markerDictList
@@ -884,6 +884,8 @@ def findIdentifiers(text):
         yield tuples (start, end, typeOfWord, recognizedId) 
         Does not find gene names or gene symbols, only identifiers as found in the text.
 
+    >>> list(findIdentifiers(" Pfam:IN-FAMILY:PF02311 "))
+    [[16, 23, 'pfam', 'PF02311']]
     >>> list(findIdentifiers("  (8q22.1,  "))
     [[3, 9, 'band', '8q22.1']]
     >>> list(findIdentifiers("(NHS,"))
@@ -898,6 +900,8 @@ def findIdentifiers(text):
     [[1, 5, 'pdb', '1abz']]
     >>> list(findIdentifiers(" 1ABZ PDB "))
     [[1, 5, 'pdb', '1abz']]
+    >>> list(findIdentifiers(" 3ARC PDB "))
+    [[1, 5, 'pdb', '3arc']]
     >>> list(findIdentifiers(" B7ZGX9 P12345 ")) # p12345 is not a uniprot ID
     [[1, 7, 'uniprot', 'B7ZGX9']]
     >>> list(findIdentifiers(" L76943 ena "))

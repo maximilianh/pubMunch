@@ -16,6 +16,33 @@ import sqlite3 as s
 
 from collections import defaultdict
 
+# === FUNCTIONS =====
+def parseCounts(fname):
+    res = {}
+    for row in maxCommon.iterTsvRows(fname):
+        total = int(row.total)
+        geneProtCount = int(row.geneProtCount)
+
+        res[row.uid] = (total, geneProtCount)
+    logging.info("Found counts for %d journals" % (len(res)))
+    return res
+
+def getTargetJournals(journalFname):
+    " get english journals with eIssn "
+    logging.info("Parsing %s" % journalFname)
+    data = {}
+    issnToUid = {}
+    for row in maxCommon.iterTsvRows(journalFname):
+        if row.language=="eng" and row.eIssn!="":
+            #data.add(row.uniqueId)
+            data[row.uniqueId] = row
+        if row.uniqueId!="":
+            issnToUid[row.pIssn] = row.uniqueId
+            issnToUid[row.eIssn] = row.uniqueId
+    logging.info("Found %d journals with eIssn and english" % len(data))
+    return data, issnToUid
+    
+# === COMMAND LINE ====
 parser = optparse.OptionParser("""usage: %prog [options] <step> - count relevant articles per publisher per year and write to outfiles
 
 steps are:
@@ -32,6 +59,10 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 (options, args) = parser.parse_args()
 pubGeneric.setupLogging(__file__, options)
+
+if len(args)==0:
+    parser.print_help()
+    sys.exit(1)
 
 steps = args
 
@@ -68,27 +99,6 @@ minPubGeneProtRatio = 0.01 # minimum number of articles of a publisher that ment
 
 # file with all pmids we have here on disk
 herePmidFname = join(pubConf.journalDataDir, "herePmids.txt")
-
-def parseCounts(fname):
-    res = {}
-    for row in maxCommon.iterTsvRows(fname):
-        total = int(row.total)
-        geneProtCount = int(row.geneProtCount)
-
-        res[row.uid] = (total, geneProtCount)
-    logging.info("Found counts for %d journals" % (len(res)))
-    return res
-
-def getTargetJournals(journalFname):
-    " get english journals with eIssn "
-    data = {}
-    for row in maxCommon.iterTsvRows(journalFname):
-        if row.language=="eng" and row.eIssn!="":
-            #data.add(row.uniqueId)
-            data[row.uniqueId] = row
-    logging.info("Found %d journals with eIssn and english" % len(data))
-    return data
-    
 if len(steps)==0:
     print("You need to specify a step to run")
     sys.exit(0)
@@ -96,7 +106,7 @@ if len(steps)==0:
 # create list with publisher -> journals
 if "publishers" in steps:
     inDir = pubConf.journalListDir
-    pubResolvePublishers.initJournalDir(inDir, pubConf.publisherDir, None)
+    pubResolvePublishers.initJournalDir(inDir, pubConf.publisherDir, None, journalFname, publisherFname)
 
 # process medline:
 # make table with journalId -> number of articles
@@ -190,7 +200,7 @@ elif "here" in steps:
         for row in maxCommon.iterTsvDir(dataDir, ext=".articles.gz"):
             pmids.append(row.pmid)
             articleCount +=1
-            if row.printIssn!="":
+            if row.issn!="":
                 issnCounts.setdefault(row.printIssn, {})
                 issnCounts[row.printIssn].setdefault(row.articleType, 0)
                 issnCounts[row.printIssn][row.articleType] += 1
@@ -241,11 +251,11 @@ elif "here" in steps:
 elif "pubs" in steps:
     # create table with number of post-minYear articles per publisher
     # counts only for journals that fulill minimum requirements
-    #journalToCount = parseCounts(COUNTFNAME, minCount, minGeneProtCount)
 
     journalCounts = parseCounts(COUNTFNAME)
-    targetIds = getTargetJournals(journalFname)
+    targetIds, issnToUid = getTargetJournals(journalFname)
     ofh = open(join(pubConf.TEMPDIR, "pubCounts.tab"), "w")
+    print issnToUid['0036-8075']
 
     headers = ["publisher", "articleCount", "geneProtArticleCount", "genePercent", "medlinePmidCount", "herePmidCount", "journalUids", "journalEIssns"]
     ofh.write("\t".join(headers)+"\n")
@@ -264,17 +274,29 @@ elif "pubs" in steps:
     logging.info("iterating over publishers, counting how many articles in medline they have")
     removedUids = []
     removedPublishers = []
+    noUidIssns = []
     for row in maxCommon.iterTsvRows(publisherFname):
         pubName = row.pubName
-        if not row.pubName.startswith("NLM"):
-            continue
-        languages = set(row.languages.split("|"))
-        if "eng" not in languages:
-            logging.debug("%s: No single english journal for this publisher" % row.pubName)
-            removedPublishers.append(pubName)
-            continue
+        #if not row.pubName.startswith("NLM"):
+            #continue
+        if row.pubName.startswith("NLM"):
+            languages = set(row.languages.split("|"))
+            if "eng" not in languages:
+                logging.debug("%s: No single english journal for this publisher" % row.pubName)
+                removedPublishers.append(pubName)
+                continue
 
-        uids = set(row.uid.split("|"))
+        if row.uid=="":
+            # if this is not NLM data, need to lookup NLM UID list first
+            uids = set()
+            for issn in row.journalIssns.split("|"):
+                issn = issn.strip()
+                if issn in issnToUid:
+                    uids.add(issnToUid[issn])
+                else:
+                    noUidIssns.append(issn)
+        else:
+            uids = set(row.uid.split("|"))
         pubCount = 0
         pubGeneProtCount = 0
         filteredJournalCount = 0
@@ -364,6 +386,7 @@ elif "pubs" in steps:
         #pubName = pubName.replace("NLM ", "")
         row = [pubName, str(pubCount), str(pubGeneProtCount), geneProtRatioStr, str(len(pubPmids)), str(pubHerePmidCount), uidStr, row.journalEIssns]
         ofh.write(u"\t".join(row).encode("utf8")+"\n")
+    logging.info("Could not resolve ISSN -> UID for %d ISSNs" % len(set(noUidIssns)))
     logging.info("Removed %d publishers because of too few journals/too few genes" % len(removedPublishers))
     logging.info("Removed %d journals because not English/no eIssn" % len(removedUids))
     logging.info("Removed %d journals because not enough articles, not enough genes" % filteredJournalCount)

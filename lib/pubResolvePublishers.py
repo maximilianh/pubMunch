@@ -16,10 +16,23 @@ import xml.etree.cElementTree as etree
 headers = "source,pIssn,eIssn,linkIssn,title,publisher,correctPublisher,urls,uniqueId,medlineTA,majMeshList,author,language,country"
 Rec = collections.namedtuple("NLMRec", headers)
 
-PUBLISHERTAB = 'publishers.tab'
-JOURNALTAB = 'journals.tab'
-ISSNTAB = "issns.tab"
+#PUBLISHERTAB = 'publishers.tab'
+#JOURNALTAB = 'journals.tab'
+#ISSNTAB = "issns.tab"
 #JOURNALDIR = "_journalData"
+
+# for some keywords in URLs, we know the right publisher
+serverAssignDict = {
+    "sciencedirect" : "Elsevier",
+    "wiley.com" : "Wiley",
+    "royalsocietypublishing.org" : "Royal Society",
+    "sagepub.com" : "Sage",
+    "bmj.com" : "BMJ",
+    "jstage.jst.go.jp" : "Jstage",
+    "springer" : "springer",
+    "springerlink" : "springer",
+    "scielo" : "scielo"
+}
 
 def urlStringToServers(urlString):
     " convert |-sep list of urls to list of hostnames "
@@ -251,16 +264,35 @@ def findBestGroupForServer(pubGroups):
     # rank groups by group counts
     serverToBestGroup = {}
     for server, serverPubGroups in serverToGroups.iteritems():
+        # we have some manual mappings from server -> publisher
+        manualFound = False
+        for serverKeyword, publisher in serverAssignDict.iteritems():
+            if serverKeyword in server:
+                bestGroup = publisher
+                manualFound = True
+                serverToBestGroup[server] = bestGroup
+                break
+        if manualFound:
+            continue
+
+        # now try to rank servers by journal counts
         groupCounts = []
         for group in serverPubGroups:
             groupCounts.append( (group, len(pubGroups[group])) )
         groupCounts.sort(key=operator.itemgetter(1), reverse=True)
-        bestGroup = groupCounts[0][0]
+        bestGroup, bestCount = groupCounts[0]
+        if bestCount<3:
+            logging.debug("Skipping %s -> %s mapping, only found in %d journals" % \
+                (server, bestGroup, bestCount))
+            continue
         serverToBestGroup[server] = bestGroup
+
+    for server, bestGroup in serverToBestGroup.iteritems():
+        logging.debug("%s --> %s" % (server, bestGroup))
     return serverToBestGroup
         
 def regroupByServer(pubGroups, serverToBestGroup):
-    " if a publisher has only one server, then group it to the biggest group for this server "
+    " if a publisher has only one server, then assign it to the biggest group for this server "
     newGroups = {}
     for pubGroup, journals in pubGroups.iteritems():
         # get all servers of all journals
@@ -270,9 +302,9 @@ def regroupByServer(pubGroups, serverToBestGroup):
             servers.update(jServers)
 
         if len(servers)==1:
-            server = servers.pop()
-            if server!="":
-                bestGroup = serverToBestGroup[server]
+            mainServer = servers.pop()
+            if mainServer!="":
+                bestGroup = serverToBestGroup.get(mainServer, pubGroup)
             else:
                 bestGroup = pubGroup
         else:
@@ -319,14 +351,16 @@ def groupPublishersByServer(journals):
             serverCounts[server]+=1
 
     # assign journal to most popular server
-    # + some special cases to correct obivous error by the NLM
+    # + some special cases to correct obivous errors by the NLM
     replaceServerDict = {
     "springer" : "springerlink.com",
+    "springer" : "link.springer.com",
     "wiley.com" : "onlinelibrary.wiley.com",
     ".elsevier" : "sciencedirect.com"
     }
 
     journalGroups = {}
+    # for all servers of a journal, only keep the highest ranked (=number of journals) one
     for journal in journals:
         servers = urlStringToServers(journal.urls)
 
@@ -352,12 +386,37 @@ def groupPublishersByServer(journals):
 def groupPublishersByName(journals):
     """ given a list of journal records, group similar ones based on some heuristics,
     return dict (groupName) -> (list of journal records)
+    Heuristics are using: URL, then ISSN prefix, then name
+    >>> class D: pass
+    >>> j1 = D()
+    >>> j1.urls= "http://rsx.sagepub.com/archive/"
+    >>> j1.issn = "1381-1991"
+    >>> j1.publisher = "elsevier"
+    >>> groupPublishersByName([j1]).keys()
+    ['Sage']
     """
     # make dict with publisher -> count
     pubCountDict = collections.defaultdict(int)
 
     # remove these words from publishers before grouping
     removeWords = "Press,Verlag,Services,Inc,Incorporated,AG,Publications,Journals,Editiones,Asia,Ltd,Media,Publishers,International,Group,Publishing,Pub ,Pub.,Periodicals,Pub,Limited,Co,Pvt".split(",")
+
+    pubIssnPrefix = {
+    "10.1016" : "elsevier",
+    "10.1006" : "elsevier",
+    "10.1157" : "elsevier",
+    "10.3182" : "elsevier",
+    "10.1067" : "elsevier",
+    "10.1078" : "elsevier",
+    "10.1053" : "elsevier",
+    "10.1054" : "elsevier",
+    "10.1251" : "springer",
+    "10.1245" : "springer",
+    "10.1617" : "springer",
+    "10.1891" : "springer",
+    "10.1140" : "springer",
+    "10.1007" : "springer",
+    }
 
     # some manual rules for grouping, to force to a given final publisher if a certain keyword is found 
     # if KEY is part of publisher name, publisher is grouped into VAL
@@ -410,15 +469,6 @@ def groupPublishersByName(journals):
         "Expert Reviews" : "Future Science"
     }
 
-    serverAssignDict = {
-        "sciencedirect" : "Elsevier",
-        "wiley.com" : "Wiley",
-        "royalsocietypublishing.org" : "Royal Society",
-        "sagepub.com" : "Sage",
-        "bmj.com" : "BMJ",
-        "jstage.jst.go.jp" : "Jstage"
-    }
-
     # group publishers together
     pubDict = {}
     for journal in journals:
@@ -439,6 +489,14 @@ def groupPublishersByName(journals):
             if resolved:
                 break
 
+        # then try the issn prefix
+        if not resolved:
+            for issnPrefix, issnPub in pubIssnPrefix.iteritems():
+                if journal.pIssn.startswith(issnPrefix) or journal.eIssn.startswith(issnPrefix):
+                    pubGroup = issnPub
+                    resolved = True
+
+        # then try the name
         if not resolved:
             pubGroup = publisher.strip()
             pubGroup = pubGroup.replace(" &"," and").replace(",","").replace(".","").replace("-", " ")
@@ -519,19 +577,17 @@ def journalToBestWebserver(journals):
         journalToServer[journal.eIssn] = topServer
     return journalToServer
 
-def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
+def convertNlmAndTab(nlmCatalogFname, tabSepFnames, journalFname, pubFname):
     """ init outDir by parsing journal list files. generate journal and publisher 
         tables from it.
     """
-    journalFname = join(outDir, JOURNALTAB)
 
     # process NLM xml file
     journals = parseNlmCatalog(nlmCatalogFname)
     pubGroups = groupPublishersByName(journals)
     serverToBestGroup = findBestGroupForServer(pubGroups)
-    # = groupPublishersByServer(journals)
     pubGroups = regroupByServer(pubGroups, serverToBestGroup)
-    writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), prefix="NLM")
+    writePubGroups(pubGroups, pubFname, prefix="NLM")
     headers = writeJournals(pubGroups, journalFname, source="NLM")
 
     # integrate tab-sep files received from other publishers
@@ -539,25 +595,25 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, outDir):
         datasetName = splitext(basename(tabSepFname))[0].upper()
         journals = parseTabPublisherFile(tabSepFname)
         pubGroups = groupPublishersByName(journals)
-        writePubGroups(pubGroups, join(outDir, PUBLISHERTAB), \
+        writePubGroups(pubGroups, pubFname, \
                 prefix=datasetName, append=True)
         writeJournals(pubGroups, journalFname, headers, append=True, source=datasetName)
 
-def initJournalDir(journalInDir, journalDataDir, nlmCatalogFname):
+def initJournalDir(journalInDir, journalDataDir, nlmCatalogFname, journalFname, pubFname):
     " fill the journal data dir pubConf.journalData with two tab sep files "
     if not isdir(journalDataDir):
         logging.info("Creating %s" % journalDataDir)
         os.makedirs(journalDataDir)
 
-    #listDir = join(dirname(__file__), "journalLists")
     listDir = journalInDir
     logging.info("importing journal info from %s" % listDir)
 
     if nlmCatalogFname==None:
-        #nlmCatalogFname = join(listDir, "nlmCatalog.currentlyIndexed.xml.gz")
         nlmCatalogFname = join(listDir, "nlmCatalog.English.xml.gz")
 
     otherTabFnames = glob.glob(join(listDir, "*.tab"))
-    convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalDataDir)
+    convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalFname, pubFname)
     
-
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

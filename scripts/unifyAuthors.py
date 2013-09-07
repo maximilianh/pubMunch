@@ -1,6 +1,7 @@
-import logging, re, sys, pubAlg, util
+import logging, re, sys, pubAlg, util, urlparse
 import unidecode  # to map spec characters to ASCII text (ucsc browser doesn't support unicode)
 from pubAlg import *
+import pubCompare
 import maxTables
 """ 
 
@@ -121,21 +122,45 @@ class UnifyAuthors:
 def getFirstAuthor(string):
     """ get first author family name and remove all special chars from it
     
-    XX terribly hacky way to get output from two tables to two separate files
-    XX this was propped on very late and should be redone one day in a cleaner way
-    
+    >>> getFirstAuthor("de la Hoya, Geert; ter Ruud, Heesters")
+    'Hoya'
     """
-    string = string.split(" ")[0].split(",")[0].split(";")[0]
+    string = string.split(",")[0].split(";")[0]
+    string = pubCompare.removePrefixes(string)
+    string = string.split(" ")[0]
     string = "\n".join(string.splitlines()) # get rid of crazy unicode linebreaks
     string = string.replace("\m", "") # old mac text files
     string = string.replace("\n", "")
-    string = unidecode.unidecode(string)
+    string = unidecode.unidecode(string) # genome browser canvas cannot do unicode
     return string
+
+def urlToDesc(url):
+    """ for some pages, we have no authors, no year. Derive a minimal description from 
+        the url 
+    >>> urlToDesc("http://cusmibio.unimi.it/scaricare/tuttiuguali.pdf")
+    'cusmibio.unimi.it'
+    >>> urlToDesc("http://faqs.org/patents/app/20120014927")
+    'faqs.org/patents/'
+    >>> urlToDesc("http://faqs.org")
+    'faqs.org'
+    """
+    host, path = urlparse.urlparse(url)[1:3]
+    if len(host)>10:
+        if len(host)<17:
+            return host
+        else:
+            return host[-17:]
+    else:
+        return host+path[:17-len(host)]
 
 class GetFileDesc:
     """ 
     map-reduce algorithm to get the description and url of each file
     and basic article information, like pmid, doi, issn, title, first author, year
+
+    XX terribly hacky way to get output from two tables to two separate files
+    XX this was propped on very late and should be redone one day in a cleaner way
+    
     """
     def __init__(self):
         self.headers = ["fileId", "desc", "url"]
@@ -149,11 +174,15 @@ class GetFileDesc:
 
         a = articleData
         firstAuthor = getFirstAuthor(a.authors)
+        year = a.year
+        if a.source=="bing" and firstAuthor=="" and a.year=="":
+            firstAuthor = urlToDesc(url)
+            year = "0"
         #title = unidecode.unidecode(a.title)
         # ff and chrome seem to show unicode in mouseovers just fine
         title = pubStore.prepSqlString(a.title)
 
-        artRow = (a.publisher, a.externalId, a.pmid, a.doi, a.printIssn, a.journal, title, firstAuthor, a.year)
+        artRow = (a.publisher, a.externalId, a.pmid, a.doi, a.printIssn, a.journal, title, firstAuthor, year)
         result["a"+articleData.articleId] = artRow
 
     def reduceStartup(self, resultDict, paramDict, outFh):
@@ -183,3 +212,7 @@ class GetFileDesc:
         # and the main run will write into the same old file.
         # So we need to close ALL our outfiles.
         self.artFh.close()
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

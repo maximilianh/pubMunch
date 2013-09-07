@@ -361,18 +361,6 @@ def createFileData(articleData, mimeType, asciiString):
         #data[doi]=pmid
     #return data
 
-def parseDoneIds(fname):
-    " parse all already converted identifiers from inDir "
-    print fname
-    doneIds = set()
-    if os.path.getsize(fname)==0:
-        return doneIds
-
-    for row in maxCommon.iterTsvRows(fname):
-        doneIds.add(row.pii)
-    logging.info("Found %d identifiers of already parsed articles" % len(doneIds))
-    return doneIds
-            
 def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     """ 
     get files from inIndexFile, parse Xml, 
@@ -380,13 +368,13 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     """ 
     store = pubStore.PubWriterFile(outFile)
     # read all already done IDs
-    donePiis = parseDoneIds(inIdFile)
+    donePiis = pubGeneric.parseDoneIds(inIdFile)
 
     # open output id files
     idFname = join(dirname(outFile), basename(outFile).split(".")[0]+".ids.tab")
     logging.debug("Writing ids to %s" % idFname)
     idFh = open(idFname, "w")
-    idFh.write("#articleId\tdoi\tpii\tpmid\n")
+    idFh.write("#articleId\tdoi\texternalId\tpmid\n")
 
     i = 0
     inRows = list(maxCommon.iterTsvRows(inIndexFile))
@@ -434,7 +422,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
 
         articleData["externalId"]=pii
         articleData["fulltextUrl"]="http://www.sciencedirect.com/science/svapps/pii/"+pii
-        articleData["pmid"]  = pmidFinder.lookupPmid(articleData)
+        #articleData["pmid"]  = pmidFinder.lookupPmid(articleData)
 
         # convert to ascii
         asciiString, mimeType = treeToAscii_Elsevier(xmlTree)
@@ -456,25 +444,6 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     store.close()
     idFh.close()
 
-def concatPiis(inDir, outDir, outFname):
-    " concat all piis of id files in inDir to outFname "
-    outPath = join(outDir, outFname)
-    inMask = join(inDir, "*_ids.tab")
-    idFnames = glob.glob(inMask)
-    logging.debug("Concatting PIIs from %s to %s" % (inMask, outPath))
-    piis = []
-    for inFname in idFnames:
-        for row in maxCommon.iterTsvRows(inFname):
-            piis.append(row.pii)
-
-    ofh = open(outPath, "w")
-    ofh.write("#pii\n")
-    for pii in piis:
-        ofh.write("%s\n" % pii)
-    ofh.close()
-
-    return outPath
-    
 def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     """ convert Consyn ZIP files from inDir to outDir 
         split files into chunks and submit chunks to cluster system
@@ -491,7 +460,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     finalOutDir= outDir
     outDir     = tempfile.mktemp(dir = outDir, prefix = "elsevierUpdate%s.tmp." % str(updateId))
     os.mkdir(outDir)
-    maxCommon.delOnExit(outDir)
+    #maxCommon.delOnExit(outDir)
 
     inFiles = os.listdir(inDir)
     inFiles = [x for x in inFiles if x.endswith(".ZIP")]
@@ -509,7 +478,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     maxArticleId  = createIndexFile(inDir, processFiles, indexFilename, updateId, minId, chunkSize)
     indexSplitDir = indexFilename+".tmp.split"
     chunkIds = pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
-    idFname = concatPiis(finalOutDir, indexSplitDir, "doneArticles.tab")
+    idFname = pubGeneric.concatIdentifiers(finalOutDir, indexSplitDir, "doneArticles.tab")
 
     submitJobs(runner, inDir, chunkIds, indexSplitDir, idFname, outDir)
 

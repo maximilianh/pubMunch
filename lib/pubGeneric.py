@@ -3,7 +3,7 @@
 
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
     glob, operator, doctest, ftplib, random, shutil
-import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables
+import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables, pubKeyVal
 from os.path import *
 
 import sqlite3 as sqlite
@@ -33,176 +33,14 @@ def getFastUniqueTempFname():
 class Timeout(Exception):
     pass
 
-class SqliteKvDb(object):
-    """ wrapper around sqlite to create an on-disk key/value database
-        On ramdisk, this can write 40k pairs / sec, tested on 40M pairs
-    """
-    def __init__(self, fname, singleProcess=False, newDb=False):
-        self.finalDbName = None
-        self.dbName = "%s.sqlite" % fname
-        if newDb and isfile(self.dbName):
-            os.remove(self.dbName)
-        isolLevel = None
-        self.singleProcess = singleProcess
-        if singleProcess:
-            isolLevel = "exclusive"
-        if not os.path.isfile(self.dbName):
-            # create a new temp db on ramdisk
-            self.finalDbName = self.dbName
-            self.dbName = join(pubConf.getFastTempDir(), basename(self.dbName))
-            if isfile(self.dbName):
-                os.remove(self.dbName)
-            maxCommon.delOnExit(self.dbName)
-            self.con = sqlite.connect(self.dbName, isolation_level=isolLevel)
-            self.con.execute("create table IF NOT EXISTS data (key PRIMARY KEY,value)")
-        else:
-            self.con = sqlite.connect(self.dbName)
-
-        self.cur = self.con
-        if singleProcess:
-            self.cur.execute("PRAGMA synchronous=OFF") # recommended by
-            self.cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
-            self.cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
-            self.cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
-            self.cur.execute("PRAGMA temp_store=memory") 
-            self.con.commit()
-    
-    def get(self, key, default):
-        try:
-            val = self[key]
-        except KeyError:
-            val = default
-        return val
-
-    def __contains__(self, key):
-        row = self.con.execute("select key from data where key=?",(key,)).fetchone()
-        return row!=None
-    
-    def __getitem__(self, key):
-        row = self.con.execute("select value from data where key=?",(key,)).fetchone()
-        if not row: raise KeyError
-        return row[0]
-    
-    def __setitem__(self, key, item):
-        logging.debug("Writing %s, %s" % (key, item))
-        if self.con.execute("select key from data where key=?",(key,)).fetchone():
-            self.con.execute("update data set value=? where key=?",(item,key))
-        else:
-            self.con.execute("INSERT OR REPLACE INTO data (key,value) VALUES (?,?)",(key, item))
-
-        self.con.commit()
-               
-    def __delitem__(self, key):
-        if self.con.execute("select key from data where key=?",(key,)).fetchone():
-            self.con.execute("delete from data where key=?",(key,))
-            self.con.commit()
-        else:
-             raise KeyError
-             
-    def addAll(self, keyValPairs):
-        sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
-        self.cur.executemany(sql, keyValPairs)
-        self.con.commit()
-        
-    def update(self, keyValPairs):
-        self.addAll(keyValPairs)
-
-    def keys(self):
-        return [row[0] for row in self.con.execute("select key from data").fetchall()]
-
-    def close(self):
-        if self.finalDbName!=None:
-            logging.info("Copying %s to %s" % (self.dbName, self.finalDbName))
-            shutil.copy(self.dbName, self.finalDbName)
-            os.remove(self.dbName)
-
-class LevelDb(object):
-    """ wrapper around leveldb, store and query key/val pais.
-    Not very useful, as it always locks the database, only one process can read!!
-    """
-    def __init__(self, fname, singleProcess=False, newDb=False):
-        self.dbName = fname+".levelDb"
-        if newDb and isdir(self.dbName):
-            logging.debug("Removing %s" % self.dbName)
-            shutil.rmtree(self.dbName)
-        logging.debug("Opening %s with leveldb" % self.dbName)
-        self.db = leveldb.LevelDB(self.dbName)
-        self.sync = not singleProcess
-
-    def put(self, key, val):
-        return self.db.Put(key, val, sync=self.sync)
-        
-    def get(self, key, default=None):
-        try:
-            val = self.db.Get(key)
-        except KeyError:
-            val = default
-        return val
-    
-    def has_key(self, key):
-        # old python way
-        self.__contains__(key)
-
-    def __contains__(self, key):
-        try:
-            self.db.Get(key)
-            return True
-        except KeyError:
-            return False
-
-    def __getitem__(self, key):
-        val = self.db.Get(key)
-        return val
-
-    def __setitem__(self, key, val):
-        if val==None:
-            val=""
-        return self.db.Put(key, val, sync=self.sync)
-
-    def close(self):
-        pass
-
-def getKeyValDb(dbName, newDb=False, singleProcess=False):
-    " factory placeholder if we want to change leveldb to sth else one day "
+def openKeyValDb(dbName, newDb=False, singleProcess=False, prefer=None):
+    " factory function: returns the right db object given a filename "
     #return LevelDb(dbName, newDb=newDb)
-    # possible candidates: redis, mdb, cdb, hamsterdb
-    return SqliteKvDb(dbName, newDb=newDb, singleProcess=singleProcess)
-
-def indexKvFile(fname, startOffset=0):
-    " load a key-value tab-sep file with two fields into a key-value DB "
-    db  = getKeyValDb(fname, singleProcess=True)
-    ifh = maxTables.openFile(fname)
-    ifh.seek(startOffset)
-    i = 0
-    logging.info("Indexing %s to db %s" % (fname, db.dbName))
-    chunkSize = 100000
-            
-    pairs = []
-    for line in ifh:
-        if line.startswith("#"):
-            continue
-        fields = line.rstrip("\n").split("\t")
-        fCount = len(fields)
-        if fCount==2:
-            key, val = fields
-        elif fCount==1:
-            key = fields[0]
-            val = None
-        else:
-            raise Exception("cannot load more than two fields or empty line")
-
-        pairs.append ( (key, val) )
-
-        if i%chunkSize==0:
-            db.addAll(pairs)
-            logging.info("Wrote %d records..." % i)
-            pairs = []
-        #db[key] = val
-        i+=1
-    if len(pairs)!=0:
-        db.addAll(pairs)
-    db.close()
-    logging.info("Wrote %d records into db %s" % (i, db.dbName))
+    # possible other candidates: mdb, cdb, hamsterdb
+    if prefer=="server":
+        return pubKeyVal.RedisDb(dbName, newDb=newDb, singleProcess=singleProcess)
+    else:
+        return pubKeyVal.SqliteKvDb(dbName, newDb=newDb, singleProcess=singleProcess, tmpDir=pubConf.getFastTempDir())
 
 def createDirRace(dirPath):
     """ create a directory on a cluster node, trying to fix race conditions """
@@ -258,9 +96,12 @@ def runCommandTimeout(command, timeout=30, bufSize=128000):
         time.sleep(poll_seconds)
 
     if proc.poll() == None:
-        if float(sys.version[:3]) >= 2.6:
-            proc.terminate()
+        #if float(sys.version[:3]) >= 2.6:
+        proc.terminate()
+        time.sleep(1)
+        proc.kill()
         logging.error("process %s timed out" % (str(command)))
+        return "", "", 1
 
     stdout, stderr = proc.communicate()
     return stdout, stderr, proc.returncode
@@ -365,12 +206,14 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     alternatively as a pathname via 'locFname' """
     # create temp file
     fd, inFname = tempfile.mkstemp(suffix="."+fileExt, dir=tempDir, prefix="pubConvPmc.in.")
+    maxCommon.delOnExit(inFname)
     inFile = os.fdopen(fd, "wb")
     inFile.write(fileContent)
     inFile.close()
     logging.debug("Created in temp file %s" % (inFname))
 
     fd, outFname = tempfile.mkstemp(suffix=".txt", dir=tempDir, prefix="pubConvPmc.out.")
+    maxCommon.delOnExit(outFname)
     os.close(fd)
     logging.debug("Created out temp file %s" % (outFname))
 
@@ -901,6 +744,41 @@ def concatDelLogs(inDir, outDir, outFname):
         os.remove(inFname)
     ofh.close()
 
+def concatIdentifiers(inDir, outDir, outFname):
+    " concat all identifiers of *_ids.tab files in inDir to outFname, append if exists "
+    outPath = join(outDir, outFname)
+    inMask = join(inDir, "*_ids.tab")
+    idFnames = glob.glob(inMask)
+    logging.debug("Concatting exernalIds from %s to %s" % (inMask, outPath))
+    extIds = []
+    for inFname in idFnames:
+        for row in maxCommon.iterTsvRows(inFname):
+            extIds.append(row.externalId)
+
+    if isfile(outPath):
+        ofh = open(outPath, "a")
+    else:
+        ofh = open(outPath, "w")
+        ofh.write("#externalId\n")
+
+    for extId in extIds:
+        ofh.write("%s\n" % extId)
+    ofh.close()
+
+    return outPath
+    
+def parseDoneIds(fname):
+    " parse all already converted identifiers from inDir "
+    print fname
+    doneIds = set()
+    if os.path.getsize(fname)==0:
+        return doneIds
+
+    for row in maxCommon.iterTsvRows(fname):
+        doneIds.add(row.externalId)
+    logging.info("Found %d identifiers of already parsed articles" % len(doneIds))
+    return doneIds
+            
 def concatDelIdFiles(inDir, outDir, outFname):
     """ concat all id files in outDir, write to outFname, delete all id files when finished 
     """

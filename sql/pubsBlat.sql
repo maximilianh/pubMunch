@@ -23,8 +23,9 @@ CREATE TABLE `pubsBlat` (
   `title` varchar(255) NOT NULL, # title of article, for genome browser mouseover
   `firstAuthor` varchar(255) NOT NULL, # first author family name of article, for genome browser
   `year` varchar(255) NOT NULL, # issn of journal for article, for genome browser
-  `impact` varchar(255) NOT NULL, # issn of journal for article, for genome browser coloring, derived from official impact factors: max impact is 25, value is scaled to 0-255
-  `classes` varchar(255) NOT NULL, # issn of journal for article, for genome browser coloring
+  `impact` varchar(255) NOT NULL, # impact factor of journal, for genome browser coloring, derived from official impact factors: max impact is 25, value is scaled to 0-255
+  `classes` varchar(255) NOT NULL, # classes assigned to journal article, for genome browser coloring
+  `locus` varchar(255) NOT NULL, # closest gene symbols, one or two, comma-separated
   KEY `name` (`name`(16)),
   KEY `pmid` (`pmid`(16)),
   KEY `doi` (`doi`(16)),

@@ -54,10 +54,11 @@ class PipelineConfig:
 
     def _findCurrentBatchDir(self):
         """ find the directory of the highest batchId that is not at "tables" yet """
-        # mkdir if there is no batch dir
+        # mkdir if there is no batch dir and return "None"
         if not self._anyBatchSetup() and not isdir(self.baseDirBatches):
             logging.debug("Creating batchDir")
             os.makedirs(self.baseDirBatches)
+            return None
 
         batchId = 0
         for nextBatchId in self._batchIds():

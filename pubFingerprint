@@ -9,7 +9,7 @@ from os.path import *
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, pubConf, maxCommon, pubCompare, pubStore
+import pubGeneric, pubConf, maxCommon, pubCompare, pubStore, pubChange
 
 def main(args, options):
     step, dataSet1 = args[:2]
@@ -49,7 +49,7 @@ def main(args, options):
         noPrints = []
         noMatches = []
         for artData in maxCommon.iterTsvDir(dir2, ext=".articles.gz"):
-            artIdTuple = lookupArtIds(artData, map0, map1, map2, artIds, noPrints, noMatches)
+            artIdTuple = pubCompare.lookupArtIds(artData, map0, map1, map2, artIds, noPrints, noMatches)
             if artIdTuple==None:
                 continue
 
@@ -59,6 +59,8 @@ def main(args, options):
             row = [unicode(x) for x in row]
             ofh.write("\t".join(row).encode("utf8"))
             ofh.write("\n")
+
+        ofh.close()
 
         # write the non-matching articles to two files
         mfh = open(noPrintFname, "w")
@@ -72,6 +74,9 @@ def main(args, options):
         logging.info("Results written to %s" % outputFname)
         logging.info("non-matching articles written to %s and %s" % (noPrintFname, noMatchFname))
 
+        logging.info("now adding PMIDs to tab-sep files")
+        pubChange.addPmids(dataSet2)
+
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <command> <sourceDataset> <targetDataset> - map between datasets by comparing fingerprints of papers. Source is usually Medline.
 
@@ -81,7 +86,12 @@ step can either be 'index' or 'lookup' or for testing 'testdoi' with a DOI
 'lookup' will read this file and create a file medline.ids.tab in target directory.
 'testdoi': to lookup a single doi or other fingerprint
 
-medline.ids.tab lists matching articles from both sets
+medline.ids.tab lists matching articles from both sets in sourceDataset
+
+examples:
+pubFingerprint index medline
+pubfingerprint lookup medline elsevier
+
 
 When compared to data from crossref and a random collection of 10.000 DOIs, achieves a precision
 of 99.99%.

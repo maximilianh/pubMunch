@@ -996,8 +996,9 @@ def openArticleDb(datasetName):
         con, cur = conCache[datasetName]
     else:
         path = getArtDbPath(datasetName)
-        if not isdir(path):
-            return None, None
+        if not isfile(path):
+            #return None, None
+            raise Exception("Could not find %s" % path)
         logging.debug("Opening db %s" % path)
         con, cur = maxTables.openSqlite(path, asDict=True)
         conCache[datasetName] = (con,cur)

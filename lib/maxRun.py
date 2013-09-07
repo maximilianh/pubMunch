@@ -15,6 +15,7 @@ def removeFinishedProcesses(processes):
         retCode = pollProc.poll()
         if retCode==None:
             # still running
+            logging.debug("Still running %s" % pollCmd)
             newProcs.append((pollCmd, pollProc))
         elif retCode!=0:
             # failed
@@ -85,7 +86,7 @@ class Runner:
             head, cType = headNode.split(":")
             if head=="localhost":
                 self.clusterType="smp"
-                self.maxCpu = cType
+                self.maxCpu = int(cType)
             else:
                 self.clusterType = cType
                 self.headNode = head
@@ -122,10 +123,10 @@ class Runner:
             self.jobListFname = os.path.join(self.batchDir, "jobList")
             self.jobListFh = open(self.jobListFname, "w")
             logging.info("Created jobList file in %s" % self.jobListFname)
-        elif self.clusterType.startswith("localhost:"):
-            self.maxCpu = int(self.clusterType.split(":")[1])
-            assert(self.maxCpu <= multiprocessing.cpu_count())
-            self.clusterType="smp"
+        #elif self.clusterType.startswith("localhost:"):
+            #self.maxCpu = int(self.clusterType.split(":")[1])
+            #assert(self.maxCpu <= multiprocessing.cpu_count())
+            #self.clusterType="smp"
         elif self.clusterType in ["sge","local","smp"]:
             pass
         else:
@@ -278,13 +279,15 @@ class Runner:
         elif self.clusterType=="smp":
             # adapted from http://stackoverflow.com/questions/4992400/running-several-system-commands-in-parallel
             processes = []
-            for command in self.commands:
+            for cmdCount, command in enumerate(self.commands):
                 logging.info("Starting process %s" % command)
                 proc =  subprocess.Popen(shlex.split(command))
                 procTuple = (command, proc)
                 processes.append(procTuple)
                 while len(processes) >= self.maxCpu:
-                    time.sleep(.2)
+                    logging.debug("Waiting: totalCmd=%d, procCount=%d, cpuCount=%d, current=%d, ..." % \
+                        (len(self.commands), len(processes), self.maxCpu, cmdCount))
+                    time.sleep(1.0)
                     processes = removeFinishedProcesses(processes)
 
             # wait for all processes

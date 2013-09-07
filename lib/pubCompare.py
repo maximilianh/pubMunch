@@ -4,7 +4,7 @@
 # fingerprints. 
 
 import logging, optparse, sys, os, marshal, unicodedata, gdbm, unidecode, gzip
-import pubGeneric, pubConf, maxCommon, pubStore
+import pubGeneric, pubConf, maxCommon, pubStore, pubKeyVal
 from os.path import isfile, join
 
 noIssuePage = 0
@@ -52,8 +52,8 @@ def getFingerprint1(row, withEIssn = False):
 
 def removePrefixes(famNameStr):
     " remove these annoying prefixes from a family name"
-    for p in ["van ", "von ", "de ", "al ", "el ", "van der ", "de la", "des ", "du ", "van de ", \
-              "Van ", "Von ", "De ", "Al ", "El ", "Van der ", "De la", "Des ", "Du ", "Van de "]:
+    for p in ["ter ", "oop ", "de la ", "van der ", "van de ", "van ", "von ", "de ", "al ", "el ", "des ", "du ", \
+              "Ter ", "Oop ", "De la", "Van der ", "Van de ", "Van ", "Von ", "De ", "Al ", "El ", "Des ", "Du ", "Van de "]:
         if p in famNameStr:
             famNameStr = famNameStr.replace(p, "")
             break
@@ -118,7 +118,7 @@ def lookupFprint(fprint, artMap, artIds):
         match = artIds[artId]
         extId, doi, pmid = match
         ret = (fprint, artId, extId, doi, str(pmid))
-        logging.debug("Match for fingerprint found: %s" % (ret))
+        logging.debug("Match for fingerprint found: %s" % (str(ret)))
         return ret
 
 def createFingerprints(inDir, updateIds=None):
@@ -195,20 +195,8 @@ def addDictsToDbms(mapList, dbmList, articleIds):
         fprintType+=1
 
 def openDbms(outDir, mode):
-    #fnames = []
-    #fnames.append( join(outDir, "doi2pmid.gdbm"))
-    #fnames.append( join(outDir, "issnVolPage2pmid.gdbm"))
-    #fnames.append( join(outDir, "authorTitle2pmid.gdbm"))
-    #logging.info("Opening DBM files: %s" % str(fnames))
-    #if not isfile(fnames[0]):
-        #logging.error("File not found: %s, PMID LOOKUP DEACTIVATED" % fnames[0])
-        #return None
-
-    #dbms = []
-    #for fname in fnames:
-        #dbms.append(gdbm.open(fname, mode))
     fname = join(outDir, "fingerprints.tab.gz")
-    db = pubGeneric.getKeyValDb(fname)
+    db = pubGeneric.openKeyValDb(fname)
     return db
 
 def closeDbms(dbms):
@@ -253,7 +241,7 @@ def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
     #addDictsToDbms([map0, map1, map2], dbms, artIds)
     offset = writeDicts([map0, map1, map2], outFname, artIds)
     #closeDbms(dbms)
-    pubGeneric.indexKvFile(outFname, offset)
+    pubKeyVal.indexKvFile(outFname, offset)
 
     # update the marshal file
     mapStoreFname = join(outDir, "fingerprints.marshal")
@@ -323,7 +311,7 @@ class PmidFinder:
     def __init__(self):
         textDir = pubConf.resolveTextDir("medline")
         fname = join(textDir, "fingerprints.tab.gz")
-        self.db = pubGeneric.getKeyValDb(fname)
+        self.db = pubGeneric.openKeyValDb(fname)
         self.noPrints = []
         self.noMatches = []
         
@@ -332,6 +320,10 @@ class PmidFinder:
         """
         if self.db==None:
             logging.debug("no db, not returning any pmid")
+            return ""
+        # files from webcrawl come without very little meta info
+        if articleDict["doi"]=="" and articleDict["vol"]=="" and articleDict["authors"]=="":
+            logging.debug("No article info, skipping PMID lookup")
             return ""
         artTuple = pubStore.articleDictToTuple(articleDict)
         pmid = lookupArtIds(artTuple, self.db, self.db, self.db, None, \

@@ -12,7 +12,7 @@ staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
 
-journalListDir = join(staticDataDir, "extJournalLists")
+journalListDir = join(pubsDataDir, "journalLists")
 publisherDir = join(staticDataDir, "publishers")
 
 # a directory on the main server (hgwdev) where program is run, on local disk
