@@ -16,6 +16,7 @@ to blast on db:
 /cluster/bin/blast/x86_64/ncbi-blast-2.2.24+/bin/tblastn -query david.fa -db imgt.fa
 """) 
 parser.add_option("-f", "--filter", dest="filterWords", action="append", help="can be specified several times, keyword, output only records that contain one of the keywords in their fasta-id line, not case sensitive (includes the paper's title, authors. Example: -f ankylos -f spondilitis -f rheuma -f arthritis", metavar="WORDLIST_COMMASEP")
+parser.add_option("-o", "--organism", dest="organism", action="store", help="organism to extract, default %default", metavar="NAME", default="Homo sapiens")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -93,7 +94,6 @@ def parseImgt(fh):
         if tag=="//":
             yield rec
     yield rec
-
     
 def filterConvertImgt(inFname, filterWords, species="Homo sapiens"):
     """ go over all IMGT records, output ones from selected species with
@@ -131,5 +131,6 @@ if args==[]:
 
 inFname = args[0]
 filterWordList = options.filterWords
+filterOrg = options.organism
 
-filterConvertImgt(inFname, filterWordList)
+filterConvertImgt(inFname, filterWordList, filterOrg)

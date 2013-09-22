@@ -152,7 +152,7 @@ def submitBlastJobs(runner, prog, dbDir, inFaDir, outDir, eVal, dbSize, dataFilt
 
     logging.info("Found %d input files" % len(inFaFiles))
 
-    outDir = join(outDir, prog)
+    outDir = abspath(join(outDir, prog))
     maxCommon.mustExistDir(outDir, makeDir=True)
     if prog=="blastn": # nucl against nucl
         blastDir = join(dbDir, "dna")
@@ -375,8 +375,10 @@ def main(args, options):
 
     elif cmd in ["dna", "prot"]:
         inFaDir = args[2]
+        inFaDir = abspath(inFaDir)
         outDir = args[3]
-        runner = maxRun.Runner(maxRam="2g")
+        #runner = maxRun.Runner(maxRam="2g")
+        runner = pubGeneric.makeClusterRunner(__file__)
         if cmd=="dna":
             submitBlastJobs(runner, "blastn", dbDir, inFaDir, outDir, options.eVal, options.dbSize, options.limit)
             submitBlastJobs(runner, "blastx", dbDir, inFaDir, outDir, options.eVal, options.dbSize, options.limit)

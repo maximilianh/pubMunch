@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+
+# load default python packages
+import sys, logging, optparse, os, glob, zipfile, types, re, tempfile, shutil, codecs
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, pubStore, pubConf, maxCommon, pubXml, pubConvSpringer, maxRun
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert fulltext from Springer directories to pubtools format.
+
+If in and out are directories:
+    Will create an index of all xml files and write them to 
+    outDir/springer.index
+    Will split these to outDir/springer.index.split/<xxxx>.tab
+If in and out are files:
+    Will parse the input file as an index file
+    Writes to outDir/<xxxx>.zip
+
+Example:
+pubConvSpringer /hive/data/outside/pubs/springer/ /hive/data/inside/pubs/text/springer/
+
+Big zips are shipped on harddisk, updates transferred by ftp. 
+Email dds_support@springer.com for details.
+
+""")
+
+parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=800) 
+parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["springer"])
+parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None)
+pubGeneric.addGeneralOptions(parser)
+(options, args) = parser.parse_args()
+
+# ----------- MAIN --------------
+# only for debugging
+pubGeneric.setupLogging(progFile, options)
+if options.parse!=None:
+    fname = args[0]
+    logging.info("Parsing file %s, writing to temp.txt" % fname)
+    ofh = codecs.open("temp.txt", "w", encoding="utf8") # etree can only accept normal strings
+    xmlString = open(fname).read()
+    xmlTree   = pubXml.etreeFromXml(xmlString)
+    articleData = pubStore.createEmptyArticleDict()
+    articleData = pubConvSpringer.parseXml(xmlTree, articleData)
+    ofh.write("ARTICLE DATA"+"\n")
+    for key, val in articleData.iteritems():
+        ofh.write("%s\t%s\n" % (key, pubStore.replaceSpecialChars(val)))
+    sys.exit(0)
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+# normal operation
+inDir, outDir = args
+maxCommon.mustExist(inDir)
+
+minId = options.minId
+
+if not os.path.isdir(inDir):
+    print "first parameter must be a directory"
+    sys.exit(1)
+
+runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+pubConvSpringer.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
+
+tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+dbPath = join(outDir, "articles.db")
+pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

@@ -3,59 +3,78 @@
 # load default python packages
 import logging, optparse, os, sys, collections, gzip, re, codecs, operator, glob, random
 from os.path import *
+from collections import defaultdict
 
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
 
 # load our own libraries
-import pubConf, pubGeneric, tabfile, maxCommon, pubPubmed, pubResolvePublishers
+import pubConf, pubGeneric, tabfile, maxCommon, pubPubmed, pubResolvePublishers, pubCrawlConf, unidecode
 from urllib2 import urlparse
 
 import xml.etree.cElementTree as etree
 
 ISSNTAB = "issns.tab"
-PUBLISHERTAB = "publishers.tab"
+PUBLISHERTAB = pubConf.publisherIssnTable
 
 # ===== FUNCTIONS =======
 
-def parseIssns(journalDataDir, crawlPubDirs, crawlIssnOverwrite):
+def parseIssns(pubFname, crawlPubDirs, crawlIssnOverwrite):
     " parse Issns into dict Issn, title -> pub "
-    pubFname = join(journalDataDir, PUBLISHERTAB)
     logging.info("Parsing %s" % pubFname)
     pubs = maxCommon.iterTsvRows(pubFname)
     # parse into dict pub -> list of issns
-    pubToIssn = {}
-    issnToTitle = {}
+    pubToJournals = defaultdict(list)
     for pub in pubs:
         issns = pub.journalEIssns.split("|")
         titles = pub.titles.split("|")
-        pubToIssn[pub.pubName] = (issns, titles)
+        for issn, title in zip(issns, titles):
+            pubToJournals[pub.pubName].append((issn, title))
+
         if len(titles)!=len(issns):
             logging.warn("Illegal fields for publisher %s, %s, %s" % (pub.pubName, pub.titles, pub.journalEIssns))
             continue
         assert(len(titles)==len(issns))
-        for title, issn in zip(titles, issns):
-            issnToTitle[issn] = title
+    return pubToJournals
 
-    # check if all configured pubs are actually in this dict
-    # write into dict issn -> pub
-    issnToPub = {}
-    for pubName in crawlPubDirs:
-        if pubName not in pubToIssn:
-            raise Exception("publisher %s defined in pubConf not found in %s" % (pubName, pubFname))
-        issns, titles = pubToIssn[pubName]
-        for issn, title in zip(issns, titles):
-            issnToPub[issn] = pubName
+    #logging.info("Parsing %s" % pubFname)
+    #pubs = maxCommon.iterTsvRows(pubFname)
+    ## parse into dict pub -> list of issns
+    #pubToIssn = {}
+    #issnToTitle = {}
+    #for pub in pubs:
+    #    issns = pub.journalEIssns.split("|")
+    #    titles = pub.titles.split("|")
+    #    pubToIssn[pub.pubName] = (issns, titles)
+    #    if len(titles)!=len(issns):
+    #        logging.warn("Illegal fields for publisher %s, %s, %s" % (pub.pubName, pub.titles, pub.journalEIssns))
+    #        continue
+    #    assert(len(titles)==len(issns))
+    #    for title, issn in zip(titles, issns):
+    #        issnToTitle[issn] = title
 
-    for corrIssn in crawlIssnOverwrite:
-        if corrIssn in issnToPub:
-            del issnToPub[corrIssn]
+    ## make sure that all configured publishers  are in the dict we just read
+    #issnToPub = {}
+    #for pubName in crawlPubDirs:
+    #    if pubName not in pubToIssn:
+    #        raise Exception("publisher %s defined in pubConf not found in %s" % (pubName, pubFname))
+    #    issns, titles = pubToIssn[pubName]
+    #    for issn, title in zip(issns, titles):
+    #        issnToPub[issn] = pubName
 
-    # now reverse again and make dict pub -> set of (issn, title)
-    pubToIssnName = {}
-    for issn, pub in issnToPub.iteritems():
-        pubToIssnName.setdefault(pub, set()).add((issn, issnToTitle.get(issn, "")))
-    return pubToIssnName
+    ## write into dict issn -> pub
+    #for corrIssn in crawlIssnOverwrite:
+    #    if corrIssn in issnToPub:
+    #        del issnToPub[corrIssn]
+
+    ## now reverse again and make dict pub -> set of (issn, title)
+    #pubToIssnName = {}
+    #for issn, pub in issnToPub.iteritems():
+    #    #if issn=="1536-4844":
+    #        #print repr(issn), pub, issnToTitle.get(issn, "")
+    #        #assert(False)
+    #    pubToIssnName.setdefault(pub, set()).add((issn, issnToTitle.get(issn, "")))
+    #return pubToIssnName
 
 def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite):
     """ write (issn,minYear,maxYear) as issn.tab to all publisher directories, 
@@ -86,12 +105,16 @@ def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite):
         outFhDict[issnOutFname] = outFh
     else:
         outFh = outFhDict[issnOutFname]
+
+    # now output ISSNs
     issnCount = 0
     for pubDesc in pubIdToDescs[pubId]:
         for issn, title in pubToIssn[pubDesc]:
             if issn=="":
                 continue
-            outFh.write("%(issn)s\t%(title)s\t0\t0\t%(pubDesc)s\n" % locals())
+            line = "%(issn)s\t%(title)s\t0\t0\t%(pubDesc)s\n" % locals()
+            # some journal names contain unicode, we just strip it here
+            outFh.write(unidecode.unidecode(line))
             issnCount+=1
 
     # add manual ISSNs
@@ -100,11 +123,11 @@ def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite):
         issnCount+=1
     logging.info("Wrote %d ISSNs" % issnCount)
 
-def writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite):
+def writeIssns(pubFname, outDir, pubDirs, issnOverwrite):
     """ use pubConf.py and the publishers.tab file to get target ISSNs
     and write them to outDir/issns.tab 
     """
-    pubToIssnTitle = parseIssns(journalDataDir, pubDirs, issnOverwrite)
+    pubToIssnTitle = parseIssns(pubFname, pubDirs, issnOverwrite)
     writeIssnTables(outDir, pubDirs, pubToIssnTitle, issnOverwrite)
 
 def writePmids(pubDir, pmids):
@@ -183,27 +206,34 @@ def main(args, options):
     minYear = options.minYear
     #onlyDir = options.onlyDir
 
-    pubDirs = pubConf.crawlPubIds
+    pubDirs = pubCrawlConf.crawlPubIds
     issnOverwrite = pubConf.crawlIssnOverwrite
-
-    journalDataDir = pubConf.publisherDir
-    maxCommon.mustExistDir(journalDataDir)
+    pubFname = pubConf.publisherIssnTable
+    issnFname = pubConf.journalTable
 
     command = command.lower()
 
     if command=="publishers":
-        inDir = pubConf.journalListDir
-        pubResolvePublishers.initJournalDir(inDir, journalDataDir, options.nlmCatalog)
+        journalListDir = pubConf.journalListDir
+        pubResolvePublishers.initJournalDir(journalListDir, options.nlmCatalog, pubFname, issnFname)
+
     elif command=="issns":
-        writeIssns(journalDataDir, outDir, pubDirs, issnOverwrite)
+        writeIssns(pubFname, outDir, pubDirs, issnOverwrite)
+
     elif command=="pmids":
         getPmidsForIssns(outDir, minYear)
+
     else:
         raise Exception("Unknown command %s" % command)
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [issns|pmids] <outDir> - prepare the directoriesy for the crawler filling it with ISSNs and PMIDs.
+
+outDir has to correspond to a "publisher name". Publishers are defined in pubCrawlConf.py and need three configuraton items:
+- a name in the NLM Catalog / Pubmed, for pubPrepCrawlDir. This will be used by pubPrepCrawlDir to find the PMIDs.
+- a list of rules, to specify how to crawl the files
+- a delay time, between any two http requests
 
 commands:
     %prog issns <outDir>      - create subdirectories under outDir and fill them 

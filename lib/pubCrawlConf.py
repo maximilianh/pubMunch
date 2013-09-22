@@ -3,6 +3,47 @@ from os.path import *
 import logging, urllib2, urlparse, urllib, re
 import pubConf, pubGeneric, maxCommon, html, maxCommon
 
+# full publisher name to internal publisher ID
+# used for assignment of ISSNs to a directory
+# links a publisher name from PubMed to a directory for the crawler
+
+# pubPrepCrawlDir parses journal data and groups journals by publishers.
+# In most cases, to download all journal from a publisher, all you have to do
+# is to copy the publisher field from publisher.tab
+# here and define a directory name for it
+
+# format: publisher name -> directory name
+# prefix NLM means that the ISSNs come from the NLM Catalog (~PubMed)
+# other prefixes (WILEY, HIGHWIRE, etc) are specific journal lists
+# in the tools/data directory.
+
+crawlPubIds = {
+# got a journal list from Wolter Kluwer by email
+"LWW lww" : "lww",
+# all ISSNs that wiley gave us go into the subdir wiley
+"WILEY Wiley" : "wiley",
+# we don't have ISSNs for NPG directly, so we use grouped data from NLM
+"NLM Nature Publishing Group" : "npg",
+"NLM American College of Chest Physicians" : "chest",
+"NLM American Association for Cancer Research" : "aacr",
+"HIGHWIRE Rockefeller University Press" : "rupress",
+"NLM Mary Ann Liebert" : "mal",
+"NLM Oxford University Press" : "oup",
+"HIGHWIRE American Society for Microbiology" : "asm",
+"NLM Future Science" : "futureScience",
+"NLM National Academy of Sciences" : "pnas",
+"NLM American Association of Immunologists" : "aai",
+"HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp",
+"HIGHWIRE The American Society for Pharmacology and Experimental Therapeutics" : "aspet",
+"HIGHWIRE Federation of American Societies for Experimental Biology" : "faseb",
+"HIGHWIRE Society for Leukocyte Biology" : "slb",
+"HIGHWIRE The Company of Biologists" : "cob",
+"HIGHWIRE Genetics Society of America" : "genetics",
+"HIGHWIRE Society for General Microbiology" : "sgm",
+"NLM Informa Healthcare" : "informa"
+#"Society for Molecular Biology and Evolution" : "smbe"
+}
+
 # crawler delay config, values in seconds
 # these overwrite the default set with the command line switch to pubCrawl
 # special case is highwire, handled in the code:
@@ -13,7 +54,10 @@ crawlDelays = {
     "dx.doi.org"              : 1,
     "ucelinks.cdlib.org"      : 20,
     "eutils.ncbi.nlm.nih.gov"      : 3,
-    "sciencedirect.com"      : 15
+    "journals.lww.com" : 0.2, # wolters kluwer
+    "pdfs.journals.lww.com" : 0.2, # wolters kluwer
+    "content.wkhealth.com" : 0.2, # also wolters kluwer
+    "sciencedirect.com"      : 10 # elsevier
 }
 
 def parseHighwire():
@@ -29,7 +73,7 @@ def parseHighwire():
     """
     # highwire's publisher names are not resolved ("SAGE", "SAGE Pub", etc)
     # so: first get dict printIssn -> resolved publisherName from publishers.tab
-    pubFname = join(pubConf.publisherDir, "publishers.tab")
+    pubFname = pubConf.publisherIssnTable
     pIssnToPub = {}
     for row in maxCommon.iterTsvRows(pubFname):
         if not row.pubName.startswith("HIGHWIRE"):
@@ -77,7 +121,7 @@ def highwireConfigs():
             "doiUrl_replace" : {"$" : ".long"},
             "landingUrl_isFulltextKeyword" : ".long",
             "landingPage_ignoreMetaTag" : True,
-            "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+            "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
             "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
             "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
         }
@@ -86,34 +130,34 @@ def highwireConfigs():
 highwireCfg = highwireConfigs()
 
 # crawl configuration: for each website, define how to crawl the pages
-confDict = {
-    "oup" :
-        highwireCfg["Oxford University Press"],
+# this got more and more complicated over time. Best is to copy/paste from these examples
+# to create new ones
 
+confDict = {
     "pmc" :
-    # not used at UCSC
+    # not used at UCSC, we get the files via pubGetPmc/pubConvPmc, 
+    # this was only a quick hack for an NIH project
     # caveats: we always keep html, can't distinguish between PDF-only and 
     # and HTML/PDF articles
     # supplementals might not always work, tested only on PLOS
     # only gets the first supplemental file
     {
         "hostnames" : ["www.ncbi.nlm.nih.gov"],
-        "landingUrl_fulltextUrl_append" : "pdf",
-        "landingUrl_isSuppListUrl": True,
+        "landingUrl_pdfUrl_append" : "pdf",
+        "landingPage_hasSuppList": True,
         "landingUrl_isFulltextKeyword" : "pmc", # always true -> always keep fulltext
-        "suppListPage_suppFileTextREs" : ["Click here for additional data file.*"]
+        "landingPage_suppFile_textREs" : ["Click here for additional data file.*"]
     },
     "springer" :
-    # we don't use this at UCSC, we get springer directly
+    # we don't use this at UCSC, we get springer directly, use at own risk
     {
         "hostnames" : ["link.springer.com"],
         #only pdfs "landingUrl_replaceREs" : {"$" : "?np=y"}, # switch sd to screen reader mode
         "landingPage_stopPhrases": ["make a payment", "purchase this article"],
-        "landingPage_mainLinkTextREs" : [".*Download PDF +\([0-9]+ KB\)"],
+        "landingPage_pdfLinkTextREs" : [".*Download PDF +\([0-9.]+ [KM]B\)"],
         "suppListPage_suppFile_urlREs" : [".*/file/MediaObjects/.*"],
-        "landingUrl_isSuppListUrl": True
+        "landingPage_hasSuppList": True
     },
-
     "elsevier" :
     # at UCSC we don't use this, we get elsevier data via consyn.elsevier.dom
     # this is mostly for off-site use or for the odd project that doesn't
@@ -127,8 +171,59 @@ confDict = {
         #only pdfs "landingUrl_replaceREs" : {"$" : "?np=y"}, # switch sd to screen reader mode
         "landingPage_stopPhrases": ["make a payment", "purchase this article", \
             "This is a one-page preview only"],
-        "landingPage_mainLinkTextREs" : ["PDF  +\([0-9]+ K\)"],
+        "landingPage_pdfLinkTextREs" : ["PDF  +\([0-9]+ K\)"],
     },
+
+    # NORMAL SITE CONFIGURATIONS AS USED AT UCSC
+
+    # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
+    # example spurious suppinfo link 8536951
+    # 
+    "wiley" :
+    {
+        "hostnames" : ["onlinelibrary.wiley.com"],
+        #"landingUrl_templates" : {None: "http://onlinelibrary.wiley.com/doi/%(doi)s/full"},
+        "landingUrl_templates" : {"anyIssn": "http://onlinelibrary.wiley.com/resolve/openurl?genre=article&sid=genomeBot&issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(firstPage)s"},
+        "landingUrl_fulltextUrl_replace" : {"abstract" : "full"},
+        #"doiUrl_replace" : {"abstract" : "full"},
+        #"landingUrl_isFulltextKeyword" : "full",
+        #"landingUrl_pdfUrl_replace" : {"full" : "pdf", "abstract" : "pdf"},
+        "landingPage_suppListTextREs" : ["Supporting Information"],
+        "suppListPage_suppFile_urlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
+        "suppFilesAreOffsite" : True,
+        "landingPage_ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
+        "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
+    },
+    "oup" :
+        highwireCfg["Oxford University Press"],
+    "lww" :
+    # Lippincott Williams aka Wolters Kluwer Health
+    # with suppl:
+    # PMID 21617504
+    # http://journals.lww.com/academicmedicine/Fulltext/2011/07000/Six_Ways_Problem_Based_Learning_Cases_Can_Sabotage.13.aspx
+    # no html fulltext, no outlink from pubmed
+    # PMID 9686422
+    # http://journals.lww.com/psychgenetics/Abstract/1998/00820/The_Bal_I_and_Msp_I_Polymorphisms_in_the_dopamine.3.aspx
+    # http://journals.lww.com/psychgenetics/Abstract/1990/01020/The_Super_Normal_Control_Group_in_Psychiatric.5.pdf
+    # we cannot crawl any articles on pt.wkhealth.com
+
+    {
+        "hostnames" : ["journals.lww.com"],
+        "onlyUseTemplate" : True,
+        "landingUrl_templates" : {"anyIssn" : "http://content.wkhealth.com/linkback/openurl?issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(firstPage)s"},
+        "landingPage_ignoreUrlWords" : ["issuelist"],
+        #"landingUrl_fulltextUrl_replace" : {"abstract" : "fulltext"},
+        "landingUrl_isFulltextKeyword" : "Fulltext", # probably not necessary, openurl goes to land page
+        "landingPage_fulltextLinkTextREs" : ["View Full Text"],
+        "landingPage_pdfLinkTextREs" : ["Article as PDF +\([0-9.]+ [KM]B\)"],
+        "landingPage_acceptNoPdf": True,
+        "landingPage_linksCanBeOffsite": True,
+        "fulltextPage_hasSuppList": True,
+        "suppFilesAreOffsite" : True,
+        "fulltextPage_suppFile_urlREs" : ["http://links.lww.com.*"],
+        "suppListPage_acceptAllFileTypes" : True,
+    },
+
 
     "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
@@ -139,14 +234,21 @@ confDict = {
         "landingPage_stopPhrases": ["make a payment", "purchase this article"],
         "landingPage_acceptNoPdf": True,
         "landingUrl_isFulltextKeyword" : "full",
-        "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
-        "landingPage_mainLinkTextREs" : ["Download PDF"],
+        "landingUrl_pdfUrl_replace" : {"full" : "pdf", "html" : "pdf", "abs" : "pdf"},
+        "landingPage_pdfLinkTextREs" : ["Download PDF"],
         "landingUrl_suppListUrl_replace" : {"full" : "suppinfo", "abs" : "suppinfo"},
         "landingPage_suppListTextREs" : ["Supplementary information index", "[Ss]upplementary [iI]nfo", "[sS]upplementary [iI]nformation"],
-        "suppListPage_suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]ethods.*", "Supplementary [mM]aterials.*", "Review Process File"]
+        "suppListPage_suppFile_textREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]ethods.*", "Supplementary [mM]aterials.*", "Review Process File"]
     # Review process file for EMBO, see http://www.nature.com/emboj/journal/v30/n13/suppinfo/emboj2011171as1.html
     },
 
+    # CHEST
+    "chest" : {
+        "hostnames" : ["journal.publications.chestnet.org"],
+        # currently no access, tied to IP 128.114.50.189
+    },
+
+    # Mary-Ann Liebert:
     # with suppl
     # PMID 22017543
     # http://online.liebertpub.com/doi/full/10.1089/nat.2011.0311
@@ -161,20 +263,23 @@ confDict = {
         "hostnames" : ["online.liebertpub.com"],
         "landingUrl_templates" : {"anyIssn" : "http://online.liebertpub.com/doi/full/%(doi)s"},
         "landingUrl_isFulltextKeyword" : "/full/",
-        "landingUrl_fulltextUrl_replace" : {"/abs/" : "/full/" },
-        "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
+        "landingUrl_pdfUrl_replace" : {"/abs/" : "/full/" },
+        "landingPage_pdfLinkTextREs" : ["Full Text PDF.*"],
         "landingPage_suppListTextREs" : ["Supplementary materials.*"]
     },
 
+    # JSTAGE: a hoster, not a publisher. Probably no permission to crawl files from here
+    # not used at UCSC
     # https://www.jstage.jst.go.jp/article/circj/75/4/75_CJ-10-0798/_article
     # suppl file download does NOT work: strange javascript links
     "jstage" :
     {
         "hostnames" : ["www.jstage.jst.go.jp"],
-        "landingUrl_fulltextUrl_replace" : {"_article" : "_pdf" },
-        "landingPage_mainLinkTextREs" : ["Full Text PDF.*"],
+        "landingUrl_pdfUrl_replace" : {"_article" : "_pdf" },
+        "landingPage_pdfLinkTextREs" : ["Full Text PDF.*"],
         "landingPage_suppListTextREs" : ["Supplementary materials.*"]
     },
+    # Rockefeller press
     # rupress tests:
     # PMID 12515824 - with integrated suppl files into main PDF
     # PMID 15824131 - with separate suppl files
@@ -188,16 +293,17 @@ confDict = {
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignorePageWords" : ["From The Jcb"],
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf"},
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf"},
         "suppListPage_addSuppFileTypes" : ["html", "htm"], # pubConf does not include htm/html
-        "landingPage_mainLinkTextREs" : ["Full Text (PDF)"],
+        "landingPage_pdfLinkTextREs" : ["Full Text (PDF)"],
         #"landingPage_suppListTextREs" : ["Supplemental [Mm]aterial [Iindex]", "Supplemental [Mm]aterial"],
         "landingUrl_suppListUrl_replace" : {".long" : "/suppl/DC1", ".abstract" : "/suppl/DC1"},
-        "suppListPage_suppFileTextREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
+        "suppListPage_suppFile_textREs" : ["[Ss]upplementary [dD]ata.*", "[Ss]upplementary [iI]nformation.*", "Supplementary [tT]able.*", "Supplementary [fF]ile.*", "Supplementary [Ff]ig.*", "[ ]+Figure S[0-9]+.*", "Supplementary [lL]eg.*", "Download PDF file.*", "Supplementary [tT]ext.*", "Supplementary [mM]aterials and [mM]ethods.*", "Supplementary [mM]aterial \(.*"],
         "ignoreSuppFileLinkWords" : ["Video"],
         "ignoreSuppFileContentText" : ["Reprint (PDF) Version"],
         "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"]
     },
+    # Am Society of Microbiology
     # http://jb.asm.org/content/194/16/4161.abstract = PMID 22636775
     "asm" :
     {
@@ -206,13 +312,14 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingPage_ignoreMetaTag" : True,
         "landingPage_errorKeywords" : "We are currently doing routine maintenance", # if found on landing page Url, wait for 15 minutes and retry
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        #"landingUrl_fulltextUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        #"landingUrl_pdfUrl_replace" : {"long" : "full.pdf?with-ds=yes", "abstract" : "full.pdf?with-ds=yes" },
         #"landingUrl_suppListUrl_replace" : {".long" : "/suppl/DCSupplemental", ".abstract" : "/suppl/DCSupplemental"},
         "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
         "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
     },
     # 
+    # American Assoc of Cancer Research
     # 21159627 http://cancerres.aacrjournals.org/content/70/24/10024.abstract has suppl file
     "aacr" :
     {
@@ -222,7 +329,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
         "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
@@ -237,11 +344,13 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
         "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
     },
+
+    # PNAS
     "pnas" :
     {
         "hostnames" : ["pnas.org"],
@@ -250,7 +359,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
         "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
     },
@@ -262,7 +371,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
@@ -274,7 +383,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
@@ -288,7 +397,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
@@ -301,7 +410,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
@@ -315,7 +424,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
     },
@@ -336,7 +445,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
         "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
     },
@@ -352,7 +461,7 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
         "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
     },
@@ -366,31 +475,15 @@ confDict = {
         "doiUrl_replace" : {"$" : ".long"},
         "landingUrl_isFulltextKeyword" : ".long",
         "landingPage_ignoreMetaTag" : True,
-        "landingUrl_fulltextUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
         "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
         "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
-    },
-    # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
-    # example spurious suppinfo link 8536951
-    # 
-    "wiley" :
-    {
-        "hostnames" : ["onlinelibrary.wiley.com"],
-        #"landingUrl_templates" : {None: "http://onlinelibrary.wiley.com/doi/%(doi)s/full"},
-        "doiUrl_replace" : {"abstract" : "full"},
-        "landingUrl_isFulltextKeyword" : "full",
-        "landingUrl_fulltextUrl_replace" : {"full" : "pdf", "abstract" : "pdf"},
-        "landingPage_suppListTextREs" : ["Supporting Information"],
-        "suppListPage_suppFile_urlREs" : [".*/asset/supinfo/.*", ".*_s.pdf"],
-        "suppFilesAreOffsite" : True,
-        "landingPage_ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
-        "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
     # http://www.futuremedicine.com/doi/abs/10.2217/epi.12.21
     "futureScience" :
     {
         "hostnames" : ["futuremedicine.com", "future-science.com", "expert-reviews.com", "future-drugs.com"],
-        "landingUrl_fulltextUrl_replace" : {"abs" : "pdfplus"},
+        "landingUrl_pdfUrl_replace" : {"abs" : "pdfplus"},
         "landingUrl_suppListUrl_replace" : {"abs" : "suppl"},
         "suppListPage_suppFile_urlREs" : [".*suppl_file.*"],
         "landingPage_stopPhrases" : ["single article purchase is required", "The page you have requested is unfortunately unavailable"]

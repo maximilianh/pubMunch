@@ -168,7 +168,7 @@ def recIter(tree):
         data["source"] = "NLM"
         data["correctPublisher"] = ""
         row = Rec(**data)
-        logging.debug("parsed XML as %s",  data)
+        logging.log(5, "parsed XML as %s",  data)
         yield row
 
 def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
@@ -213,6 +213,10 @@ def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
 
 def writePubGroups(pubGroups, outFname, prefix=None, append=False):
     " write dict to tab sep file "
+    if not isdir(dirname(outFname)):
+        logging.info("creating %s" % dirname(outFname))
+        os.makedirs(dirname(outFname))
+
     openMode = "w"
     if append:
         openMode = "a"
@@ -599,12 +603,8 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, journalFname, pubFname):
                 prefix=datasetName, append=True)
         writeJournals(pubGroups, journalFname, headers, append=True, source=datasetName)
 
-def initJournalDir(journalInDir, journalDataDir, nlmCatalogFname, journalFname, pubFname):
+def initJournalDir(journalInDir, nlmCatalogFname, journalFname, pubFname):
     " fill the journal data dir pubConf.journalData with two tab sep files "
-    if not isdir(journalDataDir):
-        logging.info("Creating %s" % journalDataDir)
-        os.makedirs(journalDataDir)
-
     listDir = journalInDir
     logging.info("importing journal info from %s" % listDir)
 

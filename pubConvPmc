@@ -485,11 +485,12 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
     # add xml file data
     xmlFile = pubStore.createEmptyFileDict(
         url=urlPrefix,
+        externalId = pmcId,
         content=nxmlData,
         fileType="main",
         desc = "main text (xml)",
         mimeType="text/xml",
-        locFname = tgzName+":"+nxmlName
+        locFname = tgzName+":"+nxmlName, 
         )
     fileDataList.append(xmlFile)
 
@@ -498,6 +499,7 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
     if pdfName!=nxmlName and pdfName in extractedFiles:
         pdfFile = pubStore.createEmptyFileDict( 
             url=urlPrefix+"/pdf/",
+            externalId = pmcId,
             content=extractedFiles[pdfName],
             desc = "main text (pdf)",
             fileType="main",
@@ -514,6 +516,7 @@ def createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, pm
         suppData = extractedFiles[suppFname]
         mimeType, dummy = mimetypes.guess_type(suppFname)
         suppFile = pubStore.createEmptyFileDict(
+            externalId = pmcId,
             url=urlPrefix+"/bin/"+basename(suppFname),
             content=suppData,
             desc=suppDesc,

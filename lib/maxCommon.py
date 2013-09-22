@@ -408,14 +408,14 @@ def appendTsvDict(filename, inDict, headers):
     for head in headers:
         values.append(inDict.get(head, ""))
 
-    logging.debug("order of headers is: %s" % headers)
+    logging.log(5, "order of headers is: %s" % headers)
 
     if not os.path.isfile(filename):
        outFh = codecs.open(filename, "w", encoding="utf8") 
        outFh.write("\t".join(headers)+"\n")
     else:
        outFh = codecs.open(filename, "a", encoding="utf8")
-    logging.debug("values are: %s" % values)
+    logging.log(5, "values are: %s" % values)
     outFh.write(u"\t".join(values)+"\n")
 
 def appendTsvOrderedDict(filename, orderedDict):
@@ -485,6 +485,7 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
     count = repeatCount
     while count>0:
         try:
+            logging.log(5, "Getting URL %s, params %s" % (url, params))
             if onlyHead:
                 req = HeadRequest(url, params)
             else:
@@ -500,6 +501,8 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
             count = handleEx(ex, count)
         except urllib2.URLError as ex:
             count = handleEx(ex, count)
+        except socket.timeout as ex:
+            count = handleEx(ex, count)
         else:
             return ret
 
@@ -508,7 +511,7 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
     
 def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120, userAgent = None):
     response = retryHttpRequest(url, repeatCount=repeatCount, delaySecs=delaySecs, \
-        userAgent=userAgent)
+        userAgent=userAgent, onlyHead=True)
     return response
     
 def sendEmail(address, subject, text):

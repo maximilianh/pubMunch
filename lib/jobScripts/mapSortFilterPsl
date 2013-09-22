@@ -5,9 +5,9 @@ from os.path import join, splitext, basename
 
 TEMPBASE = os.environ["TMPDIR"]
 
-def makeTempFile(tmpDir, prefix):
+def makeTempFile(tmpDir, prefix, suffix=".psl"):
     " create tempfile in pubtools tempdir dir with given prefix, return object and name "
-    tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=".psl")
+    tf = tempfile.NamedTemporaryFile(dir=tmpDir, prefix=prefix+".", mode="w", suffix=suffix)
     return tf, tf.name
 
 def concatFiles(inFnames, outFile):

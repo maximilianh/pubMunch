@@ -1,8 +1,10 @@
 # Routines for handling fasta sequences and tab sep files
 
 # std packages
-import sys, textwrap, operator, types, doctest,logging, gzip, struct
+import sys, textwrap, operator, types, doctest,logging, gzip, struct, cPickle, gc, itertools, math
+from collections import defaultdict
 from types import *
+from os.path import basename, splitext
 
 # external packages
 try:
@@ -18,7 +20,9 @@ except:
 # --- CONVENIENCE ---
 def openFile(fname, mode="r"):
     """ opens file, recognizing stdout and stdin and none"""
-    if fname=="stdout":
+    if hasattr(fname, "read") or hasattr(fname, "write"):
+        return fname
+    elif fname=="stdout":
         fh = sys.stdout
     elif fname=="stdin":
         fh = sys.stdin
@@ -197,66 +201,6 @@ def bestTuples(list, idField, scoreField):
         filteredList.extend(bestElements)
     return filteredList
 
-def printResults():
-    if objects==0:
-        print "error: number of %s in common between prediction and reference is zero" % OBJECTNAME
-        exit(1)
-
-    if TP+FP > 0:
-        Prec    = float(TP) / (TP + FP)
-    else:
-        print "Warning: Cannot calculate Prec because TP+FP = 0"
-        Prec = 0
-
-    if TP+FN > 0:
-        Recall  = float(TP) / (TP + FN)
-    else:
-        print "Warning: Cannot calculate Recall because TP+FN = 0"
-        Recall = 0
-        
-    if Recall>0 and Prec>0:
-        F       = 2 * (Prec * Recall) / (Prec + Recall)
-    else:
-        print "Warning: Cannot calculate F because Recall and Prec = 0"
-        F = 0
-
-    print "Number of %ss in prediction set %s: %d" % (OBJECTNAME, file1, len(predDict))
-    print "Number of total %s/value assignments in prediction set: %d" % (OBJECTNAME, assCount)
-    print "Average number of predicted values per %s in prediction set: %f" % (OBJECTNAME, float(assCount) / len(predDict))
-    print
-    print "Number of %s in reference set %s: %d" % (OBJECTNAME, file2, len(refDict))
-    print "Number of total %s/value assignments in reference set: %d" % (OBJECTNAME, refValCount)
-    print "Average number of predicted values per %ss in reference set: %f" % (OBJECTNAME, float(refValCount) / len(refDict))
-    print
-    print "Number of %ss with common key in prediction set and reference set: %d" % (OBJECTNAME, len(set(predDict).intersection(set(refDict))))
-    if pmax or rmax:
-        print
-    if pmax:
-        print "Filtering: Analysis is limited to %ss where count(predictions) <= %d  in prediction " % (OBJECTNAME, pmax)
-    if rmax:
-        print "Filtering: Analysis is limited to %ss where count(references) <= %d times " % (OBJECTNAME, rmax)
-
-    print "Number of %ss considered: %d" % (OBJECTNAME, objects)
-    print
-    print "Details on a per-prediction-basis"
-    print "  - Number of predictions: %d" % predCount
-    print "  - TP=%d, FP=%d, FN=%d, Prec=%f, Recall=%f, F=%f" % (TP, FP, FN, Prec, Recall, F)
-    print "TP : correct predictions"
-    print "FP : incorrect predictions"
-    print "FN : missed targets"
-    print "Prec : correct predictions relative to all predictions"
-    print "Recall : correct predictions relative to targets"
-    print
-    print "Details on a per-%s-basis:" % OBJECTNAME
-    print "- Perfect predictions: %d, %f %%" % (completeMatch, (float(completeMatch) / objects))
-    print "- At least one correct prediction: %d, %f %%" % (atLeastOneHit, (float(atLeastOneHit) / objects))
-    print "- Not a single correct prediction: %d, %f %%" % (completeMismatch, (float(completeMismatch) / objects))
-    print "- Over- or underpredicting?"
-    print "  - %s with too few predictions: %d, %f %%" % (OBJECTNAME, notEnoughPred, (float(notEnoughPred) / objects))
-    print "  - %s with too many predictions: %d, %f %%" % (OBJECTNAME, tooManyPred, (float(tooManyPred) / objects))
-    print
-
-    
 def removeBigSets(predDict, limit):
     """ given a dict with string -> set , remove elements where len(set) >= than limit """
     result = {}
@@ -266,7 +210,7 @@ def removeBigSets(predDict, limit):
     return result
 
 
-# return types for benchmark
+# return types for benchmark()
 BenchmarkResult = namedtuple.namedtuple("BenchResultRec", "TP, FN, FP, Prec, Recall, F, errList, objCount")
 ErrorDetails    = namedtuple.namedtuple("ErrorDetails", "id, expected, predicted")
 

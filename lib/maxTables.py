@@ -644,7 +644,7 @@ def openSqliteCreateTable(db, tableName, fields, intFields=None, idxFields=None,
         primKey = fields[0]
     createSql, idxSqls = makeTableCreateStatement(tableName, fields, \
         intFields=intFields, idxFields=idxFields, primKey=primKey)
-    logging.debug("creating table with %s" % createSql)
+    logging.log(5, "creating table with %s" % createSql)
     cur.execute(createSql)
     con.commit()
     for idxSql in idxSqls:

@@ -7,7 +7,7 @@ xmlTagsRe  = re.compile('<.*?>')     # an xml tag
 mathTypeRe = re.compile('MathType@[^ ]*') # a mathtype formula 
  
 # for cleaning/splitting the text files into words 
-nonLetterRe= re.compile(r'[\W]') # any non-alphanumeric character 
+nonLetterRe= re.compile(r'[\W-]') # any non-alphanumeric character 
 digitRe    = re.compile('[0-9]')  # any digit 
 wordRe     = re.compile('[a-zA-Z]+') # any word 
 

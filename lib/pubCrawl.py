@@ -4,6 +4,7 @@
 import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
     pubCrossRef, html, maxCommon, pubCrawlConf
 import chardet # library for guessing encodings
+import unidecode 
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
@@ -97,7 +98,7 @@ articleFields=[
 "pmid",            # PubmedID if available
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
-"fulltextUrl",     # URL to fulltext of article
+"fulltextUrl",     # URL to (pdf) fulltext of article
 "time"     # date of download
 ]
 
@@ -151,7 +152,7 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
     - a Crossref search with medline data
     - Pubmed Outlink 
     - an SFX search
-    >>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084", "printIssn" : "1234", "page":"8"}, {}, {})
+    #>>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084", "printIssn" : "1234", "page":"8"}, {}, {})
     'http://jcb.rupress.org/content/160/1/53'
     """
     logging.log(5, "Looking for landing page")
@@ -187,6 +188,10 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
             except pubGetError:
                 logging.debug("Constructed URL %s is not valid, trying other options" % landingUrl)
                 landingUrl = None
+
+    if crawlConfig.get("onlyUseTemplate", False) and landingUrl==None:
+            #logging.debug("Template was unsuccessful but onlyUseTemplate set, so stopping now")
+            raise pubGetError("Template URL was unsuccesful", "InvalidTemplateUrl", landingUrl)
 
     # try medline's DOI
     # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
@@ -565,7 +570,7 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     page["links"] = linkDict
     page["metas"] = metaDict
     page["iframes"] = iframeDict
-    logging.debug("HTML parsing finished")
+    logging.log(5, "HTML parsing finished")
     return page
 
 def recodeToUtf8(data):
@@ -591,17 +596,20 @@ def recodeToUtf8(data):
             data = data
         return data
 
-def parsePmidStatus(outDir):
+def parsePmidStatus(outDir, skipDb):
     " parse sqlite db AND status file and return a set with pmids that should not be crawled "
     donePmids = set()
     statusFname = join(outDir, PMIDSTATNAME)
-    logging.debug("Parsing %s" % statusFname)
+    logging.info("Parsing %s" % statusFname)
     if isfile(statusFname):
         for l in open(statusFname):
             pmid = l.strip().split("\t")[0]
             pmid = int(pmid)
             donePmids.add(pmid)
         logging.info("Found %d PMIDs that have some status" % len(donePmids))
+
+    if skipDb:
+        return donePmids
 
     dbFname = join(outDir, "articles.db")
     if isfile(dbFname):
@@ -611,12 +619,13 @@ def parsePmidStatus(outDir):
         donePmids.update(dbPmids)
         logging.info("Found %d PMIDs that are already done or have status" % len(donePmids))
         logging.log(5, "PMIDs are: %s" % donePmids)
+
     return donePmids
 
 def parseIssnStatus(outDir):
     " parse outDir/issnStatus.tab and return a set with (issn, year) hat should be ignored "
     statusFname = join(outDir, ISSNSTATNAME)
-    logging.debug("Parsing %s" % statusFname)
+    logging.info("Parsing %s" % statusFname)
     ignoreIssns = set()
     if isfile(statusFname):
         for row in maxCommon.iterTsvRows(statusFname):
@@ -780,11 +789,13 @@ def detFileExt(page):
 
 def urlHasExt(linkUrl, linkText, searchFileExts, pattern):
     " return True if url ends with one of a list of extensions "
+    if searchFileExts==None:
+        return True
     urlPath = urlparse.urlparse(linkUrl)[2]
     urlExt = os.path.splitext(urlPath)[1].strip(".")
     for searchFileExt in searchFileExts:
         if urlExt==searchFileExt:
-            logging.debug("Found matching link for pattern %s: text %s, url %s" % \
+            logging.debug("Found acceptable extension AND matching link for pattern %s: text %s, url %s" % \
                 (pattern, repr(linkText), linkUrl))
             return True
     return False
@@ -802,7 +813,10 @@ def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTex
     one of the file extensions"""
 
     assert(searchTextRes!=None or searchUrlRes!=None)
-    assert(len(searchTextRes)!=0 or len(searchUrlRes)!=0)
+    if (len(searchTextRes)==0 and len(searchUrlRes)==0):
+        raise Exception("config error: didn't get any search text or url regular expressions")
+
+    doneUrls = set()
 
     for linkText, linkUrl in links.iteritems():
         if containsAnyWord(linkText, ignTextWords):
@@ -818,13 +832,29 @@ def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTex
         for searchRe in searchUrlRes:
             logging.log(5, "Checking url %s against regex %s" % (linkUrl, searchRe.pattern))
             if searchRe.match(linkUrl):
+                if linkUrl in doneUrls:
+                    continue
                 if urlHasExt(linkUrl, linkText, searchFileExts, searchRe.pattern):
-                        yield linkUrl
+                    logging.log(5, "Match found")
+                    doneUrls.add(linkUrl)
+                    yield linkUrl
 
 def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
     " given a page with links to supp files, add supplemental files to fulltextData dict "
-    suppTextREs = crawlConfig.get("suppListPage_suppFileTextREs", [])
-    suppUrlREs = crawlConfig.get("suppListPage_suppFile_urlREs", [])
+    if "landingPage_hasSuppList" in crawlConfig:
+        configPrefix = "landingPage"
+    elif "fulltextPage_hasSuppList" in crawlConfig:
+        configPrefix = "fulltextPage"
+    else:
+        configPrefix = "suppListPage"
+
+    # this function can accept the regexes from either fulltextPage_suppFile_textREs or
+    # suppListPage_suppFile_textREs or landingPage_suppFile_textREs
+    textReTag = "%s_suppFile_textREs" % configPrefix
+    urlReTag = "%s_suppFile_urlREs" % configPrefix
+    logging.debug("Looking for %s and %s" % (textReTag, urlReTag))
+    suppTextREs = crawlConfig.get(textReTag, [])
+    suppUrlREs = crawlConfig.get(urlReTag, [])
     ignSuppTextWords = crawlConfig.get("ignoreSuppFileLinkWords", [])
 
     suppFilesAreOffsite = crawlConfig.get("suppFilesAreOffsite", False)
@@ -853,11 +883,11 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
                 raise pubGetError("max suppl count reached", "tooManySupplFiles", str(len(suppUrls)))
     return fulltextData
 
-def replaceUrl(landingUrl, landingUrl_fulltextUrl_replace):
+def replaceUrl(landingUrl, landingUrl_pdfUrl_replace):
     " try to find link to PDF/suppInfo based on just the landing URL alone "
     replaceCount = 0
     newUrl = landingUrl
-    for word, replacement in landingUrl_fulltextUrl_replace.iteritems():
+    for word, replacement in landingUrl_pdfUrl_replace.iteritems():
         if word in newUrl:
             replaceCount+=1
             newUrl = newUrl.replace(word, replacement)
@@ -876,41 +906,75 @@ def replaceUrl(landingUrl, landingUrl_fulltextUrl_replace):
         newUrl = None
     return newUrl
 
-def findMainFileUrl(landingPage, crawlConfig):
+def findFulltextUrl(landingPage, crawlConfig):
+    " return URL to html fulltext derived from landing page "
+    ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
+
+    # some others can be derived by replacing strings in the landing url
+    if "landingUrl_fulltextUrl_replace" in crawlConfig:
+        ftUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_fulltextUrl_replace"])
+        logging.debug("Found fulltext url by repacing keywords")
+        return ftUrl
+
+    canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
+    landingPage = parseHtml(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
+
+    fulltextUrl = None
+    mainLinkNameREs = crawlConfig.get("landingPage_fulltextLinkTextREs", [])
+    links = landingPage["links"]
+    #logging.debug("Found putative fulltext links %s" % links)
+    for mainLinkNameRe in mainLinkNameREs:
+        for linkText, linkUrl in links.iteritems():
+            dbgStr = "Checking %s, %s against %s" % (unidecode.unidecode(linkText), linkUrl, mainLinkNameRe.pattern)
+            logging.log(5, dbgStr)
+            if mainLinkNameRe.match(linkText):
+                fulltextUrl = linkUrl
+                logging.debug("Found link to html fulltext: %s -> %s" % (linkText, linkUrl))
+    return fulltextUrl
+
+def findPdfFileUrl(landingPage, crawlConfig):
     " return the url that points to the main pdf file on the landing page "
     pdfUrl = None
-    ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
-    landingPage = parseHtml(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
+    if "links" not in landingPage:
+        ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
+        canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
+        landingPage = parseHtml(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
+
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
 
     # some pages contain meta tags to the pdf
-    if "citation_pdf_url" in htmlMetas and not crawlConfig.get("landingPage_ignoreMetaTag", False):
-        pdfUrl = htmlMetas["citation_pdf_url"]
-        logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
-        return pdfUrl
+    if not crawlConfig.get("landingPage_ignoreMetaTag", False):
+        if "citation_pdf_url" in htmlMetas:
+            pdfUrl = htmlMetas["citation_pdf_url"]
+            logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
+        #if "wkhealth_pdf_url" in htmlMetas:
+            #pdfUrl = htmlMetas["wkhealth_pdf_url"]
+            #logging.debug("Found link to PDF in meta tag wkhealth_pdf_url: %s" % pdfUrl)
+        if pdfUrl!=None:
+            return pdfUrl
 
     # some pdf urls are just a variation of the main url by appending something
-    if "landingUrl_fulltextUrl_append" in crawlConfig:
-        pdfUrl = landingPage["url"]+crawlConfig["landingUrl_fulltextUrl_append"]
+    if "landingUrl_pdfUrl_append" in crawlConfig:
+        pdfUrl = landingPage["url"]+crawlConfig["landingUrl_pdfUrl_append"]
         logging.debug("Appending string to URL yields new URL %s" % (pdfUrl))
         return pdfUrl
 
     # some others can be derived by replacing strings in the landing url
-    if "landingUrl_fulltextUrl_replace" in crawlConfig:
-        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_fulltextUrl_replace"])
+    if "landingUrl_pdfUrl_replace" in crawlConfig:
+        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_pdfUrl_replace"])
         return pdfUrl
 
     # if all of that doesn't work, parse the html and try all <a> links
-    if pdfUrl == None:
-        pdfLinkNames = crawlConfig["landingPage_mainLinkTextREs"]
+    if pdfUrl == None and "landingPage_pdfLinkTextREs" in crawlConfig:
+        pdfLinkNames = crawlConfig["landingPage_pdfLinkTextREs"]
         for pdfLinkName in pdfLinkNames:
             for linkText, linkUrl in links.iteritems():
                 if pdfLinkName.match(linkText):
                     pdfUrl = linkUrl
                     logging.debug("Found link to main PDF: %s -> %s" % (pdfLinkName, pdfUrl))
 
-    if pdfUrl==None:
+    if pdfUrl==None and not crawlConfig.get("landingPage_acceptNoPdf", False):
         raise pubGetError("main PDF not found", "mainPdfNotFound", landingPage["url"])
 
     return pdfUrl
@@ -959,13 +1023,27 @@ def crawlForFulltext(landingPage, crawlConfig):
                 logging.debug("URL suggests that landing page is same as article html")
                 fulltextData["main.html"] = landingPage
 
+    if "landingPage_ignoreUrlWords" in crawlConfig and \
+        containsAnyWord(landingPage["url"], crawlConfig["landingPage_ignoreUrlWords"]):
+        logging.debug("Found blacklist word in landing URL, ignoring article")
+        raise pubGetError("blacklist word in landing URL", "blackListWordUrl")
+
     if "landingPage_ignorePageWords" in crawlConfig and \
         containsAnyWord(landingPage["data"], crawlConfig["landingPage_ignorePageWords"]):
         logging.debug("Found blacklist word, ignoring article")
         raise pubGetError("blacklist word on landing page", "blackListWord")
 
-    # search for main PDF on landing page
-    pdfUrl = findMainFileUrl(landingPage, crawlConfig)
+    # search for fulltext on landing page
+    fulltextPage = None
+    fulltextHtmlUrl = findFulltextUrl(landingPage, crawlConfig)
+    if fulltextHtmlUrl==None :
+        logging.debug("Could not find article html fulltext")
+    else:
+        fulltextPage = delayedWget(fulltextHtmlUrl)
+        fulltextData["main.html"] = fulltextPage
+
+    # search for PDF on landing page
+    pdfUrl = findPdfFileUrl(landingPage, crawlConfig)
     if pdfUrl==None :
         if not crawlConfig.get("landingPage_acceptNoPdf", False):
             logging.debug("Could not find PDF on landing page")
@@ -991,11 +1069,13 @@ def crawlForFulltext(landingPage, crawlConfig):
         fulltextData["main.pdf"] = pdfPage
 
     # find suppl list and then get suppl files of specified types
-    suppListUrl  = findSuppListUrl(landingPage, crawlConfig)
+    suppListUrl  = findSuppListUrl(landingPage, fulltextPage, crawlConfig)
     if suppListUrl!=None:
         suppListPage = delayedWget(suppListUrl)
         suppExts = pubConf.crawlSuppExts
         suppExts.update(crawlConfig.get("suppListPage_addSuppFileTypes", []))
+        if crawlConfig.get("suppListPage_acceptAllFileTypes", False):
+            suppExts = None
         fulltextData = getSuppData(fulltextData, suppListPage, crawlConfig, suppExts)
 
     return fulltextData
@@ -1084,12 +1164,22 @@ def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
                 logging.debug("Found link: %s, %s" % (repr(linkName), repr(linkUrl)))
                 return suppListUrl
 
-def findSuppListUrl(landingPage, crawlConfig):
+def findSuppListUrl(landingPage, fulltextPage, crawlConfig):
     " given the landing page, find the link to the list of supp files "
-    landingUrl_isSuppListUrl = crawlConfig.get("landingUrl_isSuppListUrl", False)
-    if landingUrl_isSuppListUrl:
+    fulltextPageHasSupp = crawlConfig.get("fulltextPage_hasSuppList", False)
+    if fulltextPageHasSupp:
+        logging.debug("Supp. file list is on fulltext page")
+        if fulltextPage==None:
+            logging.debug("No fulltext page -> no suppl files")
+            return None
+        else:
+            return fulltextPage["url"]
+
+    landingPageHasSupp = crawlConfig.get("landingPage_hasSuppList", False)
+    if landingPageHasSupp:
         logging.debug("Landing page contains suppl files")
         return landingPage["url"]
+
     ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
     landingPage = parseHtml(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
 
@@ -1251,7 +1341,7 @@ def writeReport(baseDir, htmlFname):
     h.startBody("Crawler status as of %s" % time.asctime())
 
     publDesc = {}
-    for key, value in pubConf.crawlPubIds.iteritems():
+    for key, value in pubCrawlConf.crawlPubIds.iteritems():
         publDesc[value] = key
 
     totalPmidCount = 0
@@ -1331,14 +1421,14 @@ def stringRewrite(origString, crawlConfig, configKey):
     logging.debug("string %s was rewritten to %s" % (origString, string))
     return string
 
-
-
 def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
     #>>> resolveDoi("10.1073/pnas.1121051109")
+    >>> logging.warn("doi test")
+    >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x")
     """
     logging.debug("Resolving DOI %s" % doi)
-    doiUrl = "http://dx.doi.org/"+urllib.quote(doi.encode("utf8"))
+    doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
     resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
     if resp==None:
         return None
@@ -1353,6 +1443,7 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     """
     logging.debug("Resolving DOI and rewriting")
     url = resolveDoi(doi)
+
     if url==None:
         return None, crawlConfig
     if crawlConfig==None:
@@ -1364,7 +1455,7 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     return newUrl, crawlConfig
 
 def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher, \
-    localMedline, fakeUseragent, preferPmc):
+    localMedline, fakeUseragent, preferPmc, doNotReadDb):
     " download all files for pmids in outDir/pmids.txt to outDir/files "
     checkCreateLock(outDir)
 
@@ -1377,7 +1468,7 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
         pmids, ignorePmids, ignoreIssns = [testPmid], [], []
     else:
         pmids = parsePmids(outDir)
-        ignorePmids = parsePmidStatus(outDir)
+        ignorePmids = parsePmidStatus(outDir, doNotReadDb)
         ignoreIssns = parseIssnStatus(outDir)
     issnErrorCount = collections.defaultdict(int)
     issnYear = (0,0)
@@ -1388,12 +1479,14 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     # parse the config file, index it by host and by publisher
     pubsCrawlCfg, hostToConfig = pubCrawlConf.prepConfigIndexByHost()
 
-    pubId = basename(outDir.rstrip("/"))
+    pubId = basename(abspath(outDir).rstrip("/"))
     crawlConfig = None
     if restrictPublisher:
-        logging.error("pubId is %s" % pubId)
-        assert(pubId in pubsCrawlCfg)
+        if pubId not in pubsCrawlCfg:
+            raise Exception("no configuration found for publisher %s in pubsCrawlConfig.py" % pubId)
         crawlConfig  = pubsCrawlCfg[pubId]
+        logging.info("Restricting crawling to PMIDs to sites of publisher %s: %s" % \
+            (pubId, crawlConfig["hostnames"]))
 
     consecErrorCount = 0
 
@@ -1436,6 +1529,9 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
             checkForOngoingMaintenanceUrl(landingPage["url"])
 
             fulltextData = crawlForFulltext(landingPage, crawlConfig)
+
+            if not "main.html" in fulltextData and not "main.pdf" in fulltextData:
+                raise pubGetError("No main file", "noMainFile")
 
             # write results to output files
             writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig, testPmid)

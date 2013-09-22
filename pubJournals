@@ -43,12 +43,16 @@ def getTargetJournals(journalFname):
     return data, issnToUid
     
 # === COMMAND LINE ====
-parser = optparse.OptionParser("""usage: %prog [options] <step> - count relevant articles per publisher per year and write to outfiles
+parser = optparse.OptionParser("""usage: %prog [options] <step> - guess ISSNs for each publisher, count relevant articles per ISSN per year and write to various tables
 
 steps are:
 "publishers - create a table publisher -> journals by guessing the "real" publisher for all
-              journals in the NLM catalog and other lists (Highwire, Wiley). Write these
-              to data/publishers/
+              journals in the NLM catalog and other lists (Highwire, Wiley)
+              that we got via email from publishers. Write these to pubConf.publisherIssnTable
+              This step is essential for pubPrepCrawl
+
+These steps are only needed at UCSC to check the list of PMIDs we got with the list of PMIDs 
+we expect:
 "journals" - create a table with journalUid -> articleCount from medline, to pubCounts.tab
 "here" - determine which documents of publishers we have here, in the form of pmids.txt
 "pubs" - create a table with publishers, their post-2000 article counts and how many we have on disk
@@ -66,28 +70,30 @@ if len(args)==0:
 
 steps = args
 
-journalFname = join(pubConf.journalDataDir, "journals.tab")
-publisherFname = join(pubConf.journalDataDir, "publishers.tab")
-finalCountFname = join(pubConf.journalDataDir, "pubCounts.tab")
+publisherFname = pubConf.publisherIssnTable
+journalFname = pubConf.journalTable
+
+finalCountFname = join(pubConf.inventoryDir, "pubCounts.tab")
 
 MEDLINEDIR = pubConf.resolveTextDir("medline")
 
 # MEDLINE: table with journal UID -> count of articles in Medline
-COUNTFNAME = join(pubConf.journalDataDir, "mlJournalCounts.tab")
+COUNTFNAME = join(pubConf.inventoryDir, "mlJournalCounts.tab")
 
 # MEDLINE: sqlite db with a table journal uid -> pmids
-PMIDFNAME = join(pubConf.journalDataDir,"mlJournalPmids.db")
+PMIDFNAME = join(pubConf.inventoryDir,"mlJournalPmids.db")
 
 # datasets: just the count of all articles in all datasets
-articleCountFname = join(pubConf.journalDataDir, "articleCount.txt")
+articleCountFname = join(pubConf.inventoryDir, "articleCount.txt")
 # datasets: count of all articles, by eIssn and articleType
-issnCountFname = join(pubConf.journalDataDir, "issnCounts.marshal")
+issnCountFname = join(pubConf.inventoryDir, "issnCounts.marshal")
 
 # table with information on journals, coverage, eISSN, etc.
-journalCoverageFname = join(pubConf.journalDataDir, "journalCoverage.tab")
-# datasets to collect PMIDs from
+journalCoverageFname = join(pubConf.inventoryDir, "journalCoverage.tab")
+# datasets to collect PMIDs for
 datasets = "elsevier,crawler,pmc,springer"
 
+# a publisher has to fullfill certain conditions to be taken into consideration
 minYear = 2000
 minCount = 50 # minimum number of articles in any journal
 minGeneProtCount = 50 # minimum number of articles with gene or protein in the abstract
@@ -98,7 +104,9 @@ minPubGeneCount = 500 # minimum number of articles with gene/prot in abstract pe
 minPubGeneProtRatio = 0.01 # minimum number of articles of a publisher that mention "gene" or "protein"
 
 # file with all pmids we have here on disk
-herePmidFname = join(pubConf.journalDataDir, "herePmids.txt")
+herePmidFname = join(pubConf.inventoryDir, "herePmids.txt")
+
+
 if len(steps)==0:
     print("You need to specify a step to run")
     sys.exit(0)
@@ -106,12 +114,16 @@ if len(steps)==0:
 # create list with publisher -> journals
 if "publishers" in steps:
     inDir = pubConf.journalListDir
-    pubResolvePublishers.initJournalDir(inDir, pubConf.publisherDir, None, journalFname, publisherFname)
+    pubResolvePublishers.initJournalDir(inDir, None, journalFname, publisherFname)
 
 # process medline:
 # make table with journalId -> number of articles
 # and db with uid -> list of pmids
 elif "journals" in steps:
+    if not isdir(journalDataDir):
+        logging.info("Creating %s" % journalDataDir)
+        os.makedirs(journalDataDir)
+
     #cmd = "mv %s pubTable/counts.tab.old; mv %s pubTable/pmids.db.old; mkdir -p pubTable" % (COUNTFNAME, PMIDFNAME)
     #os.system(cmd)
 
@@ -196,11 +208,11 @@ elif "here" in steps:
     issnCounts = {}
 
     for dataDir in dataDirs:
-        logging.info("Reading articles from %s" % dataDir)
+        logging.info("Reading PMIDs from %s, by ISSN" % dataDir)
         for row in maxCommon.iterTsvDir(dataDir, ext=".articles.gz"):
             pmids.append(row.pmid)
             articleCount +=1
-            if row.issn!="":
+            if row.printIssn!="":
                 issnCounts.setdefault(row.printIssn, {})
                 issnCounts[row.printIssn].setdefault(row.articleType, 0)
                 issnCounts[row.printIssn][row.articleType] += 1

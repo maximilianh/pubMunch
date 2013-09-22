@@ -809,7 +809,7 @@ def markerToGenes(markerType, markerId):
         markerId = "omim"+markerId
     # - genbank-like dbs don't need versions
     elif markerType in ["refprot", "refseq", "genbank"]:
-        markerId = markerId.split(".")[0]
+        markerId = markerId.split(".")[0].upper()
     # - pdb IDs are always uppercase for us
     elif markerType == "pdb":
         markerId = markerId.upper()

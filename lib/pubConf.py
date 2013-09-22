@@ -10,13 +10,26 @@ pubsDataDir = '/hive/data/inside/pubs'
 # Some of it can be updated with pubPrepXXX commands
 staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 
+# scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
 
+# a directory with files that associate publishers with journals
+# one of them is the NLM Catalog, others we got from publishers or created them semi-
+# manually
 journalListDir = join(pubsDataDir, "journalLists")
-publisherDir = join(staticDataDir, "publishers")
 
-# a directory on the main server (hgwdev) where program is run, on local disk
-# with lots of space available
+# the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
+# is contains the ISSNs for each publisher
+publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
+
+# same info, but one line per journal
+journalTable = join(staticDataDir, "journals", "journals.tab")
+
+# directory with various tracking files expected vs retrieved documents
+inventoryDir = join(pubsDataDir, "inventory")
+
+# a directory on the main server (hgwdev) on which the scripts is run, on local disk
+# with lots of space available. Used to store intermediate results ? -> pubClassify
 localHeadDir = '/scratch/max/pubTools'
 
 # DB PARSER SETTINGS ================================================
@@ -36,8 +49,6 @@ ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens/mRNA_Prot'
 medlineDbPath = join(pubsDataDir, "text", "medline", "medline.db")
 
 # CRAWLER SETTINGS ==================================================
-# directory to store publisher <-> ISSN assignment
-journalDataDir = join(pubsDataDir, "publishers")
 
 # the useragent to use for http requests
 httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
@@ -47,36 +58,6 @@ httpTimeout = 20
 
 # how to long wait for the downloading of files, in seconds
 httpTransferTimeout = 30
-
-# catalog full publisher name to internal publisher ID
-# pubPrepCrawlDir parses journal data and groups journals by publishers.
-# In most cases, to download all journal from a publisher, all you have to do
-# is to copy the publisher field from <crawlDir>/_journalData/publisher.tab
-# here and define a directory name for it
-# format: publisher name -> directory name
-crawlPubIds = {
-# all ISSNs that wiley gave us go into the subdir wiley
-"WILEY Wiley" : "wiley",
-# we don't have ISSNs for NPG directly, so we use grouped data from NLM
-"NLM Nature Publishing Group" : "npg",
-"NLM American Association for Cancer Research" : "aacr",
-"HIGHWIRE Rockefeller University Press" : "rupress",
-"NLM Mary Ann Liebert" : "mal",
-"NLM Oxford University Press" : "oup",
-"HIGHWIRE American Society for Microbiology" : "asm",
-"NLM Future Science" : "futureScience",
-"NLM National Academy of Sciences" : "pnas",
-"NLM American Association of Immunologists" : "aai",
-"HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp",
-"HIGHWIRE The American Society for Pharmacology and Experimental Therapeutics" : "aspet",
-"HIGHWIRE Federation of American Societies for Experimental Biology" : "faseb",
-"HIGHWIRE Society for Leukocyte Biology" : "slb",
-"HIGHWIRE The Company of Biologists" : "cob",
-"HIGHWIRE Genetics Society of America" : "genetics",
-"HIGHWIRE Society for General Microbiology" : "sgm",
-"NLM Informa Healthcare" : "informa"
-#"Society for Molecular Biology and Evolution" : "smbe"
-}
 
 # SFX server for pubmed entries without an outlink
 # YOU NEED TO DEFINE THIS IF YOU WANT TO USE SFX
@@ -112,7 +93,14 @@ crawlSuppExts = set(['gif', 'svg', 'tiff', 'tif', 'jpg', 'xls', 'doc', 'pdf', 'p
 # We need the URL to the Consyn Update RSS feed. 
 # Login to consyn.elsevier.com, click on batches/RSS feed, paste the URL here
 # they look like ttp://consyn.elsevier.com/batch/atom?key=XXXXXXXXXXXXXXXXXXX
+# (at UCSC: this is defined in ~/.pubTools.conf)
 consynRssUrl = "YOURURL"
+
+# for springer updates:
+# we got a username / password from DDS Support in Heidelberg
+# (at UCSC: these are defined in ~/.pubTools.conf)
+springerUser = ""
+springerPass = ""
 
 # GENERAL PUBLICATION FILE CONFIG SETTINGS ============================
 

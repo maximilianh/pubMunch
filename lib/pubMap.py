@@ -54,7 +54,7 @@ def runStepRange(d, allSteps, fromStep, toStep, args, options):
         logging.info("=== RUNNING STEP %s ===" % stepName)
         runStep(d.dataset, stepName, d, options)
 
-def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None):
+def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None, isProt=False):
     """ create <db>.<long|short>.fa files in faDir and fill them with data from
     tab-sep inFile (output file from pubRun)
 
@@ -76,10 +76,13 @@ def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None)
                 dbs.extend(pubConf.alwaysUseGenomes)
 
         for db in dbs:
+            seq = row.seq
+            if isProt and row.markovAccept!="Y":
+                logging.debug("Skipping seq %s, did not pass markov filter" % seq)
+                continue
             annotId = int(row.annotId)
             fileId = annotId / (10**pubConf.ANNOTDIGITS)
             articleId = fileId / (10**pubConf.FILEDIGITS)
-            seq = row.seq
 
             if len(seq)<seqLenCutoff:
                 dbType = "short"
@@ -134,7 +137,7 @@ def createOutFiles(faDir, dbList, maxSizes):
             outDict[db][dbType]= dbOut
     return outDict
         
-def pubToFasta(inDir, outDir, dbList, maxSizes, seqLenCutoff, forceDbs=None):
+def pubToFasta(inDir, outDir, dbList, maxSizes, seqLenCutoff, forceDbs=None, isProt=False):
     """ convert sequences from tab format to fasta, 
         distribute over species: create one fa per db 
     """
@@ -149,7 +152,7 @@ def pubToFasta(inDir, outDir, dbList, maxSizes, seqLenCutoff, forceDbs=None):
         raise Exception("no input files in dir %s" % inDir)
     for count, inFile in inCountFiles:
         logging.debug("parsing %d of %d input files" % (count, len(inFiles)))
-        appendAsFasta(inFile, outFileObjects, maxSizes, seqLenCutoff, forceDbs=forceDbs)
+        appendAsFasta(inFile, outFileObjects, maxSizes, seqLenCutoff, forceDbs=forceDbs, isProt=isProt)
         pm.taskCompleted()
     closeOutFiles(outFileObjects)
 
@@ -2032,7 +2035,7 @@ def runStep(dataset, command, d, options):
             pubConf.shortSeqCutoff)
         splitSizes = pubConf.cdnaFaSplitSizes
         pubToFasta(d.protSeqDir, d.protFastaDir, pubConf.speciesNames, \
-            splitSizes, 0, forceDbs=cdnaDbs)
+            splitSizes, 0, forceDbs=cdnaDbs, isProt=True)
         
     elif command=="blat":
         # convert to fasta and submit blat jobs
