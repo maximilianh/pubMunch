@@ -3,8 +3,15 @@ import logging, random, socket, atexit, sqlite3, os, time, shutil
 
 import maxCommon, maxTables
 
-import redis
-import leveldb
+try:
+    import redis
+except ImportError:
+    pass
+
+try:
+    import leveldb
+except ImportError:
+    pass
 
 def openDb(dbName, newDb=False, singleProcess=False, prefer=None):
     " factory function: returns the right db object given a filename "

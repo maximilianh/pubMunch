@@ -1,5 +1,6 @@
 # Python compiled files
 *.py[co1]
+*.pyc
 
 # java classes
 *.class

@@ -74,6 +74,9 @@ def parseHighwire():
     # highwire's publisher names are not resolved ("SAGE", "SAGE Pub", etc)
     # so: first get dict printIssn -> resolved publisherName from publishers.tab
     pubFname = pubConf.publisherIssnTable
+    if not isfile(pubFname):
+        return None, None
+
     pIssnToPub = {}
     for row in maxCommon.iterTsvRows(pubFname):
         if not row.pubName.startswith("HIGHWIRE"):
@@ -105,6 +108,8 @@ def highwireConfigs():
     logging.info("Creating config for Highwire publishers")
     res = {}
     issnTemplates, pubDomains = parseHighwire()
+    if issnTemplates==None:
+        return {}
 
     for pubName, domains in pubDomains.iteritems():
         templates = {}
@@ -127,13 +132,22 @@ def highwireConfigs():
         }
     return res
 
-highwireCfg = highwireConfigs()
+highwireCfg = None
 
 # crawl configuration: for each website, define how to crawl the pages
 # this got more and more complicated over time. Best is to copy/paste from these examples
 # to create new ones
 
-confDict = {
+confDict = None
+
+def initConfig():
+    global confDict
+    global highwireCfg
+
+    highwireCfg = highwireConfigs()
+
+    confDict = \
+    {
     "pmc" :
     # not used at UCSC, we get the files via pubGetPmc/pubConvPmc, 
     # this was only a quick hack for an NIH project
@@ -195,7 +209,7 @@ confDict = {
         "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
     "oup" :
-        highwireCfg["Oxford University Press"],
+        highwireCfg.get("Oxford University Press", {}),
     "lww" :
     # Lippincott Williams aka Wolters Kluwer Health
     # with suppl:
@@ -515,7 +529,7 @@ def prepConfigIndexByHost():
     compCfg = compileRegexes()
     byHost = {}
     for pubId, crawlConfig in compCfg.iteritems():
-        for host in crawlConfig["hostnames"]:
+        for host in crawlConfig.get("hostnames", []):
             byHost[host] = crawlConfig
     return compCfg, byHost
 
