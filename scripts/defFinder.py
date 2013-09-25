@@ -74,6 +74,7 @@ def startup(paramDict):
                 #print "ignoring", syn
                 #del hugoDict[syn] # remove non-unique symbols
             #hugoDict[syn].add(symbol)
+    reDict = gene
 
 def annotateFile(article, file):
     " go over words of text and check if they are in dict "

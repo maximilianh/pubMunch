@@ -1804,6 +1804,8 @@ def runAnnotStep(d, onlyMarkers=False):
         algNames = "markerSearch.py"
     else:
         outDirs = "%s,%s,%s" % (d.markerAnnotDir, d.dnaAnnotDir, d.protAnnotDir)
+        # run the MarkerAnnotate class in markerSearch.py, 
+        # the Annotate class in dnaSearch.py and the annotate-function in protSearch.py
         algNames = "markerSearch.py:MarkerAnnotate,dnaSearch.py:Annotate,protSearch.py"
 
     options = {"wordFile":wordFile, \

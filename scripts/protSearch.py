@@ -134,7 +134,7 @@ def detectProteinWordClean(word, blacklist, lastWord, pos, distLastWord, stack):
             if len(aaString)>0:
                 return aaString, True
             else:
-                return None
+                return None, None
 
     # case3: a single letter, close enough to the last word AND
     # EITHER within a already started protein seq (=stack is non-empty)
@@ -156,7 +156,8 @@ def detectProteinWordClean(word, blacklist, lastWord, pos, distLastWord, stack):
         dnaRatio = float(len([l for l in word if l in dnaLetters])) / float(len(word))
         if notProtCount==0:
             return word, False
-    return None
+
+    return None, None
 
 def cleanText(text):
     # clean: non-letters -> spaces
@@ -248,6 +249,7 @@ def findProteins(text, blacklist, classifier, docId=""):
         dist = pos - lastPos
 
         seq, sureProt = detectProteinWordClean(word, blacklist, lastWord, pos, dist, stack)
+
         lastPos = pos
         lastWord = word
 

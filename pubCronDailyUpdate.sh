@@ -24,7 +24,17 @@ CRAWLCONVDIR=${TEXTBASE}/crawler
 BLATDIR=${BLATBASE}/elsevier
 CLUSTER=swarm
 
-JOBDIR=/hive/data/inside/pubs/cronjob_runs/`date +%m-%d-%y_%H:%M`
+JOBBASE=/hive/data/inside/pubs/cronjob_runs
+JOBDIR=$JOBBASE/`date +%m-%d-%y_%H:%M`
+FLAGFILE=${JOBBASE}/cronjobRunning.flag
+
+if [ -e "${FLAGFILE}" ]
+then 
+   echo not running cronjob, ${FLAGFILE} exists, looks like an old one is still running.
+   exit 1
+fi
+
+touch $FLAGFILE
 
 mkdir -p $JOBDIR
 cd $JOBDIR
@@ -52,6 +62,7 @@ cd $JOBDIR; time $PYTHON $BIN/pubConvCrawler --cluster=localhost $CRAWLDIR $CRAW
 
 $PYTHON $BIN/pubCrawl $CRAWLDIR --report /cluster/home/max/public_html/mining/crawlerStatus.html
 
+rm -f $FLAGFILE
 
 #echo BLAT AND LOAD INTO MYSQL
 #ssh $CLUSTER "cd $JOBDIR; $PYTHON $BIN/pubBlat steps:all $BLATDIR -u notProcessed" && \
