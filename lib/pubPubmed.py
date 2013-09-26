@@ -219,7 +219,7 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
         while tryCount < 10 and xml == None:
             try:
                 tryCount += 1
-                xml = urllib2.urlopen(url).read()
+                xml = urllib2.urlopen(url.strip()).read()
                 if xml == None:
                     raise Exception("Could not connect to Eutils")
 

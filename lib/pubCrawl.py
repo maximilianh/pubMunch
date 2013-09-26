@@ -699,6 +699,7 @@ def readLocalMedline(pmid):
     if len(rows)==0:
         logging.info("No info in local medline for PMID %s" % pmid)
         return None
+
     # the last entry should be the newest one
     lastRow = rows[-1]
 
