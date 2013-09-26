@@ -23,7 +23,7 @@ def main(args, options):
     try:
         pubCrawl.crawlFilesViaPubmed(outDir, options.waitTime, options.testPmid, \
             options.pause, options.tryHard, options.restrictPublisher, options.localMedline, \
-            options.fakeUseragent, options.preferPmc, options.skipDb)
+            options.fakeUseragent, options.preferPmc, options.skipDb, options.publisher)
     except KeyboardInterrupt:
         logging.info("stopped with ctrl-c, no email sent")
         raise
@@ -56,6 +56,7 @@ parser.add_option("", "--preferPmc", dest="preferPmc", action="store_true", help
 parser.add_option("", "--tryHarder", dest="tryHard", action="store_true", help="the default behaviour is to back off when errors occur, i.e. make the delays between requests longer and longer (60secs*number of errors) until the first download was successful again. This is to allow for repairs of servers, e.g. during the night. This option changes the wait time and will always wait for 5 secs, for downloads where we expect many errors. It also increases tolerance for errors, will stop crawling only after 500 consecutive errors")
 parser.add_option("", "--report", dest="report", action="store", help="Do not crawl. given the base crawl directory, write a status report in html format to the specified file and quit. ")
 parser.add_option("-s", "--skipDb", dest="skipDb", action="store_true", help="Usually pubCrawl will parse both the pmidStatus.tab and the sqlite db to figure out which PMIDs have been done before. This option will not read the sqlite db. This will improve startup time for large publishers like Wiley.")
+parser.add_option("", "--publisher", dest="publisher", action="store", help="name of publisher. By default, this is the name of the subdirectory where the pmids.txt file is located. This option can override the publisher name to something else defined in pubCrawlConf.py")
 (options, args) = parser.parse_args()
 
 if args==[]:

@@ -1456,7 +1456,7 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     return newUrl, crawlConfig
 
 def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher, \
-    localMedline, fakeUseragent, preferPmc, doNotReadDb):
+    localMedline, fakeUseragent, preferPmc, doNotReadDb, usePublisher):
     " download all files for pmids in outDir/pmids.txt to outDir/files "
     checkCreateLock(outDir)
 
@@ -1480,7 +1480,11 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     # parse the config file, index it by host and by publisher
     pubsCrawlCfg, hostToConfig = pubCrawlConf.prepConfigIndexByHost()
 
-    pubId = basename(abspath(outDir).rstrip("/"))
+    if not usePublisher:
+        pubId = basename(abspath(outDir).rstrip("/"))
+    else:
+        pubId = usePublisher
+    
     crawlConfig = None
     if restrictPublisher:
         if pubId not in pubsCrawlCfg:
