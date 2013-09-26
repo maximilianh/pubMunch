@@ -2,6 +2,8 @@
 # + some functions to query eutils
 
 import logging, urllib2, pubConf, maxXml, pubStore, re, time, urllib, traceback, httplib, maxCommon
+import socket
+
 from xml.etree.ElementTree import ParseError
 from xml.etree.cElementTree import ParseError as ParseError2
 from collections import OrderedDict
