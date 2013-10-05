@@ -18,14 +18,14 @@ ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
 # manually
 journalListDir = join(pubsDataDir, "journalLists")
 
-
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
-# is contains the ISSNs and server names for each publisher
-publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
+# it contains the ISSNs and server names for each publisher
+# it is required by pubCrawl for the highwire configuration
+journalTable = join(staticDataDir, "journals", "journalsByPublisher.tab")
 
 # same info, but one line per journal
 # (is this still used ?)
-journalTable = join(staticDataDir, "journals", "journals.tab")
+publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
