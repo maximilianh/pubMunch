@@ -2,6 +2,8 @@
 # + some functions to query eutils
 
 import logging, urllib2, pubConf, maxXml, pubStore, re, time, urllib, traceback, httplib, maxCommon
+import socket
+
 from xml.etree.ElementTree import ParseError
 from xml.etree.cElementTree import ParseError as ParseError2
 from collections import OrderedDict
@@ -219,7 +221,7 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
         while tryCount < 10 and xml == None:
             try:
                 tryCount += 1
-                xml = urllib2.urlopen(url).read()
+                xml = urllib2.urlopen(url.strip()).read()
                 if xml == None:
                     raise Exception("Could not connect to Eutils")
 
@@ -233,6 +235,9 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
                 #time.sleep(120)
             except urllib2.URLError: # this should handle HTTPError, too
                 logging.info("HTTP Error on eutils, pausing for 120 secs")
+                time.sleep(120)
+            except socket.timeout:
+                logging.info("Socket timeout on eutils, pausing for 120 secs")
                 time.sleep(120)
             except httplib.BadStatusLine:
                 logging.info("Bad status line on eutils, pausing 120 secs")

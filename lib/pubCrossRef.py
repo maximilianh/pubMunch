@@ -62,7 +62,7 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
         
     logging.debug("Best match from Crossref: %s" % firstRes)
     doi = firstRes["doi"]
-    doi = doi.replace("http://dx.doi.org/","")
+    doi = doi.replace("http://dx.doi.org/","") # crossref now always adds the url, strip it
     logging.debug("Got DOI: %s" % doi)
     return doi
 

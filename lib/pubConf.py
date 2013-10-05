@@ -85,9 +85,9 @@ crawlIssnOverwrite = {
 }
 
 # a list of file extensions to download when crawling for supplementary files
-# better not .mov,.vid or .avi, nor html 
+# better not .mov,.vid or .avi, nor html (=might get normal webpages)
 # you can add additional types on a per-publisher basis with "addSuppFileTypes" in the pubCrawler host config
-crawlSuppExts = set(['gif', 'svg', 'tiff', 'tif', 'jpg', 'xls', 'doc', 'pdf', 'ppt', 'asc', 'txt', 'csv', 'tsv', 'tab'])
+crawlSuppExts = set(['gif', 'svg', 'tiff', 'tif', 'jpg', 'xls', 'doc', 'pdf', 'ppt', 'asc', 'txt', 'csv', 'tsv', 'tab', 'eps'])
 
 # DOWNLOAD SETTINGS ==================================================
 
