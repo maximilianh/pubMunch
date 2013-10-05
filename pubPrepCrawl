@@ -26,7 +26,8 @@ def parseIssns(pubFname, crawlPubDirs, crawlIssnOverwrite):
     # parse into dict pub -> list of issns
     pubToJournals = defaultdict(list)
     for pub in pubs:
-        issns = pub.journalEIssns.split("|")
+        #issns = pub.journalEIssns.split("|")
+        issns = pub.journalIssns.split("|")
         titles = pub.titles.split("|")
         for issn, title in zip(issns, titles):
             pubToJournals[pub.pubName].append((issn, title))
@@ -77,7 +78,7 @@ def parseIssns(pubFname, crawlPubDirs, crawlIssnOverwrite):
     #return pubToIssnName
 
 def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite):
-    """ write (issn,minYear,maxYear) as issn.tab to all publisher directories, 
+    """ write (issn,minYear,maxYear) as issn.tab to one publisher directories, 
         adding issnOverwrite at the end 
     """
     outFhDict = {}
@@ -109,7 +110,9 @@ def writeIssnTables(outDir, pubIds, pubToIssn, issnOverwrite):
     # now output ISSNs
     issnCount = 0
     for pubDesc in pubIdToDescs[pubId]:
+        logging.debug("Found %d issns for publisher %s" % (len(pubToIssn[pubDesc]), pubId))
         for issn, title in pubToIssn[pubDesc]:
+            logging.info("Title: %s, print ISSN %s" % (title, issn))
             if issn=="":
                 continue
             line = "%(issn)s\t%(title)s\t0\t0\t%(pubDesc)s\n" % locals()
@@ -248,7 +251,7 @@ commands:
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--nlmCatalog", dest="nlmCatalog", action="store", help="use a given nlmCatalog.xml instead of the default one")
-parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1990)
+parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1980)
 #parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
 (options, args) = parser.parse_args()
 

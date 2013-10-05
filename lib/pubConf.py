@@ -18,11 +18,13 @@ ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
 # manually
 journalListDir = join(pubsDataDir, "journalLists")
 
+
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
-# is contains the ISSNs for each publisher
+# is contains the ISSNs and server names for each publisher
 publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
 
 # same info, but one line per journal
+# (is this still used ?)
 journalTable = join(staticDataDir, "journals", "journals.tab")
 
 # directory with various tracking files expected vs retrieved documents
@@ -126,6 +128,7 @@ textBaseDir = _pubsDir + "/text/"
 annotDir = _pubsDir + "/annot/"
 # central directory for exported fasta file
 faDir = _pubsDir + "/fastaExport/"
+
 # all logfiles
 logDir = _pubsDir + "/log/"
 
@@ -262,13 +265,16 @@ genbankMaxRefCount = 50
 
 pubMapBaseDir = "/hive/data/inside/pubs/map/"
 
+# directory for exported cdr3 files
+cdr3Dir = pubMapBaseDir + "cdr3Export/"
+
 # this is the genbank mapping config file by Mark Diekhans' pipeline
 # it is required for genome partitioning 
 # current one can be downloaded from:
 # http://genome-source.cse.ucsc.edu/gitweb/?p=kent.git;a=blob_plain;f=src/hg/makeDb/genbank/etc/genbank.conf;hb=HEAD
 GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 
-# these variables assign genome to keywords in text files
+# these variables assign genomes to keywords in text files
 # the orgDetect.py plugin will create annotations on the text files
 # for all of these keywords
 # pubMap will then blat sequences from a textfile only on genomes
@@ -280,7 +286,7 @@ speciesNames = {
 'hg19' : ['human', 'sapiens', ' homo ', ' Homo ', 'patient', 'cell line','cell culture'],
 'mm9' : ['mouse', 'musculus', 'rodent'],
 'rn4' : [' rat ', 'novegicus', 'rodent'],
-'nonUcsc_archaea' : [],
+#'nonUcsc_archaea' : [],
 'danRer7' : ['zebrafish', 'rerio', 'Danio'],
 'xenTro2' : [' xenopus', 'Xenopus', 'tropicalis', 'laevis'],
 'susScr3' : [' swine ', ' swines ', ' pigs ', ' pig ', ' porcine ', ' scrofa '],
@@ -292,28 +298,10 @@ speciesNames = {
 'ci2' : ['ascidian', 'intestinalis', 'chordates', 'Ciona'],
 'sacCer2' : ['cerevisiae', 'Saccharomyces', 'yeast'],
 'nonUcsc_arabidopsisTair10' : ['arabidopsis', 'Arabidopsis', 'thaliana', 'thale cress'],
-'nonUcsc_ensg17-PlasmodiumFalciparium-ASM276v1' : ['plasmodium', 'Plasmodium', 'falciparium', 'malaria']
+'nonUcsc_Pfalciparum3D7' : ['plasmodium', 'Plasmodium', 'falciparium', 'malaria'],
+'nonUcsc_grapevine12x' : [' grapevine ', ' vitis ', 'pinot noir', ' vigne']
+#'nonUcsc_dnasu' : [' plasmid ']
 }
-
-# During best-genome filtering, sometimes two genomes score equally
-# if this is the case, pick the best one, in this order:
-# the first one has highest priority
-
-# if a genome is not part of the genbank config system then you need to prefix it with
-# "nonUcsc_". Any db name like this will be searched in nonUcscGenomesDir (see below).
-# e.g. nonUcsc_archaea will be resolved to /hive/data/inside/pubs/nonUcscGenomes/archaea.2bit
-# The blatter also needs a .ooc file with the same name.
-alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
-'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2', 
-'nonUcsc_arabidopsisTair10', 'nonUcsc_ensg17-PlasmodiumFalciparium-ASM276v1']
-
-# these genomes are used if no species name matches are found
-defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10", "nonUcsc_archaea"]
-
-# these genomes are always added, no matter which species names are found
-# human might not be recognized as a name for cell lines
-# bacteria have so many names that we don't recognize them
-alwaysUseGenomes = ["hg19", "nonUcsc_archaea"]
 
 # path for genome files that start with 'nonUcsc_'
 # this directory has to contain a geneBank.conf file
@@ -321,9 +309,35 @@ alwaysUseGenomes = ["hg19", "nonUcsc_archaea"]
 # assemblies
 nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
 
+# During best-genome filtering, sometimes two genomes score equally
+# if this is the case, pick the best one, in this order.
+# (the first one has highest priority)
+
+# if a genome is not part of the genbank config system then you need to prefix it with
+# "nonUcsc_". Any db name like this will be searched in nonUcscGenomesDir (see below).
+# e.g. nonUcsc_archaea will be resolved to /hive/data/inside/pubs/nonUcscGenomes/archaea.2bit
+# The blatter also needs a .ooc file with the same name.
+#alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
+alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'danRer7', 'dm3',
+'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2',
+'nonUcsc_arabidopsisTair10', 'nonUcsc_Pfalciparum3D7', 'nonUcsc_grapevine12x']
+
+# these genomes are used if no species name matches are found
+#defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10", "nonUcsc_archaea"]
+defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10"]
+
+# these genomes are always added, no matter which species names are found
+# human might not be recognized as a name for cell lines
+# bacteria have so many names that we don't recognize them
+# same for plasmids
+#alwaysUseGenomes = ["hg19", "nonUcsc_archaea", "nonUcsc_dnasu"]
+#alwaysUseGenomes = ["hg19", "nonUcsc_archaea"]
+alwaysUseGenomes = ["hg19"]
+
 
 # for some genomes we don't have refseq data
-noCdnaDbs = ["sacCer2", "nonUcsc_archaea", "nonUcsc_arabidopsisTair10", "nonUcsc_ensg17-PlasmodiumFalciparium-ASM276v1"]
+#noCdnaDbs = ["sacCer2", "nonUcsc_archaea", "nonUcsc_arabidopsisTair10", "nonUcsc_Pfalciparum3D7"]
+noCdnaDbs = ["sacCer2", "nonUcsc_arabidopsisTair10", "nonUcsc_Pfalciparum3D7"]
 
 # some text datasets are just variants of others
 # for these, to avoid annotation id overlaps with the main dataset

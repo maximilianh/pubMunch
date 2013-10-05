@@ -81,7 +81,7 @@ class GenomeSplitter(genbank.GenomePartition.GenomePartition):
 
         assert(self.twoBitFname.endswith(".2bit")) # we don't support old genomes with only nib files
 
-        genbank.GenomePartition.GenomePartition.__init__(self, 
+        genbank.GenomePartition.GenomePartition.__init__(self,
                                  db,
                                  self.twoBitFname,
                                  int(params.get("window", 80000000)),
@@ -181,7 +181,7 @@ def getJoblines(targetList, faFiles, outDir, params={}, blatOpt=None, pslFilterO
                             raise Exception("could not find %s nor 11.ooc in same dir" % oocFile)
                 else:
                     if conf==None:
-                        conf = genbank.Config.Config(GBCONFFILE) 
+                        conf = genbank.Config.Config(GBCONFFILE)
                     twoBitFname = conf.getDbStr(target, "clusterGenome")
                     oocFile = conf.getDbStrNo(target, "ooc")
                 splitSpecs = [ (twoBitFname, "all", 0) ]
@@ -246,7 +246,7 @@ if __name__=="__main__":
     logging.getLogger().setLevel(logging.DEBUG)
     parser = optparse.OptionParser(helpMsg)
     parser.add_option("-b", "--blatOpt", dest="blatOpt", action="store", help="options to pass to blat with no leading dashes, separated by commas, e.g. minSize=20,fastMap", default="")
-    parser.add_option("-f", "--pslFilterOpt", dest="pslFilterOpt", action="store", help="options to pass to pslReps with no leading dashes, separated by commas, e.g. minTop=0.01,minAli=0.8", default="") 
+    parser.add_option("-f", "--pslFilterOpt", dest="pslFilterOpt", action="store", help="options to pass to pslCDnaFilter with no leading dashes, separated by commas, e.g. minTop=0.01,minAli=0.8", default="") 
     parser.add_option("", "--winSize", dest="window", action="store", help="genome splitting: max size of per piece", default="80000000") 
     parser.add_option("", "--maxGap", dest="maxGap", action="store", help="genome splitting: maximum size of gap between two pieces", default="3000000") 
     parser.add_option("", "--overlap", dest="overlap", action="store", help="genome splitting: overlap between two pieces", default="3000000") 

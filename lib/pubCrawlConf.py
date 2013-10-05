@@ -2,6 +2,7 @@
 from os.path import *
 import logging, urllib2, urlparse, urllib, re
 import pubConf, pubGeneric, maxCommon, html, maxCommon
+from collections import OrderedDict
 
 # full publisher name to internal publisher ID
 # used for assignment of ISSNs to a directory
@@ -26,15 +27,19 @@ crawlPubIds = {
 "NLM Nature Publishing Group" : "npg",
 "NLM American College of Chest Physicians" : "chest",
 "NLM American Association for Cancer Research" : "aacr",
-"HIGHWIRE Rockefeller University Press" : "rupress",
 "NLM Mary Ann Liebert" : "mal",
 "NLM Oxford University Press" : "oup",
-"HIGHWIRE American Society for Microbiology" : "asm",
 "NLM Future Science" : "futureScience",
 "NLM National Academy of Sciences" : "pnas",
 "NLM American Association of Immunologists" : "aai",
+# we got a special list of Highwire ISSNs from their website
+# it needed some manual processing
+# see the README.txt file in the journalList directory
+"HIGHWIRE Rockefeller University Press" : "rupress",
+"HIGHWIRE American Society for Microbiology" : "asm",
 "HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp",
 "HIGHWIRE The American Society for Pharmacology and Experimental Therapeutics" : "aspet",
+"HIGHWIRE American Society for Biochemistry and Molecular Biology" : "asbmb",
 "HIGHWIRE Federation of American Societies for Experimental Biology" : "faseb",
 "HIGHWIRE Society for Leukocyte Biology" : "slb",
 "HIGHWIRE The Company of Biologists" : "cob",
@@ -57,6 +62,7 @@ crawlDelays = {
     "journals.lww.com" : 0.2, # wolters kluwer
     "pdfs.journals.lww.com" : 0.2, # wolters kluwer
     "content.wkhealth.com" : 0.2, # also wolters kluwer
+    "links.lww.com" : 0.2, # again wolters kluwer
     "sciencedirect.com"      : 10 # elsevier
 }
 
@@ -69,57 +75,28 @@ def parseHighwire():
     >>> temps['0270-6474']
     u'http://www.jneurosci.org/cgi/pmidlookup?view=long&pmid=%(pmid)s'
     >>> domains["Society for Neuroscience"]
-    set([u'jneurosci'])
+    set([u'jneurosci.org'])
+    >>> domains["American Society for Biochemistry and Molecular Biology"]
+    set([u'jbc.org', u'mcponline.org', u'jlr.org'])
+    >>> temps["1535-9476"]
     """
-    # highwire's publisher names are not resolved ("SAGE", "SAGE Pub", etc)
-    # so: first get dict printIssn -> resolved publisherName from publishers.tab
-    pubFname = pubConf.publisherIssnTable
-    if not isfile(pubFname):
-        return None, None
-
-    pIssnToPub = {}
+    templates = {}
+    domains = {}
+    pubFname = pubConf.journalTable
     for row in maxCommon.iterTsvRows(pubFname):
         if not row.pubName.startswith("HIGHWIRE"):
             continue
-        for issn in row.journalIssns.split("|"):
-            issn = issn.rstrip(" ")
-            pIssnToPub[issn] = row.pubName.replace("HIGHWIRE ","").strip()
-
-    # go over highwire table and make dict pubName -> issn -> templates
-    # and dict pubName -> domains
-    fname = join(pubConf.journalListDir, "highwire.tab")
-    templates = {}
-    domains = {}
-    for row in maxCommon.iterTsvRows(fname, encoding="latin1"):
-        if row.eIssn.strip()=="Unknown":
-            continue
-        pubName = pIssnToPub[row.pIssn.strip()].strip()
-        templates.setdefault(pubName, {})
-        templates[row.pIssn.strip()] = row.urls.strip()+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
-
-        host = urlparse.urlparse(row.urls).hostname
-        domain = ".".join(host.split('.')[-2:]).strip()
-        domains.setdefault(pubName, set()).add(domain)
-
+        pubName = row.pubName.replace("HIGHWIRE ","")
+        issns = [i.strip() for i in row.journalIssns.split("|")]
+        servers = row.webservers.split("|")
+        for issn, server in zip(issns, servers):
+            templates[issn] = "http://www."+server+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
+            domains.setdefault(pubName, set()).add(server)
     return templates, domains
      
-def highwireConfigs():
-    " return dict publisher name -> config for all highwire publishers "
-    logging.info("Creating config for Highwire publishers")
-    res = {}
-    issnTemplates, pubDomains = parseHighwire()
-    if issnTemplates==None:
-        return {}
-
-    for pubName, domains in pubDomains.iteritems():
-        templates = {}
-        for issn, templUrl in issnTemplates.iteritems():
-            for domain in domains:
-                if domain in templUrl:
-                    templates[issn]=templUrl
-                    break
-                    
-        res[pubName] = {
+def makeHighwireConfig(domains, templates):
+    " create a dict that configures a highwire publisher "
+    return {
             "hostnames" : domains,
             "landingUrl_templates" : templates,
             "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
@@ -130,23 +107,64 @@ def highwireConfigs():
             "landingPage_suppFileList_urlREs" : [".*/content.*suppl/DC[0-9]"],
             "suppListPage_suppFile_urlREs" : [".*/content.*suppl/.*"],
         }
+
+def highwireConfigs():
+    """ return dict publisher name -> config for all highwire publishers 
+    >>> r=highwireConfigs() 
+    >>> r["American Association for the Advancement of Science"]["hostnames"]
+    set([u'sageke.sciencemag.org', u'sciencemag.org', u'stke.sciencemag.org'])
+    >>> r["American Society for Biochemistry and Molecular Biology"]
+    {'landingUrl_isFulltextKeyword': '.long', 'hostnames': set([u'jbc.org', u'mcponline.org', u'jlr.org']), 'landingUrl_templates': {u'0022-2275': u'http://www.mcponline.org/cgi/pmidlookup?view=long&pmid=%(pmid)s', u'1535-9476': u'http://www.jlr.org/cgi/pmidlookup?view=long&pmid=%(pmid)s', u'0021-9258': u'http://www.jbc.org/cgi/pmidlookup?view=long&pmid=%(pmid)s'}, 'landingPage_suppFileList_urlREs': ['.*/content.*suppl/DC[0-9]'], 'landingPage_errorKeywords': 'We are currently doing routine maintenance', 'landingPage_ignoreMetaTag': True, 'doiUrl_replace': {'$': '.long'}, 'landingUrl_pdfUrl_replace': {'abstract': 'full.pdf', 'long': 'full.pdf'}, 'suppListPage_suppFile_urlREs': ['.*/content.*suppl/.*']}
+    """
+    logging.info("Creating config for Highwire publishers")
+    res = OrderedDict()
+    issnTemplates, pubDomains = parseHighwire()
+    # silently skip highwire parsing errors
+    if issnTemplates==None:
+        logging.warn("Could not read Highwire configuration")
+        return {}
+
+    # for each publisher, create a config that includes its hostnames and
+    # the all templates
+    for pubName, domains in pubDomains.iteritems():
+        #print pubName, domains
+        templates = {}
+        for issn, templUrl in issnTemplates.iteritems():
+            for domain in domains:
+                if domain in templUrl:
+                    templates[issn]=templUrl
+                    break
+                    
+        res[pubName] = makeHighwireConfig(domains, templates)
     return res
 
-highwireCfg = None
-
-# crawl configuration: for each website, define how to crawl the pages
-# this got more and more complicated over time. Best is to copy/paste from these examples
-# to create new ones
-
+# a dict with publisherId -> configDict
 confDict = None
+# a dict with hostname -> publisherId
+hostToPubId = None
 
 def initConfig():
+    """ define config, compile regexes and index by hostname 
+    >>> initConfig()
+    """
     global confDict
-    global highwireCfg
+    global hostToPubId
+    confDict = defineConfDict()
+    confDict, hostToPubId = prepConfigIndexByHost()
+    #print hostToPubId["sciencemag.org"
 
-    highwireCfg = highwireConfigs()
+def defineConfDict():
+    """ returns the dictionary of config statements 
+    >>> d = defineConfDict()
+    """
+    confDict = highwireConfigs()
 
-    confDict = \
+    # crawl configuration: for each website, define how to crawl the pages
+    # this got more and more complicated over time. Best is to copy/paste from these examples
+    # to create new ones
+    # you can overwrite the automatically created ones
+
+    confDict.update(
     {
     "pmc" :
     # not used at UCSC, we get the files via pubGetPmc/pubConvPmc, 
@@ -159,8 +177,17 @@ def initConfig():
         "hostnames" : ["www.ncbi.nlm.nih.gov"],
         "landingUrl_pdfUrl_append" : "pdf",
         "landingPage_hasSuppList": True,
-        "landingUrl_isFulltextKeyword" : "pmc", # always true -> always keep fulltext
+        "landingUrl_isFulltextKeyword" : "nih.gov", # always true -> always keep fulltext
         "landingPage_suppFile_textREs" : ["Click here for additional data file.*"]
+    },
+    # just a quick hack, only gets PDFs, nothing else
+    "American Association for the Advancement of Science":
+    {
+        "hostnames" : ["www.sciencemag.org"],
+        "landingUrl_pdfUrl_append" : "pdf",
+        "landingPage_hasSuppList": True,
+        "landingUrl_isFulltextKeyword" : "sciencemag.org", # always true -> always keep fulltext
+        "landingPage_stopPhrases" : ["The content you requested is not included in your institutional subscription"]
     },
     "springer" :
     # we don't use this at UCSC, we get springer directly, use at own risk
@@ -185,12 +212,12 @@ def initConfig():
         #only pdfs "landingUrl_replaceREs" : {"$" : "?np=y"}, # switch sd to screen reader mode
         "landingPage_stopPhrases": ["make a payment", "purchase this article", \
             "This is a one-page preview only"],
-        "landingPage_pdfLinkTextREs" : ["PDF  +\([0-9]+ K\)"],
+        "landingPage_pdfLinkTextREs" : ["PDF  +\([0-9]+ K\)", "Download PDF"],
     },
 
     # NORMAL SITE CONFIGURATIONS AS USED AT UCSC
 
-    # example suppinfo links 20967753 (major type of suppl, some also have "legacy" suppinfo
+    # example suppinfo links 20967753 - major type of suppl, some also have "legacy" suppinfo
     # example spurious suppinfo link 8536951
     # 
     "wiley" :
@@ -209,7 +236,10 @@ def initConfig():
         "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
     "oup" :
-        highwireCfg.get("Oxford University Press", {}),
+        confDict.get("Oxford University Press", {}),
+    "asbmb" :
+        confDict.get("American Society for Biochemistry and Molecular Biology", {}),
+
     "lww" :
     # Lippincott Williams aka Wolters Kluwer Health
     # with suppl:
@@ -239,10 +269,19 @@ def initConfig():
     },
 
 
+    "biokhimyia" :
+    # this is their old server. post-2000 is hosted on springer
+    {
+        "hostnames" : ["protein.bio.msu.ru"],
+        "landingUrl_isFulltextKeyword" : "full",
+        "landingPage_pdfLinkTextREs" : ["Download Reprint .PDF."]
+    },
+
     "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
     # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
     # 
+    # unusual: PMID 10854325 has a useless splash page
     {
         "hostnames" : ["www.nature.com"],
         "landingPage_stopPhrases": ["make a payment", "purchase this article"],
@@ -444,7 +483,7 @@ def initConfig():
     },
     # Society of General Microbiology
     # PMID 22956734
-    # THEY USE DC1 AND DC2 !!! Currently we're missing the DC1 or DC2 files... :-(
+    # THEY USE DC1 AND DC2 !!! Currently we're missing the DC1 or DC2 files... 
     # todo: invert linkdict to link -> text and not text -> link
     # otherwise we miss one link if we see twice "supplemental table" (see example)
     "sgm" :
@@ -503,13 +542,15 @@ def initConfig():
         "landingPage_stopPhrases" : ["single article purchase is required", "The page you have requested is unfortunately unavailable"]
     },
 
-}
+    }
+    )
+    return confDict
 
 def compileRegexes():
     " compile regexes in confDict "
     ret = {}
     for pubId, crawlConfig in confDict.iteritems():
-        ret[pubId] = {}
+        newDict = {}
         for key, values in crawlConfig.iteritems():
             if key.endswith("REs"):
                 newValues = []
@@ -517,7 +558,8 @@ def compileRegexes():
                     newValues.append(re.compile(regex))
             else:
                 newValues = values
-            ret[pubId][key] = newValues
+            newDict[key] = newValues
+        ret[pubId] = newDict
     return ret
 
 
@@ -525,11 +567,25 @@ def prepConfigIndexByHost():
     """ compile regexes in config and return dict publisherId -> config and hostname -> config 
     these make it possible to get the config either by hostname (for general mode)
     or by publisher (for per-publisher mode)
+    >>> initConfig()
+    >>> a, b = prepConfigIndexByHost()
+
+    #>>> b["sciencemag.org"]["hostnames"]
+    #>>> b["asm.org"]["hostnames"]
+
+    #>>> a["aaas"]
     """
     compCfg = compileRegexes()
     byHost = {}
-    for pubId, crawlConfig in compCfg.iteritems():
+    # make sure that the last defined ones overwrite the default highwire ones
+    # e.g. for aaas which deviates from the hw standard
+    for pubId, crawlConfig in reversed(compCfg.items()):
+    #for pubId, crawlConfig in compCfg.items():
         for host in crawlConfig.get("hostnames", []):
-            byHost[host] = crawlConfig
+            byHost[host] = pubId
+    #print byHost["sciencemag.org"]
     return compCfg, byHost
 
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

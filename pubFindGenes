@@ -26,7 +26,7 @@ import tabfile
 def readFile(inFname):
     logging.debug("Reading file %s" % inFname)
     text = open(inFname).read()
-    pmid  = splitext(basename(inFname))[0]
+    pmid  = splitext(basename(inFname))[0].split('.')[0]
     return pmid, text
 
 showOnlyErrors = False
@@ -61,7 +61,7 @@ def findDnaIter(text):
         yield row.start, row.end, row.seq
         #i+=1
 
-def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
+def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
     pmid, text = readFile(inFname)
     if len(text)<30:
         logging.info("empty text file")
@@ -103,9 +103,17 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
             else:
                 # only count a gene as found if it's an unambiguous symbol match with count > 3
                 # or something better than a symbol
+                support = len(locs)
+                minSupport = wordCount / 1200
+                if reqMinSupp!=None:
+                    minSupport = reqMinSupp
+                # old rule, for invitae
+                    #mType=="symbol" and (len(locs)>(wordCount/1200)) or \
+                    #mType=="symbolMaybe" and (len(locs)>10):
+                    
+                # accept anythin with more than x mentions
                 if mType not in ["symbolMaybe", "symbol"] or \
-                    mType=="symbol" and (len(locs)>(wordCount/1200)) or \
-                    mType=="symbolMaybe" and (len(locs)>10):
+                    mType in ["symbol", "symbolMaybe"] and support > minSupport:
                     allGenesFound.add(geneId)
                     predPair = (pmid, geneId)
                     foundGenes.add( predPair )
@@ -126,6 +134,8 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
             oneSnip = ""
             if len(snips)>0:
                 oneSnip = snips[0]
+            oneSnip = oneSnip.replace("\n", " ")
+            hits = [h.replace("\n"," ") for h in hits]
 
             row = [ pmid, mType, str(idStr), geneFinder.entrezSymbol(geneId), \
                     ",".join(hits), str(len(locs)), desc, oneSnip]
@@ -140,6 +150,9 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
         allFound = True
         for entrez in entrezList:
             entrez = int(entrez)
+            if entrez not in entrez2sym:
+                logging.error("%s in gold standard file is not a valid gene id (with a chrom location)" % entrez)
+                continue
             sym =  entrez2sym[entrez]
             if entrez in allGenesFound:
                 desc = "found"
@@ -183,14 +196,16 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData):
 def parsePaperData(inDir):
     fname = join(inDir, "textData.tab")
     if not isfile(fname):
-        return {}
+        fname = join(inDir, "..", "articleMeta.sqlbak.tab")
+        if not isfile(fname):
+            return {}
 
     data = {}
     for row in maxCommon.iterTsvRows(fname):
         data[row.pmid] = row
     return data
 
-def findInLocalDir(inDir, refGenes):
+def findInLocalDir(inDir, refGenes, minSupp):
     fnames = glob.glob(join(inDir, "*.txt"))
     #fnames = glob.glob(join(inDir, "100*.txt"))
     pm = maxCommon.ProgressMeter(len(fnames))
@@ -198,7 +213,7 @@ def findInLocalDir(inDir, refGenes):
     paperData = parsePaperData(inDir)
     for fname in fnames:
         #logging.info(fname)
-        findInLocalFile(fname, refGenes, foundGenes, paperData)
+        findInLocalFile(fname, refGenes, foundGenes, paperData, minSupp)
         pm.taskCompleted()
 
     # cleanup the refgenes dict, remove pmids without any annotations
@@ -242,8 +257,13 @@ def findInLocalDir(inDir, refGenes):
 
 def parseRefs(fname):
     data = defaultdict(list)
-    for row in maxCommon.iterTsvRows(fname):
-        data[row.pmid].append(int(row.gene))
+    #for row in maxCommon.iterTsvRows(fname, headers=["pmid", "gene"]):
+    for line in open(fname):
+        if line.startswith("pmid") or line.startswith("#"):
+            # just skip header
+            continue
+        fields = line.strip().split("\t")
+        data[fields[0]].append(int(fields[1]))
     return data
 
 def main(args, options):
@@ -259,6 +279,8 @@ def main(args, options):
     global showOnlyErrors
     showOnlyErrors = options.onlyErrors
 
+    minSupp = options.minSupport
+
     pubGeneric.setupLogging("", options)
     inFname = args[0]
     if len(args)>1:
@@ -267,13 +289,17 @@ def main(args, options):
     else:
         refGenes = {}
 
-    geneFinder.initData()
+    exclMarkerTypes = []
+    if options.noSeqs:
+        exclMarkerTypes = ["dnaSeq"]
+
+    geneFinder.initData(exclMarkerTypes=exclMarkerTypes)
 
     if isfile(inFname):
         paperMetaData = parsePaperData(dirname(inFname))
         findInLocalFile(inFname, refGenes, set(), paperMetaData)
     elif isdir(inFname):
-        findInLocalDir(inFname, refGenes)
+        findInLocalDir(inFname, refGenes, minSupp)
     else:
         assert(False)
 
@@ -281,12 +307,21 @@ def main(args, options):
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] annotDir - use all possible means to resolve mutations""")
+parser = optparse.OptionParser("""usage: %prog [options] <inputFileOrDir> [goldStandardFile] - use all possible means to resolve genes
+
+inputFile is a text file or a directory full of files with the extension .txt
+The preferred filename format is <pmid>.<anyWords>.txt
+
+goldStandardFile is a tab-separated file in the format <pmid>tab<entrezGene>
+This file is optional. If it is present, the program will output precision, recall and F1.
+""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
 parser.add_option("-e", "--onlyErrors", dest="onlyErrors", action="store_true", help="print output only if a gene has been missed")
+parser.add_option("-s", "--noSeqs", dest="noSeqs", action="store_true", help="Do not use sequences found in papers to resolve genes")
+parser.add_option("-m", "--minSupport", dest="minSupport", action="store", type="int", help="minimum support of genes where we only have symbols")
 
 (options, args) = parser.parse_args()
 

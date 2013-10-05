@@ -4,7 +4,7 @@
 import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
     pubCrossRef, html, maxCommon, pubCrawlConf
 import chardet # library for guessing encodings
-import unidecode 
+import unidecode
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
@@ -45,6 +45,11 @@ ERRWAIT = 10
 ERRWAIT_TRYHARD = 3
 
 # GLOBALS 
+
+# default delay secs if nothing else is found
+defaultDelay = 20
+# can be set from outside to force all delays to one fixed number of secs
+globalForceDelay = None
 
 # filename of lockfile
 lockFname = None
@@ -145,7 +150,7 @@ def resolveWithSfx(sfxServer, xmlQuery):
     url = urls[0].encode("utf8")
     return url
 
-def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
+def findLandingUrl(articleData, crawlConfig, preferPmc):
     """ try to find landing URL either by constructing it or by other means:
     - inferred from medline data via landingUrl_templates
     - medlina's DOI
@@ -167,7 +172,12 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
         issn = articleData["printIssn"]
         # need to use print issn as older articles in pubmed don't have any eIssn
         logging.debug("Trying URL template to find landing page for *PRINT* issn %s", issn)
-        articleData["firstPage"] = articleData["page"].split(".")[0].split("-")[0]
+        articleData["firstPage"] = articleData["page"]
+        page = articleData["page"]
+        if len(page)!=0:
+            logging.debug("Trying to find first page in string %s" % page.encode("utf8"))
+            page = unidecode.unidecode(page) # they sometimes contain long unicode dashes
+            articleData["firstPage"] = page.split()[0].split(";")[0].split(".")[0].split("-")[0]
         logging.debug("firstPage %s" % articleData["firstPage"])
         urlTemplates = crawlConfig.get("landingUrl_templates", {})
         urlTemplate = urlTemplates.get(issn, None)
@@ -189,7 +199,7 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
                 logging.debug("Constructed URL %s is not valid, trying other options" % landingUrl)
                 landingUrl = None
 
-    if crawlConfig.get("onlyUseTemplate", False) and landingUrl==None:
+    if crawlConfig!=None and crawlConfig.get("onlyUseTemplate", False) and landingUrl==None:
             #logging.debug("Template was unsuccessful but onlyUseTemplate set, so stopping now")
             raise pubGetError("Template URL was unsuccesful", "InvalidTemplateUrl", landingUrl)
 
@@ -197,14 +207,14 @@ def findLandingUrl(articleData, crawlConfig, hostToConfig, preferPmc):
     # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
     # than via Pubmed outlink, so we need sometimes to rewrite the doi urls
     if landingUrl==None and articleData["doi"]!="" and not (preferPmc and articleData["pmcId"]!=""):
-        landingUrl, crawlConfig = resolveDoiRewrite(articleData["doi"], crawlConfig, hostToConfig)
+        landingUrl, crawlConfig = resolveDoiRewrite(articleData["doi"], crawlConfig)
 
     # try crossref's search API to find the DOI 
     if landingUrl==None and articleData["doi"]=="" and not (preferPmc and articleData["pmcId"]!=""):
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData["doi"] = xrDoi
-            landingUrl, crawlConfig = resolveDoiRewrite(xrDoi, crawlConfig, hostToConfig)
+            articleData["doi"] = xrDoi.replace("http://dx.doi.org/","")
+            landingUrl, crawlConfig = resolveDoiRewrite(xrDoi, crawlConfig)
 
     # try pubmed's outlink
     if landingUrl==None:
@@ -265,7 +275,28 @@ def parseWgetLog(logFile, origUrl):
     return mimeType, url, charset
 
 
-defaultDelay = 20
+def getDelaySecs(host, forceDelaySecs):
+    """ return the number of seconds to pause. Either globally forced from command line, 
+    or set by-host or some global default if everything fails 
+    returns number of secs
+    """
+    if forceDelaySecs!=None:
+        return forceDelaySecs
+    if globalForceDelay!=None:
+        return globalForceDelay
+
+    logging.debug("Looking up delay time for host %s" % host)
+
+    if host in pubCrawlConf.crawlDelays:
+        delaySecs = pubCrawlConf.crawlDelays.get(host, defaultDelay)
+        logging.debug("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
+        return delaySecs
+
+    if isHighwire(host):
+        return highwireDelay(host)
+
+    logging.debug("Delay time for host %s not configured in pubConf and it's not highwire" % (host))
+    return defaultDelay
 
 def delayedWget(url, forceDelaySecs=None):
     """ download with wget and make sure that delaySecs (global var) secs have passed between two calls
@@ -276,21 +307,8 @@ def delayedWget(url, forceDelaySecs=None):
         logging.log(5, "Using cached wget results")
         return wgetCache[url]
 
-    if forceDelaySecs==None:
-        host = urlparse.urlsplit(url)[1]
-        logging.debug("Looking up delay time for host %s" % host)
-        if host in pubCrawlConf.crawlDelays:
-            delaySecs = pubCrawlConf.crawlDelays.get(host, defaultDelay)
-            logging.debug("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
-        elif isHighwire(host):
-            delaySecs = highwireDelay(host)
-        else:
-            logging.debug("Delay time for host %s not configured in pubConf" % (host))
-            delaySecs = defaultDelay
-    else:
-        delaySecs = forceDelaySecs
-        host = "noHost"
-
+    host = urlparse.urlsplit(url)[1]
+    delaySecs = getDelaySecs(host, forceDelaySecs)
     wait(delaySecs, host)
     page = runWget(url)
     return page
@@ -324,11 +342,11 @@ def runWget(url):
     logFile = tempfile.NamedTemporaryFile(dir = pubConf.getTempDir(), \
         prefix="pubGetPmid-Wget-", suffix=".log")
     cmd += " -o %s " % logFile.name
-    logging.verbose("command: %s" % cmd)
+    logging.log(5, "command: %s" % cmd)
     #print cmd
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=pubConf.httpTransferTimeout)
     if ret!=0:
-        #logging.debug("non-null return code from wget, sleeping for 120 seconds")
+        #loggsng.debug("non-null return code from wget, sleeping for 120 seconds")
         #time.sleep(120)
         raise pubGetError("non-null return code from wget", "wgetRetNonNull", url.decode("utf8"))
 
@@ -855,6 +873,9 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
     logging.debug("Looking for %s and %s" % (textReTag, urlReTag))
     suppTextREs = crawlConfig.get(textReTag, [])
     suppUrlREs = crawlConfig.get(urlReTag, [])
+    if len(suppTextREs)==0 and len(suppUrlREs)==0:
+        return fulltextData
+
     ignSuppTextWords = crawlConfig.get("ignoreSuppFileLinkWords", [])
 
     suppFilesAreOffsite = crawlConfig.get("suppFilesAreOffsite", False)
@@ -906,8 +927,30 @@ def replaceUrl(landingUrl, landingUrl_pdfUrl_replace):
         newUrl = None
     return newUrl
 
-def findFulltextUrl(landingPage, crawlConfig):
+def findFulltextHtmlUrl(landingPage, crawlConfig):
     " return URL to html fulltext derived from landing page "
+    landUrl = landingPage["url"]
+    # some landing pages contain the full article directly as html
+    if crawlConfig.get("landingPage_containsFulltext", False):
+        logging.debug("config says that fulltext html is on landing page")
+        return landUrl
+
+    if "landingUrl_isFulltextKeyword" in crawlConfig and \
+           crawlConfig["landingUrl_isFulltextKeyword"] in landUrl:
+                logging.debug("URL suggests that landing page is same as article html")
+                #fulltextData["main.html"] = landingPage
+                return landUrl
+
+    if "landingPage_ignoreUrlWords" in crawlConfig and \
+        containsAnyWord(landingPage["url"], crawlConfig["landingPage_ignoreUrlWords"]):
+        logging.debug("Found blacklist word in landing URL, ignoring article")
+        raise pubGetError("blacklist word in landing URL", "blackListWordUrl")
+
+    if "landingPage_ignorePageWords" in crawlConfig and \
+        containsAnyWord(landingPage["data"], crawlConfig["landingPage_ignorePageWords"]):
+        logging.debug("Found blacklist word, ignoring article")
+        raise pubGetError("blacklist word on landing page", "blackListWord")
+
     ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
 
     # some others can be derived by replacing strings in the landing url
@@ -935,6 +978,7 @@ def findFulltextUrl(landingPage, crawlConfig):
 def findPdfFileUrl(landingPage, crawlConfig):
     " return the url that points to the main pdf file on the landing page "
     pdfUrl = None
+    # first parse the html 
     if "links" not in landingPage:
         ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
         canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
@@ -948,6 +992,10 @@ def findPdfFileUrl(landingPage, crawlConfig):
         if "citation_pdf_url" in htmlMetas:
             pdfUrl = htmlMetas["citation_pdf_url"]
             logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
+            if not pdfUrl.startswith("http://"):
+                pdfUrl = urlparse.urljoin(landingPage["url"], pdfUrl)
+        else:
+            logging.debug("No citation_pdf_url on landing page %s" % landingPage["url"])
         #if "wkhealth_pdf_url" in htmlMetas:
             #pdfUrl = htmlMetas["wkhealth_pdf_url"]
             #logging.debug("Found link to PDF in meta tag wkhealth_pdf_url: %s" % pdfUrl)
@@ -963,6 +1011,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
     # some others can be derived by replacing strings in the landing url
     if "landingUrl_pdfUrl_replace" in crawlConfig:
         pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_pdfUrl_replace"])
+        logging.debug("Replacing strings in URL yields new URL %s" % (pdfUrl))
         return pdfUrl
 
     # if all of that doesn't work, parse the html and try all <a> links
@@ -972,7 +1021,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
             for linkText, linkUrl in links.iteritems():
                 if pdfLinkName.match(linkText):
                     pdfUrl = linkUrl
-                    logging.debug("Found link to main PDF: %s -> %s" % (pdfLinkName, pdfUrl))
+                    logging.debug("Found link to main PDF: %s -> %s" % (pdfLinkName.pattern, pdfUrl))
 
     if pdfUrl==None and not crawlConfig.get("landingPage_acceptNoPdf", False):
         raise pubGetError("main PDF not found", "mainPdfNotFound", landingPage["url"])
@@ -999,9 +1048,9 @@ def crawlForFulltext(landingPage, crawlConfig):
     """
     
     if noLicensePage(landingPage, crawlConfig):
-        raise pubGetError("no license for this article", "noLicense")
+        raise pubGetError("no license for this article", "noLicense", landingPage["url"])
     if isErrorPage(landingPage, crawlConfig):
-        raise pubGetError("hit error page", "errorPage")
+        raise pubGetError("hit error page", "errorPage", landingPage["url"])
 
     landUrl = landingPage["url"]
     logging.debug("Final landing page after redirects is %s" % landingPage["url"])
@@ -1017,25 +1066,9 @@ def crawlForFulltext(landingPage, crawlConfig):
         fulltextData["status"] = "LandingOnPdf_NoSuppl"
         return fulltextData
 
-    # some landing pages contain the full article directly as html
-    elif crawlConfig.get("landingUrl_isFulltextKeyword", False) and \
-           crawlConfig["landingUrl_isFulltextKeyword"] in landUrl:
-                logging.debug("URL suggests that landing page is same as article html")
-                fulltextData["main.html"] = landingPage
-
-    if "landingPage_ignoreUrlWords" in crawlConfig and \
-        containsAnyWord(landingPage["url"], crawlConfig["landingPage_ignoreUrlWords"]):
-        logging.debug("Found blacklist word in landing URL, ignoring article")
-        raise pubGetError("blacklist word in landing URL", "blackListWordUrl")
-
-    if "landingPage_ignorePageWords" in crawlConfig and \
-        containsAnyWord(landingPage["data"], crawlConfig["landingPage_ignorePageWords"]):
-        logging.debug("Found blacklist word, ignoring article")
-        raise pubGetError("blacklist word on landing page", "blackListWord")
-
-    # search for fulltext on landing page
+    # search for html fulltext on landing page (can be same as landing page)
     fulltextPage = None
-    fulltextHtmlUrl = findFulltextUrl(landingPage, crawlConfig)
+    fulltextHtmlUrl = findFulltextHtmlUrl(landingPage, crawlConfig)
     if fulltextHtmlUrl==None :
         logging.debug("Could not find article html fulltext")
     else:
@@ -1053,7 +1086,11 @@ def crawlForFulltext(landingPage, crawlConfig):
             logging.debug("No PDF found, but we accept this case for this publisher")
     else:
         pdfPage = delayedWget(pdfUrl)
-        if pdfPage["mimeType"] != "application/pdf":
+        if noLicensePage(pdfPage, crawlConfig):
+            raise pubGetError("no license for this article", "noLicense")
+        if pdfPage["mimeType"] == "application/pdf":
+            logging.debug("PDF has correct right MIME type")
+        else:
             pdfPage = parseHtml(pdfPage)
             if "pdfDocument" in pdfPage["iframes"]:
                 logging.debug("found framed PDF, requesting inline pdf")
@@ -1063,7 +1100,9 @@ def crawlForFulltext(landingPage, crawlConfig):
                 else:
                     raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
             else:
-                raise pubGetError("putative PDF link has not PDF mimetype", "MainPdfWrongMime_InlineNotFound")
+                raise pubGetError("putative PDF link has not PDF mimetype", \
+                    "MainPdfWrongMime_InlineNotFound")
+
         if noLicensePage(pdfPage, crawlConfig):
             raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
         fulltextData["main.pdf"] = pdfPage
@@ -1083,6 +1122,7 @@ def crawlForFulltext(landingPage, crawlConfig):
 def noLicensePage(landingPage, crawlConfig):
     " return True if page looks like a 'purchase this article now' page "
     for stopPhrase in crawlConfig.get("landingPage_stopPhrases", []):
+        #logging.debug("Checking for stop phrases %s" % stopPhrase)
         if stopPhrase in landingPage["data"]:
             logging.debug("Found stop phrase %s" % stopPhrase)
             return True
@@ -1177,7 +1217,7 @@ def findSuppListUrl(landingPage, fulltextPage, crawlConfig):
 
     landingPageHasSupp = crawlConfig.get("landingPage_hasSuppList", False)
     if landingPageHasSupp:
-        logging.debug("Landing page contains suppl files")
+        logging.debug("Config says suppl files can be located on landing page")
         return landingPage["url"]
 
     ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
@@ -1219,30 +1259,30 @@ def checkForOngoingMaintenanceUrl(url):
         time.sleep(60*15)
         raise pubGetError("Landing page is error page", "errorPage", url)
 
-def getConfig(hostToConfig, url):
+def getConfig(url):
     """ based on the url or IP of the landing page, return a crawl configuration dict 
-    problem: This is used all the time but is not using a hashmap... could be faster...
-    
     """
     hostname = urlparse.urlparse(url).netloc
+    hostname = hostname.replace("www.","")
     thisConfig = None
     logging.debug("Looking for config for url %s, hostname %s" % (url, hostname))
-    for cfgHost, config in hostToConfig.iteritems():
+    hostToPubId = pubCrawlConf.hostToPubId
+    for cfgHost, pubId in hostToPubId.iteritems():
         #logging.debug("Cmp %s with %s" % (repr(hostname), repr(cfgHost)))
-        if hostname.endswith(cfgHost):
-            logging.debug("Found config for host %s: %s" % (hostname, cfgHost))
-            thisConfig = config
-            break
+        if hostname.endswith(cfgHost.replace("www.", "")):
+            logging.debug("Found config for host %s: %s, %s" % (hostname, cfgHost, pubId))
+            thisConfig = pubCrawlConf.confDict[pubId]
+            return thisConfig
 
     # not found -> try default HIGHWIRE config, if highwire host
-    if thisConfig==None and isHighwire(hostname):
-        thisConfig = getConfig(hostToConfig, "HIGHWIRE")
+    #if thisConfig==None and isHighwire(hostname):
+        #thisConfig = getConfig(hostToConfig, "HIGHWIRE")
+        #thisConfig = pubCrawConf.makeHighwireConfig(hostname)
+        #if thisConfig!=None:
+            #logging.debug("Looks like it's a Highwire host")
+            #return thisConfig
 
-    if thisConfig==None:
-        raise pubGetError("No config for hostname %s" % hostname, "noConfig", hostname)
-    else:
-        return thisConfig
-
+    raise pubGetError("No config for hostname %s" % hostname, "noConfig", hostname)
 
 hostCache = {}
 
@@ -1320,7 +1360,7 @@ def parseIdStatus(fname):
     " parse crawling status file, return as dict status -> count "
     res = {}
     if not os.path.isfile(fname):
-        print "%s does not exist" % fname
+        logging.info("%s does not exist" % fname)
         res["OK"] = []
         return res
 
@@ -1436,7 +1476,7 @@ def resolveDoi(doi):
     logging.debug("DOI %s redirects to %s" % (doi, trgUrl))
     return trgUrl
 
-def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
+def resolveDoiRewrite(doi, crawlConfig):
     """ resolve a DOI to the final target url and rewrite according to crawlConfig rules
         Returns None on error
     #>>> resolveDoiRewrite("10.1073/pnas.1121051109")
@@ -1447,17 +1487,18 @@ def resolveDoiRewrite(doi, crawlConfig, hostToConfig):
     if url==None:
         return None, crawlConfig
     if crawlConfig==None:
-        crawlConfig  = getConfig(hostToConfig, url)
+        crawlConfig  = getConfig(url)
     if url==None or crawlConfig==None or "doiUrl_replace" not in crawlConfig:
         logging.debug("Nothing to rewrite")
         return url, crawlConfig
     newUrl = stringRewrite(url, crawlConfig, "doiUrl_replace")
     return newUrl, crawlConfig
 
-def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPublisher, \
+def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
     localMedline, fakeUseragent, preferPmc, doNotReadDb, usePublisher):
     " download all files for pmids in outDir/pmids.txt to outDir/files "
-    checkCreateLock(outDir)
+    if not testPmid:
+        checkCreateLock(outDir)
 
     global userAgent
     if fakeUseragent:
@@ -1473,11 +1514,8 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     issnErrorCount = collections.defaultdict(int)
     issnYear = (0,0)
 
-    global defaultDelay
-    defaultDelay = waitSec
-
     # parse the config file, index it by host and by publisher
-    pubsCrawlCfg, hostToConfig = pubCrawlConf.prepConfigIndexByHost()
+    #pubsCrawlCfg, hostToConfig = pubCrawlConf.prepConfigIndexByHost()
 
     if not usePublisher:
         pubId = basename(abspath(outDir).rstrip("/"))
@@ -1486,9 +1524,9 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
     
     crawlConfig = None
     if restrictPublisher:
-        if pubId not in pubsCrawlCfg:
+        if pubId not in pubCrawlConf.confDict:
             raise Exception("no configuration found for publisher %s in pubsCrawlConfig.py" % pubId)
-        crawlConfig  = pubsCrawlCfg[pubId]
+        crawlConfig  = pubCrawlConf.confDict[pubId]
         logging.info("Restricting crawling to PMIDs to sites of publisher %s: %s" % \
             (pubId, crawlConfig["hostnames"]))
 
@@ -1517,13 +1555,13 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
 
             checkIssnErrorCounts(pubmedMeta, issnErrorCount, ignoreIssns, outDir)
 
-            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig, hostToConfig, preferPmc)
+            landingUrl   = findLandingUrl(pubmedMeta, crawlConfig, preferPmc)
 
             # first resolve the url (e.g. doi) to something on a webserver
             landingPage  = delayedWget(landingUrl)
 
             if crawlConfig==None:
-                crawlConfig  = getConfig(hostToConfig, landingPage["url"])
+                crawlConfig  = getConfig(landingPage["url"])
             else:
                 # bail out if we're in restrict mode and don't know this host
                 if noMatches(landingPage["url"], crawlConfig["hostnames"]) and restrictPublisher:
@@ -1542,9 +1580,12 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
             #else:
                 #logging.info("Test-mode, not saving anything")
 
+            # always do this after each round
             if pause:
                 raw_input("Press Enter...")
             consecErrorCount = 0
+            if not restrictPublisher:
+                crawlConfig = None
 
         except pubGetError, e:
             if e.logMsg!="issnErrorExceed":
@@ -1560,8 +1601,12 @@ def crawlFilesViaPubmed(outDir, waitSec, testPmid, pause, tryHarder, restrictPub
                 logging.error("Too many consecutive errors, stopping crawl")
                 e.longMsg = "Crawl stopped after too many consecutive errors / "+e.longMsg
                 raise
+
+            # always do this after each round
             if pause:
                 raw_input("Press Enter...")
+            if not restrictPublisher:
+                crawlConfig = None
         except:
             raise
 

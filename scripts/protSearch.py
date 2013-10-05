@@ -3,6 +3,11 @@ from maxMarkov import MarkovClassifier
 from os.path import join, dirname
 from collections import defaultdict, OrderedDict
 
+try:
+    import re2 as re
+except ImportError:
+    import re
+
 DATADIR = join(dirname(__file__), 'data', 'protSearch')
 
 """ 
@@ -23,14 +28,20 @@ protein-like sequences longer than MINLEN amino acids
 """
 
 MINCOUNT=10 # min count of upcase-protein-like word in text collection to be considered a common word (=blacklisted)
-LOWERMAX=3  # maximum number of lowercase letters in a long string of single-letter amino acid chars
 MINLEN=5    # min len of word to be looked at
+
+LOWERMAX=3  # maximum number of lowercase letters in a long string of single-letter amino acid chars
 MINDIFFCHARS=4 # min number of diff characters in prot word
 MINSEQLEN=8 # min length of total sequence of several prot words 
 #PREFIXLEN=6 # compare only the first x letters against common words -> removed too many
 MAXSEQOCC=5 # max number of times a sequence can appear in a document without getting eliminated
+MAXSEQPERDOC=300 # max number of sequences per document, we skip the whole doc otherwise
 
-nonLetterRe = re.compile(r'[^A-Za-z0-9]') # non-alphanumeric characters, replaced with spaces
+CLOSESEQDIST=5 # when appending SINGLE letters to the current seq, tolerate a few non-prot characters
+
+isTcrDocRe  = re.compile(r'.*(T.Cell.Receptor| TCR |CDR|T.Cells).*')
+
+nonLetterRe = re.compile(r'[^A-Za-z0-9,;()]') # non-alphanumeric characters, replaced with spaces
 wordRe      = re.compile(r'[A-Za-z0-9]+') # a word, any string of letters or numbers
 dnaLetters  = set(['A','C','T','G','U','N'])
 #dnaLetters  = set(['A','C','T','G','U','N','S','M','W','Y','R'])
@@ -140,7 +151,7 @@ def detectProteinWordClean(word, blacklist, lastWord, pos, distLastWord, stack):
     # EITHER within a already started protein seq (=stack is non-empty)
     # OR stack is empty AND preceded by a single AA letter in which case we add both to the stack
     #print word in protLetters, distLastWord, stack, lastWord
-    if word in protLetters and distLastWord<6 and (len(stack)!=0 or lastWord in protLetters):
+    if word in protLetters and distLastWord<CLOSESEQDIST and (len(stack)!=0 or lastWord in protLetters):
         if len(stack)==0:
             stack.append((lastWord, pos-distLastWord, pos))
         return word, False
@@ -163,6 +174,27 @@ def cleanText(text):
     # clean: non-letters -> spaces
     cleanText = nonLetterRe.sub(" ", text)
     return cleanText
+
+def countChanges(stackWord):
+    """ count how often on average we encounter a change between letters in a word 
+    >>> countChanges("AAAAAAAA")
+    0.0
+    >>> countChanges("ACACACACACAC")
+    0.9166666666666666
+    >>> countChanges("STDNNNTKTISTDNNNTKTIC")
+    0.7619047619047619
+    >>> countChanges("IGIGIGGIGIGIGIGIGIGIGIGIGIGIGGGGGIGGGGGGGGGGGGGGIGGGG")
+    0.5849056603773585
+    """
+    lastChar = stackWord[0]
+    diffCount = 0.0
+    for i in range(1, len(stackWord)):
+        char = stackWord[i]
+        if lastChar!=char:
+            diffCount += 1
+        lastChar = char
+    return diffCount / len(stackWord)
+        
 
 def generateRow(stack, sureProt, classifier, blacklist):
     """ given a stack, a classifier and blacklist, output a tab-sep row for the final output file. 
@@ -205,26 +237,34 @@ def generateRow(stack, sureProt, classifier, blacklist):
     # check that whole stack contains enough different letters
     stackLetters = set(stackWord)
     diffLetterPerChar = len(stackLetters) / float(len(stackWord))
-    if sureProt or (diffLetterPerChar > 0.3 or len(stackWord) > 30):
-        start = stack[0][1]
-        end   = stack[-1][-1]
-        classType, markovClass = classifier.classify(stackWord)
-        if classType=="neg":
-            markovAccept = "N"
-        else:
-            # "unsure" and "pos" are both accepted as proteins
-            markovAccept = "Y"
-
-        if markovAccept=="Y" and prefixAccept=="Y" and suffixAccept=="Y":
-            verdict = "isPep"
-        else:
-            verdict = "isEng"
-        row = [start, end, stackWord, len(stack), prefixAccept, suffixAccept, markovAccept, verdict, markovClass]
-        return row
-    else:
+    if not (sureProt or (diffLetterPerChar > 0.3 or len(stackWord) > 30)):
         logging.log(5, "stack %s is not a sequence, too short/too few avg diff letters: %f" % \
             (stackWord, diffLetterPerChar))
         return None
+
+    # check that letters change enough
+    avgChange = countChanges(stackWord)
+    if avgChange<0.4:
+        logging.log(5, "stack %s has not enough letter changes: %d" % \
+            (stackWord, avgChange))
+        return None
+
+    start = stack[0][1]
+    end   = stack[-1][-1]
+    classType, markovClass = classifier.classify(stackWord)
+    if classType=="neg":
+        markovAccept = "N"
+    else:
+        # "unsure" and "pos" are both accepted as proteins
+        markovAccept = "Y"
+
+    if markovAccept=="Y" and prefixAccept=="Y" and suffixAccept=="Y":
+        verdict = "isPep"
+    else:
+        verdict = "isEng"
+
+    row = [start, end, stackWord, len(stack), prefixAccept, suffixAccept, markovAccept, verdict, markovClass]
+    return row
 
 def findProteins(text, blacklist, classifier, docId=""):
     """
@@ -232,10 +272,15 @@ def findProteins(text, blacklist, classifier, docId=""):
 
     >>> markov = loadMarkovClassifier()
     >>> findProteins("  5 10 15 20 Ala-Val-Thr-Lys-Gly-Thrlle-Asn-Asp-Pro-Gln-Ala-Ala-Lys-Glu-Ala-Leu-Asp-Lys-Tyr. ", [], markov)
-    [[13, 91, 'AVTKGNDPQAAKEALDKY', 1, 'Y', 'uniprot']]
+    [[40, 91, 'NDPQAAKEALDKY', 13, 'Y', 'Y', 'Y', 'isPep', 'uniprot']]
+
+    # would be nice if the result looked like this: how?
+    #[[13, 91, 'AVTKGNDPQAAKEALDKY', 1, 'Y', 'uniprot']]
+
     >>> findProteins("  N A F T K A T P L S T Q V Q L S M C A D V P L V V E Y A ", [], markov)
+    [[2, 57, 'NAFTKATPLSTQVQLSMCADVPLVVEYA', 28, 'Y', 'Y', 'Y', 'isPep', 'uniprot']]
     """
-    #seqRows = defaultdict(list)
+
     seqRows = OrderedDict()
 
     stack = []
@@ -281,7 +326,7 @@ def findProteins(text, blacklist, classifier, docId=""):
                 seqCount += 1
 
             # in case that we run into a genbank/uniprot supplemental table, skip the whole doc
-            if seqCount > 300:
+            if seqCount > MAXSEQPERDOC:
                 logging.warn("%d proteins, too many, in document %s, skipping whole document" % (seqCount, docId))
                 logging.warn("%s" % seqRows.keys())
                 return []
@@ -306,7 +351,8 @@ def findProteins(text, blacklist, classifier, docId=""):
 def loadMarkovClassifier():
     # init markov classifier from files
     markov = MarkovClassifier(0.02)
-    fgFnames = [join(DATADIR, fname) for fname in ["cdr3.markov", "uniprot.markov"]]
+    #fgFnames = [join(DATADIR, fname) for fname in ["cdr3.markov", "uniprot.markov"]]
+    fgFnames = [join(DATADIR, fname) for fname in ["uniprot.markov"]]
     bgFnames = [join(DATADIR, "medline.markov")]
     markov.loadModels(2, fgFnames, bgFnames)
     return markov
@@ -314,7 +360,9 @@ def loadMarkovClassifier():
 class Annotate:
     """ annotator to find protein sequence in english text """
     def __init__(self):
-        self.headers = ["start", "end", "seq", "partCount", "prefixFilterAccept", "markovFilterAccept", "verdict", "markovName", "snippet"]
+        self.headers = ["start", "end", "seq", "partCount", "prefixFilterAccept", \
+            "suffixFilterAccept", "markovFilterAccept", "verdict", \
+            "markovName", "isTcrDoc", "snippet"]
         self.requireParameters=1
         self.excludeWords = set()
 
@@ -350,18 +398,20 @@ class Annotate:
 
     def annotateFile(self, articleData, fileData):
         text = cleanText(fileData.content)
-        return findProteins(text, self.excludeWords, self.markov, docId=articleData.externalId+"/"+fileData.desc)
-
+        isTcrDoc = (isTcrDocRe.match(text, re.IGNORECASE)!=None)
+        rows = findProteins(text, self.excludeWords, self.markov, docId=articleData.externalId+"/"+fileData.desc)
+        for row in rows:
+            row.append(isTcrDoc)
+            yield row
 
 def test():
    #test1="(0)VGGVMHCFTGSYETMKKAVDMG-----FFISYSGILTYKNAESVREVAKRTPTSRILLETDSPFLA"
    markov = loadMarkovClassifier()
    rows = findProteins("  5 10 15 20 Ala-Val-Thr-Lys-Gly-Thrlle-Asn-Asp-Pro-Gln-Ala-Ala-Lys-Glu-Ala-Leu-Asp-Lys-Tyr. ", [], markov)
-   # assert(rows==[[13, 91, 'AVTKGNDPQAAKEALDKY', 1, 'Y', 'uniprot']])
    [[13, 91, 'AVTKGNDPQAAKEALDKY', 18, 'Y', 'uniprot']]
 
    rows = findProteins("  N A F T K A T P L S T Q V Q L S M C A D V P L V V E Y A ", [], markov)
-   assert(rows==[[2, 57, 'NAFTKATPLSTQVQLSMCADVPLVVEYA', 28, 'Y', 'uniprot']])
+   assert(rows==[[2, 57, 'NAFTKATPLSTQVQLSMCADVPLVVEYA', 28, 'Y', 'Y', 'Y', 'isPep', 'uniprot']])
 
    #rootLog = logging.getLogger('')
    #rootLog.setLevel(5)
@@ -369,12 +419,15 @@ def test():
                        #format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                        #datefmt='%m-%d %H:%M', stream=sys.stdout)
    rows = findProteins("  N - A - F - T-K-A-T-P-L-", [], markov)
-   assert(rows == [[2, 25, 'NAFTKATPL', 9, 'Y', 'uniprot']])
+   assert(rows == [[2, 25, 'NAFTKATPL', 9, 'Y', 'Y', 'Y', 'isPep', 'uniprot']])
 
    rows = findProteins("   K K V L E A L K D L I N E A C W D I S S S G V N L Q S M   ", [], markov)
-   assert(rows == [[3, 58, 'KKVLEALKDLINEACWDISSSGVNLQSM', 28, 'Y', 'cdr3']])
+   assert(rows == [[3, 58, 'KKVLEALKDLINEACWDISSSGVNLQSM', 28, 'Y', 'Y', 'Y', 'isPep', 'uniprot']])
+
+   rows = findProteins("   EEEEEEEEEEEEEEEEEEEEEEEEEEEEESSGYBA   ", [], markov)
+   assert(rows == [])
 
 if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
     test()
-    #import doctest
-    #doctest.testmod()

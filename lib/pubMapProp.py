@@ -23,6 +23,7 @@ def writeList(path, identifiers):
     outFh = open(path, "w")
     for identifier in identifiers:
         outFh.write(basename(identifier)+"\n")
+    outFh.close()
 
 class PipelineConfig:
     """ a class with tons of properties to hold all directories for the pipeline 

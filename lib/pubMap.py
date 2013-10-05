@@ -2,7 +2,7 @@ import sys, logging, optparse, os, collections, tempfile,\
     shutil, glob, array, codecs, string, re, gzip, time, socket, subprocess
 
 import maxRun, pubStore, pubConf, pubGeneric, maxCommon, bigBlat, pubAlg, unidecode
-import maxbio, tabfile, maxMysql, maxTables, util, pubMapProp
+import maxbio, tabfile, maxMysql, maxTables, util, pubMapProp, pubCdr3Filter
 from collections import defaultdict
 from os.path import *
 
@@ -77,8 +77,8 @@ def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None,
 
         for db in dbs:
             seq = row.seq
-            if isProt and row.markovAccept!="Y":
-                logging.debug("Skipping seq %s, did not pass markov filter" % seq)
+            if isProt and (row.prefixFilterAccept!="Y" or row.suffixFilterAccept!="Y"):
+                logging.debug("Skipping seq %s, did not pass prefix/suffix filter" % seq)
                 continue
             annotId = int(row.annotId)
             fileId = annotId / (10**pubConf.ANNOTDIGITS)
@@ -1531,7 +1531,7 @@ def submitFilterJobs(runner, chunkNames, inDir, outDir, isProt=False):
     if isProt:
         filterCmd = "filterProtSeqFile"
 
-    logging.info("Reading from %s, writing to %s" % (inDir, outDir))
+    logging.info("Reading from %s, writing to %s (%d chunks to annotate)" % (inDir, outDir, len(chunkNames)))
     for chunkName in chunkNames:
         inFname = join(inDir, chunkName+".tab.gz")
         outFname = join(outDir, chunkName+".tab")
@@ -1698,10 +1698,53 @@ def switchOver():
     maxMysql.renameTables("hg19", prodTables, bakTables, checkExists=True)
     maxMysql.renameTables("hg19", devTables, prodTables)
 
+def annotToCdr3(dataset):
+    """ export putative CDR3s from a list of datasets to .tab and .fa
+        to pubConf.cdr3Dir
+    """
+    pubList = dataset.split(",")
+    annotDir = pubConf.annotDir
+
+    maxCommon.mustExistDir(pubConf.cdr3Dir, makeDir=True)
+
+    outFaFname = join(pubConf.cdr3Dir, "cdr3.fa")
+    outTabFname = join(pubConf.cdr3Dir, "cdr3.tab")
+    faFh = open(outFaFname, "w")
+    tabFh = open(outTabFname, "w")
+    logging.info("Filtering prot sequences to fasta %s and .tab" % (outFaFname))
+    wroteHeaders = False
+
+    for dataset in pubList:
+        logging.info("Processing dataset %s" % dataset)
+
+        annotMask = join(pubConf.pubMapBaseDir, dataset, "batches", "*", "annots", "prot", "*")
+        annotFnames = glob.glob(annotMask)
+        logging.debug("Found dirs: %s" % annotFnames)
+        pm = maxCommon.ProgressMeter(len(annotFnames))
+        for annotFname in annotFnames:
+            if not wroteHeaders:
+                headerLine = maxbio.openFile(annotFnames[0]).readline()
+                logging.debug("Writing header line from %s as %s" % (annotFnames[0], headerLine))
+                tabFh.write(headerLine)
+                wroteHeaders = True
+
+            for row in pubCdr3Filter.iterCdr3Rows(annotFname):
+                if row.prefixFilterAccept!="Y" or row.suffixFilterAccept!="Y" or \
+                    row.markovFilterAccept!="Y":
+                    continue
+                tabFh.write(u'\t'.join(row).encode("utf8"))
+                tabFh.write('\n')
+                faFh.write(">"+row.annotId+"\n")
+                faFh.write(row.seq+"\n")
+            pm.taskCompleted()
+
+    faFh.close()
+    tabFh.close()
+    logging.info("Output written to %s and %s" % (outTabFname, outFaFname))
+
 def annotToFasta(dataset, useExtArtId=False):
     """ export one or more datasets to fasta files 
-
-    output is writtent pubConf.faDir
+    output is written to pubConf.faDir
     
     """
     pubList = dataset.split(",")
@@ -1741,8 +1784,12 @@ def annotToFasta(dataset, useExtArtId=False):
             for annotFname in annotFnames:
                 for row in maxCommon.iterTsvRows(annotFname):
                     articleId = int(row.annotId[:pubConf.ARTICLEDIGITS])
-                    seqId = artMainIds.get(articleId, "")
-                    outFh.write(">"+row.annotId+"|"+seqId+"\n")
+                    if useExtArtId:
+                        seqId = artMainIds.get(articleId, "")
+                        outFh.write(">"+row.annotId+"|"+seqId+"\n")
+                    else:
+                        outFh.write(">"+row.annotId+"\n")
+
                     outFh.write(row.seq+"\n")
                 pm.taskCompleted()
         logging.info("Output written to %s" % outFname)
@@ -1819,6 +1866,9 @@ def runAnnotStep(d, onlyMarkers=False):
     d.writeChunkNames(chunkNames)
     d.writeUpdateIds()
     d.appendBatchProgress("annot")
+
+    # re-read the list of chunks just annotated
+    d._defineBatchDirectories()
 
 def parseFileDescs(fname):
     res = {}
@@ -2116,6 +2166,9 @@ def runStep(dataset, command, d, options):
     # ======== OTHER COMMANDS 
     elif command=="expFasta":
         annotToFasta(dataset, useExtArtId=True)
+
+    elif command=="expCdr3":
+        annotToCdr3(dataset)
 
     else:
         maxCommon.errAbort("unknown command: %s" % command)

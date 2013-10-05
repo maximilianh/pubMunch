@@ -22,6 +22,8 @@ def openFile(fname, mode="r"):
     """ opens file, recognizing stdout and stdin and none"""
     if hasattr(fname, "read") or hasattr(fname, "write"):
         return fname
+    elif fname.endswith(".gz"):
+        fh = gzip.open(fname, mode)
     elif fname=="stdout":
         fh = sys.stdout
     elif fname=="stdin":

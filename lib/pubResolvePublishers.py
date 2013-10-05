@@ -227,19 +227,19 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
     for pubGroup, journals in pubGroups.iteritems():
         jIds = []
         jIssns = []
-        syns = set()
-        servers = set()
+        syns = []
+        servers = []
         titles = []
         uids = []
         countries = set()
         languages = set()
         for journal in journals:
-            jIds.append(journal.eIssn)
-            jIssns.append(journal.pIssn)
+            jIds.append(journal.eIssn.strip())
+            jIssns.append(journal.pIssn.strip())
             titles.append(journal.title.replace("|"," "))
-            syns.add(journal.publisher)
+            syns.append(journal.publisher)
             jServers = urlStringToServers(journal.urls)
-            servers.update(jServers)
+            servers.extend(jServers)
             if "country" in journal._fields:
                 countries.add(journal.country)
                 uids.append(journal.uniqueId)
@@ -390,7 +390,7 @@ def groupPublishersByServer(journals):
 def groupPublishersByName(journals):
     """ given a list of journal records, group similar ones based on some heuristics,
     return dict (groupName) -> (list of journal records)
-    Heuristics are using: URL, then ISSN prefix, then name
+    Heuristics are: URL, then ISSN prefix, then name
     >>> class D: pass
     >>> j1 = D()
     >>> j1.urls= "http://rsx.sagepub.com/archive/"

@@ -202,7 +202,7 @@ def parseOneBlastFile(inFname, outFname):
     #try:
     for match in parseBlastXmlFile(inFname):
         articleId = match.tId[:10]
-        artData = lookupArticleData(articleId)
+        artData = pubGeneric.lookupArticleData(articleId)
         match = [str(x) for x in match]
         match.append(artData["articleId"].encode("utf8"))
         match.append(artData["authors"].encode("utf8"))
@@ -247,36 +247,6 @@ def parseBlastLookupArticle(inDir, outFile):
         pm.taskCompleted()
 
 conCache = {}
-
-def lookupArticleData(articleId):
-    " lookup article meta data for an article via a database "
-    #conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
-    #sql = "SELECT * from %s where articleId=%s" % (dataset, articleId)
-    #rows = maxTables.sqlGetRows(conn,sql) 
-    dataset = pubStore.articleIdToDataset(articleId)
-    textDir = join(pubConf.textBaseDir, dataset)
-
-    if textDir not in conCache:
-        dbPath = join(textDir, "articles.db")
-        cur, con = maxTables.openSqlite(dbPath, asDict=True)
-        conCache[textDir] = (cur, con)
-    else:
-        cur, con = conCache[textDir]
-        
-    sql = "SELECT * from articles where articleId=%s" % (articleId)
-    rows = list(cur.execute(sql))
-    #assert(len(rows)==1)
-    if len(rows)==0:
-        raise Exception("Could not find article %s in textDir %s" % (articleId, textDir))
-    articleData = rows[0]
-    #authors = row["authors"]
-    #author = author.split(",")[0]+" et al., "+row["journal"]
-    #title = row["title"]
-    #year = row["year"]
-    #journal = row["journal"]
-    #title = title.encode("latin1").decode("utf8")
-    #text = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, dataset, row["fulltextUrl"], title)
-    return articleData
 
 def makeHtml(inFile, outFile, textDir, minId):
     " read a tab sep file with BlastMatch records and write out as html table "

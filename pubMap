@@ -98,12 +98,14 @@ STEPS FOR LOADING RESULTS INTO GENOME BROWSER:
 
 OTHER COMMANDS:
 
-"steps:<type>": run a list of the steps described above.
+"<type>": run a list of the steps described above.
     <type> can be either "all" or a range, like "annot-load"
-    "steps:all" is the same as "steps:annot-tables"
+    "all" is the same as "annot-tables"
 
 dropAll: remove all tables (by default the pubsDev... tables)
 switchOver: move all tables from the pubsDev to the pubs prefix
+expFa: export all sequences as fasta files to pubConf.faDir
+expCdr3: export all CDR3-like prot seqs as fasta and tab files to pubConf.cdr3Dir
 
 """)
 parser.add_option("-s", "--skipConvert", dest="skipConvert", action="store_true", help="do not convert sequences or convert to fasta or sort/chain, only do the second part of the processing for blat, blatCdna or chain. Used for debugging.", default=False)

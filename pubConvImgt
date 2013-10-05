@@ -10,6 +10,8 @@ progDir  = os.path.dirname(progFile)
 pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
+#yearRe = re.compile(r'([0-9]{4})$')
+
 # now load our own libraries
 import pubConf, pubGeneric, util, maxCommon, pubStore
 
@@ -59,6 +61,8 @@ class Reference:
         self.titles=[]
         self.journals=[]
         self.keywords=[]
+        self.pmid = ""
+        self.doi = ""
 
     def __repr__(self):
         return "ref:"+"authors:"+", ".join(["|".join(self.authors),"titles:"+ "|".join(self.titles),"title:"+ "|".join(self.journals),"keywords:"+ "|".join(self.keywords)])
@@ -68,7 +72,7 @@ class IMGTRecord:
         self.refList=[]
         self.seqs=[]
         self.genes={}
-        self.keywords=set()
+        self.keywords=[]
 
     def mainRef(self):
         " guess main ref of record and return with record's keywords added to it "
@@ -107,6 +111,7 @@ def parseImgt(fh):
     " an iterator, yields each record as an IMGTRecord object "
     grabGenes = False 
     grabSeq=False
+    keywords = []
 
     for line in fh:
         tag = line[:5].strip()
@@ -115,15 +120,27 @@ def parseImgt(fh):
         if tag=="ID":
             rec = IMGTRecord()
             rec.id = data.split()[0]
+            keywords = []
             grabSeq=False
         if tag=="OS":
             rec.species = data
+        if tag=="KW":
+            keywords.extend([s.strip(",. ") for s in data.split(";") if s!=''])
         if tag=="RN":
             rec.refList.append(Reference())
         if tag=="RA":
             rec.refList[-1].authors.append(data)
-        if tag=="KW":
-            rec.keywords.update(data.split("; "))
+        # RX   DOI; 10.1038/nature04072.
+        # RX   PUBMED; 16136131.
+        if tag=="RX":
+            idType, idStr = data.split("; ")
+            idStr = idStr.rstrip(". ")
+            if idType=="DOI":
+                rec.refList[-1].doi=idStr
+            if idType=="PUBMED":
+                rec.refList[-1].pmid=idStr
+        #if tag=="KW":
+            #rec.keywords.update(data.split("; "))
         if tag=="RT":
             cleanTitle = data.strip(";").strip('"').rstrip(".")
             rec.refList[-1].titles.append(cleanTitle)
@@ -150,11 +167,12 @@ def parseImgt(fh):
             rec.seqs.append(seq)
                 
         if tag=="//":
+            rec.keywords = keywords
             yield rec
     yield rec
 
     
-def mapRefToIds(inFname):
+def mapRefToIds(inFname, keywords):
     """ create:
     dict reference -> (refObject, list of identifiers of imgt) 
     dict accesion id -> sequence string
@@ -166,6 +184,11 @@ def mapRefToIds(inFname):
         if mainRef==None:
             logging.debug("Record %s has no ref" % rec.id)
             continue
+
+        if len(set(rec.keywords).intersection(keywords))==0:
+            logging.debug("Record %s: no keyword overlap found, skipping " % rec.id)
+            continue
+            
         refString = rec._refString(mainRef)
         if refString==None:
             continue
@@ -179,17 +202,24 @@ def mapRefToIds(inFname):
         #marshal.dump(refToIds, open(outFname, "wb"))
     return refToIds, accToSeq
 
-def writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh, faFh):
+def writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh, faFh, maxSeqs):
     " write article and files for reference object and idList to writer/accFh and faFh "
-    if len(idList)>1000:
-        logging.info("more than 1000 sequences, skipping article %s" % refString)
+    if len(idList)>maxSeqs:
+        logging.info("%d sequences: more %d sequences, skipping article %s" % (len(idList), maxSeqs, refString))
         return
 
     url = "http://www.ncbi.nlm.nih.gov/nuccore/"+idList[0]
     abstract = "Genbank accessions: "+", ".join(idList)
     title = " ".join(ref.titles)+" (%d sequences)" % len(idList)
+    #year = yearRe.match(ref.journals[0])
+    #if yearMatch != None:
+        #year = yearMatch.group()
+    #else
+        #year = ""
+
     artDict = pubStore.createEmptyArticleDict(origFile="imgt.dat", journal=" ".join(ref.journals), \
         title = title, authors = " ".join(ref.authors), \
+        pmid = ref.pmid, doi = ref.doi, \
         fulltextUrl = url, keywords="/".join(ref.keywords), externalId=idList[0], abstract=abstract)
     writer.writeArticle(articleId, artDict)
 
@@ -205,9 +235,9 @@ def writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh
         fileId+=1
 
 
-def filterConvertImgt(inFname, species, minId, outDir):
+def filterConvertImgt(inFname, species, minId, outDir, maxSeqs, keywords):
     """ go over all IMGT records, output ones from selected species with
-    certain keywords in fasta format to stdout """ 
+    certain keywords in fasta format to outDir """ 
 
     logging.info("Parsing imgt.dat")
     #tempFile = "imgt.marshal"
@@ -219,7 +249,7 @@ def filterConvertImgt(inFname, species, minId, outDir):
     #for refString, idCount in refToIds.iteritems():
         #print refString+ "\t"+ str(idCount)
 
-    refToAccList, accToSeq = mapRefToIds(inFname)
+    refToAccList, accToSeq = mapRefToIds(inFname, keywords)
 
     chunkCount = 30
     refPerChunk = len(refToAccList)/chunkCount
@@ -237,7 +267,7 @@ def filterConvertImgt(inFname, species, minId, outDir):
     for refString, refIdTuple in refToAccList.iteritems():
         ref, idList = refIdTuple
 
-        writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh, faFh)
+        writeArticleFiles(articleId, ref, idList, refString, accToSeq, writer, accFh, faFh, maxSeqs)
         articleId += 1
         refCount +=1
 
@@ -257,14 +287,17 @@ def main(args, options):
     inFname, outDir = args
     if options.parse:
         for rec in parseImgt(open(inFname)):
+            print "KEYWORDS\t"+rec.id+"\t", "/".join(rec.keywords)
             print "MAIN REF: ",str(rec.mainRef())
             print "ALL REFS:", str(rec.refList)
-            sys.exit(0)
+        sys.exit(0)
+
+    keywords = set(options.keywords)
 
     if not options.updateDb:
         firstId = pubConf.identifierStart["imgt"]
         maxCommon.mustBeEmptyDir(outDir, makeDir=True)
-        filterConvertImgt(inFname, "Homo sapiens", firstId, outDir)
+        filterConvertImgt(inFname, "Homo sapiens", firstId, outDir, options.maxSeqs, keywords)
     tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
     dbPath = join(outDir, "articles.db")
     pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
@@ -272,13 +305,15 @@ def main(args, options):
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog <imgtFile> <outPubToolsDataDir> - convert IMGT to pubtools format
 example:
-pubConvImgt /hive/data/outside/pubs/imgt/imgt.dat /hive/data/inside/literature/text/imgt/
+pubConvImgt /hive/data/outside/pubs/imgt/imgt.dat /hive/data/inside/pubs/text/imgt/
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages") 
 parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only write sqlite DB") 
 parser.add_option("-p", "--parse", dest="parse", action="store_true", help="due a test parse on file") 
+parser.add_option("-m", "--maxSeqs", dest="maxSeqs", type="int", action="store", help="maximum sequences per submission to get converted. If a genbank submission includes more than this number, all sequences will get skipped. This is to exclude large scale submissions, like cDNA sequencing projects, that don't add useful functional information. Default %default", default=100) 
+parser.add_option("-k", "--keywords", dest="keywords", action="append", help="filter out all records that don't contain a given keyword in the 'KW' section of IMGT. This can be used to convert only certain sequences, e.g. T Cell receptors by setting -k 'TR-Beta'. This option can be specified multiple times.")
 (options, args) = parser.parse_args()
 if len(args)<=1:
     parser.print_help()

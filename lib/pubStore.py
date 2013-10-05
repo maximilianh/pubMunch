@@ -96,12 +96,18 @@ def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=No
     logging.log(5, "Creating new file record, url=%s, fileType=%s, desc=%s" % (url, fileType, desc))
     return fileData
 
-def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=None, id=None, origFile=None, authors=None, fulltextUrl=None, keywords=None, title=None, abstract=None, publisher=None):
+def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=None, \
+    id=None, origFile=None, authors=None, fulltextUrl=None, keywords=None, title=None, abstract=None, \
+    publisher=None, pmid=None, doi=None):
     """ create a dictionary with all fields of the ArticleType """
     metaInfo = emptyArticle._asdict()
     metaInfo["time"]=time.asctime()
     if publisher!=None:
         metaInfo["publisher"]=publisher
+    if doi:
+        metaInfo["doi"]=doi
+    if pmid:
+        metaInfo["pmid"]=pmid
     if pmcId:
         metaInfo["pmcId"]=pmcId
     if origFile:
@@ -856,6 +862,7 @@ def articleIdToDataset(articleId):
             restList.append( (datasetName, rest) )
     restList.sort(key=operator.itemgetter(1))
     #print restList
+    return restList[0][0]
 
 def iterChunks(datasets):
     """ given a list of datasets like ["pmc", "elsevier"], return a list of directory/chunkStems, 
@@ -1067,6 +1074,38 @@ def lookupArticle(con, cur, column, val):
             #result[key] = val
 
     return result
+
+def lookupArticleData(articleId):
+    " lookup article meta data for an article via a database "
+    #conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
+    #sql = "SELECT * from %s where articleId=%s" % (dataset, articleId)
+    #rows = maxTables.sqlGetRows(conn,sql) 
+    dataset = articleIdToDataset(articleId)
+    assert(dataset!=None)
+    textDir = join(pubConf.textBaseDir, dataset)
+
+    if textDir not in conCache:
+        dbPath = join(textDir, "articles.db")
+        cur, con = maxTables.openSqlite(dbPath, asDict=True)
+        conCache[textDir] = (cur, con)
+    else:
+        cur, con = conCache[textDir]
+        
+    sql = "SELECT * from articles where articleId=%s" % (articleId)
+    rows = list(cur.execute(sql))
+    #assert(len(rows)==1)
+    if len(rows)==0:
+        #raise Exception("Could not find article %s in textDir %s" % (articleId, textDir))
+        logging.error("Could not find article %s in textDir %s" % (articleId, textDir))
+    articleData = rows[0]
+    #authors = row["authors"]
+    #author = author.split(",")[0]+" et al., "+row["journal"]
+    #title = row["title"]
+    #year = row["year"]
+    #journal = row["journal"]
+    #title = title.encode("latin1").decode("utf8")
+    #text = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, dataset, row["fulltextUrl"], title)
+    return articleData
 
 if __name__=="__main__":
     import doctest

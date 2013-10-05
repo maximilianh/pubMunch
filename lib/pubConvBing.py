@@ -55,6 +55,7 @@ def rewriteIndexesFindDuplicates(inDir):
       read all index.gz files, sorted by date, mark all duplicated urls with ! as the first 
       letter. Mark all but the last occurence.
     """
+    logging.info("rewriting indices in reverse chronological order, prefixing duplicate URLs with '!'")
     # reverse-sort filenames by date
     indexFnames = glob.glob(join(inDir, "*.tsv.index.gz"))
     timedFnames = []
@@ -299,7 +300,7 @@ def minimalHtmlToDicts(url, content):
     title = unidecode.unidecode(content[:100])
     abstract = unidecode.unidecode(content[100:1000])
     artDict = pubStore.createEmptyArticleDict(source="bing", fulltextUrl=url, \
-        title=title, abstract=abstract)
+        title=title, abstract=abstract, externalId=url)
     #if fileDict==None: #continue
     return artDict, fileDict
 
