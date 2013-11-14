@@ -1,0 +1,1 @@
+wget ftp://ftp.wormbase.org/pub/wormbase/datasets-wormbase/gene_ids/wormbase.WS239.gene_ids.txt.gz -O -  | gunzip | cut -f3,4,5 | grep -v \# | grep -v Public | gawk 'BEGIN {print "geneId\tlocus\tseqId"} {print} | gzip -c > wormIds.tab.gz
