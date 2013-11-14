@@ -30,6 +30,14 @@ Most commands need some settings in the config file adapted to your particular
 server / cluster system. E.g. pubCrawl needs your email address, pubConvX 
 need the cluster system (SGE or parasol) and various input/output directories.
 
+# Common command line options
+
+Remember that all programs mentioned here accept the -d and -v options, which will output
+lots of debugging information. Many programs accept -c which specifies the cluster to use.
+You can either specify the "headnode" of a cluster, so the program will ssh onto it and run
+commands there. An alternative is to specify "localhost" to force running on the local machine,
+or "localhost:5" to use 5 CPUs for the processing.
+
 # An example run
 
 Create a directory
@@ -59,7 +67,7 @@ To allow easy processing on a cluster of metadata and text separately, the tools
 - articles.gz
 - files.gz
 
-The table "articles" contains basic information on articles. The internal article integer ID, an "external ID" (PII for Elsevier, PMID for crawled articles, Springer IDs for Springer articles, etc), the article authors, title, abstract, keywords, DOI, year, source of the article, fulltext URL, etc (see lib/pubStore.py for all fields). The internal article identifier (articleId) is a 10 digit number and is unique across all publishers and articles.
+The table "articles" contains basic information on articles. The internal article integer ID, an "external ID" (PII for Elsevier, PMID for crawled articles, Springer IDs for Springer articles, etc), the article authors, title, abstract, keywords, DOI, year, source of the article, fulltext URL, etc (see lib/pubStore.py for all fields). The internal article identifier (articleId) is a 10 digit number and is unique across all publishers. Duplicated articles (which can happen) will have different articleIds.
 
 The table "files" contains the files, one or more per article: the ASCII content string, the URL for each file, the date when it was downloaded, a MIME type etc. All files also have a column with the external identifier of the article associated to it. The internal fileID is the article identifier plus some additional digits. To get the article for a file, you can either use the externalID (like PMID12345) or the first 10 digits of fileId. 
 
@@ -118,10 +126,20 @@ The scripts can use Java classes. If the name of the script starts with "java", 
 files to sys.path in your script and use the Java classes as you would use python classes.
 
 The annotators can set a few additional special variables, apart from "headers":
-- "sectioning": If this is true, the document is sent in separate chunks, one per "intro", "material", "results" and "discussion" section. The sectioning is very rough at the moment and does not always work.
+- "sectioning": If this is true, the document is sent in separate chunks, one per "intro", "material", "results" and "discussion" section. The sectioning is very rough at the moment.
 - "onlyMain": If this is set to True, the annotator will only be run on the main files, not the supplemental data.
 - "onlyMeta": If True, annotator will only be run on the metadata, not the fulltext
 - "bestMain": If True, annotator will only be run on the XML fulltext, not any PDF fulltext versions, if both are available. If only PDF is available, it will still be used.
+
+Apart from the annotate() function, the annotators can provide three other functions, which are loosely
+inspired by Hadoop:
+- "setup": function that is run before any files are opened, when the job comes up. The parameter is 
+  paramDict, a dictionary with parameters specified on the command line in the format key=value.
+  This can be used to read necessary data for a job.
+- "startup": function that is run after the main in/out files are opened. The parameter is outFiles,
+  a list of output files. This can be used to write or change headers of output files.
+- "cleanup": function that is run when the job is completed. There are no parameters. This can used
+  to cleanup any output from startup() or close files.
 
 # Map/reduce operations
 
