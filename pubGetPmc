@@ -33,7 +33,6 @@ Command to download PMC to some directory using lftp without this script:
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
-#parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("-p", "--parallelConnections", dest="parallel", action="store", type="int", help="use lftp for faster, parallel downloads, use X number of connections")
 parser.add_option("-c", "--check", dest="check", action="store_true", \
     help="do not use file_list.txt to find the right files, but check file existence on disk")
@@ -81,7 +80,6 @@ def downloadFiles(ftpConn, pmcUrl, theirPmc, missingIds, outDir, connCount):
 
     for pmcId in downloadIds:
         fname = theirPmc[pmcId]
-        #fileUrl = pmcUrl+"/"+fname
         locPath = join(outDir, fname)
         locDir = dirname(locPath)
         if not isdir(locDir):
@@ -95,8 +93,6 @@ def downloadFiles(ftpConn, pmcUrl, theirPmc, missingIds, outDir, connCount):
             alreadyExistCount += 1
         else:
             downloadCount += 1
-            #print "fname, locPath", fname, locPath
-            #downloadOk = util.httpDownload(fileUrl, locPath, verbose=False)
             downloadOk = util.ftpDownload(ftpConn, fname, locPath)
             if not downloadOk:
                 logging.error("could not download file %s" % fname)
@@ -136,16 +132,12 @@ def updatePmc(outDir, checkOnDisk):
     newListPath = join(outDir, newListFname)
     pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
     ftpConn = util.openFtpConn("ftp.ncbi.nlm.nih.gov", "/pub/pmc", "anonymous", "pubGetPmc@pubtools")
-    #listUrl = pmcUrl+"/file_list.txt"
     listName = "file_list.txt"
-    #downloadOk = util.httpDownload(listUrl, newListPath, verbose=True)
     downloadOk = util.ftpDownload(ftpConn, listName, newListPath)
     if not downloadOk:
         raise Exception("could not download file_list.txt")
 
-    #pmcIdxUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz"
     pmcIdxPath = join(outDir, "PMC-ids.csv.gz")
-    #downloadOk = util.httpDownload(pmcIdxUrl, pmcIdxPath, verbose=True)
     downloadOk = util.ftpDownload(ftpConn, "PMC-ids.csv.gz", pmcIdxPath)
     if not downloadOk:
         raise Exception("could not download PMC-ID file")
