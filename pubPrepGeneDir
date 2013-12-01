@@ -14,6 +14,7 @@ from os.path import *
 from collections import defaultdict
 
 import bedLoci
+import unidecode
 
 # add <scriptDir>/lib/ to package search path
 progFile = os.path.abspath(sys.argv[0])
@@ -42,7 +43,11 @@ allSteps = ["genePmids", "entrez", "refseq", "seqs",
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog {}: reformat uniprot sequences, entrez data etc for mutation finder and write to tools/data/mutFinder """.format("|".join(allSteps)))
+parser = optparse.OptionParser("""usage: %prog {}: reformat uniprot sequences, entrez data etc for mutation finder and write to tools/data/mutFinder 
+
+geneNames: do the raw parsing of the entrez/hugo/uniprot databases
+geneDict: disambiguate and filter the gene names and put into for fastFind
+""".format("|".join(allSteps)))
 
 parser.add_option("-t", "--runTests", dest="test", action="store_true", help="run tests")
 pubGeneric.addGeneralOptions(parser)
@@ -52,12 +57,15 @@ pubGeneric.addGeneralOptions(parser)
 taxToDb = {9606 : "hg19"}
 geneDataDir = None
 
-def writeGzDict(data, fname, appendFnames=None):
+def writeGzDict(data, fname, appendFnames=None, toLower=False):
     logging.info("Writing %d keys to %s" % (len(data), fname))
     ofh = gzip.open(fname, "w")
+        
     for key, valList in data.iteritems():
         for val in valList:
             assert("|" not in val)
+        if toLower:
+            valList = [v.lower() for v in valList]
         ofh.write("%s\t%s\n" % (key, "|".join(valList)))
     if appendFnames:
         for fn, prefix in appendFnames.iteritems():
@@ -886,11 +894,48 @@ def updateDict(big, small):
         big[key].update(vals)
     return big
 
+blackList = set(['transcription factor', 'orf', 'protein 3'])
+
 def cleanupNames(descToAccs):
-    " given a dict with name -> list of accs, remove names with >=2 accs and return as a dict acc->names"
+    """ 
+    given a dict with name -> list of accs, clean up the names by various means 
+    and separate the names into LONG names and SHORT symbols.
+    Also keep track which symbols/names are not unique for a gene.
+
+    return: 
+    - accToNames: dictionary with entrez gene to list of (long) gene names
+    - symToSyns: dictionary with entrez gene to list of (short) gene synonyms
+                 (for ambiguous symbols, can contain multiple IDs separated by a slash)
+    - nonUniqueSyms: list of symbol synonyms that are used by several genes
+    
+    """
     # only the X most common English words
     bncCutoff = 5000
     bncWords = set(open(pubConf.bncFname).read().splitlines()[:bncCutoff])
+
+    # add alternative names without greek symbols
+    greekConv = {
+        'alpha' : 'a',
+        'beta' : 'b',
+        'gamma' : 'g',
+        'delta' : 'd',
+        'epsilon' : 'e',
+        'theta' : 't',
+        'kappa' : 'k',
+        'sigma' : 's',
+    }
+
+    newDescs = {}
+    for name, accs in descToAccs.iteritems():
+        newDescs[name] = accs
+        newName = name
+        for greek, nonGreek in greekConv.iteritems():
+            newName = newName.replace(greek, nonGreek)
+        if newName!=name:
+            if len(newName)>4: # random cutoff to avoid really short new names
+                newDescs[newName] = accs
+    descToAccs = newDescs
+
     # split into symbols and names by length and remove two-letter symbols
     # and common English words 
     nameToAccs = defaultdict(set)
@@ -906,37 +951,18 @@ def cleanupNames(descToAccs):
             commonWords.append(n)
             continue
 
+        if n.lower() in blackList:
+            logging.debug("name %s is blacklisted" % n)
+            continue
         # hgnc symbols can have 14 chars, but most are under 11
         # also assume that all-uppercase words are symbols, even if they are long
-        if len(n)<8 or n.upper()==n: 
+        if len(n)<8 or n.upper()==n:
             symToAccs[n].update(accs)
         else:
             nameToAccs[n].update(accs)
 
     logging.info("Removed very short symbols: %s" % ",".join(tooShortSyms))
     logging.info("Removed common English words: %s" % ",".join(commonWords))
-
-    # add alternative names without greek symbols
-    greekConv = {
-        'alpha' : 'a',
-        'beta' : 'b',
-        'gamma' : 'g',
-        'delta' : 'd',
-        'epsilon' : 'e',
-        'theta' : 't',
-        'kappa' : 'k',
-        'sigma' : 's',
-    }
-
-    newNames = {}
-    for name, accs in nameToAccs.iteritems():
-        newNames[name] = accs
-        newName = name
-        for greek, nonGreek in greekConv.iteritems():
-            newName = newName.replace(greek, nonGreek)
-        if newName!=name and len(newName)>12: # random cutoff to avoid really short new names
-            newNames[newName] = accs
-    nameToAccs = newNames
 
     # lowercase all names and remove bracketed stuff
     #brackRe = re.compile("[(]([^)]+)[)]") # does not work for nested brackets
@@ -983,7 +1009,7 @@ def cleanupNames(descToAccs):
         (numCount, len(noNumbers)))
     okNames = updateDict(okNames, noNumbers)
 
-    # reverse dicts
+    # reverse name dict
     accToNames = defaultdict(list)
     for name, syms in nameToAcc.iteritems():
         accToNames["/".join(syms)].append(name)
@@ -994,13 +1020,26 @@ def cleanupNames(descToAccs):
         if len(accs)>1:
             nonUniqueSyms[sym] = accs
 
-    # inverse symbol table 
+    # symbol table is: synonym -> list of official symbols
+    # ERV46 -> set('ERGIC3')
+    # now inverse this symbol table 
     # for non-unique symbols, add all possible symbols as /-separated
     # (slash is not a valid character in official hgnc symbols)
     symToSyns = defaultdict(list)
-    for altSym, offSyms in symToAccs.iteritems():
+    for syn, syms in symToAccs.iteritems():
+        symStr = "/".join(syms)
         #if altSym not in offSyms and altSym!="":
-        symToSyns["/".join(offSyms)].append(altSym)
+        caseSyns = set()
+        # add a mixed-case and an uppercase version of all symbols
+        # e.g. CDK1 -> Cdk1
+        caseSyns.add(syn)
+        # the uppercase
+        caseSyns.add(syn.upper())
+        # the mix case
+        if syn[0].isalpha():
+            mixSyn = syn[0].upper()+syn[1:].lower()
+            caseSyns.add(mixSyn)
+        symToSyns[symStr].extend(caseSyns)
         
     logging.info("Found %d names for %d accs" % (len(nameToAcc), len(accToNames)))
     logging.info("Found %d symbols for %d official symbols" % (len(symToAccs), len(symToSyns)))
@@ -1011,7 +1050,8 @@ def cleanupNames(descToAccs):
 
 def parseUniprotNames(taxIds, uniprotDir, nameToAccs, hgncSyms):
     " return dict with longname -> uniprot IDs and dict with entrez -> uniprot"
-    uniprotFname = join(uniprotDir, "uniprot.tab")
+    #uniprotFname = join(uniprotDir, "uniprot.tab")
+    uniprotFname = join(uniprotDir, "uniprot.9606.tab")
     logging.info("Parsing %s" % uniprotFname)
     #entrezToUniprot = defaultdict(set)
     #nameToAccs = defaultdict(set)
@@ -1106,11 +1146,13 @@ def splitQuote(name):
     names = name.split('", "')
     names = [n.strip('"') for n in names]
     names = [n for n in names if n!=""]
+    names = [unidecode.unidecode(n) for n in names]
     return names
 
 def parseHgncNames(data):
     " fill dict with mapping gene name -> official symbols"
-    fname = join(pubConf.hgncDir, "hgnc.txt")
+    #fname = join(pubConf.hgncDir, "hgnc.txt")
+    fname = pubConf.hgncFname
     logging.info("Parsing %s" % fname)
     #data = defaultdict(set)
     symToEntrez = {}
@@ -1124,7 +1166,8 @@ def parseHgncNames(data):
         sym = row.Approved_Symbol
 
         if entrez=="":
-            entrez = row.Entrez_Gene_ID_2
+            #entrez = row.Entrez_Gene_ID_2
+            entrez = row.Entrez_Gene_ID__supplied_by_NCBI_
 
         if entrez=="":
             noEntrez.add(sym)
@@ -1136,6 +1179,7 @@ def parseHgncNames(data):
         names = [sym]
         names.append(row.Approved_Name)
         names.extend(splitQuote(row.Previous_Names))
+        names.extend(splitQuote(row.Synonyms))
         names.extend(splitQuote(row.Name_Synonyms))
         # symbols
         names.extend(row.Previous_Symbols.split(", "))
@@ -1189,7 +1233,8 @@ def readList(fname):
         yield line.strip().split()[0]
     
 def makeLociNames():
-    hgncFn = join(pubConf.hgncDir, "hgnc.txt")
+    #hgncFn = join(pubConf.hgncDir, "hgnc_complete_set.txt")
+    hgncFn = pubConf.hgncFname
     symFname = join(pubConf.getTempDir(), "allSym.txt")
     filterSymCmd = "cut -f2 %(hgncFn)s | grep -v withdrawn > %(symFname)s" % locals()
     maxCommon.runCommand(filterSymCmd)
@@ -1274,6 +1319,8 @@ def makeGeneDict():
     long names and unambigous or rare symbols are taken as they are 
     short and ambiguous symbols are prefixed with "?"
     Also convert all HGNC symbols to entrez IDs
+
+    Write two versions of the dict files, normal case and all lowercased.
     """
     fname = join(geneDataDir, "hgnc.symToEntrez.marshal.gz")
     logging.info("Loading %s" % fname)
@@ -1286,6 +1333,10 @@ def makeGeneDict():
     fname = join(geneDataDir, "geneNames.dict.gz")
     writeGzDict(nameDict, fname)
     fastFind.compileDict(fname)
+    # not ignoring case anymore
+    #fnameLow = fname.replace(".dict.gz", "Low.dict.gz")
+    #writeGzDict(nameDict, fnameLow, toLower=True)
+    #fastFind.compileDict(fnameLow)
 
     # read symbol classification into two sets
     nameDict = defaultdict(set)
@@ -1310,6 +1361,9 @@ def makeGeneDict():
     #writeGzDict(nameDict, fname, appendFnames={bandLociFname:"*"})
     writeGzDict(nameDict, fname)
     fastFind.compileDict(fname)
+    #fnameLow = fname.replace(".dict.gz", "Low.dict.gz")
+    #writeGzDict(nameDict, fnameLow, toLower=True)
+    #fastFind.compileDict(fnameLow)
     
 def mapRefseqOldToNewLoad(seqType, taxId):
     " create psl from odl to new refseqs and load into dbm, load old refseqs into seq dbm "
@@ -1461,17 +1515,17 @@ def main(args, options):
         # create dict with mapping gene name -> official symbols
         nameDict = defaultdict(set)
         nameDict, symToEntrez = parseHgncNames(nameDict)
-        nameDict = parseEntrezNames(taxIds, symToEntrez, nameDict)
         nameDict = parseUniprotNames(taxIds, uniprotDir, nameDict, symToEntrez)
+        nameDict = parseEntrezNames(taxIds, symToEntrez, nameDict)
 
-        accToNames, symToAccs, ambigousSyms  = cleanupNames(nameDict)
+        accToNames, symToSyns, ambigousSyms  = cleanupNames(nameDict)
 
         dictFname = join(geneDataDir, "geneNames.hgnc.dict.gz")
         writeGzDict(accToNames, dictFname)
         #fastFind.compileDict(dictFname)
 
         symDictFname = join(geneDataDir, "symbols.hgnc.dict.gz")
-        writeGzDict(symToAccs, symDictFname)
+        writeGzDict(symToSyns, symDictFname)
         #fastFind.compileDict(symDictFname, wordRe=fastFind.DASHWORDRE)
 
         #fname = join(geneDataDir, "ambigousSyms.dict.gz")

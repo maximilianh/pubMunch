@@ -384,7 +384,11 @@ def addCounts(countDict, fname):
     logging.debug("Parsing %s" % fname)
     for line in open(fname):
         line = line.strip()
-        id, count = line.split("\t")
+        fields = line.split("\t")
+        if len(fields)!=2:
+            logging.error("Count line %s does not contain two fields" % repr(line))
+            continue
+        id, count = fields
         count = int(count)
         countDict[id]+=count
     return countDict

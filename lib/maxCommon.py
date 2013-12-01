@@ -275,7 +275,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             logging.error("Line was: %s" % line)
             logging.error("Does number of fields match headers?")
             logging.error("Headers are: %s" % headers)
-            raise Exception("wrong field count")
+            raise Exception("wrong field count in line %s" % line)
         # convert fields to correct data type
         yield rec
 
@@ -502,6 +502,8 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
         except urllib2.URLError as ex:
             count = handleEx(ex, count)
         except socket.timeout as ex:
+            count = handleEx(ex, count)
+        except socket.error as ex:
             count = handleEx(ex, count)
         else:
             return ret

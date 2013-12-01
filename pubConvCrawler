@@ -25,7 +25,7 @@ parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - conv
 articleIds are simply minId (defined in pubConf) + PMID
 
 example:
-pubConvCrawler /hive/data/inside/pubs/crawlDir /hive/data/inside/pubs/text/crawler/
+pubConvCrawler /hive/data/outside/pubs/crawler /hive/data/inside/pubs/text/crawler/
 
 """)
 
@@ -64,7 +64,7 @@ def iterArticleSubdirRows(inDir):
     procCount = 0
     for subPath in subDirs:
         #fname = join(subPath, "articles.db")
-        fname = join(subPath, "articleMeta.sqlbak.tab")
+        fname = join(subPath, "articleMeta.tab")
         if not isfile(fname):
             continue
         logging.info("Found %s" % fname)
@@ -291,9 +291,10 @@ def convertOneChunk(inFname, outFname, outArtFname):
             suppUrls = suppUrls.split(",")
             suppFnames = row.suppFiles.split(",")
             if len(suppUrls)!=len(suppFnames):
-                logging.info("error: %s unequal number of commas, compared to %s " % \
+                logging.error("%s unequal number of commas, compared to %s: ignoring suppUrls" % \
                     (suppUrls, suppFnames))
-                assert(False)
+                #assert(False)
+                suppUrls = [""]*len(suppFnames)
 
             for suppIdx, suppFile in enumerate(suppFnames):
                 fname = join(row.fileDir, suppFnames[suppIdx])

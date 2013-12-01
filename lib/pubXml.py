@@ -183,6 +183,7 @@ def stripXmlTags(inData, isNxmlFormat=False, isElsevier=False):
 def findChild(tree, path, convertToAscii=False, reqAttrName=None, reqAttrValue=None, squeak=True):
     """ return a tree element, find child with given path, and optional attributes """
     elements = findChildren(tree, path, convertToAscii, reqAttrName, reqAttrValue)
+    #print tree, path, elements
     if len(elements)==1:
         return elements[0]
     elif len(elements)==0:
@@ -204,15 +205,17 @@ def findChildren(tree, path, convertToAscii=False, reqAttrName=None, reqAttrValu
     if elements==None or len(elements)==0:
         return []
 
-    if len(elements)>1:
+    # after bug report by fiona cunningham:
+    # change needed for PMC articles with only pmcId and no PMID
+    #if len(elements)>1:
+    if reqAttrName:
         filterElements = []
-        if reqAttrName:
-            for e in elements:
-                if e.get(reqAttrName)==reqAttrValue:
-                    filterElements.append(e)
-        return filterElements
-    else:
-        return elements
+        for e in elements:
+            if e.get(reqAttrName)==reqAttrValue:
+                filterElements.append(e)
+        elements = filterElements
+
+    return elements
 
 def toXmlString(element):
     return etree.tostring(element)

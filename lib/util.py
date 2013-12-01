@@ -10,7 +10,7 @@ import math, socket
 import urllib
 import urllib2
 from math import *
-from ftplib import FTP
+import ftplib
 import unicodedata
 import array, copy, posixpath
 from posixpath import curdir, sep, pardir, join
@@ -227,25 +227,28 @@ def parseXmlUrl(template, url):
     xml = util.httpGet(url).read()
     return parseXml(template, xml)
 
-def openFtpConn(host):
-    """ returns ftp conection object """
+def openFtpConn(host, path, user, password):
+    """ returns ftp connection object, does not support proxies anymore """
     # format for ftp_proxy http://updateproxy.manchester.ac.uk:3128
-    ftpProxyString=os.environ.get("ftp_proxy")
+    #ftpProxyString=os.environ.get("ftp_proxy")
 
-    if ftpProxyString==None:
-        ftp = FTP()           # connect to host, default port
-        ftp.connect(host)
-        ftp.login()               # user anonymous, passwd anonymous@
-    else:
-        ftp = FTP()
-        port = int(ftpProxyString.split(":")[2])
-        proxyHost = ftpProxyString.split("//")[1].split(":")[0]
-        print "using proxy %s, port %d" % (proxyHost, port)
-        print "connecting to host %s" % (host)
-        ftp.connect(proxyHost, port, 5)
-        ftp.login("anonymous@%s" % host, "maximilianh@gmail.com")
-        print "ok"
-
+    #if ftpProxyString==None:
+        #ftp = FTP()           # connect to host, default port
+        #ftp.connect(host)
+        #ftp.login()               # user anonymous, passwd anonymous@
+    #else:
+    ftp = ftplib.FTP()
+    #port = int(ftpProxyString.split(":")[2])
+    #proxyHost = ftpProxyString.split("//")[1].split(":")[0]
+    #print "using proxy %s, port %d" % (proxyHost, port)
+    #print "connecting to host %s" % (host)
+    #ftp.connect(proxyHost, port, 5)
+    #ftp.login("anonymous@%s" % host, "maximilianh@gmail.com")
+    ftp.connect(host)
+    ftp.login(user, password)
+    ftp.cwd(path)
+    logging.debug("ftp connect: %s, %s, %s, %s" % (host, path, user, password))
+    #print "ok"
     return ftp
 
 def getFtpDir(ftp, dir, onlySubdirs=False):
@@ -267,6 +270,14 @@ def getFtpDir(ftp, dir, onlySubdirs=False):
         dirs.append(os.path.join(dir, subdir))
     return dirs
 
+def ftpDownload(ftp, filename, locPath):
+    logging.debug("Downloading %s via ftp to %s" % (filename, locPath))
+    try:
+        ftp.retrbinary("RETR "+filename, open(locPath, "wb").write)
+    except ftplib.error_perm:
+        return False
+    return True
+
 # -- for httpGet, helper class for redirects ---
 class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
     def http_error_301(self, req, fp, code, msg, headers):
@@ -285,7 +296,6 @@ def httpGet(url):
     req = urllib2.Request(url)
     opener = urllib2.build_opener(SmartRedirectHandler())
     req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.8) Gecko/20050524 Fedora/1.5 Firefox/1.5')
-    #html = urllib2.urlopen(req)
     f = opener.open(req, timeout=5)
     return f
 
@@ -302,7 +312,12 @@ def httpMatches(url, reStr):
 def httpDownload(url, fname, verbose=False):
     if verbose:
         logging.info("Downloading %s to %s" % (url, fname))
-    fh = httpGet(url)
+    try:
+        fh = httpGet(url)
+    except urllib2.URLError:
+        logging.error("%s does not exist" % url)
+        return False
+
     tryCount = 10
     success = False
     while tryCount>0 and not success:

@@ -209,7 +209,7 @@ def submitBlatJobs(runner, faDir, pslDir, onlyDbs, cdnaDir=None, \
                     logging.warn("Skipping db %s, no target cdna file found" % (db))
                     continue
                 splitTarget = False
-            # for non ucsc genomes, we need to find the 2bit files
+            # for non ucsc genomes, we also need to find the 2bit file
             elif db.startswith("nonUcsc"):
                 dbName = db.replace("nonUcsc_", "")
                 dbPath = join(pubConf.nonUcscGenomesDir, dbName+".2bit")
@@ -219,8 +219,10 @@ def submitBlatJobs(runner, faDir, pslDir, onlyDbs, cdnaDir=None, \
             else:
                 targets = [db]
                 splitTarget = True
+
             jobLines = list(bigBlat.getJoblines(targets, faNames, pslTypeDir, \
-                splitParams, blatOpt, filterOpt, splitTarget=splitTarget, noOocFile=noOocFile))
+                splitParams, splitTarget, blatOpt, filterOpt, noOocFile=noOocFile))
+
             logging.info("Scheduling %d jobs" % len(jobLines))
             for line in jobLines:
                 runner.submit(line)
@@ -901,7 +903,13 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
     for articleData in pubStore.iterArticleDataDir(textDir, updateIds=updateIds):
         artId = int(articleData.articleId)
         doi = pubStore.prepSqlString(articleData.doi)
-        extIdFh.write(articleData.articleId+"\t"+articleData.externalId+"\t"+doi+"\n")
+
+        # write to processedArticles.tab
+        extIdFh.write(articleData.articleId+"\t")
+        extId = pubStore.prepSqlString(articleData.externalId, maxLen=2000).encode("utf8")
+        extIdFh.write(extId+"\t") # bing-urls contain unicode
+        extIdFh.write(doi+"\n")
+
         artDbs = articleDbs.get(artId, None)
         if not artDbs:
             continue
@@ -917,22 +925,25 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
         if eIssn=="":
             eIssn = articleData.printIssn
 
-        articleRow =  (str(artId), articleData.externalId, \
-                       str(pmid), pubStore.prepSqlString(articleData.doi), \
+        prepSql = pubStore.prepSqlString
+        articleRow =  (str(artId), \
+                       prepSql(articleData.externalId, maxLen=2000), \
+                       str(pmid), \
+                       prepSql(articleData.doi), \
                        str(articleData.source), \
                        str(articleData.publisher), \
-                       pubStore.prepSqlString(refString, maxLen=2000), \
-                       pubStore.prepSqlString(articleData.journal), \
-                       pubStore.prepSqlString(eIssn), \
-                       pubStore.prepSqlString(articleData.vol), \
-                       pubStore.prepSqlString(articleData.issue), \
-                       pubStore.prepSqlString(articleData.page), \
+                       prepSql(refString, maxLen=2000), \
+                       prepSql(articleData.journal), \
+                       prepSql(eIssn), \
+                       prepSql(articleData.vol), \
+                       prepSql(articleData.issue), \
+                       prepSql(articleData.page), \
                        sanitizeYear(articleData.year), \
-                       pubStore.prepSqlString(articleData.title, maxLen=6000), \
-                       pubStore.prepSqlString(articleData.authors, maxLen=6000), \
+                       prepSql(articleData.title, maxLen=6000), \
+                       prepSql(articleData.authors, maxLen=6000), \
                        firstAuthor(articleData.authors), \
-                       pubStore.prepSqlString(articleData.abstract, maxLen=32000), \
-                       pubStore.prepSqlString(articleData.fulltextUrl, maxLen=1000), \
+                       prepSql(articleData.abstract, maxLen=32000), \
+                       prepSql(articleData.fulltextUrl, maxLen=1000), \
                        dbString)
         articleFh.write(u'\t'.join(articleRow))
         articleFh.write(u'\n')

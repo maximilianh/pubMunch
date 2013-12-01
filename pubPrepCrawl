@@ -10,18 +10,20 @@ sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
 
 # load our own libraries
 import pubConf, pubGeneric, tabfile, maxCommon, pubPubmed, pubResolvePublishers, pubCrawlConf, unidecode
+import pubUpdatePmids
 from urllib2 import urlparse
 
 import xml.etree.cElementTree as etree
 
 ISSNTAB = "issns.tab"
-PUBLISHERTAB = pubConf.publisherIssnTable
+#PUBLISHERTAB = pubConf.publisherIssnTable
+PUBLISHERTAB = pubConf.journalTable
 
 # ===== FUNCTIONS =======
 
 def parseIssns(pubFname, crawlPubDirs, crawlIssnOverwrite):
     " parse Issns into dict Issn, title -> pub "
-    logging.info("Parsing %s" % pubFname)
+    logging.info("Parsing publisher table %s" % pubFname)
     pubs = maxCommon.iterTsvRows(pubFname)
     # parse into dict pub -> list of issns
     pubToJournals = defaultdict(list)
@@ -212,19 +214,24 @@ def main(args, options):
     pubDirs = pubCrawlConf.crawlPubIds
     issnOverwrite = pubConf.crawlIssnOverwrite
     pubFname = pubConf.publisherIssnTable
-    issnFname = pubConf.journalTable
+    journalFname = pubConf.journalTable
 
     command = command.lower()
 
     if command=="publishers":
         journalListDir = pubConf.journalListDir
-        pubResolvePublishers.initJournalDir(journalListDir, options.nlmCatalog, pubFname, issnFname)
+        pubResolvePublishers.initJournalDir(journalListDir, options.nlmCatalog, journalFname, pubFname)
 
     elif command=="issns":
         writeIssns(pubFname, outDir, pubDirs, issnOverwrite)
 
     elif command=="pmids":
         getPmidsForIssns(outDir, minYear)
+
+    elif command=="locpmids":
+        medlineDir = pubConf.resolveTextDir("medline")
+        #medlineDir = pubConf.resolveTextDir("testMedline")
+        pubUpdatePmids.updatePmids(medlineDir, outDir, None, minYear=minYear)
 
     else:
         raise Exception("Unknown command %s" % command)
@@ -243,6 +250,8 @@ commands:
                                 with issn.tab files. resolve name of outDir to publisher using pubConf.
 
     %prog pmids <outDir>      - retrieve the PMIDs from Pubmed Eutils for all ISSNs in outDir
+    %prog locPmids <baseDir>  - retrieve the PMIDs from a local medline copy for all ISSNs 
+                                in all direct *subdirectories* of outDir
 
     usually not needed (internal data dir contains a list of publishers and their journals):
     %prog publishers          - re-create the list of publishers and their journals
@@ -251,7 +260,7 @@ commands:
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--nlmCatalog", dest="nlmCatalog", action="store", help="use a given nlmCatalog.xml instead of the default one")
-parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1980)
+parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1990)
 #parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
 (options, args) = parser.parse_args()
 

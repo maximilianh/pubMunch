@@ -32,6 +32,7 @@ crawlPubIds = {
 "NLM Future Science" : "futureScience",
 "NLM National Academy of Sciences" : "pnas",
 "NLM American Association of Immunologists" : "aai",
+"NLM Karger" : "karger",
 # we got a special list of Highwire ISSNs from their website
 # it needed some manual processing
 # see the README.txt file in the journalList directory
@@ -54,7 +55,7 @@ crawlPubIds = {
 # special case is highwire, handled in the code:
 # (all EST): mo-fri: 9-5pm: 120 sec, mo-fri 5pm-9am: 10 sec, sat-sun: 5 sec (no joke) 
 crawlDelays = {
-    "www.nature.com"              : 10,
+    "www.nature.com"              : 5,
     "onlinelibrary.wiley.com" : 1,
     "dx.doi.org"              : 1,
     "ucelinks.cdlib.org"      : 20,
@@ -82,7 +83,7 @@ def parseHighwire():
     """
     templates = {}
     domains = {}
-    pubFname = pubConf.journalTable
+    pubFname = pubConf.publisherIssnTable
     for row in maxCommon.iterTsvRows(pubFname):
         if not row.pubName.startswith("HIGHWIRE"):
             continue
@@ -125,7 +126,7 @@ def highwireConfigs():
         return {}
 
     # for each publisher, create a config that includes its hostnames and
-    # the all templates
+    # all templates
     for pubName, domains in pubDomains.iteritems():
         #print pubName, domains
         templates = {}
@@ -135,7 +136,12 @@ def highwireConfigs():
                     templates[issn]=templUrl
                     break
                     
-        res[pubName] = makeHighwireConfig(domains, templates)
+        #delList = ["HIGHWIRE", "Press"]
+        #pubRealName = pubName
+        #for delWord in delList:
+            #pubRealName = pubRealName.replace(delWord, "").strip()
+        pubId = crawlPubIds.get("HIGHWIRE "+pubName, pubName)
+        res[pubId] = makeHighwireConfig(domains, templates)
     return res
 
 # a dict with publisherId -> configDict
@@ -157,7 +163,13 @@ def defineConfDict():
     """ returns the dictionary of config statements 
     >>> d = defineConfDict()
     """
+    # first setup all highwire publishers
     confDict = highwireConfigs()
+
+    # some tweaks for certain highwire publishers
+
+    # cshlp protocols has no pdfs
+    confDict["cshlp"]["landingPage_acceptNoPdf"]=True
 
     # crawl configuration: for each website, define how to crawl the pages
     # this got more and more complicated over time. Best is to copy/paste from these examples
@@ -389,19 +401,19 @@ def defineConfDict():
     },
     # 1995 PMID 7816814 
     # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
-    "cshlp" :
-    {
-        "hostnames" : ["cshlp.org"],
-        "landingUrl_templates" : {"1355-8382" : "http://rnajournal.cshlp.org/content/%(vol)s/%(issue)s/%(firstPage)s.full"},
-        "landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
-        "doiUrl_replace" : {"$" : ".long"},
-        "landingUrl_isFulltextKeyword" : ".long",
-        "landingPage_ignoreMetaTag" : True,
-        "landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
-        "landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
-        "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
-        "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
-    },
+    #"cshlp" : 
+    #{
+        #"hostnames" : ["cshlp.org"],
+        #"landingUrl_templates" : {"1355-8382" : "http://rnajournal.cshlp.org/content/%(vol)s/%(issue)s/%(firstPage)s.full"},
+        #"landingPage_errorKeywords" : "We are currently doing routine maintenance", # wait for 15 minutes and retry
+        #"doiUrl_replace" : {"$" : ".long"},
+        #"landingUrl_isFulltextKeyword" : ".long",
+        #"landingPage_ignoreMetaTag" : True,
+        #"landingUrl_pdfUrl_replace" : {"long" : "full.pdf", "abstract" : "full.pdf" },
+        #"landingPage_suppFileList_urlREs" : [".*/content[0-9/]*suppl/DC1"],
+        #"suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
+        #"landingPage_stopPhrases" : ["Purchase Short-Term Access"]
+    #},
 
     # PNAS
     "pnas" :

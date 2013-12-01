@@ -25,6 +25,7 @@ sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
 import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed, pubCompare
+import unidecode
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
@@ -43,7 +44,8 @@ Or alternatively with something like:
 """)
 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
-parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserver space for x entries in numerical namespace, default %default", default=300000) 
+parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserves space for x entries in numerical namespace, default %default", default=300000) 
+parser.add_option("-u", "--updateCrawler", metavar="CRAWLDIR", dest="crawlDir", action="store", help="go over all subdirs of crawlDir, update pmids.txt with pmids of ISSNs in issns.tab") 
 parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
 #parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
 pubGeneric.addGeneralOptions(parser)
@@ -131,6 +133,7 @@ def convertOneChunk(fileMinId, inFile, outFile):
         articleId += 1
     store.close()
 
+        
 # ----------- MAIN --------------
 # only for debugging
 if options.parse!=None:
@@ -169,17 +172,19 @@ if os.path.isdir(inDir):
     maxCommon.mustExistDir(outDir)
     #maxCommon.mustBeEmptyDir(outDir)
     updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
-    pubCompare.createWriteFingerprints(outDir, updateIds = [updateId])
+    updateIds = [updateId]
+    pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)
 
     # write article info into sql db
     tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
     dbPath = join(outDir, "articles.db")
     pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
 
+    if options.crawlDir:
+        pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)
+
 else:
     inFile = inDir
     outFile = outDir
     chunkMinId = args[2]
     convertOneChunk(int(chunkMinId), inFile, outFile)
-
-

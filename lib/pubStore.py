@@ -30,7 +30,7 @@ articleFields=[
 "articleId",  # internal number that identifies this article in the pubtools system
 "externalId", # original string id of the article, e.g. PMC12343 or the PPI or PMID123123
 "source",  # the data format of the article, "elsevier", "medline", "pmc" or "crawler"
-"publisher", # the publisher, e.g. "pnas" or "aai"
+"publisher", # the name of the publisher icon, e.g. "pnas" or "aai", for all of PMC just 'pmc'
 "origFile", # the original file where the article came from, e.g. the zipfile or genbank file
 "journal",      # journal or book title
 "printIssn",    # ISSN of the print edition of the article
@@ -362,7 +362,7 @@ class PubWriterFile:
         line = "\t".join(articleTuple)
         self.articleFh.write(line+"\n")
         self.articlesWritten += 1
-        logging.verbose("%d articles written" % self.articlesWritten)
+        logging.log(5, "%d articles written" % self.articlesWritten)
         
     def _gzipAndMove(self, fname, finalName):
         " gzip fname and move to finalName "

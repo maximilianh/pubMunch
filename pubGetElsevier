@@ -45,7 +45,7 @@ def downloadConsyn(rssUrl, outDir):
     entriesXml = list(xml.getXmlAll("entry"))
 
     logFname = join(outDir, "download.log")
-    logFh.open(logFname, "a")
+    logFh = open(logFname, "a")
     # for each entry, download to temp file, then move to final dest
     entriesXml.reverse()
 
@@ -55,13 +55,14 @@ def downloadConsyn(rssUrl, outDir):
         fileName = entryXml.getTextFirst("title")
 
         outFilename = join(outDir, fileName)
+        logging.info("Downloading...")
         if isfile(outFilename):
-            logging.info("Not downloading %s, already found %s" % (fileUrl, fileName))
+            logging.info("Not downloading %s, found %s" % (fileUrl, fileName))
         else:
             tmpFile = tempfile.NamedTemporaryFile(dir=pubConf.getTempDir(), prefix="tempDownload.pubGetElsevier", suffix=".zip")
             tmpName = tmpFile.name
-            logging.info("Downloading %s" % (fileUrl))
-            logFh.write("Downloading %s\n" (fileUrl))
+            #logging.info("Downloading %s" % (fileUrl))
+            logFh.write("%s -> %s\n" % (fileUrl, outFilename))
             logging.debug("Downloading %s to %s" % (fileUrl, tmpName))
             subprocess.call(["wget", fileUrl, "-O", tmpName, "-q"])
 

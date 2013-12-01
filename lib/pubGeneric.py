@@ -2,7 +2,7 @@
 # ascii-conversion, section splitting etc
 
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
-    glob, operator, doctest, ftplib, random, shutil
+    glob, operator, doctest, ftplib, random, shutil, atexit
 import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables, pubKeyVal
 from os.path import *
 
@@ -79,7 +79,7 @@ def getFromCache(fname):
     shutil.move(locTmpName, locPath)
     return locPath
 
-def runCommandTimeout(command, timeout=30, bufSize=128000):
+def runCommandTimeout(command, timeout=30, bufSize=128000, env=None):
     """
     runs command, returns after timeout, kills subprocess if it takes longer than timeout seconds
     print run(["ls", "-l"])
@@ -89,7 +89,7 @@ def runCommandTimeout(command, timeout=30, bufSize=128000):
     """
     logging.log(5, "running command %s" % command)
     proc = subprocess.Popen(command, bufsize=bufSize, stdout=subprocess.PIPE, \
-        stderr=subprocess.PIPE, shell=True, close_fds=True)
+        stderr=subprocess.PIPE, shell=True, close_fds=True, env=env)
     poll_seconds = .250
     deadline = time.time()+timeout
     while time.time() < deadline and proc.poll() == None:
@@ -789,6 +789,33 @@ def concatDelIdFiles(inDir, outDir, outFname):
     maxTables.concatHeaderTabFiles(idFnames, outPath)
     maxCommon.deleteFiles(idFnames)
     return outPath
+
+lockFnames = []
+
+def setLockFile(outDir, lockName):
+    """ 
+    create lock file. die if already exists
+    """
+    global lockFnames
+    lockFname = join(outDir, lockName+".lock")
+    if isfile(lockFname):
+        raise Exception("%s already exists. Make sure there is no process already running, then delete it." \
+            % lockFname)
+    open(lockFname, "w")
+    lockFnames.append(lockFname)
+    atexit.register(removeLockFiles)
+
+def removeLockFiles():
+    """ 
+    remove all lock files. Die if not exists.
+    """
+    for lockFname in lockFnames:
+        if not isfile(lockFname):
+            #raise Exception("%s not found." % lockFname)
+            logging.debug("lockfile %s does not exist, skipping" % lockFname)
+            continue
+        logging.debug("Removing %s" % lockFname)
+        os.remove(lockFname)
 
 if __name__=="__main__":
     setupLoggingOptions(None)

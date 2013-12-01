@@ -13,10 +13,14 @@ progDir  = os.path.dirname(progFile)
 pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
-import pubGeneric, pubConf, maxXml, maxCommon, util
+import pubGeneric, util
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current PMC copy from PMC ftp server
+
+Does not check each file on disk for existence, but compares 
+the last file_list.txt with the current file_list.txt on the FTP
+server.
 
 Creates a file download.log with information what has been added/deleted.
 
@@ -31,13 +35,17 @@ Command to download PMC to some directory using lftp without this script:
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("-p", "--parallelConnections", dest="parallel", action="store", type="int", help="use lftp for faster, parallel downloads, use X number of connections")
+parser.add_option("-c", "--check", dest="check", action="store_true", \
+    help="do not use file_list.txt to find the right files, but check file existence on disk")
+parser.add_option("", "--justCheck", dest="justCheck", action="store_true", \
+    help="just check if all files in the current file_list.txt are really on disk")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
 
 def parseFileList(path):
     " parse pmc file_list.csv into dict PMCID -> filename "
-    logging.info("Parsing %s" % path)
+    logging.debug("Parsing %s" % path)
     data = {}
     ifh = open(path)
     ifh.readline() # skip header
@@ -50,27 +58,52 @@ def parseFileList(path):
         data[pmcId] = fname
     return data
 
-def downloadFiles(pmcUrl, theirPmc, missingIds, outDir, connCount):
+def downloadFiles(ftpConn, pmcUrl, theirPmc, missingIds, outDir, connCount):
+    """ download pmc files with either a ftp connection (single threadd)
+    or with lftp and parallel downloads. If connCount==0, then use single thread.
+    """
+    # special case for lftp parallel download
     if connCount:
+        assert(missingIds!=None) # can't do parallel download with on-disk checking
         fileNames = [theirPmc[pmcId] for pmcId in missingIds]
-        lftpGet(pmcUrl, outDir, fileNames, connCount)
-    else:
-        downloadCount = 0
-        for pmcId in missingIds:
-            fname = theirPmc[pmcId]
-            fileUrl = pmcUrl+"/"+fname
-            locPath = join(outDir, fname)
-            locDir = dirname(locPath)
-            if not isdir(locDir):
-                logging.info("Making dir %s" % locDir)
-                os.makedirs(locDir)
-            if isfile(locPath):
+        pubGeneric.lftpGet(pmcUrl, outDir, fileNames, connCount)
+        return
+
+    downloadCount = 0
+    alreadyExistCount = 0
+    errCount = 0
+
+    downloadIds = missingIds
+
+    if downloadIds==None:
+        downloadIds = theirPmc.keys()
+        logging.info("scheduling all %d ids for download" % len(downloadIds))
+
+    for pmcId in downloadIds:
+        fname = theirPmc[pmcId]
+        #fileUrl = pmcUrl+"/"+fname
+        locPath = join(outDir, fname)
+        locDir = dirname(locPath)
+        if not isdir(locDir):
+            logging.info("Making dir %s" % locDir)
+            os.makedirs(locDir)
+        if isfile(locPath):
+            if missingIds!=None:
                 logging.info("File %s already exists" % locPath)
             else:
-                downloadCount += 1
-                util.httpDownload(fileUrl, locPath, verbose=False)
-                pubGeneric.appendLog(outDir, "add", fname)
-        logging.info("Downloaded %d files (single-threaded)" % downloadCount)
+                logging.debug("File %s already exists" % locPath)
+            alreadyExistCount += 1
+        else:
+            downloadCount += 1
+            #print "fname, locPath", fname, locPath
+            #downloadOk = util.httpDownload(fileUrl, locPath, verbose=False)
+            downloadOk = util.ftpDownload(ftpConn, fname, locPath)
+            if not downloadOk:
+                logging.error("could not download file %s" % fname)
+                errCount +=1
+            pubGeneric.appendLog(outDir, "add", fname)
+    logging.info("%d PMC-IDs: %d already here, downloaded %d, %d skipped due to error" % \
+        (len(downloadIds), alreadyExistCount, downloadCount, errCount))
 
 def deleteFiles(ourPmc, staleIds, outDir):
     """ remove files from outDir with pmcId in staleIds, using ourPmc-dict (pmcid->fname) to
@@ -90,21 +123,32 @@ def deleteFiles(ourPmc, staleIds, outDir):
         pubGeneric.appendLog(outDir, "delete", fname)
     logging.info("Deleted %d files" % delCount)
 
-def updatePmc(outDir):
+def updatePmc(outDir, checkOnDisk):
     """ compare remote and local file_list.txt and download new files
     ignore the last_updated date, replace file_list.txt once finished
+
+    if checkOnDisk is True, always check files on disk instead of using the file_list.txt comparison
     """
 
     # download from server to .current.txt
+    logging.info("Inferring missing PMC-IDs by comparing file_list.txt")
     newListFname = "file_list.current.txt"
     newListPath = join(outDir, newListFname)
     pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
-    listUrl = pmcUrl+"/file_list.txt"
-    util.httpDownload(listUrl, newListPath, verbose=True)
+    ftpConn = util.openFtpConn("ftp.ncbi.nlm.nih.gov", "/pub/pmc", "anonymous", "pubGetPmc@pubtools")
+    #listUrl = pmcUrl+"/file_list.txt"
+    listName = "file_list.txt"
+    #downloadOk = util.httpDownload(listUrl, newListPath, verbose=True)
+    downloadOk = util.ftpDownload(ftpConn, listName, newListPath)
+    if not downloadOk:
+        raise Exception("could not download file_list.txt")
 
-    pmcIdxUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz"
+    #pmcIdxUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz"
     pmcIdxPath = join(outDir, "PMC-ids.csv.gz")
-    util.httpDownload(pmcIdxUrl, pmcIdxPath, verbose=True)
+    #downloadOk = util.httpDownload(pmcIdxUrl, pmcIdxPath, verbose=True)
+    downloadOk = util.ftpDownload(ftpConn, "PMC-ids.csv.gz", pmcIdxPath)
+    if not downloadOk:
+        raise Exception("could not download PMC-ID file")
 
     # compare local txt with current.txt 
     locListPath = join(outDir, "file_list.txt")
@@ -117,22 +161,48 @@ def updatePmc(outDir):
     logging.info("Missing here: %d" % len(missingIds))
     logging.info("Stale here: %d" % len(staleIds))
 
-    downloadFiles(pmcUrl, theirPmc, missingIds, outDir, options.parallel)
+    if checkOnDisk:
+        missingIds = None
+        logging.info("Ignoring missing file information, just checking disk")
+
+    downloadFiles(ftpConn, pmcUrl, theirPmc, missingIds, outDir, options.parallel)
     deleteFiles(ourPmc, staleIds, outDir)
+
     logging.info("Renaming file list files")
     locListOld = join(outDir, "file_list.old.txt")
     os.rename(locListPath, locListOld)
     os.rename(newListPath, locListPath)
+
+def checkPmc(outDir):
+    locListPath = join(outDir, "file_list.txt")
+    ourPmc = parseFileList(locListPath)
+    missCount = 0
+    for pmcId, fileName in ourPmc.iteritems():
+        locFname = join(outDir, fileName)
+        if not isfile(locFname):
+            logging.error("%s does not exist" % locFname)
+            missCount +=1
+    logging.error("%d file missing" % missCount)
+
+def main(args, options):
+    outDir = args[0]
+    if not isdir(outDir):
+        logging.info("%s does not exist" % outDir)
+        sys.exit(1)
+    pubGeneric.setupLogging(progFile, options)
+    pubGeneric.setLockFile(outDir, "pubGetPmc")
+
+    if options.justCheck:
+        checkPmc(outDir)
+    else:
+        updatePmc(outDir, options.check)
+
+    pubGeneric.removeLockFiles()
 
 # ----------- MAIN --------------
 if args==[]:
     parser.print_help()
     exit(1)
 
-outDir = args[0]
-maxCommon.mustExist(outDir)
-pubGeneric.setupLogging(progFile, options)
-
-outDir = args[0]
-updatePmc(outDir)
+main(args, options)
 

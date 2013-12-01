@@ -1,4 +1,5 @@
-# this file searches articles for identifiers of genetic markers in text:
+# this file searches articles for genes and other identifiers of "genetic things" in text:
+# - gene symbols
 # - band names
 # - dbsnp identifiers (rs and ss numbers)
 # - ensembl gene identifier
@@ -11,8 +12,13 @@
 # - EC ID
 
 # each marker type has its own regular expression
+# some marker types require additional keywords in the text
+# some marker types are checked against a list of valid identifiers
 
-# marker names *can* be restricted by textfiles in 
+# symbols are ranked by support and classified into ambiguous and unambiguous symbols
+# ambiguous symbols need additional support (e.g. genbank identifier) to get accepted.
+
+# marker names *can* be checked by textfiles in 
 # e.g. DICTDIR/band.dict.tab.gz
 # format 
 # <identifier><tab> <syn>|<syn2>|...
@@ -28,7 +34,7 @@
 
 # standard python libraries for regex
 import sys, logging, os.path, gzip, glob, doctest, marshal, gdbm, types, operator 
-from collections import defaultdict
+from collections import defaultdict, Counter
 import fastFind, pubConf, maxbio, pubDnaFind, seqMapLocal, pubGeneric, pubKeyVal
 from os.path import *
 
@@ -47,6 +53,9 @@ MAXROWS = 500
 # initData will read dictionaries and bed files from this directory
 DICTDIR= pubConf.markerDbDir
 GENEDATADIR=pubConf.geneDataDir
+
+# uppercase everything when matching?
+IgnoreCase = False
 
 # initData will set this to the names of markers that are searched
 # can be genbank, omim, ec, etc
@@ -256,6 +265,11 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
     """ compile regexes and read filter files.
     
     MarkerTypes is the list of markers to prepare, some can be excluded with exclMarkerTypes
+
+    In many applications, looking for dna sequences might not be desireable, as it requires
+    a BLAT server which takes a lot of memory, in this case, you can switch off blatting by specifying
+    exclMarkerTypes=["dnaSeq"]
+
     """
     # setup list of marker types as specified
     reDict = compileREs(addOptional)
@@ -613,7 +627,8 @@ def flipUnsureSymbols(text, annotatedGenes):
 def findGenes(text, pmid=None, seqCache=None):
     """
     return the genes as a dict of entrez ID -> mType -> (markerId, list of (start, end))
-    >>> dict(findGenes(" OMIM:609883 NM_000325  ASM "))
+    >>> d = findGenes(" OMIM:609883 NM_000325  ASM ")
+    >>> d[0]
     {5308: {'refseq': [('NM_000325', [(13, 22)])]}, 54903: {'omim': [('609883', [(6, 12)])]}}
 
     Also return a list of positions in text that are part of genes.
@@ -645,7 +660,9 @@ def findGenesResolveByType(text, pmid=None, seqCache=None):
     Resolve ambiguous gene symbols and flip unsure symbols to sure symbols if some other
     identifier in the document supports them.
 
-    Return a dict gene -> markerType -> list of start, end)
+    Return a dict markerType -> gene -> recognizedId -> list of start, end)
+    >>> findGenesResolveByType("I don't like TP53 my dear")
+    {'symbol': {7157: ('7157', [(13, 17)])}}
     """
     markers        = findMarkersAsDict(text, pmid=pmid)
     geneDict       = resolveNonSymbols(markers)
@@ -663,13 +680,53 @@ def findGenesResolveByType(text, pmid=None, seqCache=None):
         del genes["band"]
     return genes
 
+def rankGenes(text, pmid=None, seqCache=None):
+    """
+    find genes in text and rank them by support
+    Accepts a dict markerType -> gene -> (recognizedId, list of start, end)
+
+    returns a sorted list of  (geneId, score)
+    and a dict geneId -> list of (markerType, recognizedId, list of (start, end))
+
+    # XX problem - p53 should not be called a symbol if it overlaps a long gene name
+    >>> rankGenes("Oh. TP53 ... They call it Tumor Protein p53 and NM_000546. It don't like it.")
+    ([(7157, 17)], {7157: [('symbol', '7157', [(4, 8), (40, 43)]), ('refseq', 'NM_000546', [(48, 57)]), ('geneName', '7157', [(26, 43)])]})
+    """
+    geneTypes = findGenesResolveByType(text, pmid, seqCache)
+    
+    geneScores = Counter()
+    geneMentions = defaultdict(list)
+    for markerType, geneDict in geneTypes.iteritems():
+        for gene, geneSupp in geneDict.iteritems():
+            recognizedId, startEndList = geneSupp
+
+            if markerType in ['symbol']:
+                score = len(startEndList)
+            elif markerType=='symbolMaybe':
+                score = 0
+            elif markerType in ['geneName']:
+                score = 5
+            elif markerType in ['dnaSeq']:
+                score = 15
+            else:
+                # must be an identifier
+                score = 10
+
+            geneScores[gene] += score
+            geneMentions[gene].append( (markerType, recognizedId, startEndList) )
+
+    return geneScores.most_common(), dict(geneMentions)
+            
+
 def findMarkersAsDict(text, pmid=None):
     """ search text for identifiers and genes, return as 
     dict markerType -> (id, refId, entrezId) -> list of (start, end).
     Use markerToGenes to resolve a marker to entrez geneIds.
 
-    >>> dict(findMarkersAsDict(" OMIM:609883 NM_000325   actgtagatcgtacacc CGAT ATGc hi hi  ASM "))
-    {'refseq': {'NM_000325': [(13, 22)]}, 'omim': {'609883': [(6, 12)]}, 'symbolMaybe': {'283120/6609': [(60, 63)]}, 'dnaSeq': {'actgtagatcgtacaccCGATATGc': [(25, 52)]}}
+    >>> l = findMarkersAsDict(" OMIM:609883 NM_000325   actgtagatcgtacacc CGAT ATGc hi hi  ASM ").items()
+    >>> l.sort()
+    >>> l
+    [('dnaSeq', {'actgtagatcgtacaccCGATATGc': [(25, 52)]}), ('omim', {'609883': [(6, 12)]}), ('refseq', {'NM_000325': [(13, 22)]}), ('symbolMaybe', {'283120/6609': [(60, 63)]})]
     """
     # find DB identifiers
     res = defaultdict(dict)
@@ -678,19 +735,22 @@ def findMarkersAsDict(text, pmid=None):
         res[markerType].setdefault(str(geneId), []).append( (start, end) )
 
     # find DNA sequences
-    dnaPos = set()
+    exclPos = set()
     if "dnaSeq" in searchTypes:
         for annot in findSequences(text):
             start, end, seq = annot
             res["dnaSeq"].setdefault(str(seq), []).append( (start, end) )
-            dnaPos.update(range(start, end))
+            exclPos.update(range(start, end))
 
     # find gene names and symbols, removing those that overlap a DNA sequence
     if "symbol" in searchTypes or "geneName" in searchTypes:
         for annot in findGeneNames(text):
+            # findGeneNames will return gene names first, so exclPos will take care
+            # of overlaps gene names / symbols 
             start, end, markerType, geneId = annot
-            if not rangeInSet(start, end, dnaPos):
+            if not rangeInSet(start, end, exclPos):
                 res[markerType].setdefault(str(geneId), []).append( (start, end) )
+                exclPos.update(range(start, end))
 
     # add the entrez Db lookup results
     if "entrezDb" in searchTypes:
@@ -742,7 +802,7 @@ def markerToGenes(markerType, markerId):
     >>> markerToGenes("ec", "3.2.1.22")
     {2717: 'GLA'}
     >>> markerToGenes("ec", "2.3.2.13")
-    {2162: 'GLA'}
+    {7047: 'TGM4', 7051: 'TGM1', 7052: 'TGM2', 7053: 'TGM3', 2162: 'F13A1', 116179: 'TGM7', 9333: 'TGM5', 343641: 'TGM6'}
     >>> markerToGenes("uniprot", "P06280")
     {2717: 'GLA'}
     >>> markerToGenes("refprot", "NP_000160.1")
@@ -832,6 +892,8 @@ def findGeneNames(text):
     look for gene names and symbols. Some symbols need flanking trigger words. If these 
     are not present, they are returned as "symbolMaybe"
 
+    Will always return the gene name matches before the symbol matches.
+
     >>> initData(addOptional=True)
     >>> list(findGeneNames("thyroid hormone receptor, beta"))
     [(0, 30, 'geneName', '7068')]
@@ -843,6 +905,10 @@ def findGeneNames(text):
     []
     >>> list(findGeneNames("PITX2 overexpression"))
     [(0, 5, 'symbol', '5308')]
+
+    # XX need to correct this
+    >>> list(findGeneNames(" BLAST "))
+    [(1, 6, 'symbolMaybe', '962')]
     """
     assert(geneSymLex!=None)
     textLower = text.lower()
@@ -931,7 +997,7 @@ def findIdentifiers(text):
     rows = []
     textLower = text.lower()
     for markerType, markerRe in markerDictList:
-        logging.debug("Looking for markers of type %s" % markerType)
+        logging.log(5, "Looking for markers of type %s" % markerType)
         # special case list of genbank identifiers like AF0000-AF0010  
         if markerType=="genbankList":
             for row in iterGenbankRows(markerRe, markerType, text):
@@ -985,7 +1051,7 @@ def findIdentifiers(text):
         return []
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    #logging.basicConfig(level=logging.INFO)
+    #logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     import doctest
     doctest.testmod()

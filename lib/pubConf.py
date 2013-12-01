@@ -21,11 +21,11 @@ journalListDir = join(pubsDataDir, "journalLists")
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
 # it contains the ISSNs and server names for each publisher
 # it is required by pubCrawl for the highwire configuration
-journalTable = join(staticDataDir, "journals", "journalsByPublisher.tab")
+publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
 
 # same info, but one line per journal
 # (is this still used ?)
-publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
+journalTable = join(staticDataDir, "journals", "journalsByPublisher.tab")
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
@@ -60,6 +60,9 @@ httpTimeout = 20
 
 # how to long wait for the downloading of files, in seconds
 httpTransferTimeout = 30
+
+# if you need to use a proxy to access journals, set it here
+httpProxy = None
 
 # SFX server for pubmed entries without an outlink
 # YOU NEED TO DEFINE THIS IF YOU WANT TO USE SFX
@@ -441,7 +444,7 @@ maxColLen = 255
 markerDbDir = "/hive/data/inside/pubs/markerDb/"
 humanDb = "hg19"
 
-hgncDir = "/hive/data/outside/hgnc/042613"
+hgncFname = "/hive/data/outside/hgnc/111413/hgnc_complete_set.txt"
 
 # directory with subdirs, one per db, that contains chrom.sizes files
 genomeDataDir = "/hive/data/genomes"
@@ -574,3 +577,4 @@ def getStaticDataDir():
 	#return join(staticDataDir, "mutFinder")
     #else:
         #assert(False)
+

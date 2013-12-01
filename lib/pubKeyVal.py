@@ -304,6 +304,8 @@ def indexKvFile(fname, startOffset=0, prefer=None, newDb=False):
     ifh.seek(startOffset)
     i = 0
     logging.info("Indexing %s to db %s" % (fname, db.dbName))
+    if startOffset!=0:
+        logging.info("file offset is %d" % startOffset)
     chunkSize = 500000
             
     pairs = []
@@ -331,7 +333,7 @@ def indexKvFile(fname, startOffset=0, prefer=None, newDb=False):
     if len(pairs)!=0:
         db.update(pairs)
     db.close()
-    logging.info("Wrote %d records into db %s" % (i, db.dbName))
+    logging.info("Wrote %d records to db %s" % (i, db.dbName))
 
 if __name__=="__main__":
     import doctest

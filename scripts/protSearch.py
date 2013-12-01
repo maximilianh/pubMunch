@@ -3,10 +3,10 @@ from maxMarkov import MarkovClassifier
 from os.path import join, dirname
 from collections import defaultdict, OrderedDict
 
-try:
-    import re2 as re
-except ImportError:
-    import re
+#try:
+    #import re2 as re
+#except ImportError:
+import re
 
 DATADIR = join(dirname(__file__), 'data', 'protSearch')
 

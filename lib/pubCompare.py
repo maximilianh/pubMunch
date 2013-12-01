@@ -10,6 +10,8 @@ from os.path import isfile, join
 noIssuePage = 0
 noIssn = 0
 
+FINGERPRINTFNAME = "fingerprints.tab"
+
 def remove_accents(input_str):
     #nkfd_form = unicodedata.normalize('NFKD', unicode(input_str))
     #return "".join([c for c in nkfd_form if not unicodedata.combining(c)])
@@ -154,13 +156,15 @@ def writeDicts(mapList, outFname, articleIds):
     """ mapList is a list of dictionaries fingerprint -> id and articleIds is a
     dict id -> pmid. Write/Append a table fingerprint -> pmid to outFname and return offset
     where we started to write. """
+    # can't use gzip as its "a" mode doesn't support tell()
     if isfile(outFname):
         logging.info("Appending to %s" % outFname)
-        ofh = gzip.open(outFname, "a")
+        #ofh = gzip.open(outFname, "a")
+        ofh = open(outFname, "a")
         offset = ofh.tell()
     else:
         logging.info("Creating new file %s" % outFname)
-        ofh = gzip.open(outFname, "w")
+        ofh = open(outFname, "w")
         ofh.write("#fingerprint\tpmid\n")
         offset = 0
 
@@ -193,11 +197,6 @@ def addDictsToDbms(mapList, dbmList, articleIds):
             dbm[str(fprint)] = pmid
             pm.taskCompleted()
         fprintType+=1
-
-def openDbms(outDir, mode):
-    fname = join(outDir, "fingerprints.tab.gz")
-    db = pubGeneric.openKeyValDb(fname)
-    return db
 
 def closeDbms(dbms):
     logging.info("Closing DBM files")
@@ -236,8 +235,7 @@ def writeAsMarshal(map0, map1, map2, artIds, mapStoreFname):
 def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
     " merge all fingerprints into existing out files in outDir "
     # update the dbm files
-    #db = openDbms(outDir, "wfu")
-    outFname = join(outDir, "fingerprints.tab.gz")
+    outFname = join(outDir, FINGERPRINTFNAME)
     #addDictsToDbms([map0, map1, map2], dbms, artIds)
     offset = writeDicts([map0, map1, map2], outFname, artIds)
     #closeDbms(dbms)
@@ -253,7 +251,8 @@ def createWriteFingerprints(textDir, updateIds=[]):
             createFingerprints(textDir, updateIds=updateIds)
     logging.info("Processed %d articles" % len(artIds))
     logging.info("No Issn = %d, no issue or page = %d" % (noIssn, noIssuePage))
-    saveMergeFingerprints(artIds, map0, map1, map2, textDir)
+    if len(artIds)!=0:
+        saveMergeFingerprints(artIds, map0, map1, map2, textDir)
 
 def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
     """ 
@@ -310,7 +309,7 @@ def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
 class PmidFinder:
     def __init__(self):
         textDir = pubConf.resolveTextDir("medline")
-        fname = join(textDir, "fingerprints.tab.gz")
+        fname = join(textDir, FINGERPRINTFNAME)
         self.db = pubGeneric.openKeyValDb(fname)
         self.noPrints = []
         self.noMatches = []

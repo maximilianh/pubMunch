@@ -12,7 +12,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubGeneric, pubStore, pubConf, maxCommon, pubXml, pubConvSpringer, maxRun
+import pubGeneric, pubStore, pubConf, maxCommon, pubXml, maxRun
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert data from bing to pubtools format.
@@ -44,7 +44,8 @@ if options.parse:
     logging.debug("Reading done")
     data = pubConvBing.convertMicrosoft(data)
     artDict, fileDict = pubConvBing.convertHtmlToDicts("http://www.sgi.com", data)
-    print artDict
+    for key, val in artDict.items():
+        print key, val
     #print fileDict
     exit(0)
 

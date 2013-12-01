@@ -357,6 +357,16 @@ def unpackChromCoord(arr):
         chrom = "chr"+str(chrom)
     return chrom, start, end, 
 
+def revComp(seq):
+    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
+            "Y":"R", "R" : "Y", "M" : "K", "K" : "M", "W":"W", "S":"S",
+            "H":"D", "B":"V", "V":"B", "D":"H", "y":"r", "r":"y","m":"k",
+            "k":"m","w":"w","s":"s","h":"d","b":"v","d":"h","v":"b","y":"r","r":"y" }
+    newseq = []
+    for nucl in reversed(seq):
+       newseq += table[nucl]
+    return "".join(newseq)
+
 # ----- 
 if __name__ == "__main__":
     import doctest

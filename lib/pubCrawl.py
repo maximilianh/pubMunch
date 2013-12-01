@@ -10,7 +10,7 @@ from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # pars
 
 import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
     traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, copy
+    sqlite3, doctest, urllib, copy, random
 from os.path import *
 
 # ===== GLOBALS ======
@@ -344,7 +344,14 @@ def runWget(url):
     cmd += " -o %s " % logFile.name
     logging.log(5, "command: %s" % cmd)
     #print cmd
-    stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=pubConf.httpTransferTimeout)
+
+    env = None
+    if pubConf.httpProxy!=None:
+        logging.log(5, "Using proxy %s" % pubConf.httpProxy)
+        env= {"http_proxy" : pubConf.httpProxy}
+    timeout = pubConf.httpTransferTimeout
+
+    stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env)
     if ret!=0:
         #loggsng.debug("non-null return code from wget, sleeping for 120 seconds")
         #time.sleep(120)
@@ -629,14 +636,15 @@ def parsePmidStatus(outDir, skipDb):
     if skipDb:
         return donePmids
 
-    dbFname = join(outDir, "articles.db")
-    if isfile(dbFname):
-        logging.info("Reading done PMIDs from db %s" % dbFname)
-        con, cur = maxTables.openSqlite(dbFname)
-        dbPmids = set([x for (x,) in cur.execute("SELECT pmid from articles")])
-        donePmids.update(dbPmids)
-        logging.info("Found %d PMIDs that are already done or have status" % len(donePmids))
-        logging.log(5, "PMIDs are: %s" % donePmids)
+    # XX removed - reading PMIDs from db is becoming too slow for big publishers
+    #dbFname = join(outDir, "articles.db")
+    #if isfile(dbFname):
+        #logging.info("Reading done PMIDs from db %s" % dbFname)
+        #con, cur = maxTables.openSqlite(dbFname)
+        #dbPmids = set([x for (x,) in cur.execute("SELECT pmid from articles")])
+        #donePmids.update(dbPmids)
+        #logging.info("Found %d PMIDs that are already done or have status" % len(donePmids))
+        #logging.log(5, "PMIDs are: %s" % donePmids)
 
     return donePmids
 
@@ -672,21 +680,19 @@ def iterateNewPmids(pmids, ignorePmids):
     """ yield all pmids that are not in ignorePmids """
     ignorePmidCount = 0
 
-    for pmid in pmids:
-        pmid = pmid.replace("PMID", "")
-        pmid = int(pmid)
-        if pmid in ignorePmids:
-            ignorePmidCount+=1
-            continue
+    ignorePmids = set([int(p) for p in ignorePmids])
+    pmids = set([int(p) for p in pmids])
+    todoPmids = pmids - ignorePmids
+    #todoPmids = list(todoPmids)
+    #random.shuffle(todoPmids) # to distribute error messages
 
-        if ignorePmidCount!=0:
-            logging.debug("Skipped %d PMIDs" % ignorePmidCount)
-            ignorePmidCount=0
-
+    logging.debug("Skipped %d PMIDs" % (len(pmids)-len(todoPmids)))
+    for pmidPos, pmid in enumerate(todoPmids):
+        logging.debug("%d more PMIDs to go" % (len(todoPmids)-pmidPos))
         yield str(pmid)
 
-    if ignorePmidCount!=0:
-        logging.debug("Skipped %d PMIDs" % ignorePmidCount)
+    #if ignorePmidCount!=0:
+        #logging.debug("Skipped %d PMIDs" % ignorePmidCount)
 
 def readLocalMedline(pmid):
     " returns a dict with info we have locally about PMID, None if not found "
@@ -749,7 +755,7 @@ def downloadPubmedMeta(pmid):
 
 def writeMeta(outDir, metaData, fulltextData):
     " append one metadata dict as a tab-sep row to outDir/articleMeta.tab and articls.db "
-    filename = join(outDir, "articleMeta.sqlbak.tab")
+    filename = join(outDir, "articleMeta.tab")
     #if testMode!=None:
         #filenames = join(outDir, "testMeta.tab")
     logging.debug("Appending metadata to %s" % filename)
@@ -784,7 +790,10 @@ def writeMeta(outDir, metaData, fulltextData):
     logging.log(5, "%s" % row)
     while not writeOk and tryCount > 0:
         try:
-            maxTables.insertSqliteRow(cur, con, "articles", metaHeaders, row)
+            try:
+                maxTables.insertSqliteRow(cur, con, "articles", metaHeaders, row)
+            except sqlite3.IntegrityError:
+                logging.warn("Already present in meta info db")
             writeOk = True
         except sqlite3.OperationalError:
             logging.info("sqlite db is locked, waiting for 60 secs")
@@ -1011,6 +1020,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
 
     # some others can be derived by replacing strings in the landing url
     if "landingUrl_pdfUrl_replace" in crawlConfig:
+        print crawlConfig["landingUrl_pdfUrl_replace"]
         pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_pdfUrl_replace"])
         logging.debug("Replacing strings in URL yields new URL %s" % (pdfUrl))
         return pdfUrl
@@ -1101,12 +1111,18 @@ def crawlForFulltext(landingPage, crawlConfig):
                 else:
                     raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
             else:
-                raise pubGetError("putative PDF link has not PDF mimetype", \
-                    "MainPdfWrongMime_InlineNotFound")
+                if not crawlConfig.get("landingPage_acceptNoPdf", False):
+                    raise pubGetError("putative PDF link has not PDF mimetype", \
+                        "MainPdfWrongMime_InlineNotFound")
+                else:
+                    logging.debug("PDF is wrong mime type, but we accept this case for this publisher")
+                    pdfPage = None
 
         if noLicensePage(pdfPage, crawlConfig):
             raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
-        fulltextData["main.pdf"] = pdfPage
+
+        if pdfPage!=None:
+            fulltextData["main.pdf"] = pdfPage
 
     # find suppl list and then get suppl files of specified types
     suppListUrl  = findSuppListUrl(landingPage, fulltextPage, crawlConfig)
@@ -1329,7 +1345,7 @@ def highwireDelay(host):
             delay = 60
         else:
             delay = 10
-    logging.debug("current highwire delay time is %d" % (delay))
+    logging.log(5, "current highwire delay time is %d" % (delay))
     return delay
 
 def ignoreCtrlc(signum, frame):

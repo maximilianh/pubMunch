@@ -61,7 +61,7 @@ def findDnaIter(text):
         yield row.start, row.end, row.seq
         #i+=1
 
-def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
+def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxRank):
     pmid, text = readFile(inFname)
     if len(text)<30:
         logging.info("empty text file")
@@ -76,7 +76,8 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
     logging.debug("Opening seqCache %s" % seqCacheFname)
     seqCache = gdbm.open(seqCacheFname, "w")
 
-    genes = geneFinder.findGenesResolveByType(text, pmid=pmid, seqCache=seqCache)
+    #genes = geneFinder.findGenesResolveByType(text, pmid=pmid, seqCache=seqCache)
+    geneScores, geneSupp = geneFinder.rankGenes(text, pmid, seqCache)
 
     mutDataDir = pubConf.geneDataDir
     global upData, entrez2sym
@@ -92,10 +93,14 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
     allGenesFound = set()
     foundLines = []
 
-    for mType, geneIdDict in genes.iteritems():
-        for geneId, markerLocs in geneIdDict.iteritems():
-            idStr, locs = markerLocs
-            logging.debug("Found matches for type %s, gene %s, marker %s" % (mType, geneId, idStr))
+    rank = 0
+    topGenes = []
+    for geneId, score in geneScores:
+        rank += 1
+        mentionList = geneSupp[geneId]
+            
+        for markerType, idStr, locs in mentionList:
+            logging.debug("Found matches for type %s, gene %s, marker %s" % (markerType, geneId, idStr))
             logging.debug("Text: %s" % [text[start:end] for start, end in locs])
             desc = "notAnnotated"
             if geneId==None:
@@ -103,23 +108,28 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
             else:
                 # only count a gene as found if it's an unambiguous symbol match with count > 3
                 # or something better than a symbol
-                support = len(locs)
-                minSupport = wordCount / 1200
-                if reqMinSupp!=None:
-                    minSupport = reqMinSupp
+                #support = len(locs)
+                #minSupport = wordCount / 1200
+                #if minScore!=None:
+                    #minSupport = reqMinSupp
                 # old rule, for invitae
                     #mType=="symbol" and (len(locs)>(wordCount/1200)) or \
                     #mType=="symbolMaybe" and (len(locs)>10):
                     
                 # accept anythin with more than x mentions
-                if mType not in ["symbolMaybe", "symbol"] or \
-                    mType in ["symbol", "symbolMaybe"] and support > minSupport:
+                #if mType not in ["symbolMaybe", "symbol"] or \
+                    #mType in ["symbol", "symbolMaybe"] and support > minSupport:
+                if (minScore==None or score >= minScore) and \
+                    (maxRank==None or rank <= maxRank):
+                    # consider this gene "found" only if conditions are fullfilled
                     allGenesFound.add(geneId)
                     predPair = (pmid, geneId)
                     foundGenes.add( predPair )
-                if pmid in refGenes and geneId in refGenes[pmid]:
-                    desc = "annotated"
+                    if pmid in refGenes and geneId in refGenes[pmid]:
+                        desc = "annotated"
 
+            logging.debug("found genes: %s" % foundGenes)
+            # make snippets
             snips = []
             hits = []
             for loc in locs:
@@ -137,11 +147,11 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
             oneSnip = oneSnip.replace("\n", " ")
             hits = [h.replace("\n"," ") for h in hits]
 
-            row = [ pmid, mType, str(idStr), geneFinder.entrezSymbol(geneId), \
+            row = [ pmid, geneFinder.entrezSymbol(geneId), str(score), markerType, str(idStr),  \
                     ",".join(hits), str(len(locs)), desc, oneSnip]
             foundLines.append("\t".join(row))
             if geneId!=None:
-                typePmids[mType].add(pmid)
+                typePmids[markerType].add(pmid)
 
     annotLines = []
 
@@ -196,7 +206,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, reqMinSupp):
 def parsePaperData(inDir):
     fname = join(inDir, "textData.tab")
     if not isfile(fname):
-        fname = join(inDir, "..", "articleMeta.sqlbak.tab")
+        fname = join(inDir, "..", "articleMeta.tab")
         if not isfile(fname):
             return {}
 
@@ -205,7 +215,7 @@ def parsePaperData(inDir):
         data[row.pmid] = row
     return data
 
-def findInLocalDir(inDir, refGenes, minSupp):
+def findInLocalDir(inDir, refGenes, minScore, maxRank):
     fnames = glob.glob(join(inDir, "*.txt"))
     #fnames = glob.glob(join(inDir, "100*.txt"))
     pm = maxCommon.ProgressMeter(len(fnames))
@@ -213,7 +223,7 @@ def findInLocalDir(inDir, refGenes, minSupp):
     paperData = parsePaperData(inDir)
     for fname in fnames:
         #logging.info(fname)
-        findInLocalFile(fname, refGenes, foundGenes, paperData, minSupp)
+        findInLocalFile(fname, refGenes, foundGenes, paperData, minScore, maxRank)
         pm.taskCompleted()
 
     # cleanup the refgenes dict, remove pmids without any annotations
@@ -243,6 +253,8 @@ def findInLocalDir(inDir, refGenes, minSupp):
     matchPairs = foundGenes.intersection(refPairs)
     #print matchPairs, refPairs
     print "total (PMIDs, gene) matches: %d" % len(matchPairs)
+    print "recall: %f" % (float(len(matchPairs))/len(refPairs))
+    print "precision: %f" % (float(len(matchPairs))/len(foundGenes))
     print "total PMIDs with at least one gene match: %d" % len(set([x for x,y in matchPairs]))
 
     # output how often identifiers were found
@@ -279,7 +291,8 @@ def main(args, options):
     global showOnlyErrors
     showOnlyErrors = options.onlyErrors
 
-    minSupp = options.minSupport
+    minScore = options.minScore
+    maxRank = options.maxRank
 
     pubGeneric.setupLogging("", options)
     inFname = args[0]
@@ -297,9 +310,9 @@ def main(args, options):
 
     if isfile(inFname):
         paperMetaData = parsePaperData(dirname(inFname))
-        findInLocalFile(inFname, refGenes, set(), paperMetaData)
+        findInLocalFile(inFname, refGenes, set(), paperMetaData, minScore, maxRank)
     elif isdir(inFname):
-        findInLocalDir(inFname, refGenes, minSupp)
+        findInLocalDir(inFname, refGenes, minScore, maxRank)
     else:
         assert(False)
 
@@ -321,7 +334,8 @@ parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
 parser.add_option("-e", "--onlyErrors", dest="onlyErrors", action="store_true", help="print output only if a gene has been missed")
 parser.add_option("-s", "--noSeqs", dest="noSeqs", action="store_true", help="Do not use sequences found in papers to resolve genes")
-parser.add_option("-m", "--minSupport", dest="minSupport", action="store", type="int", help="minimum support of genes where we only have symbols")
+parser.add_option("-m", "--minScore", dest="minScore", action="store", type="int", help="minimum score of genes for benchmark (but the output shows all)")
+parser.add_option("-r", "--maxRank", dest="maxRank", action="store", type="int", help="only benchmark on top x genes (but the output shows)")
 
 (options, args) = parser.parse_args()
 

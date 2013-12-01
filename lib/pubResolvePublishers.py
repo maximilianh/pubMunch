@@ -235,8 +235,14 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
         languages = set()
         for journal in journals:
             jIds.append(journal.eIssn.strip())
-            jIssns.append(journal.pIssn.strip())
-            titles.append(journal.title.replace("|"," "))
+            if hasattr(journal, "pIssn"):
+                jIssns.append(journal.pIssn.strip())
+            else:
+                jIssns.append("unknownPIssn")
+            if hasattr(journal, "title"):
+                titles.append(journal.title.replace("|"," "))
+            else:
+                titles.append("UnknownTitle")
             syns.append(journal.publisher)
             jServers = urlStringToServers(journal.urls)
             servers.extend(jServers)
@@ -496,7 +502,8 @@ def groupPublishersByName(journals):
         # then try the issn prefix
         if not resolved:
             for issnPrefix, issnPub in pubIssnPrefix.iteritems():
-                if journal.pIssn.startswith(issnPrefix) or journal.eIssn.startswith(issnPrefix):
+                if (hasattr(journal, "pIssn")) and journal.pIssn.startswith(issnPrefix) \
+                        or journal.eIssn.startswith(issnPrefix):
                     pubGroup = issnPub
                     resolved = True
 

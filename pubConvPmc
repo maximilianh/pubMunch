@@ -56,7 +56,7 @@ def metaInfoFromTree(metaInfo, field, etree, path, convertToAscii=False, reqAttr
 
     if element==None:
         metaInfo[field] = ""
-        if squeak: 
+        if squeak:
             logging.warn("path %s, no element for metaInfo field '%s', tag %s" % (path, field, etree.tag))
         return
 
@@ -232,7 +232,7 @@ def parsePmcXml(xml, metaInfo):
     journalTree = articleTree.find("front/journal-meta")
     metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title", squeak=False)
     if metaInfo["journal"]=="":
-        metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title-group/journal-title", squeak=False)
+        metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title-group/journal-title")
     metaInfoFromTree(metaInfo, "printIssn", journalTree, "issn", reqAttrName="pub-type", reqAttrValue='ppub')
     metaInfoFromTree(metaInfo, "eIssn", journalTree, "issn", reqAttrName="pub-type", reqAttrValue='epub')
 
@@ -547,6 +547,8 @@ def convertOneChunk(inIndexFile, outFile):
             continue
         articleData = pubStore.createEmptyArticleDict(publisher="pmc")
         articleData, suppFileDict = parsePmcXml(nxmlData, articleData)
+        articleData["origFile"] = tgzName+":"+nxmlName
+        articleData["publisher"] = "pmc"
 
         fileWritten = False
         fileDataList = createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, \

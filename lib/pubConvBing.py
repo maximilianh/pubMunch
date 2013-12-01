@@ -230,42 +230,58 @@ def parseMetaData(metaTags, artDict):
         name = name.lower()
         # PRISM and open graph meta data
         if name=="og.type":
-            artDict["articleTypE"] = content.strip()
+            artDict["articleType"] = content.strip()
         if name=="og.description":
             artDict["abstract"] = content.strip()
-        if name=="prism.volume" or name=="citation_volume":
+        if name=="prism.volume" or name.endswith("_volume"):
             artDict["vol"] = content
-        if name=="prism.number" or name=="citation_issue":
+        if name=="prism.number" or name=="citation_issue" or name=="wkhealth_issue":
             artDict["issue"] = content
-        if name=="prism.startingPage" or name=="citation_firstpage":
+        if name=="prism.startingPage" or name.endswith("_firstpage"):
             artDict["page"] = content
-        if name=="prism.publicationName" or name=="citation_journal_title" or name=="og.title":
+        if name=="prism.publicationName" or name.endswith("_journal_title"):
             artDict["journal"] = content
         if name=="prism.issn":
             artDict["printIssn"] = content
         if name=="prism.eIssn":
             artDict["eIssn"] = content
-        if name=="citation_doi":
+        if name.endswith("_doi"):
             artDict["doi"] = content.replace("doi:", "")
-        if name=="citation_issn":
+        if name.endswith("_issn"):
             if artDict.get("printIssn","")=="":
                 artDict["printIssn"] = content
-        if name=="citation_authors":
+        if name.endswith("_authors"):
             artDict["authors"] = content
-        if name=="citation_pmid":
+        if name.endswith("_pmid"):
             artDict["pmid"] = content
         if name=="citation_abstract_html_url":
             if "PMC" in content:
                 artDict["pmcId"] = content.split("/")[2].replace("PMC","")
-        if name=="citation_section":
+        if name=="citation_section" or name.endswith("_toc_section"):
             artDict["articleType"] = content
         # DUBLIN CORE metadata
-        if name=="dc.date":
+        if name=="dc.date" or name.endswith("_date"):
             parts = re.split("[-/ ]", content)
             #artDict["year"] = content.split("-")[0].split(" ")[0]
             for p in parts:
                 if len(p)==4:
                     artDict["year"] = p
+
+        # google patents abstracts
+        if name=="dc.type":
+            artDict["articleType"] = content.lower().strip()
+        if name=="citation_patent_number":
+            artDict["title"] += " (Patent %s)"%content
+            artDict["journal"] = "Patent"
+
+        # replace or prefix the abstract with the description
+        if name=="dc.description" and artDict["articleType"]=="patent":
+            artDict["abstract"] = content
+        # not using the description otherwise, too much crap
+        #elif name in ["dc.description", "description"]:
+            #artDict["abstract"] = content + " ... " + artDict.get("abstract", "")
+            #metaDesc = content
+
         if name=="dc.title":
             artDict["title"] = diacToUnicode(content)
         if name=="dc.creator" or name=="dc.contributor" or name=="citation_author":
