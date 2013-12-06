@@ -120,7 +120,7 @@ FASTTEMPDIR = TEMPDIR
 
 maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
-minTxtFileSize = 500 # minimum filesize of any file after conversion to ASCII
+minTxtFileSize = 200 # minimum filesize of any file after conversion to ASCII
 mapReduceTmpDir = _pubsDir + "/mapReduceTemp" # cluster-wide directory to collect results
 
 # parasol batches dir

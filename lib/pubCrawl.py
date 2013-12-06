@@ -1,4 +1,4 @@
-# library to crawl pdf and supplemental file from pubmed
+# library to crawl pdf and supplemental file from publisher websites using pubmed
 
 # load our own libraries
 import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
@@ -301,6 +301,8 @@ def getDelaySecs(host, forceDelaySecs):
 def delayedWget(url, forceDelaySecs=None):
     """ download with wget and make sure that delaySecs (global var) secs have passed between two calls
     special cases for highwire hosts and some hosts configured in config file.
+
+    returns dict with keys url, mimeType, charset, data 
     """
     global wgetCache
     if url in wgetCache:
@@ -1132,6 +1134,12 @@ def crawlForFulltext(landingPage, crawlConfig):
         suppExts.update(crawlConfig.get("suppListPage_addSuppFileTypes", []))
         if crawlConfig.get("suppListPage_acceptAllFileTypes", False):
             suppExts = None
+        if suppListPage["mimeType"]!="text/html":
+            logging.debug("supplemental list is not a html file, so treating as supplemental file S1")
+            fileExt = detFileExt(suppListPage)
+            fulltextData["S1."+fileExt] = suppListPage
+            return fulltextData
+
         fulltextData = getSuppData(fulltextData, suppListPage, crawlConfig, suppExts)
 
     return fulltextData

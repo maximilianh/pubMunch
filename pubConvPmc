@@ -233,8 +233,10 @@ def parsePmcXml(xml, metaInfo):
     metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title", squeak=False)
     if metaInfo["journal"]=="":
         metaInfoFromTree(metaInfo, "journal", journalTree, "journal-title-group/journal-title")
-    metaInfoFromTree(metaInfo, "printIssn", journalTree, "issn", reqAttrName="pub-type", reqAttrValue='ppub')
-    metaInfoFromTree(metaInfo, "eIssn", journalTree, "issn", reqAttrName="pub-type", reqAttrValue='epub')
+    metaInfoFromTree(metaInfo, "printIssn", journalTree, "issn", reqAttrName="pub-type", \
+        reqAttrValue='ppub', squeak=False)
+    metaInfoFromTree(metaInfo, "eIssn", journalTree, "issn", reqAttrName="pub-type", \
+        reqAttrValue='epub', squeak=False)
 
     articleMeta = articleTree.find("front/article-meta")
     metaInfoFromTree(metaInfo, "pmcId", articleMeta, "article-id", reqAttrName="pub-id-type", reqAttrValue='pmc')

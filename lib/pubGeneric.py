@@ -333,7 +333,7 @@ def toAscii(fileData, mimeType=None, \
     fileExt = getFileExt(fileData, locFname, mimeType)
 
     if fileExt not in converters:
-        logging.info("Could not convert file %s, no converter for extension %s" % \
+        logging.debug("Could not convert file %s, no converter for extension %s" % \
             (fileDebugDesc, fileExt))
         return None
     cmdLine = converters[fileExt]
@@ -375,7 +375,7 @@ def toAscii(fileData, mimeType=None, \
         return None
 
     if len(fileData["content"]) < minTxtFileSize:
-        logging.info("ascii file size only %d bytes < %d, ignoring %s" % \
+        logging.debug("ascii file size only %d bytes < %d, ignoring %s" % \
             (len(fileData["content"]), minTxtFileSize, fileDebugDesc))
         return None
 

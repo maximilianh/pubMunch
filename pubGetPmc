@@ -97,7 +97,7 @@ def downloadFiles(ftpConn, pmcUrl, theirPmc, missingIds, outDir, connCount):
             if not downloadOk:
                 logging.error("could not download file %s" % fname)
                 errCount +=1
-            pubGeneric.appendLog(outDir, "add", fname)
+            pubGeneric.appendLog(outDir, "add", pmcId+":"+fname)
     logging.info("%d PMC-IDs: %d already here, downloaded %d, %d skipped due to error" % \
         (len(downloadIds), alreadyExistCount, downloadCount, errCount))
 
@@ -116,7 +116,7 @@ def deleteFiles(ourPmc, staleIds, outDir):
         except OSError:
             logging.warn("Cannot delete local file %s" % path)
             continue
-        pubGeneric.appendLog(outDir, "delete", fname)
+        pubGeneric.appendLog(outDir, "delete", pmcId+":"+fname)
     logging.info("Deleted %d files" % delCount)
 
 def updatePmc(outDir, checkOnDisk):
