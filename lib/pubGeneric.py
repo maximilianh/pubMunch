@@ -713,7 +713,7 @@ def makeTempDir(prefix, tmpDir=None):
     dirName = tempfile.mktemp(dir=tmpDir, prefix=prefix+".")
     if not isdir(dirName):
         os.makedirs(dirName)
-    logging.debug("Created dir %s" % dirName)
+    logging.debug("Created temporary dir %s" % dirName)
     return dirName
 
 def makeTempFile(prefix, suffix=".psl"):
@@ -799,8 +799,8 @@ def setLockFile(outDir, lockName):
     global lockFnames
     lockFname = join(outDir, lockName+".lock")
     if isfile(lockFname):
-        raise Exception("%s already exists. Make sure there is no process already running, then delete it." \
-            % lockFname)
+        raise Exception("The lockfile %s exists. Make sure there is no process already running, "
+        "then delete the lock file." % lockFname)
     open(lockFname, "w")
     lockFnames.append(lockFname)
     atexit.register(removeLockFiles)

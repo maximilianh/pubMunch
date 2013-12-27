@@ -1,4 +1,5 @@
 from os.path import *
+import logging
 
 # GENERAL SETTINGS   ================================================
 # baseDir for internal data, accessible from cluster 
@@ -24,8 +25,8 @@ journalListDir = join(pubsDataDir, "journalLists")
 publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
 
 # same info, but one line per journal
-# (is this still used ?)
-journalTable = join(staticDataDir, "journals", "journalsByPublisher.tab")
+# not used anymore
+# journalTable = join(staticDataDir, "journals", "journalsByPublisher.tab")
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
@@ -287,7 +288,7 @@ GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
 
 speciesNames = {
 'hg19' : ['human', 'sapiens', ' homo ', ' Homo ', 'patient', 'cell line','cell culture'],
-'mm9' : ['mouse', 'musculus', 'rodent'],
+'mm10' : ['mouse', 'musculus', 'rodent'],
 'rn4' : [' rat ', 'novegicus', 'rodent'],
 #'nonUcsc_archaea' : [],
 'danRer7' : ['zebrafish', 'rerio', 'Danio'],
@@ -302,7 +303,11 @@ speciesNames = {
 'sacCer2' : ['cerevisiae', 'Saccharomyces', 'yeast'],
 'nonUcsc_arabidopsisTair10' : ['arabidopsis', 'Arabidopsis', 'thaliana', 'thale cress'],
 'nonUcsc_Pfalciparum3D7' : ['plasmodium', 'Plasmodium', 'falciparium', 'malaria'],
-'nonUcsc_grapevine12x' : [' grapevine ', ' vitis ', 'pinot noir', ' vigne']
+'nonUcsc_grapevine12x' : [' grapevine ', ' vitis ', 'pinot noir', ' vigne'],
+'nonUcsc_bacteria' : ['bacteria ', 'bacterial ', 'microbiology', "coli ", "prokaryotes"],
+'nonUcsc_viral' : [' virus ', 'viral '],
+'nonUcsc_fungi' : ['Aspergillus'],
+'nonUcsc_dnasu' : ['plasmid', 'cloned into', 'cloning vector', 'restriction site']
 #'nonUcsc_dnasu' : [' plasmid ']
 }
 
@@ -319,15 +324,17 @@ nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
 # if a genome is not part of the genbank config system then you need to prefix it with
 # "nonUcsc_". Any db name like this will be searched in nonUcscGenomesDir (see below).
 # e.g. nonUcsc_archaea will be resolved to /hive/data/inside/pubs/nonUcscGenomes/archaea.2bit
-# The blatter also needs a .ooc file with the same name.
-#alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
-alignGenomeOrder = ['hg19', 'mm9', 'rn4', 'danRer7', 'dm3',
+# The BLAT-wrapper also needs a .ooc file with the same name.
+#alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
+alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'danRer7', 'dm3',
 'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2',
-'nonUcsc_arabidopsisTair10', 'nonUcsc_Pfalciparum3D7', 'nonUcsc_grapevine12x']
+'nonUcsc_arabidopsisTair10', 'nonUcsc_Pfalciparum3D7', 'nonUcsc_grapevine12x',
+'nonUcsc_bacteria', 'nonUcsc_viral', 'nonUcsc_fungi', 'nonUcsc_dnasu'
+]
 
 # these genomes are used if no species name matches are found
 #defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10", "nonUcsc_archaea"]
-defaultGenomes = ["hg19", "mm9", "rn4", "danRer7", "dm3", "ce10"]
+defaultGenomes = ["hg19", "mm10", "rn4", "danRer7", "dm3", "ce10", "nonUcsc_bacteria"]
 
 # these genomes are always added, no matter which species names are found
 # human might not be recognized as a name for cell lines
@@ -348,7 +355,11 @@ noCdnaDbs = ["sacCer2", "nonUcsc_arabidopsisTair10", "nonUcsc_Pfalciparum3D7"]
 specDatasetAnnotIdOffset = {"yif" : 12000 }
 
 # each species in alignGenomeOrder has to be in speciesNames
-assert(len(set(alignGenomeOrder).intersection(speciesNames))==len(speciesNames))
+if not len(set(alignGenomeOrder).intersection(speciesNames))==len(speciesNames):
+    logging.error("missing in speciesNames: %s" % repr(set(alignGenomeOrder)-set(speciesNames)))
+    logging.error("missing in alignGenomeOrder: %s" % repr(set(speciesNames)-set(alignGenomeOrder)))
+    raise Exception("illegal species name configuration")
+
 assert(len(set(defaultGenomes).intersection(speciesNames))==len(defaultGenomes))
 assert(len(set(alwaysUseGenomes).intersection(defaultGenomes))==len(alwaysUseGenomes))
 
@@ -425,8 +436,16 @@ chunkDivider = 10
 # and mRNA fasta files
 cdnaTable = 'refSeqAli'
 
-# where to store the cDNA data (alignments and fasta files)
-cdnaDir = "/hive/data/inside/pubs/cdnaDb/"
+# pubMap static data files directory, used below
+_pubsDataDir = "/hive/data/inside/pubs/pubMapData"
+# where to store the cDNA data (refseq alignments and fasta files)
+cdnaDir = _pubsDataDir + "/cdnaDb"
+
+# where to store the loci data (regions around longest transcripts for genes, their symbols and entrez IDs)
+# a directory with <db>.bed files that associate genomic locations with the closest 
+# entrez gene and symbol
+# loci creation also requires ncbiGenesDir
+lociDir = _pubsDataDir+"/loci"
 
 # file with impact factors for bed annotation
 impactFname = join(staticDataDir, "map", "impact2011.tab")
@@ -439,6 +458,7 @@ sqlDir = "/cluster/home/max/projects/pubs/tools/sql/"
 # when writing tables for mysql, we cut most columns to a maximum size,
 # to account for data errors (elsevier)
 maxColLen = 255
+
 
 # MARKER MAPPING ============================
 markerDbDir = "/hive/data/inside/pubs/markerDb/"
@@ -492,6 +512,7 @@ classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.t
 
 # GENE AND MUTATION RECOGNIZERS ===========================
 
+# directory with lots of data about genes
 geneDataDir = _pubsDir+"/geneData"
 
 # the british national corpus is a list of 30k common words in English
@@ -547,7 +568,7 @@ def resolveTextDir(dataDir, makeDir=False):
     if not os.path.isdir(dataDir2):
         logging.debug("Couldn't find %s" % dataDir2)
         if os.path.isdir(dataDir):
-            return dataDir
+            return abspath(dataDir)
         else:
             if makeDir:
                 logging.info("Creating directory %s" % dataDir)

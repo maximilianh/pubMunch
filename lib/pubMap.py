@@ -1819,7 +1819,7 @@ def runStepSsh(host, dataset, step):
         logging.info("error during SSH")
         sys.exit(1)
 
-def runAnnotStep(d, onlyMarkers=False):
+def runAnnotStep(d, onlyMarkers=False, onlySeq=False):
     """ 
     run jobs to annotate the text files, directory names for this are 
     stored as attributes on the object d
@@ -1860,6 +1860,9 @@ def runAnnotStep(d, onlyMarkers=False):
     if onlyMarkers:
         outDirs = "%s" % (d.markerAnnotDir)
         algNames = "markerSearch.py"
+    if onlySeq:
+        outDirs = "%s,%s" % (d.dnaAnnotDir, d.protAnnotDir)
+        algNames = "dnaSearch.py:Annotate,protSearch.py"
     else:
         outDirs = "%s,%s,%s" % (d.markerAnnotDir, d.dnaAnnotDir, d.protAnnotDir)
         # run the MarkerAnnotate class in markerSearch.py, 
@@ -1937,7 +1940,7 @@ def runTablesStep(d, options):
         artDescs   = parseArtDescs(d.artDescFname)
         artClasses = parseArtClasses(d.textDir, d.updateIds)
         impacts    = parseImpacts(pubConf.impactFname)
-        annotLoci  = findLociBedDir(d.bedDir, ["hg19"])
+        annotLoci  = findLociBedDir(d.bedDir)
 
         rewriteFilterBedFiles(d.bedDir, d.tableDir, pubConf.speciesNames, \
             artDescs, artClasses, impacts, annotLoci, d.dataset)
@@ -2017,13 +2020,16 @@ def findBedDbFilter(bedDir, dbList):
     logging.info("%d bed files to process for dbs %s" % (len(filtBedFnames), dbList))
     return filtBedFnames
 
-def concatCutFields(inFnames, outFile):
+def concatBedCutFields(inFnames, outFile):
     """ concat all bed into some file, keep only the annotation Ids """
     for fn in inFnames:
         for line in open(fn).read().splitlines():
             fields = line.split("\t")
             #  440002039500000000:1-25,440002039500000001:0-23
             annotIds = [f.split(":")[0] for f in fields[3].split(",")]
+            start, end = fields[1], fields[2]
+            assert(int(start) < int(end))
+
             fields[3] = ",".join(annotIds)
             l = "\t".join(fields[:4])
             outFile.write(l)
@@ -2031,20 +2037,21 @@ def concatCutFields(inFnames, outFile):
     outFile.flush() # cannot do close, otherwise temp file will get deleted
     logging.debug("Concatenated %d files to %s" % (len(inFnames), outFile.name))
 
-def findLociBedDir(bedDir, dbList):
+def findLociBedDir(bedDir):
     """
-    concat all beds in bedDir with a db in dbList, 
+    for each db, concat all beds 
     cleanup their name fields and return the loci they overlap 
     return dict annotId -> list of genes
     """
     annotToGene = defaultdict(set)
     logging.info("Getting loci for bed files in %s" % bedDir)
+    dbList = pubConf.alignGenomeOrder
     for db in dbList:
         filtBedFnames = findBedDbFilter(bedDir, [db])
         tmpFh, tmpFname = pubGeneric.makeTempFile("allBeds", suffix=".bed")
-        concatCutFields(filtBedFnames, tmpFh)
+        concatBedCutFields(filtBedFnames, tmpFh)
         tmpFh.flush()
-        dbAnnotToGene = findLoci(tmpFname, dbList)
+        dbAnnotToGene = findLociForBeds(tmpFname, db)
         tmpFh.close() # deletes the file
 
         for annot, genes in dbAnnotToGene.iteritems():
@@ -2052,11 +2059,13 @@ def findLociBedDir(bedDir, dbList):
                 annotToGene[annot].add(g)
     return annotToGene
 
-def findLoci(bedFname, db):
+def findLociForBeds(bedFname, db):
     """ 
     return gene loci for annotations as a dict annotationId -> list of locusString
     """
-    lociFname = join(pubConf.geneDataDir, "loci.bed")
+    lociFname = join(pubConf.lociDir, db+".bed")
+    if not isfile(lociFname):
+        logging.info("%s not found, not annotating loci for db %s" % (lociFname, db))
     nameToGenes = overlapBeds(lociFname, bedFname)
 
     annotIdToGene = {}
@@ -2077,8 +2086,16 @@ def runStep(dataset, command, d, options):
 
     elif command=="annotMarker":
         runAnnotStep(d, onlyMarkers=True)
+    elif command=="annotSeq":
+        runAnnotStep(d, onlySeq=True)
+
 
     elif command=="filter":
+        cdnaDbs = [basename(path) for path in glob.glob(join(pubConf.cdnaDir, "*"))]
+        dbsNotMapped = set(cdnaDbs) - set(pubConf.alignGenomeOrder)
+        if len(dbsNotMapped)!=0:
+            raise Exception("dbs %s have cdna data in %s but are not in pubConf" % \
+                (dbsNotMapped, pubConf.cdnaDir))
         # remove duplicates & short sequence & convert to fasta
         # need to re-read d.chunkNames
         #dirs = pubMapProp.PipelineConfig(d.dataset, options.outDir)
@@ -2092,7 +2109,6 @@ def runStep(dataset, command, d, options):
             runner.finish(wait=True)
 
         # convert to fasta
-        cdnaDbs = [basename(path) for path in glob.glob(join(pubConf.cdnaDir, "*"))]
         logging.info("These DBs have cDNA data in %s: %s" % (pubConf.cdnaDir, cdnaDbs))
         pubToFasta(d.seqDir, d.fastaDir, pubConf.speciesNames, pubConf.queryFaSplitSize, \
             pubConf.shortSeqCutoff)

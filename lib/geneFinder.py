@@ -70,7 +70,7 @@ symLeftReqWords = None
 symRightReqWords = None
 
 # words that are usually not gene names, rather used for cell lines or pathways or other stuff
-stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9', 'SMS'])
+stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9', 'SMS', 'Arg', 'Ser'])
 
 # Some identifiers are so general that we want to restrict our search
 # to documents that contain some keyword
@@ -683,14 +683,14 @@ def findGenesResolveByType(text, pmid=None, seqCache=None):
 def rankGenes(text, pmid=None, seqCache=None):
     """
     find genes in text and rank them by support
-    Accepts a dict markerType -> gene -> (recognizedId, list of start, end)
+    Accepts raw text as a string.
 
     returns a sorted list of  (geneId, score)
     and a dict geneId -> list of (markerType, recognizedId, list of (start, end))
 
-    # XX problem - p53 should not be called a symbol if it overlaps a long gene name
+    # Fixed: p53 is not called a symbol if it overlaps a long gene name
     >>> rankGenes("Oh. TP53 ... They call it Tumor Protein p53 and NM_000546. It don't like it.")
-    ([(7157, 17)], {7157: [('symbol', '7157', [(4, 8), (40, 43)]), ('refseq', 'NM_000546', [(48, 57)]), ('geneName', '7157', [(26, 43)])]})
+    ([(7157, 16)], {7157: [('symbol', '7157', [(4, 8)]), ('refseq', 'NM_000546', [(48, 57)]), ('geneName', '7157', [(26, 43)])]})
     """
     geneTypes = findGenesResolveByType(text, pmid, seqCache)
     
@@ -887,6 +887,28 @@ def markerToGenes(markerType, markerId):
     else:
         return None
 
+flankSplitRe = re.compile(r'[:,. -]')
+
+def getFlankWords(start, end, text, maxWordLen=20):
+    """ return left and right flanking words as list. 
+    >>> getFlankWords(8, 15, "biggest context ever") 
+    ['biggest', 'ever']
+    """
+    words = []
+
+    leftStart = max(0, start-maxWordLen)
+    leftSnip = text[leftStart:start].strip()
+    leftWords = flankSplitRe.split(leftSnip)
+    if len(leftWords)>0:
+        words.append(leftWords[-1])
+
+    rightEnd  = min(len(text), end+maxWordLen)
+    rightSnip = text[end:rightEnd].strip()
+    rightWords = flankSplitRe.split(rightSnip)
+    if len(rightWords)>0:
+        words.append(rightWords[0])
+    return words
+
 def findGeneNames(text):
     """
     look for gene names and symbols. Some symbols need flanking trigger words. If these 
@@ -905,6 +927,10 @@ def findGeneNames(text):
     []
     >>> list(findGeneNames("PITX2 overexpression"))
     [(0, 5, 'symbol', '5308')]
+
+    # ignore genes that are immediately flanked by "pathway"
+    >>> list(findGeneNames("PITX2 pathway"))
+    []
 
     # XX need to correct this
     >>> list(findGeneNames(" BLAST "))
@@ -927,8 +953,13 @@ def findGeneNames(text):
                 yield (start, end, 'symbol', geneId)
             else:
                 yield (start, end, 'symbolMaybe', geneId)
-        # otherwise just pass them though
+        # otherwise pass them though
         else:
+            # ignore genes that are immediately flanked by "pathway"
+            flankWords = getFlankWords(start, end, textLower)
+            if "pathway" in flankWords:
+                logging.debug("ignored %s, flank words are %s" % (text[start:end], flankWords))
+                continue
             yield (start, end, 'symbol', geneId)
     #rows.extend(list(iterGeneNames(textLower)))
     #continue

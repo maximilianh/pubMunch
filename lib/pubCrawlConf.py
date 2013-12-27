@@ -80,10 +80,12 @@ def parseHighwire():
     >>> domains["American Society for Biochemistry and Molecular Biology"]
     set([u'jbc.org', u'mcponline.org', u'jlr.org'])
     >>> temps["1535-9476"]
+    u'http://www.mcponline.org/cgi/pmidlookup?view=long&pmid=%(pmid)s'
     """
     templates = {}
     domains = {}
     pubFname = pubConf.publisherIssnTable
+    logging.info("Parsing %s to find highwire ISSNs/webservers" % pubFname)
     for row in maxCommon.iterTsvRows(pubFname):
         if not row.pubName.startswith("HIGHWIRE"):
             continue
@@ -91,8 +93,10 @@ def parseHighwire():
         issns = [i.strip() for i in row.journalIssns.split("|")]
         servers = row.webservers.split("|")
         for issn, server in zip(issns, servers):
-            templates[issn] = "http://www."+server+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
+            template = "http://www."+server+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
+            templates[issn] = template
             domains.setdefault(pubName, set()).add(server)
+            #logging.debug("HIGHWIRE CONFIG %s, %s, %s" % (pubName, template, domains[pubName]))
     return templates, domains
      
 def makeHighwireConfig(domains, templates):
@@ -114,7 +118,7 @@ def highwireConfigs():
     >>> r=highwireConfigs() 
     >>> r["American Association for the Advancement of Science"]["hostnames"]
     set([u'sageke.sciencemag.org', u'sciencemag.org', u'stke.sciencemag.org'])
-    >>> r["American Society for Biochemistry and Molecular Biology"]
+    >>> r["asbmb"]
     {'landingUrl_isFulltextKeyword': '.long', 'hostnames': set([u'jbc.org', u'mcponline.org', u'jlr.org']), 'landingUrl_templates': {u'0022-2275': u'http://www.mcponline.org/cgi/pmidlookup?view=long&pmid=%(pmid)s', u'1535-9476': u'http://www.jlr.org/cgi/pmidlookup?view=long&pmid=%(pmid)s', u'0021-9258': u'http://www.jbc.org/cgi/pmidlookup?view=long&pmid=%(pmid)s'}, 'landingPage_suppFileList_urlREs': ['.*/content.*suppl/DC[0-9]'], 'landingPage_errorKeywords': 'We are currently doing routine maintenance', 'landingPage_ignoreMetaTag': True, 'doiUrl_replace': {'$': '.long'}, 'landingUrl_pdfUrl_replace': {'abstract': 'full.pdf', 'long': 'full.pdf'}, 'suppListPage_suppFile_urlREs': ['.*/content.*suppl/.*']}
     """
     logging.info("Creating config for Highwire publishers")
@@ -136,10 +140,7 @@ def highwireConfigs():
                     templates[issn]=templUrl
                     break
                     
-        #delList = ["HIGHWIRE", "Press"]
-        #pubRealName = pubName
-        #for delWord in delList:
-            #pubRealName = pubRealName.replace(delWord, "").strip()
+        # translate long Highwire publisher name to short pubId from config file
         pubId = crawlPubIds.get("HIGHWIRE "+pubName, pubName)
         res[pubId] = makeHighwireConfig(domains, templates)
     return res
@@ -155,6 +156,7 @@ def initConfig():
     """
     global confDict
     global hostToPubId
+    logging.info("init config")
     confDict = defineConfDict()
     confDict, hostToPubId = prepConfigIndexByHost()
     #print hostToPubId["sciencemag.org"
@@ -170,6 +172,8 @@ def defineConfDict():
 
     # cshlp protocols has no pdfs
     confDict["cshlp"]["landingPage_acceptNoPdf"]=True
+    confDict["cshlp"]["hostnames"].add("jb.oxfordjournals.org")
+
 
     # crawl configuration: for each website, define how to crawl the pages
     # this got more and more complicated over time. Best is to copy/paste from these examples
@@ -247,11 +251,6 @@ def defineConfDict():
         "landingPage_ignoreUrlREs"  : ["http://onlinelibrary.wiley.com/resolve/openurl.genre=journal&issn=[0-9-X]+/suppmat/"],
         "landingPage_stopPhrases" : ["You can purchase online access", "Registered Users please login"]
     },
-    "oup" :
-        confDict.get("Oxford University Press", {}),
-    "asbmb" :
-        confDict.get("American Society for Biochemistry and Molecular Biology", {}),
-
     "lww" :
     # Lippincott Williams aka Wolters Kluwer Health
     # with suppl:
@@ -598,6 +597,15 @@ def prepConfigIndexByHost():
     #print byHost["sciencemag.org"]
     return compCfg, byHost
 
+def printConfig():
+    print ("== PUBLISHER CONFIGS ==")
+    for pubName, pubConf in confDict.iteritems():
+        print pubName, pubConf
+        
+    print ("== HOST TO PUBLISHER ASSIGNMENTS ==")
+    for host, pubId in hostToPubId.iteritems():
+        print("%s\t%s" % (host, pubId)) 
+    
 if __name__=="__main__":
     import doctest
     doctest.testmod()

@@ -542,7 +542,7 @@ def groupPublishersByName(journals):
     return pubDict
 
 def parseNlmCatalog(inFname):
-    " convert NLM's XML format to a tab-sep file and return a dict publisher -> journalCount "
+    " convert NLM's XML format to a tab-sep file and return a list of records "
     if inFname.endswith(".gz"):
         data = gzip.open(inFname).read()
     else:

@@ -236,9 +236,7 @@ def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
     " merge all fingerprints into existing out files in outDir "
     # update the dbm files
     outFname = join(outDir, FINGERPRINTFNAME)
-    #addDictsToDbms([map0, map1, map2], dbms, artIds)
     offset = writeDicts([map0, map1, map2], outFname, artIds)
-    #closeDbms(dbms)
     pubKeyVal.indexKvFile(outFname, offset)
 
     # update the marshal file

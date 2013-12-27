@@ -192,10 +192,10 @@ class SqliteKvDb(object):
                 os.remove(self.dbName)
             maxCommon.delOnExit(self.dbName)
             self.con = sqlite3.connect(self.dbName, isolation_level=isolLevel)
-            self.con.execute("create table IF NOT EXISTS data (key PRIMARY KEY,value)")
         else:
             self.con = sqlite3.connect(self.dbName)
 
+        self.con.execute("create table IF NOT EXISTS data (key PRIMARY KEY,value)")
         self.cur = self.con
         if singleProcess:
             self.cur.execute("PRAGMA synchronous=OFF") # recommended by

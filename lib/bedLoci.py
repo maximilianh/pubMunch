@@ -4,9 +4,14 @@
 from collections import defaultdict
 import sys
 
-def writeFeats(chrom, feats, outf):
+def writeFeats(chrom, feats, outf, nameRewriteDict):
     for feat in feats:
         row = (str(x) for x in feat)
+        name = feat[2]
+        if nameRewriteDict:
+            name = nameRewriteDict[name]
+            row = list(row)
+            row[2] = name
         outf.write(chrom+"\t")
         outf.write("\t".join(row))
         outf.write("\n")
@@ -26,10 +31,15 @@ def removeOverlaps(chromFeats):
     fts2 = {}
     for chrom, featList in chromFeats.iteritems():
         cFts = []
-        i = 1
         lStart, lEnd, lName = featList[0]
+
+        i = 1
         while i < len(featList)-1:
             rStart, rEnd, rName = featList[i]
+            if (rStart==rEnd):
+                # ignore 0-len features
+                i+=1
+                continue
             if (lStart == rStart) and (lEnd==rEnd):
                 # left feature == right feature: just skip
                 lStart, lEnd, lName = featList[i]
@@ -42,8 +52,10 @@ def removeOverlaps(chromFeats):
                 # write llll
                 # write     rrrrrr
                 # left            lllll
-                cFts.append ((lStart, rStart, lName))
-                cFts.append ((rStart, rEnd, rName))
+                if lStart<rStart:
+                    cFts.append ((lStart, rStart, lName))
+                if rStart<rEnd:
+                    cFts.append ((rStart, rEnd, rName))
                 #cFts.append ((rEnd, lEnd, lName))
                 lStart = rEnd
                 i+=1
@@ -54,7 +66,8 @@ def removeOverlaps(chromFeats):
                 #              rrrrrrrrrrrrr
                 # write lllllll   
                 # left         rrrrrrrrrrrrr
-                cFts.append( (lStart, rStart, lName) )
+                if lStart<rStart:
+                    cFts.append( (lStart, rStart, lName) )
                 lStart = rStart
                 lEnd = rEnd
                 lName = rName
@@ -135,7 +148,11 @@ def joinSameName(feats):
         i+=1
     return newFeats
 
-def outputLoci(mids, chromSizes, outf, flankSize=100000):
+def outputLoci(mids, chromSizes, outf, flankSize=100000, nameRewriteDict=None):
+    """
+    output ranges around midpoints
+    nameRewriteDict can change names to other identifiers if needed
+    """
     flankSize = 100000
     # iterate over all midpoints per chrom
     for chrom, midTuples in mids.iteritems():
@@ -150,8 +167,8 @@ def outputLoci(mids, chromSizes, outf, flankSize=100000):
             midmid = left + (right-left)/2
             feats.append((left, midmid, leftName))
             feats.append((midmid+1, right, rightName))
-        # last feature spec case
+        # last feature special case
         lastStart, lastName = midTuples[-1]
         feats.append((lastStart, min(chromSizes[chrom], lastStart+flankSize), lastName))
         feats = joinSameName(feats)
-        writeFeats(chrom, feats, outf)
+        writeFeats(chrom, feats, outf, nameRewriteDict)

@@ -861,7 +861,6 @@ def articleIdToDataset(articleId):
         if rest>0:
             restList.append( (datasetName, rest) )
     restList.sort(key=operator.itemgetter(1))
-    #print restList
     return restList[0][0]
 
 def iterChunks(datasets):
@@ -1075,12 +1074,15 @@ def lookupArticle(con, cur, column, val):
 
     return result
 
-def lookupArticleData(articleId):
+def lookupArticleData(articleId, lookupKey="articleId"):
     " lookup article meta data for an article via a database "
     #conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
     #sql = "SELECT * from %s where articleId=%s" % (dataset, articleId)
     #rows = maxTables.sqlGetRows(conn,sql) 
-    dataset = articleIdToDataset(articleId)
+    if lookupKey=="pmid":
+        dataset = "medline"
+    elif lookupKey=="articleId":
+        dataset = articleIdToDataset(articleId)
     assert(dataset!=None)
     textDir = join(pubConf.textBaseDir, dataset)
 
@@ -1091,12 +1093,13 @@ def lookupArticleData(articleId):
     else:
         cur, con = conCache[textDir]
         
-    sql = "SELECT * from articles where articleId=%s" % (articleId)
+    sql = "SELECT * from articles where %s=%s" % (lookupKey, articleId)
     rows = list(cur.execute(sql))
     #assert(len(rows)==1)
     if len(rows)==0:
         #raise Exception("Could not find article %s in textDir %s" % (articleId, textDir))
         logging.error("Could not find article %s in textDir %s" % (articleId, textDir))
+        return None
     articleData = rows[0]
     #authors = row["authors"]
     #author = author.split(",")[0]+" et al., "+row["journal"]

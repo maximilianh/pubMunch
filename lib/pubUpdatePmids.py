@@ -1,7 +1,7 @@
 # functions to update the crawling PMIDs given a parsed medline update
 
 from collections import defaultdict
-import os, logging, random
+import os, logging, random, shutil
 import maxCommon, pubStore, unidecode, pubConf
 from os.path import *
 
@@ -121,10 +121,18 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
         pmids = [str(x) for x in pmids]
         # randomize order, to distribute errors
         random.shuffle(pmids)
-        os.rename(pmidFname, pmidFname+".bak")
-        pmidFh = open(pmidFname, "w")
+
+        # write all pmids to a tmp file
+        pmidTmpFname = pmidFname+".new"
+        pmidFh = open(pmidTmpFname, "w")
         pmidFh.write("\n".join(pmids))
         pmidFh.close()
+
+        # keep a copy of the original pmid file
+        shutil.copy(pmidFname, pmidFname+".bak")
+        # rename  the tmp file to the original file
+        # to make sure that an intact pmid file always exists
+        os.rename(pmidTmpFname, pmidFname)
         
     #outFname = join(outDir, "issnToPmid.tab")
     #writeIssnPmids(issnToPmid, issnToJournal, outFname)

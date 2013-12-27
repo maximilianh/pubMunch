@@ -167,8 +167,9 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
     # sometimes, if know the publisher upfront, we can derive the landing page from the medline data
     # e.g. via pmid or doi
     if crawlConfig==None:
-        logging.debug("no config, cannot use URL templates")
+        logging.debug("not in -r mode, so not subdirectory=config, cannot use URL templates yet")
     else:
+        # OK, we need to http get at least the landing page
         issn = articleData["printIssn"]
         # need to use print issn as older articles in pubmed don't have any eIssn
         logging.debug("Trying URL template to find landing page for *PRINT* issn %s", issn)
@@ -205,7 +206,7 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
 
     # try medline's DOI
     # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
-    # than via Pubmed outlink, so we need sometimes to rewrite the doi urls
+    # than via Pubmed outlink, so sometimes we need to rewrite the doi urls
     if landingUrl==None and articleData["doi"]!="" and not (preferPmc and articleData["pmcId"]!=""):
         landingUrl, crawlConfig = resolveDoiRewrite(articleData["doi"], crawlConfig)
 
@@ -1120,11 +1121,13 @@ def crawlForFulltext(landingPage, crawlConfig):
                     logging.debug("PDF is wrong mime type, but we accept this case for this publisher")
                     pdfPage = None
 
-        if noLicensePage(pdfPage, crawlConfig):
-            raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense")
+        if pdfPage==None:
+            raise pubGetError("pdfPage came back with error", "mainPdfError", pdfUrl)
 
-        if pdfPage!=None:
-            fulltextData["main.pdf"] = pdfPage
+        if noLicensePage(pdfPage, crawlConfig):
+            raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense", pdfUrl)
+
+        fulltextData["main.pdf"] = pdfPage
 
     # find suppl list and then get suppl files of specified types
     suppListUrl  = findSuppListUrl(landingPage, fulltextPage, crawlConfig)
@@ -1298,14 +1301,6 @@ def getConfig(url):
             logging.debug("Found config for host %s: %s, %s" % (hostname, cfgHost, pubId))
             thisConfig = pubCrawlConf.confDict[pubId]
             return thisConfig
-
-    # not found -> try default HIGHWIRE config, if highwire host
-    #if thisConfig==None and isHighwire(hostname):
-        #thisConfig = getConfig(hostToConfig, "HIGHWIRE")
-        #thisConfig = pubCrawConf.makeHighwireConfig(hostname)
-        #if thisConfig!=None:
-            #logging.debug("Looks like it's a Highwire host")
-            #return thisConfig
 
     raise pubGetError("No config for hostname %s" % hostname, "noConfig", hostname)
 
