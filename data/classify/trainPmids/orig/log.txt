@@ -154,3 +154,6 @@ wget http://downloads.yeastgenome.org/curation/literature/interaction_data.tab -
 # via email from frank schacherer
 # transfacMatrix - Transfac Matrices - gene-regulation.org
 # via email from frank schacherer
+#
+# treebase - got via email from treebase support
+ cp treebase/pmids.txt pos.treebase.txt

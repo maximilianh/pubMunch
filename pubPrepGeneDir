@@ -894,7 +894,7 @@ def updateDict(big, small):
         big[key].update(vals)
     return big
 
-blackList = set(['transcription factor', 'orf', 'protein 3'])
+blackList = set(['transcription factor', 'orf', 'protein 3', 'protease inhibitor'])
 
 def cleanupNames(descToAccs):
     """ 
@@ -942,6 +942,7 @@ def cleanupNames(descToAccs):
     symToAccs = defaultdict(set)
     tooShortSyms = []
     commonWords = []
+    blackListed = []
     maxLen = 2
     for n, accs in descToAccs.iteritems():
         if n=="" or len(n)<=maxLen:
@@ -953,14 +954,16 @@ def cleanupNames(descToAccs):
 
         if n.lower() in blackList:
             logging.debug("name %s is blacklisted" % n)
+            blackListed.append(n)
             continue
         # hgnc symbols can have 14 chars, but most are under 11
         # also assume that all-uppercase words are symbols, even if they are long
-        if len(n)<8 or n.upper()==n:
+        if len(n)<8 or (n.upper()==n and not " " in n and not "," in n):
             symToAccs[n].update(accs)
         else:
             nameToAccs[n].update(accs)
 
+    logging.info("Removed black listed: %s" % ",".join(blackListed))
     logging.info("Removed very short symbols: %s" % ",".join(tooShortSyms))
     logging.info("Removed common English words: %s" % ",".join(commonWords))
 
@@ -1107,6 +1110,7 @@ def parseEntrezNames(taxIds, symToEntrez, nameToAccs):
     data = {}
     likeSym = defaultdict(list)
     entrezSpecific = set()
+    phenoOnly = set()
     #nameToAccs = defaultdict(set)
     # example line:
     # 9606    5308    PITX2   -       ARP1|Brx1|IDG2|IGDS|IGDS2|IHG2|IRID2|Otlx2|PTX2|RGS|RIEG|RIEG1|RS       HGNC:9005|MIM:601542|Ensembl:ENSG00000164093|HPRD:03328|Vega:OTTHUMG00000132837        4       4q25    paired-like homeodomain 2     protein-coding   PITX2   paired-like homeodomain 2       O       ALL1-responsive protein ARP1|all1-responsive gene 1|homeobox protein PITX2|paired-like homeodomain transcription factor 2|pituitary homeobox 2|rieg bicoid-related homeobox transcription factor 1|solurshin  20130416
@@ -1119,6 +1123,10 @@ def parseEntrezNames(taxIds, symToEntrez, nameToAccs):
             #logging.info("Entrez specific symbol %s" % sym)
             entrezSpecific.add(sym)
             continue
+        if row.type_of_gene=="unknown":
+            phenoOnly.add(sym)
+            continue
+
         acc = row.GeneID
         #upAccs = entrezToUp.get(int(acc), None)
         #if upAccs==None:
@@ -1136,17 +1144,29 @@ def parseEntrezNames(taxIds, symToEntrez, nameToAccs):
             names.extend(altNames)
 
         for n in names:
+            #assert("," not in n)
             nameToAccs[n].add(sym)
 
     logging.info("Ignored %d entrez-specific symbols" % len(entrezSpecific))
+    logging.info("Ignored %d phenotype-only symbols" % len(phenoOnly))
     return nameToAccs
 
-def splitQuote(name):
-    """ split quoted named on , """
-    names = name.split('", "')
+def splitQuote(name, isSym=False):
+    """ try to split quoted names on , """
+    if '"' in name:
+        # first split quoted names
+        names = name.split('", "')
+    else:
+        # if there are no quotes, also try to split on just commas
+        names = name.split(",")
     names = [n.strip('"') for n in names]
+    names = [n.strip() for n in names]
     names = [n for n in names if n!=""]
     names = [unidecode.unidecode(n) for n in names]
+    # make sure there are no commas left, if symbol
+    if isSym:
+        for n in names:
+            assert("," not in n)
     return names
 
 def parseHgncNames(data):
@@ -1159,11 +1179,15 @@ def parseHgncNames(data):
     noEntrez = set()
     # headers:
     # HGNC_ID Approved_Symbol Approved_Name   Status  Locus_Type      Locus_Group     Previous_Symbols        Previous_Names Synonyms Name_Synonyms   Chromosome      Date_Approved   Date_Modified   Date_Symbol_Changed     Date_Name_Changed     Accession_Numbers        Enzyme_IDs      Entrez_Gene_ID  Ensembl_Gene_ID Mouse_Genome_Database_ID        Specialist_Database_Links      Specialist_Database_IDs Pubmed_IDs      RefSeq_IDs      Gene_Family_Tag Gene_family_description Record_Type    Primary_IDs     Secondary_IDs   CCDS_IDs        VEGA_IDs        Locus_Specific_Databases        GDB_ID_(mapped_data)   Entrez_Gene_ID_(mapped_data_supplied_by_NCBI)   OMIM_ID_(mapped_data_supplied_by_NCBI)  RefSeq_(mapped_data_supplied_by_NCBI)  UniProt_ID_(mapped_data_supplied_by_UniProt)    Ensembl_ID_(mapped_data_supplied_by_Ensembl)    UCSC_ID_(mapped_data_supplied_by_UCSC) Mouse_Genome_Database_ID_(mapped_data_supplied_by_MGI)  Rat_Genome_Database_ID_(mapped_data_supplied_by_RGD)
+    phenoOnly = set()
     for row in maxCommon.iterTsvRows(fname, makeHeadersUnique=True, encoding="latin1"):
         if "withdrawn" in row.Approved_Name:
             continue
         entrez = row.Entrez_Gene_ID
         sym = row.Approved_Symbol
+        if row.Locus_Type=="phenotype only":
+            phenoOnly.add(sym)
+            continue
 
         if entrez=="":
             #entrez = row.Entrez_Gene_ID_2
@@ -1179,19 +1203,23 @@ def parseHgncNames(data):
         names = [sym]
         names.append(row.Approved_Name)
         names.extend(splitQuote(row.Previous_Names))
-        names.extend(splitQuote(row.Synonyms))
         names.extend(splitQuote(row.Name_Synonyms))
         # symbols
-        names.extend(row.Previous_Symbols.split(", "))
-        names.extend(row.Synonyms.split(", "))
+        #names.extend(row.Previous_Symbols.split(", "))
+        #names.extend(row.Synonyms.split(", "))
+        names.extend(splitQuote(row.Previous_Symbols, isSym=True))
+        names.extend(splitQuote(row.Synonyms, isSym=True))
 
         for n in names:
             data[n].add(sym)
 
+    logging.info("Ignored %d HGNC symbols with only phenotype" % (len(phenoOnly)))
     logging.info("Ignored %d HGNC symbols without entrez ID" % (len(noEntrez)))
     logging.info("Read %d names" % len(data))
     logging.info("Got %d symbol->entrez mappings for %d entrez IDs" % (len(symToEntrez), len(set(symToEntrez.values()))))
     return data, symToEntrez
+
+symBlackList = set(['SDS'])
 
 def readDict(fname, symToEntrez, nameDict, justPass=None, ambiguous=None):
     " parse dict.gz file, resolve symbols to entrezIds and optionally prefix with ? "
@@ -1199,11 +1227,15 @@ def readDict(fname, symToEntrez, nameDict, justPass=None, ambiguous=None):
     notFound = 0
     nameCount = 0
     geneCount = 0
+    blackListCount = 0
     for line in gzip.open(fname):
         symStr, nameStr = line.strip("\n").split("\t")
         syms = symStr.split("/")
         eIds = []
         for sym in syms:
+            if sym in symBlackList:
+                blackListCount +=1
+                continue
             eIds.append(str(symToEntrez[sym]))
 
         isAmb, isPass = False, False
@@ -1224,6 +1256,7 @@ def readDict(fname, symToEntrez, nameDict, justPass=None, ambiguous=None):
 
             nameDict[prefix+entrezId].add(name)
             nameCount +=1
+    logging.info("%d symbols were blacklisted" % blackListCount)
     logging.info("%d genes, %s names (names not found in filters: %d)" % (geneCount, nameCount, notFound))
     return nameDict
 
@@ -1316,7 +1349,7 @@ def makeBandLoci():
 
 def makeGeneDict():
     """ create fastFind dict for genes: 
-    long names and unambigous or rare symbols are taken as they are 
+    long names AND unambigous AND rare symbols are taken as they are 
     short and ambiguous symbols are prefixed with "?"
     Also convert all HGNC symbols to entrez IDs
 

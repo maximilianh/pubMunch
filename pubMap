@@ -44,6 +44,7 @@ STEPS FOR SCANNING TEXT FOR SEQUENCES:
 
 optional:
 "annotMarkers": runs only the accession finder, for testing
+"annotSeq": runs only the DNA/protein finders, for testing
 
 STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
 
@@ -124,7 +125,7 @@ def main(args, options):
 
     command, dataset = args
 
-    allSteps = ["annot", "filter", "blat", "sort",
+    allSteps = ["annot", "annotMarker", "annotSeq", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]
 
     dirs = pubMapProp.PipelineConfig(dataset, options.outDir)

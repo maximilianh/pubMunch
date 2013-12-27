@@ -19,16 +19,12 @@ JOBBASE=/hive/data/inside/pubs/cronjob_runs
 JOBDIR=$JOBBASE/`date +%m-%d-%y_%H:%M`
 FLAGFILE=${JOBBASE}/cronjobRunning.flag
 
-if [ -e "${FLAGFILE}" ]
-then 
-   echo not running cronjob, ${FLAGFILE} exists, looks like an old one is still running.
-   exit 1
-fi
-
-touch $FLAGFILE
-
 mkdir -p $JOBDIR
 cd $JOBDIR
+
+# always download, independent of flag file
+# slightly dangerous, but elsevier and springer NEED
+# to be downloaded, every day
 
 echo JOB DIRECTORY $JOBDIR
 echo DOWNLOAD 
@@ -40,6 +36,15 @@ echo __DOWNLOADING PUBMEDCENTRAL
 $PYTHON $BIN/pubGetPmc $DOWNBASE/pmc
 echo __DOWNLOADING SPRINGER
 $PYTHON $BIN/pubGetSpringer $DOWNBASE/springer
+
+# execute the rest only if there is no ongoing job
+if [ -e "${FLAGFILE}" ]
+then 
+   echo not running cronjob, ${FLAGFILE} exists, looks like an old one is still running.
+   exit 1
+fi
+
+touch $FLAGFILE
 
 echo
 echo __CONVERT MEDLINE and update DB__ 

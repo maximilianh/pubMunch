@@ -2,27 +2,34 @@
 
 # we need the regular expressions module to split text into words
 # (unicode-awareness) and gzip
-import re, gzip
+import re, gzip, logging
 import nltk.tokenize
 from os.path import *
+
+import geneFinder
 
 # FRAMEWORK
 # this variable has to be defined, otherwise the jobs will not run.
 # The framework will use this for the headers in table output file
-headers = ["start", "end", "phosphoWord", "mutation"]
+headers = ["start", "end", "pmid", "protein", "aminoAcid", "position", "phosphoWords"]
 
 # a word that starts with phospho-
-phosphoWord = re.compile(" ([Pp]hospho[a-z]+) ")
-# a mutation of a peptide
-mutRe = re.compile(" ([SYT][0-9]+) ")
+phosphoWordRe = re.compile(" ([Pp]hospho[a-z]+) ")
+# a serine and a position
+siteRes = [re.compile(" (?P<aa>[SYT])(?P<pos>[0-9]+) "), \
+re.compile(" (?P<aa>[sS]erines?|Ser|[tT]hreonines?|Threo|Thr|[tT]yrosines?|Tyr)([ -]|at residue)*(?P<pos>[0-9]+)")]
 
 # this method is called ONCE on each cluster node, when the article chunk
 # is opened, it fills the hugoDict variable
 def startup(paramDict):
     """ 
-    dict format is:
     """
-    pass
+    global seqCache
+    # don't use seqs for gene finding
+    geneFinder.initData(exclMarkerTypes=["dnaSeq"])
+    #seqCacheFname = join(dirname(inFname), "seqCache.gdbm")
+    #logging.debug("Opening seqCache %s" % seqCacheFname)
+    #seqCache = gdbm.open(seqCacheFname, "w")
 
 def findMatches(reDict, text):
     for reType, reObj in reDict.iteritems():
@@ -48,23 +55,41 @@ def annotateFile(article, file):
     #tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
     resultRows = []
 
-    #if " phospho" in text:
-        #print "phos in text", article.pmid
+    # search for genes in text
+    genes, geneSupp = geneFinder.rankGenes(text, pmid=article.pmid)
+    if len(genes)==0:
+        logging.warn("No gene found")
+        return
+
+    # resolve to uniprot IDs
+    uniprotIds = []
+    topGenes = [genes[0][0]]
+    for entrezId in topGenes:
+        upIds = geneFinder.entrezToUp.get(entrezId, None)
+        if upIds==None:
+            logging.warn("cannot map %s to uniprot" % str(entrezId))
+            continue
+        uniprotIds.extend(upIds)
+
+    if len(uniprotIds)==0:
+        uniprotIds = ["UNKNOWN"]
+    #if len(uniprotIds)!=1:
+        #logging.warn("more than one uniprot ID found, skipping text")
+        #return
+
+    # now find sites in text
     for sentStart, sentEnd in tokenizer.span_tokenize(text):
         phrase = text[sentStart:sentEnd]
-        #print "phase", phrase
-        #if " phospho" in phrase:
-            #print "phos in phrase", phrase
 	phosWords = []
-	mutWords = []
-        for match in phosphoWord.finditer(phrase):
+        for match in phosphoWordRe.finditer(phrase):
 		phosWords.append(match.group(1))
-                #print "phosword", match.group(1)
-        for match in mutRe.finditer(phrase):
-		mutWords.append(match.group(1))
-                #print "mutWord", match.group(1)
-	if len(phosWords)!=0 and len(mutWords)!=0:
-            resultRows.append( [sentStart, sentEnd, ",".join(phosWords), ",".join(mutWords)] )
 
-    if len(resultRows)<200:
-        return resultRows
+        for siteRe in siteRes:
+            for match in siteRe.finditer(phrase):
+                aa = match.group("aa")
+                sitePos = match.group("pos")
+                row =[sentStart, sentEnd, article.pmid, ",".join(uniprotIds), aa, sitePos, ",".join(phosWords)]
+                resultRows.append(row)
+
+    #if len(resultRows)<200:
+    return resultRows

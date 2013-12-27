@@ -14,8 +14,9 @@ if sys.version_info[0]==2 and not sys.version_info[1]>=7:
     exit(1)
 
 # load default python packages
-import logging, optparse, os, glob, shutil
+import logging, optparse, os, glob, shutil, gzip
 from os.path import *
+from collections import defaultdict
 
 # add <scriptDir>/lib/ to package search path
 progFile = os.path.abspath(sys.argv[0])
@@ -24,11 +25,24 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, pubAlg, maxCommon, bigBlat 
+import pubConf, pubGeneric, pubAlg, maxCommon, bigBlat , bedLoci
 from os.path import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog : download mrna alignments, sequences and translate them to peptides. The path is taken from pubConf.py. The output is required for the cdna alignments of pubBlat.
+parser = optparse.OptionParser("""usage: %prog [cdna|loci] <db or "all">: prepare cdna database and loci-partitioning of genomes for a given db or all dbs.
+
+db can be "all".
+
+cdna: get refseq alignments from UCSC database, their sequences and translate
+them to peptides. 
+      The output directory is required for the cdna alignments of pubMap.
+      Required: hgsql, faTrans, getRna, blat, faSplit and UCSC mysql access
+
+loci: convert mrna alignments to chrom,start,end-range, use only longest transcript
+      per gene, take exons, assign space around exons to exons and write as bed file
+      annotated with gene symbols and entrez ID. 
+      The output directory is required for the tables step of pubMap
+      Required: a completed cdna step and a copy of the NCBI genes ftp server
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
@@ -38,13 +52,9 @@ parser.add_option("", "--onlyMissing", dest="onlyMissing", action="store_true", 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONS =====
-def prepCdnaDir(db, onlyMissing):
+def prepCdnaDir(dbList, onlyMissing):
     " config targetdir for blatCdna "
     tmpDir    = join(pubConf.getTempDir() , "pubBlatCdna")
-    if db==None:
-        dbList    = pubConf.alignGenomeOrder
-    else:
-        dbList = [db]
     targetDir = pubConf.cdnaDir
     pslTable  = pubConf.cdnaTable
 
@@ -159,10 +169,172 @@ def prepCdnaDir(db, onlyMissing):
         logging.info("deleting tmp dir")
         shutil.rmtree(tmpDir)
 
+def bedToLen(fname):
+    " return lengths of genes in bed "
+    geneLens = {}
+    for l in open(fname):
+        fields = l.split("\t")
+        chrom, start, end, name = fields[:4]
+        length = int(end)-int(start)
+        geneLens[name] = length
+    logging.info("Got lengths for %d transcripts"  %len(geneLens))
+    return geneLens
 
-if len(args)!=0:
-    parser.print_help()
-    exit(1)
+def parseGeneRefseq(ncbiGenesDir, dbList):
+    """
+    parse ncbi genes gene2refseq.gz. return as dict refseqId -> (geneId, symbol)
 
-pubGeneric.setupLogging(progFile, options)
-prepCdnaDir(options.db, options.onlyMissing)
+    RefseqIds that are not in this dict are not longest transcripts and can be ignored.
+    """
+    geneFname = join(ncbiGenesDir, "gene2refseq.gz")
+
+    # for debugging
+    hg19Name = join(ncbiGenesDir, "gene2refseq.9606.gz")
+    if dbList==["hg19"] and isfile(hg19Name):
+        geneFname = hg19Name 
+
+    logging.info("Parsing %s, this can take a while" % geneFname)
+    ifh = gzip.open(geneFname)
+    l1 = ifh.readline()
+    assert(l1.startswith("#")) # if error here, format change?
+
+    refseqToGene = {}
+    geneToSym = {}
+    for line in ifh:
+        line = line.rstrip("\n")
+        fields = line.split('\t')
+        taxId, geneId, status, refseqId = fields[:4]
+        refseqId = refseqId.split(".")[0]
+        geneId = int(geneId)
+        if status=="SUPPRESSED":
+            continue
+        symbol = fields[15]
+        refseqToGene[refseqId]=geneId
+        geneToSym[geneId] = symbol
+    logging.info("Mapped %d refseqs to %s genes" % (len(refseqToGene), len(geneToSym)))
+    return refseqToGene, geneToSym
+        
+def onlyLongestTranscripts(transLengths, refseqToGene, geneToSym):
+    """ given transcript lenghts and transcript to gene / transcript to symbol mappings
+    return dict transcript -> (geneId, symbol) 
+    """
+    # index by geneId
+    geneToRefseq = defaultdict(set)
+    noGene = 0
+    for refseqId in transLengths:
+        geneId = refseqToGene.get(refseqId, None)
+        if geneId==None:
+            noGene += 1
+            continue
+        geneToRefseq[geneId].add(refseqId)
+    logging.info("Skipped %d refseqs without a gene ID" % noGene)
+    logging.info("Got %d geneIds" % len(geneToRefseq))
+
+    # for each gene, take only longest refseqid
+    refseqToGeneSym = {}
+    for geneId, refseqIds in geneToRefseq.iteritems():
+        #print "gene", geneId
+        sym = geneToSym[geneId]
+        #print "sym", sym
+        refseqs = list(refseqIds)
+        refseqAndLens = []
+        for rid in refseqs:
+            transLen = transLengths[rid]
+            refseqAndLens.append( (transLen, rid) )
+        refseqAndLens.sort()
+        #print "allbyLen", refseqAndLens
+        longestTrans = refseqAndLens[-1][1]
+        #print "longest", longestTrans
+        refseqToGeneSym[longestTrans] = str(geneId)+"|"+sym
+    return refseqToGeneSym
+    
+def bedFilterNamesRewrite(filename, bedNewNames):
+    """ Remove all features shorter than minLen bp from 
+    filename and return new temp filename """
+    tmpFile, tmpFilename = pubGeneric.makeTempFile(prefix="pubPrepCdnaDir_filtered", suffix=".bed")
+    logging.debug("Filtering %s to %s" % (filename, tmpFilename))
+    for line in open(filename):
+        chrom, start, end, name, strand = line.rstrip("\n").split("\t")[:5]
+        if name not in bedNewNames:
+            continue
+        newName = bedNewNames[name]
+        line = "\t".join((chrom, start, end, newName, strand))
+        tmpFile.write(line)
+        tmpFile.write("\n")
+    tmpFile.flush()
+    return tmpFile, tmpFilename
+
+def rewriteBedLoci(db, transcriptFname, refseqToGeneSym, lociFname):
+    """
+    Given a transcript file, create a filtered loci file and annotate with gene ids and symbols
+    A "loci" file is a bed file of ranges around the exons of transcripts.
+    The space between exons is split between the two neighboring exons. 
+    A loci file allows to assign any feature (e.g. in intron) to only one single transcript.
+    """
+    # convert transcripts to exons
+    exonFh, exonBedFname = pubGeneric.makeTempFile(prefix="pubPreCdnaDir", suffix=".bed")
+    cmd = "bedToExons %s stdout | sort -k1,1 -k2,2n > %s" % (transcriptFname, exonBedFname)
+    maxCommon.runCommand(cmd)
+    exonFh.flush()
+    # keep only exons of longest transcripts and replace refseqId with gene|symbol
+    geneExonFh, geneExonFname = bedFilterNamesRewrite(exonBedFname, refseqToGeneSym)
+
+    # assign range around exons to closest exon around midpoints
+    outf = open(lociFname, "w")
+    chromSizesFname = bigBlat.findChromSizes(db)
+    outf = open(lociFname, "w")
+    mids = bedLoci.parseBedMids(open(geneExonFname))
+    chromSizes = bedLoci.slurpdict(chromSizesFname)
+    bedLoci.outputLoci(mids, chromSizes, outf)
+    outf.close()
+    logging.info("Loci coords and names written to %s" % lociFname)
+
+def prepLociDir(dbList, onlyMissing):
+    " fill the lociDir with loci files, requires entrez genes data "
+    genesDir = pubConf.ncbiGenesDir
+    lociDir = pubConf.lociDir
+    cdnaDir = pubConf.cdnaDir
+
+    refseqToGene, refseqToSym = parseGeneRefseq(pubConf.ncbiGenesDir, dbList)
+
+    for db in dbList:
+        # convert psl to bed
+        logging.info("creating loci for %s" % db)
+        pslFname = join(cdnaDir, db, "cdna.psl")
+        if not isfile(pslFname):
+            logging.info("Could not find %s, skipping db %s, no refseq alignments" % (pslFname, db))
+            continue
+        tempFh, tempBedFname = pubGeneric.makeTempFile(prefix="pubPreCdnaDir", suffix=".bed")
+        cmd = "pslToBed %s %s " % (pslFname, tempBedFname)
+        maxCommon.runCommand(cmd)
+
+        # rewrite exons in bed: 1) keep only longest transcript per gene 2) add entrez gene id
+        transLengths = bedToLen(tempBedFname)
+        refseqToGeneSym = onlyLongestTranscripts(transLengths, refseqToGene, refseqToSym)
+        lociFname = join(lociDir, db+".bed")
+        rewriteBedLoci(db, tempBedFname, refseqToGeneSym, lociFname)
+
+def main(args, options):
+    if len(args)<=1:
+        parser.print_help()
+        exit(1)
+
+    pubGeneric.setupLogging(progFile, options)
+    cmd = args[0]
+    db = args[1]
+
+    if db=="all":
+        dbList    = pubConf.alignGenomeOrder
+    elif "," in db:
+        dbList = db.split(",")
+    else:
+        dbList = [db]
+
+    if cmd=="cdna":
+        prepCdnaDir(dbList, options.onlyMissing)
+    elif cmd=="loci":
+        prepLociDir(dbList, options.onlyMissing)
+    else:
+        assert(False)
+
+main(args, options)

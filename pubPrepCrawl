@@ -16,8 +16,6 @@ from urllib2 import urlparse
 import xml.etree.cElementTree as etree
 
 ISSNTAB = "issns.tab"
-#PUBLISHERTAB = pubConf.publisherIssnTable
-PUBLISHERTAB = pubConf.journalTable
 
 # ===== FUNCTIONS =======
 
@@ -251,7 +249,7 @@ commands:
 
     %prog pmids <outDir>      - retrieve the PMIDs from Pubmed Eutils for all ISSNs in outDir
     %prog locPmids <baseDir>  - retrieve the PMIDs from a local medline copy for all ISSNs 
-                                in all direct *subdirectories* of outDir
+                                in all direct *subdirectories* of baseDir
 
     usually not needed (internal data dir contains a list of publishers and their journals):
     %prog publishers          - re-create the list of publishers and their journals

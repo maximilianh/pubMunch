@@ -152,8 +152,13 @@ def toUnicode(var):
 
 def submitJobs(inDir, outDir, useCluster):
     " split crawler article info (article info + additional fields) into chunks"
+    outDir = abspath(outDir)
+    # write all results to a tmp dir first
+    tmpOutDir = pubGeneric.makeTempDir("pubConvCrawler", outDir)
+    maxCommon.delOnExit(tmpOutDir)
+
     # get already done PMIDs if we're not running for the first time
-    logging.info("Looking for already converted files")
+    logging.info("Looking for already converted files in %s", outDir)
     minId = pubConf.identifierStart["crawler"]
     updateId, firstArticleId, pmids = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
     donePmids = set([int(x) for x in pmids])
@@ -161,25 +166,34 @@ def submitJobs(inDir, outDir, useCluster):
 
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 
-    tmpIndexDir = join(outDir, "jobfiles.tmp")
+    tmpIndexDir = join(tmpOutDir, "jobfiles.tmp")
     tabExt = ".crawlArticles.tab"
     chunkIds, newPmids = splitCrawlerMeta(inDir, tmpIndexDir, minId, \
         updateId, pubConf.chunkArticleCount, donePmids, tabExt)
 
+    newFnames = []
     for chunkId in chunkIds:
         # create .article.gz
         inChunkFname = join (tmpIndexDir, chunkId+tabExt)
-        outFname = join(outDir, "%s.files.gz" % (chunkId))
-        outArtFname = join(outDir, "%s.articles.gz" % (chunkId))
+        outFname = join(tmpOutDir, "%s.files.gz" % (chunkId))
+        outArtFname = join(tmpOutDir, "%s.articles.gz" % (chunkId))
         maxCommon.mustNotExist(outFname)
         maxCommon.mustNotExist(outArtFname)
+        newFnames.extend((outFname, outArtFname))
         command = "%s %s convertJob {check in exists %s} {check out exists+ %s} {check out exists+ %s}" % \
             (sys.executable, progFile, inChunkFname, outFname, outArtFname)
         runner.submit(command)
     logging.info("Now converting %d articles" % len(newPmids))
     runner.finish(wait=True)
+
+    # now move over files
+    logging.debug("Now moving files %s from temp to final %s" % (newFnames, outDir))
+    for fname in newFnames:
+        shutil.move(fname, outDir)
+    # and mark PMIDs as done
     newPmidsStr = [str(x) for x in newPmids]
     pubStore.appendToUpdatesTxt(outDir, updateId, "0", newPmidsStr)
+    # the temporary directory will get deleted upon program exit
 
 def findFiles(zipDir, eIssn, pmid):
     """ find files for pmid and sort into main and supp. Return dict main/supp -> list of paths """
@@ -318,15 +332,17 @@ def convertOneChunk(inFname, outFname, outArtFname):
 
     writer.close()
 
-def convCrawlDir(args):
+def main(args):
     pubGeneric.setupLogging(progFile, options)
 
     cmd = args[0]
     if cmd!="convertJob":
         inDir, outDir = args
         maxCommon.mustExistDir(outDir)
+        pubGeneric.setLockFile(outDir, "pubConvCrawler")
         if not options.updateDb:
             submitJobs(inDir, outDir, options.cluster)
+
         tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
         dbPath    = join(outDir, "articles.db")
         pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
@@ -339,4 +355,4 @@ if args==[]:
     parser.print_help()
     exit(1)
 
-convCrawlDir(args)
+main(args)

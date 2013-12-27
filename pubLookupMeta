@@ -15,9 +15,12 @@ import pubGeneric, pubStore, pubConf, maxbio
 from pubXml import *
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <inFileOr"stdin"> - convert a list of articleIds to PMIDs by looking them up in our sqlite databases and write to stdout.
+parser = optparse.OptionParser("""usage: %prog [options] <inFileOr"stdin"> - convert a list of articleIds to metadata by looking them up in the sqlite databases and write to stdout.
 
-It's a good idea to sort on PMID first.
+It's a lot faster to do this on sorted files, as disk access is more linear then.
+
+example:
+%d pmids.txt -k pmid
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
@@ -46,6 +49,8 @@ for line in maxbio.openFile(inFname):
     if artData==None:
         continue
     if not headerWritten:
-        print "\t".join(artData._fields)
+        #print "\t".join(artData._fields)
+        print "\t".join(artData.keys())
+        headerWritten = True
     row = ["\t".join([unicode(x).encode("utf8") for x in artData])]
     print "\t".join(row)

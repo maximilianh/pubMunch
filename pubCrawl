@@ -10,12 +10,17 @@ sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 import pubGeneric, pubCrawl, pubConf, maxCommon, pubCrawlConf
 
 def main(args, options):
+    pubGeneric.setupLogging("", options)
     outDirs = args
     if options.report:
         pubCrawl.writeReport(outDirs[0], options.report)
         sys.exit(0)
 
     pubCrawlConf.initConfig()
+
+    if options.printConf:
+        pubCrawlConf.printConfig()
+        sys.exit(0)
 
     try:
         for outDir in outDirs:
@@ -50,9 +55,10 @@ def main(args, options):
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <outDir1> <outDir2> ... - crawl articles with supp files from websites of one or more publishers. Reads files named pmids.txt in outDir.""")
 
-parser.add_option("-r", "--restrictPublisher", dest="restrictPublisher", action="store_true", help="uses the name of the output directory to find webservers for this publisher and limits downloads to the webservers defined in pubConf.py")
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-c", "--printConf", dest="printConf", action="store_true", help="just output current crawl config and stop")
+parser.add_option("-r", "--restrictPublisher", dest="restrictPublisher", action="store_true", help="uses the name of the output directory to find webservers for this publisher and limits downloads to the webservers defined in pubConf.py")
 parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, overrides all other settings")
 parser.add_option("", "--test", dest="testPmid", action="store", help="test crawling with this PMID")
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
