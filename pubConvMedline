@@ -163,10 +163,10 @@ def main(args,options):
     maxIdPerFile = options.idsPerFile
 
     pubGeneric.setupLogging(progFile, options)
-    pubGeneric.setLockFile(outDir, "pubConvMedline")
 
     if os.path.isdir(inDir):
         maxCommon.mustExistDir(outDir)
+        pubGeneric.setLockFile(outDir, "pubConvMedline")
         updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
         updateIds = [updateId]
         pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)

@@ -1555,15 +1555,10 @@ def main(args, options):
 
         dictFname = join(geneDataDir, "geneNames.hgnc.dict.gz")
         writeGzDict(accToNames, dictFname)
-        #fastFind.compileDict(dictFname)
 
         symDictFname = join(geneDataDir, "symbols.hgnc.dict.gz")
         writeGzDict(symToSyns, symDictFname)
-        #fastFind.compileDict(symDictFname, wordRe=fastFind.DASHWORDRE)
 
-        #fname = join(geneDataDir, "ambigousSyms.dict.gz")
-        #writeGzDict(ambigousSyms, fname)
-        
         fname = join(geneDataDir, "hgnc.symToEntrez.marshal.gz")
         fh = gzip.open(fname, "w")
         fh.write(marshal.dumps(symToEntrez))

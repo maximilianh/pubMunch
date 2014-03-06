@@ -26,7 +26,7 @@ class Annotate:
         """ parse dictioary of keywords """
         dictFname = join(dirname(__file__), "data/speciesDict.marshal.gz")
         logging.info("Reading %s" % dictFname)
-        self.lex = fastFind.parseLex(dictFname)
+        self.lex = fastFind.loadLex(dictFname)
         #print "DICT", self.lex.keys()[:10]
 
     def annotateFile(self, article, file):

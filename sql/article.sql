@@ -1,6 +1,4 @@
-#Text to Genome project article data table
-#articleId      externalId      source  origFile        journal printIssn       eIssn   year    articleType     articleSection    authors authorEmails    authorAffiliations      keywords        title   abstract        vol     issue     page    pmid    pmcId   doi     fulltextUrl     time
-
+#Publications tracks article meta data
 CREATE TABLE article (
     articleId bigint not null,	# internal article ID, created during download
     extId varchar(255) not null,	# publisher internal ID e.g. PMCxxxx or doi or PMIDxxxx, or PPI

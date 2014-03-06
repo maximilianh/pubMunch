@@ -22,11 +22,11 @@ journalListDir = join(pubsDataDir, "journalLists")
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
 # it contains the ISSNs and server names for each publisher
 # it is required by pubCrawl for the highwire configuration
-publisherIssnTable = join(staticDataDir, "journals", "publisherIssns.tab")
+publisherIssnTable = join(staticDataDir, "journals", "publishers.tab")
 
 # same info, but one line per journal
 # not used anymore
-# journalTable = join(staticDataDir, "journals", "journalsByPublisher.tab")
+journalTable = join(staticDataDir, "journals", "journals.tab")
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
@@ -47,9 +47,16 @@ ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
 ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens/mRNA_Prot'
 
 # CONVERTER SETTINGS ================================================
+# for auto mode: base data dir with raw input files from publishers or databases
+extDir = '/hive/data/outside/pubs'
+
+# for auto mode: base dir of all publisher text files
+textDir = join(pubsDataDir, "text")
+
 # for pubConvMedline:
+
 # an sqlite db with the content of medline, kept up-to-date
-medlineDbPath = join(pubsDataDir, "text", "medline", "medline.db")
+medlineDbPath = join(textDir, "medline", "medline.db")
 
 # CRAWLER SETTINGS ==================================================
 

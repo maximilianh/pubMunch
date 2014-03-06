@@ -183,15 +183,13 @@ def bedToLen(fname):
 def parseGeneRefseq(ncbiGenesDir, dbList):
     """
     parse ncbi genes gene2refseq.gz. return as dict refseqId -> (geneId, symbol)
-
-    RefseqIds that are not in this dict are not longest transcripts and can be ignored.
     """
     geneFname = join(ncbiGenesDir, "gene2refseq.gz")
 
     # for debugging
     hg19Name = join(ncbiGenesDir, "gene2refseq.9606.gz")
     if dbList==["hg19"] and isfile(hg19Name):
-        geneFname = hg19Name 
+        geneFname = hg19Name
 
     logging.info("Parsing %s, this can take a while" % geneFname)
     ifh = gzip.open(geneFname)
@@ -216,7 +214,8 @@ def parseGeneRefseq(ncbiGenesDir, dbList):
         
 def onlyLongestTranscripts(transLengths, refseqToGene, geneToSym):
     """ given transcript lenghts and transcript to gene / transcript to symbol mappings
-    return dict transcript -> (geneId, symbol) 
+    return dict transcriptId -> (geneId, symbol) 
+    Transcripts not in this dict are not longest transcripts.
     """
     # index by geneId
     geneToRefseq = defaultdict(set)
@@ -252,6 +251,10 @@ def bedFilterNamesRewrite(filename, bedNewNames):
     """ Remove all features shorter than minLen bp from 
     filename and return new temp filename """
     tmpFile, tmpFilename = pubGeneric.makeTempFile(prefix="pubPrepCdnaDir_filtered", suffix=".bed")
+    if pubGeneric.debugMode:
+        tmpFilename = "exons.bed"
+        tmpFile = open(tmpFilename, "w")
+
     logging.debug("Filtering %s to %s" % (filename, tmpFilename))
     for line in open(filename):
         chrom, start, end, name, strand = line.rstrip("\n").split("\t")[:5]
@@ -264,11 +267,22 @@ def bedFilterNamesRewrite(filename, bedNewNames):
     tmpFile.flush()
     return tmpFile, tmpFilename
 
+def writeMidpoints(mids, fname):
+    ofh = open(fname, "w")
+    for chrom, midTuples in mids.iteritems():
+        for mid, name in midTuples:
+            row = [chrom, mid, mid+1, name]
+            row = [str(x) for x in row]
+            ofh.write("\t".join(row))
+            ofh.write("\n")
+    ofh.close()
+    logging.warn("midpoints written to %s" % fname)
+
 def rewriteBedLoci(db, transcriptFname, refseqToGeneSym, lociFname):
     """
     Given a transcript file, create a filtered loci file and annotate with gene ids and symbols
-    A "loci" file is a bed file of ranges around the exons of transcripts.
-    The space between exons is split between the two neighboring exons. 
+    A "loci" file is a bed file of ranges flanking the midpoints of exons.
+    Space between every two midpoints is assigned to both neighbors.
     A loci file allows to assign any feature (e.g. in intron) to only one single transcript.
     """
     # convert transcripts to exons
@@ -284,6 +298,11 @@ def rewriteBedLoci(db, transcriptFname, refseqToGeneSym, lociFname):
     chromSizesFname = bigBlat.findChromSizes(db)
     outf = open(lociFname, "w")
     mids = bedLoci.parseBedMids(open(geneExonFname))
+
+    # when debugging: output midpoints to file
+    if pubGeneric.debugMode:
+        writeMidpoints(mids, "temp.bed")
+
     chromSizes = bedLoci.slurpdict(chromSizesFname)
     bedLoci.outputLoci(mids, chromSizes, outf)
     outf.close()
@@ -304,15 +323,15 @@ def prepLociDir(dbList, onlyMissing):
         if not isfile(pslFname):
             logging.info("Could not find %s, skipping db %s, no refseq alignments" % (pslFname, db))
             continue
-        tempFh, tempBedFname = pubGeneric.makeTempFile(prefix="pubPreCdnaDir", suffix=".bed")
-        cmd = "pslToBed %s %s " % (pslFname, tempBedFname)
+        tempFh, transBedFname = pubGeneric.makeTempFile(prefix="pubPreCdnaDir", suffix=".bed")
+        cmd = "pslToBed %s %s " % (pslFname, transBedFname)
         maxCommon.runCommand(cmd)
 
-        # rewrite exons in bed: 1) keep only longest transcript per gene 2) add entrez gene id
-        transLengths = bedToLen(tempBedFname)
+        # rewrite exons in bed: 1) keep only longest transcript per gene 
+        transLengths = bedToLen(transBedFname)
         refseqToGeneSym = onlyLongestTranscripts(transLengths, refseqToGene, refseqToSym)
         lociFname = join(lociDir, db+".bed")
-        rewriteBedLoci(db, tempBedFname, refseqToGeneSym, lociFname)
+        rewriteBedLoci(db, transBedFname, refseqToGeneSym, lociFname)
 
 def main(args, options):
     if len(args)<=1:

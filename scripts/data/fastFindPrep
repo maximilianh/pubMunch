@@ -12,6 +12,5 @@ logging.basicConfig(level=logging.INFO)
 logging.info("preprocessing dict")
 dictFname = sys.argv[1]
 
-fastFind.prepDict(dictFname)
+fastFind.compileDict(dictFname)
 
-logging.info("written preprocessed dict to %s" % fname)

@@ -22,20 +22,35 @@ def main(args, options):
         pubCrawlConf.printConfig()
         sys.exit(0)
 
+    if options.waitTime:
+        pubCrawl.globalForceDelay = options.waitTime
+
+    totalCount = 0
     try:
         for outDir in outDirs:
+            # do some basic checks on outDir
+            if not isdir(outDir):
+                continue
+            pmidFname = join(outDir, "pmids.txt")
+            if not isfile(pmidFname):
+                logging.info("%s does not exist, skipping dir %s" % (pmidFname, outDir))
+                continue
+
+            # setup logging
             logFname = join(outDir, "crawler.log")
             if options.testPmid:
                 pubGeneric.setupLogging("", options)
             else:
                 pubGeneric.setupLogging("", options, logFileName=logFname, fileMode="a")
 
-            if options.waitTime:
-                pubCrawl.globalForceDelay = options.waitTime
-
-            pubCrawl.crawlFilesViaPubmed(outDir, options.testPmid, \
+            # download files
+            okCount = pubCrawl.crawlFilesViaPubmed(outDir, options.testPmid, \
                 options.pause, options.tryHard, options.restrictPublisher, options.localMedline, \
                 options.fakeUseragent, options.preferPmc, options.skipDb, options.publisher)
+
+            totalCount += okCount
+            logging.info("directory %s: Downloaded %d articles" % (outDir, okCount))
+
     except KeyboardInterrupt:
         logging.info("stopped with ctrl-c, no email sent")
         raise
@@ -47,8 +62,13 @@ def main(args, options):
             text = tb
             maxCommon.sendEmail(pubConf.email, subject, text)
         print "Unexpected error:", sys.exc_info()[0]
-        raise
+        pubCrawl.removeLocks()
 
+        # if there are many directories to do, don't stop here
+        if len(outDirs)==0:
+            raise
+
+    logging.info("Downloaded %d articles in total" % totalCount)
     if options.sendEmail:
         maxCommon.sendEmail(pubConf.email, outDir+" finished", "crawling finished")
 

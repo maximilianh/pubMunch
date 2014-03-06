@@ -51,8 +51,8 @@ defaultDelay = 20
 # can be set from outside to force all delays to one fixed number of secs
 globalForceDelay = None
 
-# filename of lockfile
-lockFname = None
+# filenames of lockfiles
+lockFnames = []
 
 # list of highwire sites, for some reason ip resolution fails too often
 highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", "aspetjournals.org", "fasebj.org", "jleukbio.org"] # too many DNS queries fail, so we hardcode some of the work
@@ -1179,20 +1179,26 @@ def writePmidStatus(outDir, pmid, msg, detail=None):
     else:
         outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, repr(detail)))
 
-def removeLock():
-    logging.debug("Removing lockfile %s" % lockFname)
-    os.remove(lockFname)
+def removeLocks():
+    " remove all lock files "
+    global lockFnames
+    for lockFname in lockFnames:
+        if isfile(lockFname):
+            logging.debug("Removing lockfile %s" % lockFname)
+            os.remove(lockFname)
+    lockFnames = []
 
 def checkCreateLock(outDir):
     " creates lockfile, squeaks if exists, register exit handler to delete "
-    global lockFname
+    global lockFnames
     lockFname = join(outDir, "_pubCrawl.lock")
     if isfile(lockFname):
         raise Exception("File %s exists - it seems that a crawl is running now. \
         If you're sure that this is not the case, remove the lockfile and retry again" % lockFname)
     logging.debug("Creating lockfile %s" % lockFname)
     open(lockFname, "w")
-    atexit.register(removeLock) # register handler that is executed on program exit
+    lockFnames.append(lockFname)
+    atexit.register(removeLocks) # register handler that is executed on program exit
 
 def parsePmids(outDir):
     " parse pmids.txt in outDir and return as list, ignore duplicates "
@@ -1517,14 +1523,17 @@ def resolveDoiRewrite(doi, crawlConfig):
 def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
     localMedline, fakeUseragent, preferPmc, doNotReadDb, usePublisher):
     " download all files for pmids in outDir/pmids.txt to outDir/files "
+    # create lock file
     if not testPmid:
         checkCreateLock(outDir)
 
+    # set user agent
     global userAgent
     if fakeUseragent:
         logging.debug("Setting useragent to Mozilla")
         userAgent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20130406 Firefox/23.0'
 
+    # read lists of pmids and issns to crawl
     if testPmid!=None:
         pmids, ignorePmids, ignoreIssns = [testPmid], [], []
     else:
@@ -1542,19 +1551,27 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
     else:
         pubId = usePublisher
     
+    # if we have one directory per publisher, make sure we only hit the website of this publisher
+    # if we do parallel crawling and go astray too much (e.g. for journals that switch publishers)
+    # then we risk getting blocked. This is only an issue for the first big crawls and a lot less
+    # for small daily updates
     crawlConfig = None
     if restrictPublisher:
         if pubId not in pubCrawlConf.confDict:
             raise Exception("no configuration found for publisher %s in pubsCrawlConfig.py" % pubId)
         crawlConfig  = pubCrawlConf.confDict[pubId]
-        logging.info("Restricting crawling to PMIDs to sites of publisher %s: %s" % \
+        logging.info("Restricting crawl to PMIDs of publisher %s: %s" % \
             (pubId, crawlConfig["hostnames"]))
 
     consecErrorCount = 0
+    okCount = 0
 
+    # now do the crawling
     for pmid in iterateNewPmids(pmids, ignorePmids):
         logging.debug("PMID %s, %s" % (pmid, time.asctime()))
 
+        # set up the limits after which we squeak and fail
+        # too many errors in a row are suspicious, usually something is wrong then
         if tryHarder:
             errorWaitSecs = ERRWAIT_TRYHARD
             maxConSecError = MAXCONSECERR_TRYHARD
@@ -1566,13 +1583,14 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
             global wgetCache
             wgetCache.clear()
 
-            # get pubmed info from local db or ncbi webservice
+            # get pubmed article info from local db or ncbi webservice
             pubmedMeta = None
             if localMedline:
                 pubmedMeta = readLocalMedline(pmid)
             if pubmedMeta==None:
                 pubmedMeta = downloadPubmedMeta(pmid)
 
+            # too many errors for an ISSN are suspicious, we ignore the ISSN then
             checkIssnErrorCounts(pubmedMeta, issnErrorCount, ignoreIssns, outDir)
 
             landingUrl   = findLandingUrl(pubmedMeta, crawlConfig, preferPmc)
@@ -1584,12 +1602,13 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
                 crawlConfig  = getConfig(landingPage["url"])
             else:
                 # bail out if we're in restrict mode and don't know this host
-                if noMatches(landingPage["url"], crawlConfig["hostnames"]) and restrictPublisher:
-                    raise pubGetError("Landing page is on an unknown server", "unknownHost", \
+                if restrictPublisher and noMatches(landingPage["url"], crawlConfig["hostnames"]):
+                    raise pubGetError("Landing page is on an unexpected server", "unknownHost", \
                         landingPage["url"])
 
             checkForOngoingMaintenanceUrl(landingPage["url"])
 
+            # then download all main and supplemental files that we can find
             fulltextData = crawlForFulltext(landingPage, crawlConfig)
 
             if not "main.html" in fulltextData and not "main.pdf" in fulltextData:
@@ -1606,6 +1625,7 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
             consecErrorCount = 0
             if not restrictPublisher:
                 crawlConfig = None
+            okCount += 1
 
         except pubGetError, e:
             if e.logMsg!="issnErrorExceed":
@@ -1629,6 +1649,9 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
                 crawlConfig = None
         except:
             raise
+
+    removeLocks()
+    return okCount
 
 if __name__=="__main__":
     import doctest

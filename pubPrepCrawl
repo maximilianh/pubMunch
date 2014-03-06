@@ -226,7 +226,7 @@ def main(args, options):
     elif command=="pmids":
         getPmidsForIssns(outDir, minYear)
 
-    elif command=="locpmids":
+    elif command=="allpmids":
         medlineDir = pubConf.resolveTextDir("medline")
         #medlineDir = pubConf.resolveTextDir("testMedline")
         pubUpdatePmids.updatePmids(medlineDir, outDir, None, minYear=minYear)
@@ -236,7 +236,7 @@ def main(args, options):
 
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [issns|pmids] <outDir> - prepare the directoriesy for the crawler filling it with ISSNs and PMIDs.
+parser = optparse.OptionParser("""usage: %prog [issns|pmids] <outDir> - prepare the directories for the crawler filling it with ISSNs and PMIDs.
 
 outDir has to correspond to a "publisher name". Publishers are defined in pubCrawlConf.py and need three configuraton items:
 - a name in the NLM Catalog / Pubmed, for pubPrepCrawlDir. This will be used by pubPrepCrawlDir to find the PMIDs.
@@ -248,7 +248,7 @@ commands:
                                 with issn.tab files. resolve name of outDir to publisher using pubConf.
 
     %prog pmids <outDir>      - retrieve the PMIDs from Pubmed Eutils for all ISSNs in outDir
-    %prog locPmids <baseDir>  - retrieve the PMIDs from a local medline copy for all ISSNs 
+    %prog allPmids <baseDir>  - retrieve the PMIDs from a local medline copy for all ISSNs 
                                 in all direct *subdirectories* of baseDir
 
     usually not needed (internal data dir contains a list of publishers and their journals):
