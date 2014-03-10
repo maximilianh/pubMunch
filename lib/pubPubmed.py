@@ -242,6 +242,9 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
             except httplib.BadStatusLine:
                 logging.info("Bad status line on eutils, pausing 120 secs")
                 time.sleep(120)
+            except httplib.IncompleteRead: # this happened only once in three years
+                logging.info("IncompleteRead Error on eutils, pausing for 120 secs")
+                time.sleep(120)
             except ParseError:
                 logging.info("XML ParseError on eUtils, pausing 120 secs")
                 time.sleep(120)

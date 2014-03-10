@@ -3,10 +3,23 @@
 
 from collections import defaultdict
 import sys
+import array, logging
+
+# comment the following line if you don't have numpy installed
+import numpy # numpy is not really needed, you can uncomment some lines below to use native python code
 
 def writeFeats(chrom, feats, outf, nameRewriteDict):
     for feat in feats:
         row = (str(x) for x in feat)
+
+        # make sure we don't produce illegal coords
+        start, end = feat[:2]
+        start = int(start)
+        end = int(end)
+        #if (start>=end):
+            #print feat
+        assert(start<end)
+
         name = feat[2]
         if nameRewriteDict:
             name = nameRewriteDict[name]
@@ -27,65 +40,72 @@ def writeDictFeats(chromFeats, outf):
 def removeOverlaps(chromFeats):
     """ 
     remove overlaps from chrom -> list of (start, end, name) features 
-    """
-    fts2 = {}
-    for chrom, featList in chromFeats.iteritems():
-        cFts = []
-        lStart, lEnd, lName = featList[0]
 
-        i = 1
-        while i < len(featList)-1:
-            rStart, rEnd, rName = featList[i]
-            if (rStart==rEnd):
-                # ignore 0-len features
-                i+=1
-                continue
-            if (lStart == rStart) and (lEnd==rEnd):
-                # left feature == right feature: just skip
-                lStart, lEnd, lName = featList[i]
-                i+=1
-                continue
-            if (lStart <= rStart <= rEnd < lEnd):
-                # right feature is included within left:
-                #       lllllllllllllll
-                #           rrrrrr
-                # write llll
-                # write     rrrrrr
-                # left            lllll
-                if lStart<rStart:
-                    cFts.append ((lStart, rStart, lName))
-                if rStart<rEnd:
-                    cFts.append ((rStart, rEnd, rName))
-                #cFts.append ((rEnd, lEnd, lName))
-                lStart = rEnd
-                i+=1
-                continue
-            elif (rStart < lEnd):
-                # right feature overlaps left:
-                #       lllllllllllll
-                #              rrrrrrrrrrrrr
-                # write lllllll   
-                # left         rrrrrrrrrrrrr
-                if lStart<rStart:
-                    cFts.append( (lStart, rStart, lName) )
-                lStart = rStart
-                lEnd = rEnd
-                lName = rName
-                i+=1
-                continue
-            cFts.append( (lStart, lEnd, lName) )
-            i += 1
-            lStart, lEnd, lName = featList[i]
-        # try to append last feature
-        if i < len(featList):
-            cFts.append( featList[i] )
-        fts2[chrom] = cFts
-    return fts2
+    if some features overlap, flatten them, assign space by length of features, shortest first
+
+    >>> fts = {'chrV': [[8165120, 8568326, 'NR_101742'], [8494873, 8502139, 'NM_072787'], [8495278, 8495363, 'NR_069077'], [8495279, 8495362, 'NR_051802'], [8495280, 8495363, 'NR_070083'], [8495283, 8495362, 'NR_050340'], (250000000, 250000010, "maxchr1")]}
+    >>> removeOverlaps(fts)
+    """
+    logging.info("Flattening overlapping features")
+    fts = {}
+    for chrom, featList in chromFeats.iteritems():
+        logging.debug("flattening chrom %s" % chrom)
+        assert(len(featList)<65536)
+
+        # sort features by length
+        featList.sort(key=lambda x: x[1]-x[0], reverse=True)
+
+        # determine maximum pos on chromosome for array size
+        arrSize = 0
+        for f in featList:
+            fEnd = f[1]
+            arrSize = max(arrSize, fEnd)
+
+        # create array of unsigned ints
+        # this array will hold the one-baed index of the feature with the shortest length 
+        # for each basepair and one beyond, the index 0 means unassigned
+        # version without numpy
+        #levels = array.array("I", (arrSize+1)*[0])
+        # version with numpy
+        levels = numpy.zeros(arrSize, dtype=numpy.uint16)
+
+        # fill array with index+1 of features for each covered bp
+        for featIdx, f in enumerate(featList):
+            start, end, name = f
+            for pos in range(start, end):
+                levels[pos]=featIdx+1
+
+        # get all positions that are different from 0 as an array
+        # this is a lot faster than iterating over the whole array
+        # version without numpy
+        #nonZeros = [i for i in range(0, arrSize) if levels[i]!=0]
+        # version with numpy
+        nonZeros = levels.nonzero()[0]
+
+        # convert array back to features
+        flatFeats = []
+        start = 0
+        for pos in nonZeros:
+            fi = levels[pos]
+            leftFi = levels[pos-1]
+            if fi!=leftFi:
+                if start!=0 and leftFi!=0:
+                    name = featList[leftFi-1][2]
+                    flatFeats.append( (start, pos+1, name) )
+                start = pos
+        # handle last stretch
+        if start!=0:
+            name = featList[leftFi-1][2]
+            flatFeats.append( (start, pos+1, name) )
+        fts[chrom] = flatFeats
+    return fts
+
 
 def parseBedMids(lines):
     """ 
+    Input are bed lines with exons
     returns a dict with chrom -> list of (midpoint of feature, feature name) 
-    for included features, split into three.
+    for included features, split into three parts.
     for overlapping features, split the overlap halfways
     
     """
@@ -98,8 +118,7 @@ def parseBedMids(lines):
         chrom, start, end, name = l.split("\t")[:4]
         start, end = int(start), int(end)
         if lastChrom==chrom and lastStart > start:
-            sys.stderr.write("error: bed file is not sorted, violating feature: %s:%d" % (chrom, start))
-            sys.exit(1)
+            raise Exception("error: bed file is not sorted, violating feature: %s:%d" % (chrom, start))
         chromFts[chrom].append( (start, end, name) )
         lastChrom = chrom
         lastStart = start
@@ -172,3 +191,8 @@ def outputLoci(mids, chromSizes, outf, flankSize=100000, nameRewriteDict=None):
         feats.append((lastStart, min(chromSizes[chrom], lastStart+flankSize), lastName))
         feats = joinSameName(feats)
         writeFeats(chrom, feats, outf, nameRewriteDict)
+
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()
+

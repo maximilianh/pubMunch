@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#!/usr/bin/env pypy
 
 # script to run the various steps of the text classification pipeline
 
@@ -59,8 +58,6 @@ pubFilter pmc,elsevier,crawler dmatrix
 
 """)
 
-#parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
-#parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("", "--skipMap", dest="skipMap", action="store_true", help="skip all map steps")
 parser.add_option("", "--onlyDbs", dest="onlyDbs", action="store", help="run only on a given db, not on all")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="only run the test, nothing else")
@@ -76,9 +73,9 @@ pubGeneric.setupLogging(__file__, options)
 
 # set up two main dirs: one for static data from UCSC and one for local data
 dataDir = pubConf.getStaticDataDir()
-statClassDir = join(dataDir, "classify") # static data, part of code repo
-varDir = join(pubConf.pubsDataDir, "classify") # pipeline data, like temporary files and output
-localDir = join(pubConf.localHeadDir, "classify")
+statClassDir = join(dataDir, "classify") # static data, part of code repo: foreground PMIDs, one list per DB
+varDir       = join(pubConf.pubsDataDir, "classify") # pipeline data, like temporary files and output
+localDir     = join(pubConf.localHeadDir, "classify")
 
 rawWordListFname = join(statClassDir, "wordList.raw.txt")
 wordListFname    = join(statClassDir, "wordList.txt.gz")

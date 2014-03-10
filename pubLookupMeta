@@ -27,6 +27,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
 parser.add_option("-k", "--key", dest="key", action="store", default="articleId", help="key to lookup, default %default") 
+parser.add_option("-c", "--chars", dest="chars", action="store", type="int", default=10, help="number of characters to use from key, default 10")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====

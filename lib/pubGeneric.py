@@ -137,16 +137,19 @@ def verboseFunc(message):
     logging.log(5, message)
 
 def addGeneralOptions(parser, noCluster=False):
-    """ add options that most cmd line programs accept to optparse parser object """
+    """ add the options that most cmd line programs accept to optparse parser object """
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
     if not noCluster:
         parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
     return parser
 
+debugMode=False
+
 def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
         debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
+    global debugMode
     if options!=None and "cluster" in options.__dict__ and options.cluster!=None:
         global forceHeadnode
         # for makeClusterRunner
@@ -154,12 +157,17 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
 
     if options==None:
         stdoutLevel=logging.DEBUG
+
     elif "verbose" in options.__dict__ and options.verbose:
         stdoutLevel=3
         fileLevel = 3
         logging.addLevelName(5,"VERBOSE")
+        debugMode = True
+
     elif options.debug or debug:
         stdoutLevel=logging.DEBUG
+        debugMode = True
+
     elif minimumLog:
         stdoutLevel=logging.ERROR
     else:
@@ -816,6 +824,14 @@ def removeLockFiles():
             continue
         logging.debug("Removing %s" % lockFname)
         os.remove(lockFname)
+
+def setInOutDirs(useDefault, args, pubName):
+    " get in and output dir either from args or create default values, depending on useDefault "
+    if useDefault:
+        inDir, outDir = join(pubConf.extDir, "elsevier"), join(pubConf.textDir, "elsevier")
+    else:
+        inDir, outDir = args[:2]
+    return inDir, outDir
 
 if __name__=="__main__":
     setupLoggingOptions(None)

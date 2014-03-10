@@ -15,6 +15,9 @@ from maxCommon import *
 
 import pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
 
+# make sure that sys.stdout uses utf8
+sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+
 # extension of map output files
 MAPREDUCEEXT = ".marshal.gz"
 
@@ -36,8 +39,10 @@ def loadClass(aMod, className, quiet=False):
 def loadPythonObject(moduleFilename, className, defClass=None):
     """ get function or object from dynamically loaded .py file """
     # must add path to system search path first
+    #if not os.path.isfile(moduleFilename):
+        #moduleFilename = join(pubConf.scriptDir, moduleFilename)
     if not os.path.isfile(moduleFilename):
-        moduleFilename = join(pubConf.scriptDir, moduleFilename)
+        moduleFilename = join(dirname(__file__), "..", "scripts", moduleFilename)
 
     if not os.path.isfile(moduleFilename):
         logging.error("Could not find %s" % moduleFilename)

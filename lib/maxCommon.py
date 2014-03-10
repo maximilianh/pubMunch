@@ -1,7 +1,7 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
     os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil, atexit
 from types import *
-from os.path import isfile, isdir
+from os.path import isfile, isdir, getsize
 from collections import defaultdict
 
 tmpDirs = []
@@ -160,6 +160,9 @@ def iterTsvDir(inDir, ext=".tab.gz", prefix="", headers=None, format=None, field
         raise Exception("No file matches %s" % inMask)
 
     for inFname in inFnames:
+        if getsize(inFname)==0:
+            logging.warn("%s has zero filesize, skipping" % inFname)
+            continue
         for row in iterTsvRows(inFname, headers, format, fieldTypes, noHeaderCount, encoding, fieldSep):
             yield row
         pm.taskCompleted()

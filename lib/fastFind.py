@@ -208,6 +208,7 @@ def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE, toLower=False):
 
 def _lexIter(fileObj, toLower=False):
     """ parse a tab-sep file (identifier<tab>name1|name2|name3|...) 
+    or alternatively a file with just one identifier per line 
     and yield as a list of tuples [(name1, identifier), ...]
     """
     strings = []

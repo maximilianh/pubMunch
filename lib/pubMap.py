@@ -36,6 +36,7 @@ def countUpcaseWords(runner, baseDir, wordCountBase, textDir, updateIds):
 
 def runStepRange(d, allSteps, fromStep, toStep, args, options):
     """ run a range of steps, from-to, given the list of all steps
+    Always skip the debugging steps
     """
 
     if fromStep not in allSteps:
@@ -48,6 +49,7 @@ def runStepRange(d, allSteps, fromStep, toStep, args, options):
     startIdx = allSteps.index(fromStep)
     endIdx   = allSteps.index(toStep)
     nowSteps = allSteps[startIdx:endIdx+1]
+    nowSteps = [x for x in nowSteps if not x.endswith("Dbg")]
 
     logging.info("Running steps %s " % (nowSteps))
     for stepName in nowSteps:

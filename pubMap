@@ -35,6 +35,14 @@ create tracks for genome browser
 
 If target directory already exists, will only process updateIds which have not been processed yet
 
+pubMap requires some external data:
+- UCSC genome sequences as 2bit, found via pubConf.GBCONF which points to genbank.conf
+- optional: genome loci with an assignment genomic range <-> entrez gene Id &
+  symbol, created by pubPrepCdnaDir
+- optional: cdna sequences created by pubPrepCdnaDir
+- optional: genome sequences not part of genbank.conf as 2bit, found via
+  pubConf.nonUcscGenomesDir
+
 STEPS FOR SCANNING TEXT FOR SEQUENCES:
 
 "annot": extract DNA/protein seqs and accessions from text files 
@@ -43,8 +51,8 @@ STEPS FOR SCANNING TEXT FOR SEQUENCES:
      pubMap pmc annot
 
 optional:
-"annotMarkers": runs only the accession finder, for testing
-"annotSeq": runs only the DNA/protein finders, for testing
+"annotMarkerDbg": runs only the accession finder, for testing
+"annotSeqDbg": runs only the DNA/protein finders, for testing
 
 STEPS FOR BLATTING ONTO GENOMES/CDNA/PROT:
 
@@ -125,7 +133,7 @@ def main(args, options):
 
     command, dataset = args
 
-    allSteps = ["annot", "annotMarker", "annotSeq", "filter", "blat", "sort",
+    allSteps = ["annot", "annotMarkerDbg", "annotSeqDbg", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]
 
     dirs = pubMapProp.PipelineConfig(dataset, options.outDir)

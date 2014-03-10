@@ -43,50 +43,54 @@ parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["elsevier"]) 
 parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
-pubGeneric.addGeneralOptions(parser)
-(options, args) = parser.parse_args()
+parser.add_option("", "--auto", dest="auto", action="store_true", help="auto mode: read and write from default folders (<pubConf.pubsInDir>/elsevier, <pubConf.pubsTextDir>/elsevier), doesn't require any arguments", default=None) 
 
 # ----------- MAIN --------------
-# only for debugging
-pubGeneric.setupLogging(progFile, options)
-if options.parse!=None:
-    fname = args[0]
-    logging.info("Parsing file %s, writing to temp.txt" % fname)
-    ofh = codecs.open("temp.txt", "w", encoding="utf8") # etree can only accept normal strings
-    xmlString = open(fname).read()
-    xmlTree   = pubXml.etreeFromXml(xmlString)
-    articleData = pubStore.createEmptyArticleDict()
-    articleData = pubConvElsevier.parseElsevier(xmlTree, articleData)
-    content = pubConvElsevier.treeToAscii_Elsevier(xmlTree)[0]
-    ofh.write("RAW CONTENT with repr()\n")
-    ofh.write(repr(pubStore.replaceSpecialChars(content))+"\n")
-    ofh.write("RAW CONTENT without repr\n")
-    ofh.write(pubStore.replaceSpecialChars(content)+"\n")
-    ofh.write("ARTICLE DATA"+"\n")
-    for key, val in articleData.iteritems():
-        ofh.write("%s\t%s\n" % (key, pubStore.replaceSpecialChars(val)))
-    sys.exit(0)
-    
-if args==[]: 
-    parser.print_help()
-    exit(1)
+def main(args, options):
+    # only for debugging
+    pubGeneric.setupLogging(progFile, options)
+    if options.parse!=None:
+        fname = args[0]
+        logging.info("Parsing file %s, writing to temp.txt" % fname)
+        ofh = codecs.open("temp.txt", "w", encoding="utf8") # etree can only accept normal strings
+        xmlString = open(fname).read()
+        xmlTree   = pubXml.etreeFromXml(xmlString)
+        articleData = pubStore.createEmptyArticleDict()
+        articleData = pubConvElsevier.parseElsevier(xmlTree, articleData)
+        content = pubConvElsevier.treeToAscii_Elsevier(xmlTree)[0]
+        ofh.write("RAW CONTENT with repr()\n")
+        ofh.write(repr(pubStore.replaceSpecialChars(content))+"\n")
+        ofh.write("RAW CONTENT without repr\n")
+        ofh.write(pubStore.replaceSpecialChars(content)+"\n")
+        ofh.write("ARTICLE DATA"+"\n")
+        for key, val in articleData.iteritems():
+            ofh.write("%s\t%s\n" % (key, pubStore.replaceSpecialChars(val)))
+        sys.exit(0)
+        
+    if args==[] and not options.auto:
+        parser.print_help()
+        exit(1)
 
-# normal operation
-inDir, outDir = args
-maxCommon.mustExist(inDir)
+    # normal operation
+    inDir, outDir = pubGeneric.setInOutDirs(options.auto, args, "elsevier")
+    maxCommon.mustExist(inDir)
 
-minId = options.minId
-#chunkCount = options.chunkCount
-#maxSubmit = options.maxSubmit
+    minId = options.minId
+    #chunkCount = options.chunkCount
+    #maxSubmit = options.maxSubmit
 
-if not os.path.isdir(inDir):
-    print "first parameter must be a directory"
-    sys.exit(1)
+    if not os.path.isdir(inDir):
+        print "first parameter must be a directory"
+        sys.exit(1)
 
-runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
-pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+    pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
 
-# if this fails, updates.tab will still be OK... maybe think about this one day...
-tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-dbPath = join(outDir, "articles.db")
-pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+    # if this fails, updates.tab will still be OK... maybe think about this one day...
+    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+    dbPath = join(outDir, "articles.db")
+    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+
+pubGeneric.addGeneralOptions(parser)
+(options, args) = parser.parse_args()
+main(args, options)
