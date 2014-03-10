@@ -111,8 +111,8 @@ pmidToEntrez = None
 # separators before or after the regular expressions below
 endSep = r'''(?=["'\s:,.()])'''
 endSepDash = r'''(?=["'\s:,.()-])'''
-startSep = r'''["'\s,.();:=[]'''
-startSepDash = r'''["'\s,.();:=[-]'''
+startSep = r'''["'\s,.();:=]'''
+startSepDash = r'''["'\s,.();:=-]'''
 
 # Regular expressions need to define a group named "id"
 # see python re engine doc: instead of (bla) -> (?P<id>bla)
