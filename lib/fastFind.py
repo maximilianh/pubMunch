@@ -24,7 +24,7 @@ def recursiveAdd(dict, wordList, id):
     if len(wordList)==0:
         if None in dict:
             raise Exception("duplicate phrase for id: %s" % id)
-        dict[0]=id # 0 terminates phrase
+        dict[0]=id if not(0 in dict) else (dict[0] + ',' + id)# 0 terminates phrase
         return dict
     else:
         subDict = dict.get(wordList[0], {})
@@ -175,7 +175,7 @@ def fastFind(text, lex, wordRe=WORDRE, toLower=False):
     return matches
 
 
-def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE):
+def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE, toLower=False):
     """
     do normal matching, but also add the flanking words to left and right to the annotation tuples
     >>> lex = constructLex([("p1", ["hi there"]), ("p2", ["bababa"])])
@@ -185,6 +185,8 @@ def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE):
     [(18, 26, 'p1', ['word1', 'word2'], ['word5', 'word6'])]
     """
     assert(lex!=None)
+    if toLower:
+        text = text.lower()
     words = splitText(text, wordRe)
     matches = []
     for i in range(0, len(words)):
