@@ -24,7 +24,12 @@ def recursiveAdd(dict, wordList, id):
     if len(wordList)==0:
         if None in dict:
             raise Exception("duplicate phrase for id: %s" % id)
-        dict[0]=id if not(0 in dict) else (dict[0] + ',' + id)# 0 terminates phrase
+        if 0 in dict:
+            elements = set(dict[0].split(','))
+            elements.add(id)
+            dict[0]=','.join(elements)
+        else:
+            dict[0]=id
         return dict
     else:
         subDict = dict.get(wordList[0], {})
