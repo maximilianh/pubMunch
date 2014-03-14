@@ -965,7 +965,6 @@ def cleanupNames(descToAccs):
 
     logging.info("Removed black listed: %s" % ",".join(blackListed))
     logging.info("Removed very short symbols: %s" % ",".join(tooShortSyms))
-    logging.info("Removed common English words: %s" % ",".join(commonWords))
 
     # lowercase all names and remove bracketed stuff
     #brackRe = re.compile("[(]([^)]+)[)]") # does not work for nested brackets
@@ -999,18 +998,21 @@ def cleanupNames(descToAccs):
     # add "palmitoyl-protein thioesterase" -> both accessions
     noNumbers = defaultdict(set)
     numCount = 0
-    for name, accs in okNames.iteritems():
+    for name, accs in nameToAcc.iteritems():
         lastNum = name.split()[-1]
         if not lastNum.isdigit():
             continue
         if int(lastNum)>9:
             continue
         newName = " ".join(name.split()[:-1])
+        if newName.lower() in bncWords:
+            commonWords.append(newName)
+            continue
         noNumbers[newName].update(accs)
         numCount +=1
     logging.info("Found %d names with trailing number, created %d new names without numbers" % \
         (numCount, len(noNumbers)))
-    okNames = updateDict(okNames, noNumbers)
+    nameToAcc = updateDict(nameToAcc, noNumbers)
 
     # reverse name dict
     accToNames = defaultdict(list)
@@ -1044,6 +1046,7 @@ def cleanupNames(descToAccs):
             caseSyns.add(mixSyn)
         symToSyns[symStr].extend(caseSyns)
         
+    logging.info("Removed common English words: %s" % ",".join(commonWords))
     logging.info("Found %d names for %d accs" % (len(nameToAcc), len(accToNames)))
     logging.info("Found %d symbols for %d official symbols" % (len(symToAccs), len(symToSyns)))
     logging.info("Removed %d non-unique names" % len(nonUniqueNames))
