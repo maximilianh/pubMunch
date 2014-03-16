@@ -13,8 +13,9 @@ import fastFind
 class Annotate:
     def __init__(self):
         # this variable has to be defined, otherwise the jobs will not run.
-        self.headers = ["start", "end", "type", "id"]
-
+        self.headers = ["start", "end", "id"]
+        self.onlyMain = True
+        
         # holds the keywords, or the mapping KEYWORD => id, if 
         # ids were found
         self.lex = {}
