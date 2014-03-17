@@ -32,9 +32,11 @@ import fastFind
 
 # all possible commands for this script
 allSteps = ["genePmids", "entrez", "refseq", "seqs",
-    "uniprot", "refseqMap", "uniprotMap", "snp", "oldRefseqGet", "oldRefseqMap",
+    "uniprot", "refseqMap", "uniprotMap", "snp", 
     "oldRefseqProtGet", "oldRefseqProtMap",
-    "genbankGet", "genbankParse", "genbankMap", "omim",
+    "oldRefseqGet", "oldRefseqMap",
+    "genbankProtGet", "genbankProtParse", "genbankProtMap", 
+    "omim",
     "geneNames", "geneDict", 
     "lociNames", "bandLoci",
     "cells"
@@ -43,11 +45,39 @@ allSteps = ["genePmids", "entrez", "refseq", "seqs",
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog {}: reformat uniprot sequences, entrez data etc for mutation finder and write to tools/data/mutFinder 
+parser = optparse.OptionParser("""usage: %prog [step] - reformat various gene-centric databases into tables or DBM filesfor gene/mutation finding or resolution. 
+Output goes to directory {}.
 
-geneNames: do the raw parsing of the entrez/hugo/uniprot databases
-geneDict: disambiguate and filter the gene names and put into for fastFind
-""".format("|".join(allSteps)))
+Possible steps are:
+{}
+
+For the gene dictionary:
+- geneNames: do the raw parsing of the entrez/hugo/uniprot databases
+- geneDict: disambiguate and filter the gene names and put into for fastFind
+
+for the disambiguation and sequence lookup steps of the gene finder:
+- genePmids: convert entrez genes pmid <-> gene table to a DBM database and marshal file
+- entrez: table (entrezId, refSeqId, refSeqProtId) from entrez for human genes
+- refseq: from genome browser hg19: table (protId, transId, cdsStart)
+- uniprot: using uniprot, write a table that links entrezId, uniprotId and genbankIds (also marshal)
+- refseqMap: get refSeq PSL for hg19 
+- genbankProtGet: get genbank sequences linked from human uniprot
+- seqs: load human refseq and uniprot sequences into a DBM database
+- omim: get list of OMIM gene ids
+- lociNames: split hg19 into separate loci around exons and assign them to gene symbols
+- bandLoci: get cytogenetic bands from hg19 and using lociNames, assign them to genes in them
+
+for mutation detection:
+- cells: get a list of cell names from cellosaurus, used as a blacklist for mutations
+
+not used anywhere currently as they didn't improve the recall of mutation finding:
+- uniprotMap: get uniprot -> genome PSL for hg19
+- oldRefseqProtGet: map archived refseqProtIds to new Ids
+- oldRefseqProtMap: get archived refseq prots -> genome PSL for hg19
+- genbankProtParse: write sequences from genbankProtGet into a DBM db
+- genbankProtMap: get genbank -> genome PSL for hg19
+
+""".format(pubConf.geneDataDir, "|".join(allSteps)))
 
 parser.add_option("-t", "--runTests", dest="test", action="store_true", help="run tests")
 pubGeneric.addGeneralOptions(parser)
@@ -229,7 +259,7 @@ def parseUniprotLinks(uniprotDir, taxId):
     return data
 
 def parseEntrezGeneRefseq(taxId, outFname):
-    " create a tab-sep file with entrezGene, comma sep refseqIds, comma sep refseqProtIds"
+    " create a tab-sep file with human entrezGene, comma sep refseqIds, comma sep refseqProtIds"
     fname = join(pubConf.ncbiGenesDir, "gene2refseq.gz")
     logging.info("Parsing %s" % fname)
     # parse refseq into dicts
@@ -281,6 +311,7 @@ def parseEntrezGeneRefseq(taxId, outFname):
     logging.info("Wrote %s" % outFname)
     
 def parseEntrezGenePmids(taxIds, dbm):
+    " convert pmid <-> gene assignments from entrez genes to a dbm file "
     pmid2geneFname = join(pubConf.ncbiGenesDir, "gene2pubmed.gz")
     # at ucsc: /hive/data/outside/ncbi/genes/gene2pubmed.gz
     logging.info("Parsing %s" % pmid2geneFname)
@@ -389,7 +420,7 @@ def makeOldToNewAccs(accs):
     return oldToNew
 
 def parseRefseq(taxId, geneDataDir):
-    """ get prot <-> trans assignment and cdsStart """
+    """ get prot <-> trans assignment and cdsStart for hg19 """
     raName =  join(geneDataDir, "refseq.%s.ra"  % str(taxId))
     logging.info("Getting ra to %s" % raName)
     cmd = "gbGetSeqs -gbRoot=/hive/data/outside/genbank RefSeq mrna %s -get=ra -db=hg19 -inclVersion -native" % raName
@@ -1281,7 +1312,7 @@ def readList(fname):
         yield line.strip().split()[0]
     
 def makeLociNames():
-    #hgncFn = join(pubConf.hgncDir, "hgnc_complete_set.txt")
+    """ split human genome into separate regions around genes and assign them to a gene symbol """
     hgncFn = pubConf.hgncFname
     symFname = join(pubConf.getTempDir(), "allSym.txt")
     filterSymCmd = "cut -f2 %(hgncFn)s | grep -v withdrawn > %(symFname)s" % locals()
@@ -1324,6 +1355,7 @@ def overlapBeds(selectFname, inFname):
     return inToSel
 
 def makeBandLoci():
+    " extract cytogenetic bands from human genome and assign it to gene symbols via lociNames "
     humanBandFn = join(pubConf.markerDbDir, "hg19.band.bed")
     lociFn = join(pubConf.geneDataDir, "loci.bed")
     geneToBand = overlapBeds(humanBandFn, lociFn)
@@ -1472,17 +1504,13 @@ def main(args, options):
 
     if step=="genePmids" or step=="all":
         # parse entrez gene into dict pmid -> list of entrez ids
+        # we also create a marshal file for jython
         entrezFname = join(geneDataDir, "pmid2entrez.dbm")
-        # jython doesn't have gdbm, we so also write to a semidbm file
-        dbm = gdbm.open(entrezFname, "nf")
-        #dumbDbm = dumbdbm.open(dumbEntrezFname, "nf") # dumbdbm was annoyingly slow
-        #dbm2 = dumbdbm.open(dumbEntrezFname, "w")
-        #dumbEntrezFname = join(geneDataDir, "pmid2entrez.dumbdbm")
         dataFname = join(geneDataDir, "pmid2entrez.marshal.gz")
+        dbm = gdbm.open(entrezFname, "nf")
         data = parseEntrezGenePmids(taxIds, dbm)
         open(dataFname, "w").write(zlib.compress(marshal.dumps(data)))
 
-        #logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dumbEntrezFname))
         logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dataFname))
         dbm.close()
         #dbm2.close()
@@ -1530,6 +1558,7 @@ def main(args, options):
         getGenbankAccs(taxId, gbIdFname)
         getGenbankSeqs(gbIdFname, gbFname)
         #downloadFromGenbankFast(accs, gbFname) doesn't work
+
     if step=="genbankProtParse":
         gbFname = join(geneDataDir, "genbank.%d.gb" % taxId)
         #dnaFaFname = join(geneDataDir, "genbank.%d.dna.fa" % taxId)
