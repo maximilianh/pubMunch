@@ -894,7 +894,8 @@ def updateDict(big, small):
         big[key].update(vals)
     return big
 
-blackList = set(['transcription factor', 'orf', 'protein 3', 'protease inhibitor'])
+# set with lowercase terms that shall not be added to the dictionary
+blackList = set(['dynamin', 'superoxide dismutase', 'renal cell carcinoma', 'collagenase', 'intercellular adhesion molecule', 'hormone receptor', 'serine threonine kinase', 'differentiation', 'cyclin dependent kinase', 'epidermal growth factor', 'mitogen activated protein kinase', 'aquaporin', 'calmodulin', 'toll like receptor', 'transmembrane protein', 'adenylyl cyclase', 'poly adp ribose polymerase', 'heat shock protein', 'platelet derived growth factor', 'complement component', 'angiotensin ii', 'ifn gamma', 'adenylate cyclase', 'caspase 3', 'proteoglycan', 'g protein', 'aurora', 'polypeptide', 'atp binding cassette', 'insulin like', 'argonaute', 'neuronal differentiation', 'kinesin', 'tumor necrosis factor alpha', 'nf kappab', 'chloride channel', 'transforming growth factor beta', 'tropomyosin', 'growth hormone', 'serine protease', 'transferrin', 'receptor tyrosine kinase', 'cyclooxygenase 2', 'rna binding protein', 'dna ligase', 'proline rich', 'tyrosine kinase', 'calpain', 'glycoprotein', 'nadph oxidase', 'aspartate aminotransferase', 'interferon alpha', 'amyotrophic lateral sclerosis', 'neurofilament', 'claudin', 'fibronectin', 'estrogen receptor', 'metabotropic glutamate receptor', 'cell adhesion molecule', 'adiponectin', 'prostate cancer', 'interleukin 6', 'midline', 'thrombocytopenia', 'kallikrein', 'gtp binding protein', 'vascular endothelial growth factor', 'zinc finger protein', 'interferon gamma', 'endothelin', 'p glycoprotein', 'vimentin', 'peroxiredoxin', 'epidermal growth factor receptor', 'insulin like growth factor', 'zinc finger', 'neurotrophin', 'cysteine protease', 'splicing factor', 'integral membrane protein', 'glutathione s transferase', 'nitric oxide synthase', 'keratin', 'proto oncogene', 'atp synthase', 'heavy chain', 'glutamate receptor', 'potassium channel', 'death receptor', 'ribonuclease', 'glycogen synthase', 'angiotensin converting enzyme', 'trypsin', 'protein can', 'dynactin', 'thrombospondin', 'tnf alpha', 'transferrin receptor', 'histone deacetylase', 'calcium binding protein', 'aldolase', 'glutathione peroxidase', 'hydroxysteroid dehydrogenase', 'progesterone receptor', 'myosin heavy chain', 'alzheimer disease', 'protease inhibitor', 'a protein kinase', 'alanine aminotransferase', 'transglutaminase', 'beta catenin', 'c reactive protein', 'hepatocellular carcinoma', 'cadherin', 'albumin', 'programmed cell death', 'ubiquitin like', 'fibroblast growth factor', 'a kinase', 'carbonic anhydrase', 'parathyroid hormone', 'g protein coupled receptor', 'matrix metalloproteinase', 'parkinson disease', 'tumor necrosis factor', 'muscle specific', 'exonuclease', 'pierce', 'homeobox', 'microtubule associated protein', 'salvador', 'map kinase', 'tumor suppressor', 'lysozyme', 'interferon regulatory factor', 'syntaxin', 'c jun n terminal kinase', 'tetraspanin', 'modifier', 'signal transducer and activator of transcription', 'insulin receptor substrate', 'nucleolar protein', 'catenin', 'extracellular signal regulated kinase', 'osteosarcoma', 'f box protein', 'macrophage inflammatory protein', 'bone morphogenetic protein', 'aldehyde dehydrogenase', 'interleukin 2', 'protein tyrosine kinase', 'breast cancer cell', 'proteinase', 'abc transporter', 'thioredoxin', 'membrane bound', 'acute myeloid leukemia', 'interleukin', 'retinoblastoma', 'activator', 'dna methyltransferase', 'transcription factor', 'surface antigen', 'alcohol dehydrogenase', 'catalase', 'cytochrome c', 'neuraminidase', 'importin', 'cytochrome p450', 'cyclin d1', 'e cadherin', 'cytokeratin', 'mitogen activated protein kinase kinase', 'cell cycle progression', 'nuclear protein', 'hexokinase', 'nadh dehydrogenase', 'serum albumin', 'focal adhesion kinase', 'nerve growth factor'])
 
 def cleanupNames(descToAccs):
     """ 
@@ -936,49 +937,34 @@ def cleanupNames(descToAccs):
                 newDescs[newName] = accs
     descToAccs = newDescs
 
-    # split into symbols and names by length and remove two-letter symbols
-    # and common English words 
+    # split into symbols and names by length
     nameToAccs = defaultdict(set)
     symToAccs = defaultdict(set)
-    tooShortSyms = []
-    commonWords = []
-    blackListed = []
+
+    # containers for removed gene names and symbol for logging purposes
+    tooShortSyms = set()
+    commonWords = set()
+    blackListed = set()
+
     maxLen = 2
     for n, accs in descToAccs.iteritems():
         if n=="" or len(n)<=maxLen:
-            tooShortSyms.append(n)
+            tooShortSyms.add(n)
             continue 
-        if n.lower() in bncWords:
-            commonWords.append(n)
-            continue
-
-        if n.lower() in blackList:
-            logging.debug("name %s is blacklisted" % n)
-            blackListed.append(n)
-            continue
-        # hgnc symbols can have 14 chars, but most are under 11
-        # also assume that all-uppercase words are symbols, even if they are long
+        # distinguish between gene symbols (short or all-uppercase) and gene names
         if len(n)<8 or (n.upper()==n and not " " in n and not "," in n):
             symToAccs[n].update(accs)
         else:
-            nameToAccs[n].update(accs)
+            # lowercase all gene names and remove bracketed stuff
+            n = removeBrackets(n)
+            n = n.replace("  ", " ")
+            n = n.replace(" , ", ", ")
+            nameToAccs[n.lower()].update(accs)
 
-    logging.info("Removed black listed: %s" % ",".join(blackListed))
-    logging.info("Removed very short symbols: %s" % ",".join(tooShortSyms))
-
-    # lowercase all names and remove bracketed stuff
-    #brackRe = re.compile("[(]([^)]+)[)]") # does not work for nested brackets
-    cleanNames = defaultdict(set)
-    for n, accs in nameToAccs.iteritems():
-        n = removeBrackets(n)
-        n = n.replace("  ", " ")
-        n = n.replace(" , ", ", ")
-        cleanNames[n.lower()].update(accs)
-    nameToAccs = cleanNames
-
-    # remove disease names and non-unique names
+    # A) Clean up gene names
+    # remove disease names, non-unique names and names that are too short
     # and create dict name -> acc string
-    removedNames = {}
+    diseaseLikeNames = {}
     nonUniqueNames = {}
     tooShortNames = {}
     okNames = defaultdict(set)
@@ -986,7 +972,7 @@ def cleanupNames(descToAccs):
         if len(accs)>1:
             nonUniqueNames[name] = accs
         elif name.endswith("disease") or name.endswith("syndrome"):
-            removedNames[name] = accs
+            diseaseLikeNames[name] = accs
         elif len(name)<7:
             tooShortNames[name] = accs
         else:
@@ -1012,46 +998,72 @@ def cleanupNames(descToAccs):
         numCount +=1
     logging.info("Found %d names with trailing number, created %d new names without numbers" % \
         (numCount, len(noNumbers)))
-    nameToAcc = updateDict(nameToAcc, noNumbers)
+    nameToAcc = updateDict(okNames, noNumbers)
 
     # reverse name dict
     accToNames = defaultdict(list)
-    for name, syms in nameToAcc.iteritems():
-        accToNames["/".join(syms)].append(name)
-        
-    # find non-unique symbols
-    nonUniqueSyms = {}
-    for sym, accs in symToAccs.iteritems():
-        if len(accs)>1:
-            nonUniqueSyms[sym] = accs
-
+    for name, accs in nameToAcc.iteritems():
+        # split and join words in name like done in fastFind -> results in same form of the name as it appears later in lex -> helps filter out all blacklisted words
+        words = fastFind.WORDRE.findall(name)
+        joinedWords = ' '.join(words)
+        # remove common words (in BNC) and blacklisted words
+        if joinedWords.lower() in bncWords:
+            commonWords.add(name)
+            continue
+        if joinedWords.lower() in blackList:
+            logging.debug("name %s is blacklisted" % n)
+            blackListed.add(name)
+            continue
+        accToNames["/".join(accs)].append(name)
+    
+    # B) Clean up gene symbols
     # symbol table is: synonym -> list of official symbols
     # ERV46 -> set('ERGIC3')
     # now inverse this symbol table 
     # for non-unique symbols, add all possible symbols as /-separated
     # (slash is not a valid character in official hgnc symbols)
+    nonUniqueSyms = {}
     symToSyns = defaultdict(list)
-    for syn, syms in symToAccs.iteritems():
-        symStr = "/".join(syms)
-        #if altSym not in offSyms and altSym!="":
-        caseSyns = set()
-        # add a mixed-case and an uppercase version of all symbols
-        # e.g. CDK1 -> Cdk1
-        caseSyns.add(syn)
-        # the uppercase
-        caseSyns.add(syn.upper())
-        # the mix case
-        if syn[0].isalpha():
-            mixSyn = syn[0].upper()+syn[1:].lower()
-            caseSyns.add(mixSyn)
-        symToSyns[symStr].extend(caseSyns)
-        
+    for name, accs in symToAccs.iteritems():
+        # find non-unique symbols
+        if len(accs)>1:
+            nonUniqueSyms[name] = accs
+        else:
+            symStr = "/".join(accs)
+            #if altSym not in offSyms and altSym!="":
+            caseSyns = set()
+            # add a mixed-case and an uppercase version of all symbols
+            # e.g. CDK1 -> Cdk1
+            caseSyns.add(name)
+            # the uppercase
+            caseSyns.add(name.upper())
+            # the mix case
+            if name[0].isalpha():
+                mixSyn = name[0].upper()+name[1:].lower()
+                caseSyns.add(mixSyn)
+
+            # remove common and blacklisted symbols from dictionary
+            caseSynsClean = set()
+            for name in caseSyns:
+                if name.lower() in bncWords:
+                    commonWords.add(name)
+                    continue
+                if name.lower() in blackList:
+                    logging.debug("name %s is blacklisted" % name)
+                    blackListed.add(name)
+                    continue
+                caseSynsClean.add(name)
+
+            symToSyns[symStr].extend(caseSynsClean)
+
+    logging.info("Removed black listed: %s" % ",".join(blackListed))
+    logging.info("Removed very short symbols: %s" % ",".join(tooShortSyms))
     logging.info("Removed common English words: %s" % ",".join(commonWords))
     logging.info("Found %d names for %d accs" % (len(nameToAcc), len(accToNames)))
     logging.info("Found %d symbols for %d official symbols" % (len(symToAccs), len(symToSyns)))
     logging.info("Removed %d non-unique names" % len(nonUniqueNames))
     logging.info("Removed %d too-short names" % len(tooShortNames))
-    logging.info("Removed %d names that look like disease names" % len(removedNames))
+    logging.info("Removed %d names that look like disease names" % len(diseaseLikeNames))
     return accToNames, symToSyns, nonUniqueSyms
 
 def parseUniprotNames(taxIds, uniprotDir, nameToAccs, hgncSyms):
