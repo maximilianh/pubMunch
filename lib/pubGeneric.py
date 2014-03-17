@@ -760,6 +760,9 @@ def concatIdentifiers(inDir, outDir, outFname):
     logging.debug("Concatting exernalIds from %s to %s" % (inMask, outPath))
     extIds = []
     for inFname in idFnames:
+        if os.path.getsize(inFname)==0:
+            logging.warn("file %s has zero size")
+            continue
         for row in maxCommon.iterTsvRows(inFname):
             extIds.append(row.externalId)
 

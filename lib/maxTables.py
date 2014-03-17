@@ -613,6 +613,9 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], pri
     sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(headers), ", ".join(["?"]*len(headers)))
     for tsvName in tsvFnames:
         logging.debug("Importing %s" % tsvName)
+        if os.path.getsize(tsvName)==0:
+            logging.debug("Skipping %s, zero size" % tsvName)
+            continue
         rows = list(maxCommon.iterTsvRows(tsvName))
         logging.log(5, "Running Sql %s against %d rows" % (sql, len(rows)))
         cur.executemany(sql, rows)

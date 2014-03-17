@@ -13,7 +13,7 @@ progDir  = os.path.dirname(progFile)
 pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
-import pubGeneric, util
+import pubGeneric, util, pubConf
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current PMC copy from PMC ftp server
@@ -38,6 +38,8 @@ parser.add_option("-c", "--check", dest="check", action="store_true", \
     help="do not use file_list.txt to find the right files, but check file existence on disk")
 parser.add_option("", "--justCheck", dest="justCheck", action="store_true", \
     help="just check if all files in the current file_list.txt are really on disk")
+parser.add_option("", "--auto", dest="auto", action="store_true", \
+    help="automatically set the output directory based on pubConf.textBaseDir")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -177,7 +179,15 @@ def checkPmc(outDir):
     logging.error("%d file missing" % missCount)
 
 def main(args, options):
-    outDir = args[0]
+    if args==[] and not options.auto:
+        parser.print_help()
+        exit(1)
+
+    if options.auto:
+        outDir = join(pubConf.extDir, "pmc")
+    else:
+        outDir = args[0]
+
     if not isdir(outDir):
         logging.info("%s does not exist" % outDir)
         sys.exit(1)
@@ -192,9 +202,5 @@ def main(args, options):
     pubGeneric.removeLockFiles()
 
 # ----------- MAIN --------------
-if args==[]:
-    parser.print_help()
-    exit(1)
-
 main(args, options)
 
