@@ -157,3 +157,6 @@ wget http://downloads.yeastgenome.org/curation/literature/interaction_data.tab -
 #
 # treebase - got via email from treebase support
  cp treebase/pmids.txt pos.treebase.txt
+
+# drugbank
+less drugbank.txt | gawk '/Drug_References/ {f=1} /Essentiality:/ {f=0} f' | less | grep -v \# | less | cut -f1 | less | sort -u | tr -s '\n' > ~/projects/pubs/tools/data/classify/trainPmids/orig/pos.drugbank.txt

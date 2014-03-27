@@ -782,7 +782,7 @@ def parseUpdatesTab(outDir, minArticleId):
     if row==None:
         logging.warn("empty file %s, this seems to be the first run in this dir" % inFname)
         return 0, minArticleId, []
-    logging.debug("Parsed updates.tab, files already done are %s" % doneFiles)
+    logging.debug("Parsed updates.tab, %d files already done" % (len(doneFiles)))
     return int(row.updateId)+1, int(row.lastArticleId)+1, doneFiles
 
 def listAllUpdateIds(textDir):

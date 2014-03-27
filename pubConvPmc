@@ -37,8 +37,10 @@ parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="i
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pmc"]) 
 parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
 #parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
-parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export data to sqlite db defined in pubConf") 
-pubGeneric.addGeneralOptions(parser)
+parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export data to sqlite db defined in pubConf")
+parser.add_option("", "--auto", dest="auto", action="store_true", help="set input and output dirs based on pubConf directories")
+
+pubGeneric.addGeneralOptions(parser, logDir=True)
 (options, args) = parser.parse_args()
 
 
@@ -321,7 +323,7 @@ def createIndexFile( inDir, inFname, pmcToPmid, \
         logging.warn("No new pmcIds to process")
         return None, None
     else:
-        logging.info("%d pmcIDs will be processed now" % len(pmcIdsFiles))
+        logging.critical("%d pmcIDs will be processed now" % len(pmcIdsFiles))
 
 
     if chunkSize!=None:
@@ -377,9 +379,10 @@ def parsePmcIds(pmcTabFname):
             data[rec.PMCID]=pmid
     return data
 
-def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner):
+def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chunkCount):
     " create and split index file and submit jobs to cluster system, one per index chunk "
     # parse info from last runs
+    logging.info("Reading index files, splitting")
     updateId, articleId, donePmcIds = pubStore.parseUpdatesTab(finalOutDir, minArticleId=minId)
 
     # get correct PMIDs (10% of PMIDs are wrong in XML)
@@ -389,6 +392,8 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner):
     # write big index
     outDir     = tempfile.mktemp(dir = finalOutDir, prefix = "update%d.tmp." % updateId)
     os.makedirs(outDir)
+    maxCommon.delOnExit(outDir)
+
     indexFile = join(outDir, "%d_index.tab" % updateId)
     fileListFname = "file_list.txt" 
     if int(updateId)==0:
@@ -571,41 +576,46 @@ def convertOneChunk(inIndexFile, outFile):
     store.close()
 
 # ----------- MAIN --------------
-if args==[]:
-    parser.print_help()
-    exit(1)
+def main(args, options):
+    if args==[] and not options.auto:
+        parser.print_help()
+        exit(1)
 
-if len(args)==1:
-    # debug mode, just specify an xml file
+    if len(args)==1:
+        # debug mode, just specify an xml file
+        pubGeneric.setupLogging(progFile, options)
+        articleData = pubStore.createEmptyArticleDict()
+        articleData, suppFileDict = parsePmcXml(open(args[0]).read(), articleData)
+        for key, val in articleData.iteritems():
+            print key, val
+        print suppFileDict
+        sys.exit(0)
+
+    if options.auto:
+        pmcDir, outDir = join(pubConf.extDir, "pmc"), join(pubConf.textBaseDir, "pmc")
+    else:
+        pmcDir, outDir = args
+    maxCommon.mustExist(pmcDir)
+
+    minId = options.minId
+    chunkCount = options.chunkCount
+    dryRun = options.dryRun
+
     pubGeneric.setupLogging(progFile, options)
-    articleData = pubStore.createEmptyArticleDict()
-    articleData, suppFileDict = parsePmcXml(open(args[0]).read(), articleData)
-    for key, val in articleData.iteritems():
-        print key, val
-    print suppFileDict
-    sys.exit(0)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 
-pmcDir, outDir = args
-maxCommon.mustExist(pmcDir)
+    if os.path.isdir(pmcDir):
+        maxCommon.mustExistDir(outDir)
+        if not options.updateDb:
+            splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, runner, chunkCount)
+        tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+        dbPath = join(outDir, "articles.db")
+        pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+    else:
+        inIndexFile = pmcDir
+        outFile = outDir
+        logFname = join(dirname(outFile), basename(outFile).split(".")[0]+".log")
+        pubGeneric.setupLogging(__file__, options, logFileName=logFname)
+        convertOneChunk(inIndexFile, outFile)
 
-minId = options.minId
-chunkCount = options.chunkCount
-dryRun = options.dryRun
-
-pubGeneric.setupLogging(progFile, options)
-runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
-
-if os.path.isdir(pmcDir):
-    maxCommon.mustExistDir(outDir)
-    if not options.updateDb:
-        splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, runner)
-    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-    dbPath = join(outDir, "articles.db")
-    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
-else:
-    inIndexFile = pmcDir
-    outFile = outDir
-    logFname = join(dirname(outFile), basename(outFile).split(".")[0]+".log")
-    pubGeneric.setupLogging(__file__, options, logFileName=logFname)
-    convertOneChunk(inIndexFile, outFile)
-
+main(args, options)

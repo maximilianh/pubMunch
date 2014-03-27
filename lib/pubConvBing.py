@@ -419,12 +419,10 @@ def convertOneChunk(gzDir, idFname, inIndexFile, outFile):
             logging.info("Ignoring %s, marked as duplicated" % row.url)
             continue
         #fields are: ["articleId", "tsvFile", "url", "offset"]
-        #print "line", line[:20]
         fields = line.split("\t")
         url = fields[0]
         logging.debug("Replacing weird bing chars")
         content = fields[-1]
-        #print "urls", repr(url), repr(row.url)
         assert(url==row.url)
         assert(len(content)!=0)
         url = url.decode("utf8")

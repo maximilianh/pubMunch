@@ -119,7 +119,7 @@ def deleteFiles(ourPmc, staleIds, outDir):
             logging.warn("Cannot delete local file %s" % path)
             continue
         pubGeneric.appendLog(outDir, "delete", pmcId+":"+fname)
-    logging.info("Deleted %d files" % delCount)
+    logging.info("Deleted %d stale local files" % delCount)
 
 def updatePmc(outDir, checkOnDisk):
     """ compare remote and local file_list.txt and download new files
@@ -129,7 +129,7 @@ def updatePmc(outDir, checkOnDisk):
     """
 
     # download from server to .current.txt
-    logging.info("Inferring missing PMC-IDs by comparing file_list.txt")
+    logging.debug("Inferring missing PMC-IDs by comparing file_list.txt")
     newListFname = "file_list.current.txt"
     newListPath = join(outDir, newListFname)
     pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
@@ -152,8 +152,8 @@ def updatePmc(outDir, checkOnDisk):
     missingIds = set(theirPmc).difference(ourPmc)
     staleIds = set(ourPmc).difference(theirPmc) # stale = on our disk but not on ftp
 
-    logging.info("Missing here: %d" % len(missingIds))
-    logging.info("Stale here: %d" % len(staleIds))
+    logging.debug("Missing here: %d" % len(missingIds))
+    logging.debug("Stale here: %d" % len(staleIds))
 
     if checkOnDisk:
         missingIds = None
@@ -162,7 +162,7 @@ def updatePmc(outDir, checkOnDisk):
     downloadFiles(ftpConn, pmcUrl, theirPmc, missingIds, outDir, options.parallel)
     deleteFiles(ourPmc, staleIds, outDir)
 
-    logging.info("Renaming file list files")
+    logging.debug("Renaming file list files")
     locListOld = join(outDir, "file_list.old.txt")
     os.rename(locListPath, locListOld)
     os.rename(newListPath, locListPath)

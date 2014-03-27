@@ -8,6 +8,8 @@ from os.path import *
 
 import sqlite3 as sqlite
 
+from time import gmtime, strftime
+
 try:
     import leveldb
 except:
@@ -136,12 +138,14 @@ def verboseFunc(message):
     " we add this to logging "
     logging.log(5, message)
 
-def addGeneralOptions(parser, noCluster=False):
+def addGeneralOptions(parser, noCluster=False, logDir=False):
     """ add the options that most cmd line programs accept to optparse parser object """
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
     if not noCluster:
         parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
+    if logDir:
+        parser.add_option("-l", "--logDir", dest="logDir", action="store", help="log messages to directory")
     return parser
 
 debugMode=False
@@ -150,6 +154,8 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
         debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
     global debugMode
+    logging.addLevelName(5,"VERBOSE")
+
     if options!=None and "cluster" in options.__dict__ and options.cluster!=None:
         global forceHeadnode
         # for makeClusterRunner
@@ -161,7 +167,6 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
     elif "verbose" in options.__dict__ and options.verbose:
         stdoutLevel=3
         fileLevel = 3
-        logging.addLevelName(5,"VERBOSE")
         debugMode = True
 
     elif options.debug or debug:
@@ -170,6 +175,16 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
 
     elif minimumLog:
         stdoutLevel=logging.ERROR
+
+    elif "logDir" in options.__dict__ and options.logDir:
+        stdoutLevel=LOGGING.CRITICAL
+        fileLevel = LOGGING.INFO
+        debugMode = True
+
+        timeStr = strftime("_%Y-%m-%d_%H%M%S", gmtime())
+        logFileName = join(options.logDir, progName+timeStr)
+        logging.info("Writing message log to %s" % logFileName)
+
     else:
         stdoutLevel=logging.INFO
 
@@ -209,15 +224,18 @@ def printOut(stdout, stderr):
             logging.info("stderr: %s" % stderr)
 
 def runConverter(cmdLine, fileContent, fileExt, tempDir):
-    """ create local temp in and output files, write data to infile, run
+    """ create local temp for in and output files, write data to infile, run
     command. file can be supplied as a str in fileContent["content"] or
     alternatively as a pathname via 'locFname' """
     # create temp file
     fd, inFname = tempfile.mkstemp(suffix="."+fileExt, dir=tempDir, prefix="pubConvPmc.in.")
+    logging.info("Created %s" % inFname)
     maxCommon.delOnExit(inFname)
+
     inFile = os.fdopen(fd, "wb")
     inFile.write(fileContent)
     inFile.close()
+
     logging.debug("Created in temp file %s" % (inFname))
 
     fd, outFname = tempfile.mkstemp(suffix=".txt", dir=tempDir, prefix="pubConvPmc.out.")
@@ -238,8 +256,6 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
 
     if ret==2:
         logging.error("stopped on errno 2: looks like you pressed ctrl-c")
-        os.remove(inFname)
-        os.remove(outFname)
         sys.exit(2)
 
     if ret!=0:
@@ -254,6 +270,7 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     if not skipFile:
         asciiData = open(outFname).read()
 
+    logging.info("Removing %s" % inFname)
     os.remove(inFname)
     os.remove(outFname)
 
@@ -327,7 +344,7 @@ def toAscii(fileData, mimeType=None, \
 
     if "locFname" in fileData:
         locFname=fileData["locFname"]
-        fileDebugDesc = fileData["externalId"]+"/"+locFname
+        fileDebugDesc = fileData["externalId"]+":"+locFname
     else:
         locFname = None
         fileDebugDesc = ",".join([fileData["url"],fileData["desc"],
@@ -501,7 +518,8 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
         headNode = forceHeadnode
         logging.info("Headnode set from command line to %s, ignoring default" % headNode)
 
-    logging.info("Preparing cluster run, batchDir %(batchDir)s, default type %(clusterType)s, headNode %(headNode)s" % locals())
+    if headNode!="localhost":
+        logging.info("Preparing cluster run, batchDir %(batchDir)s, default type %(clusterType)s, headNode %(headNode)s" % locals())
 
     runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
         headNode=headNode, batchDir = batchDir, runNow=runNow)
@@ -510,7 +528,7 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
 def lftpGet(remoteUrl, locDir, fileNames, connCount):
     " use lftp to download files in parallel "
     scriptPath = join(locDir, "lftp.cmd")
-    logging.info("Writing filenames to %s" % scriptPath)
+    logging.debug("Writing filenames to %s" % scriptPath)
     lFile = open(scriptPath, "w")
     lFile.write("set net:socket-buffer 4000000\n")
     lFile.write("set cmd:parallel %d\n" % int(connCount))
@@ -539,17 +557,17 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
     lFile.close()
 
     cmd = ["lftp", "-f", scriptPath]
-    logging.info("Launching lftp for download, cmd %s" % " ".join(cmd))
+    logging.debug("Launching lftp for download, cmd %s" % " ".join(cmd))
     ret = subprocess.call(cmd)
 
     if ret!=0:
         logging.error("error during transfer")
         sys.exit(1)
 
-    logging.info("Updating downloads.log file in %s" % locDir)
+    logging.debug("Updating downloads.log file in %s" % locDir)
     for f in fileNames:
         appendLog(locDir, "add", f)
-    logging.info("Downloaded %d files: %s" % (len(locNames), str(locNames)))
+    logging.info("Downloaded %d files: %s" % (len(locNames), str(",".join(locNames))))
 
 def appendLog(outDir, change, fname):
     logPath = join(outDir, "downloads.log")

@@ -39,7 +39,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 def downloadConsyn(rssUrl, outDir):
     " parse RSS feed and download file to outDir "
     # parse xml
-    logging.info("Download RSS from %s" % rssUrl)
+    logging.debug("Download RSS from %s" % rssUrl)
     xmlString = urllib2.urlopen(rssUrl).read()
     xml = maxXml.XmlParser(string=xmlString, removeNamespaces=True)
     entriesXml = list(xml.getXmlAll("entry"))
@@ -57,16 +57,16 @@ def downloadConsyn(rssUrl, outDir):
         outFilename = join(outDir, fileName)
         logging.info("Downloading...")
         if isfile(outFilename):
-            logging.info("Not downloading %s, found %s" % (fileUrl, fileName))
+            logging.debug("Not downloading %s, found %s" % (fileUrl, fileName))
         else:
             tmpFile = tempfile.NamedTemporaryFile(dir=pubConf.getTempDir(), prefix="tempDownload.pubGetElsevier", suffix=".zip")
             tmpName = tmpFile.name
-            #logging.info("Downloading %s" % (fileUrl))
+            #logging.debug("Downloading %s" % (fileUrl))
             logFh.write("%s -> %s\n" % (fileUrl, outFilename))
             logging.debug("Downloading %s to %s" % (fileUrl, tmpName))
             subprocess.call(["wget", fileUrl, "-O", tmpName, "-q"])
 
-            logging.info("Moving %s to %s" % (tmpName, outFilename))
+            logging.debug("Moving %s to %s" % (tmpName, outFilename))
             shutil.copy(tmpName, outFilename)
             # tmpFile is running out of scope here -> will get deleted automatically
             downloadCount += 1

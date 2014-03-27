@@ -64,7 +64,7 @@ def ftpBaselineEqLocal(outDir):
 
 def downloadUpdates(outDir, connCount):
     """ Download updates from Medline into outDir """
-    logging.info("Downloading updates")
+    logging.debug("Downloading updates")
     updateFnames = pubGeneric.getFtpDir(medlineSrv, updatePath)
     updateFnames = [fname for fname in updateFnames if fname.endswith(".xml.gz")]
     medlineUrl = "ftp://"+medlineSrv+"/"+updatePath,

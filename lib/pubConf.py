@@ -145,8 +145,8 @@ logDir = _pubsDir + "/log/"
 
 # head node of cluster
 clusterHeadNode = "ku.sdsc.edu"
-# type of cluster, either parasol or sge
-clusterType = "parasol"
+# type of cluster, either parasol or sge or localhost
+clusterType = "localhost"
 
 _sourceDir = "/cluster/home/max/projects/pubs/tools"
 
@@ -204,7 +204,7 @@ extToolDir = _sourceDir+"/external"
 # as pdfbox is quite slow
 CONVERTERS = {
     "doc":"catdoc $in > $out",
-    "docx":"%(extToolDir)s/docx2txt-1.2/docx2txt.sh $in > $out",
+    "docx":"%(extToolDir)s/docx2txt-1.2/docx2txt.pl < $in > $out",
     "xls":"xls2csv $in > $out",
     "xlsx":"ssconvert $in $out",
     "ppt":"catppt $in > $out",
