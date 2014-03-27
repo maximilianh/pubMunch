@@ -1,0 +1,177 @@
+#!/usr/bin/env python
+
+# default python packages
+import sys, logging, optparse, os
+from collections import OrderedDict, defaultdict
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+progFile = os.path.abspath(sys.argv[0])
+progDir  = os.path.dirname(progFile)
+pubToolsLibDir = os.path.join(progDir, "lib")
+sys.path.insert(0, pubToolsLibDir)
+
+# now load our own libraries
+import pubGeneric, pubStore, pubConf, maxCommon, html
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <textDir> <chunkId> <extId> <annotFile1> <annotFile2> ... - print article data as HTML.
+Highlight annotations on the text with colors and mouseovers.
+
+Example:
+    %prog pmc 0_00000 PMC12345 0_00000.tab.gz
+
+""")
+
+#parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
+#parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
+parser.add_option("-o", "--outFile", dest="outFile", action="store", help="write to outfile instead of stdout") 
+pubGeneric.addGeneralOptions(parser)
+(options, args) = parser.parse_args()
+
+# ==== FUNCTIONs =====
+def getArticleRows(baseName, extId):
+    """ open articles.gz and .files.gz in textDir and return 
+        ony the rows for the article identified by extId 
+    """
+    pr = pubStore.PubReaderFile(baseName)
+    for artRow, fileRows in pr.iterArticlesFileList():
+        if artRow.externalId==extId:
+            return artRow, fileRows
+
+def readAnnotRows(fnames, extId):
+    """ open a list of annot file names (.tab.gz) and return annotation rows
+        for a given extId
+        returns list of (dict fileId -> list of annotation row )
+        (One list per input fname)
+    """
+    fileAnnots = []
+    print extId
+    for fname in fnames:
+        fileIdToAnnots = defaultdict(list)
+        for row in maxCommon.iterTsvRows(fname):
+            if row.externalId==extId:
+                fileId = pubGeneric.annotIdToFileId(row.annotId)
+                fileIdToAnnots[fileId].append(row)
+        print "fileIdToA", len(fileIdToAnnots)
+        fileAnnots.append(fileIdToAnnots)
+    print len(fileAnnots)
+    return fileAnnots
+
+def printArtData(h, artRow):
+    " print the article meta data to a htmlWriter "
+    for key, val in artRow._asdict().iteritems():
+        if key=="title":
+            continue
+        h.writeLn("<b>%s:</b> %s<br>" % (key, val))
+        
+def annotRowToDict(annot):
+    " given an annotation row, return relevant fields as a orderedDict "
+    annDict = OrderedDict()
+    aKeys = annot._fields[4:]
+    aAsDict = annot._asdict()
+    for key in aKeys:
+        annDict[key] = aAsDict[key]
+    return annDict
+
+def indexAnnots(annotRowList, colors):
+    """
+    given lists of rows from the annotation file:
+    sort the annotation rows by length, so make sure that shortest ones
+    are not hidden by the longer ones
+    create dict with start (int) -> annotationDict and end -> None 
+    """
+    # create new list of (annot-length, color, row)
+    lenColRows = []
+    for annotRows, color in zip(annotRowList, colors):
+        print len(annotRows), color
+        for ar in annotRows:
+            aLen = int(ar.end) - int(ar.start)
+            lenColRows.append((aLen, color, ar))
+    # sort this list
+    lenColRows.sort()
+
+    startIdx = defaultdict(list)
+    endIdx = set()
+    for lenColRow in lenColRows:
+        aLen, color, annot = lenColRow
+        annDict = annotRowToDict(annot)
+        annDict["_color"] = color
+        startIdx[int(annot.start)] = annDict
+        endIdx.add(int(annot.end))
+    return startIdx, endIdx
+
+def printContent(h, text, annotRowList, colors):
+    " write a string as html, highlight the annotations from annotRows "
+    startIdx, endIdx = indexAnnots(annotRowList, colors)
+
+    pos = 0
+    for c in text:
+        if c=='\a':
+            h.writeLn("<br><br>")
+        else:
+            annotDict = startIdx.get(pos, None)
+            if annotDict!=None:
+                color = annotDict["_color"]
+                h.write('''<span style="background-color:%s;">''' % color)
+            h.write(c)
+            if pos in endIdx:
+                h.write('''</span>''')
+        pos += 1
+
+# ----------- MAIN --------------
+def main(args, options):
+    if args==[]:
+        parser.print_help()
+        exit(1)
+
+    textDir, chunkId, extId = args[:3]
+    annotFnames = args[3:]
+
+    textDir = pubConf.resolveTextDir(textDir)
+    chunkFname = join(textDir, chunkId)
+
+    artRow, fileRows = getArticleRows(chunkFname, extId)
+    fileIdToAnnotRowsList = readAnnotRows(annotFnames, extId)
+
+    h = html.htmlWriter(options.outFile)
+
+    h.head(artRow.title)
+    h.startBody(artRow.title)
+
+    # print section index
+    linkList = []
+    linkList.append(("Article meta-information", "meta"))
+    for fr in fileRows:
+        descStr = fr.desc+"/"+fr.fileType
+        linkList.append((descStr, descStr))
+    h.linkList(linkList)
+
+    h.anchor("meta")
+    h.h2("Article meta-information")
+    printArtData(h, artRow)
+
+    colors = ["yellow", "blue"]
+
+    for fr in fileRows:
+        descStr = fr.desc+"/"+fr.fileType
+        h.anchor(descStr)
+        h.h2(descStr)
+        
+        for key, val in fr._asdict().iteritems():
+            if key=="content":
+                continue
+            h.writeLn("<b>%s:</b> %s<br>" % (key, val))
+
+        h.p()
+
+        # create list of annotation rows, one list per input file
+        annotsPerFile = []
+        for fileIdToAnnotRows in fileIdToAnnotRowsList:
+            annotsPerFile.append(fileIdToAnnotRows.get(fr.fileId, []))
+
+        printContent(h, fr.content, annotsPerFile, colors)
+
+    h.endHtml()
+
+main(args, options)
