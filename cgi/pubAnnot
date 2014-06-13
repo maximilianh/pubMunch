@@ -1,0 +1,65 @@
+#!/cluster/software/bin/python
+import cgitb
+cgitb.enable()
+
+import os, re, cgi, urllib, sys, HTMLParser
+sys.path.append("/cluster/home/max/projects/pubs/tools/lib")
+import pubAlg, pubStore
+
+print "Content-Type: text/html; charset=UTF-8\n"
+
+def printHeader():
+    print("<html><head>")
+    printCss()
+    print("</head>")
+    print("<body>")
+
+def errAbort(msg):
+    print(msg+"<p>")
+    sys.exit(0)
+
+def getVars():
+    form = cgi.FieldStorage()
+    text = form.getfirst("text")
+    #if text == None:
+        #errAbort("CGI var text is required")
+    if text==None:
+        return text
+    pars = HTMLParser.HTMLParser()
+    #text = text.decode("utf8")
+    text = text.decode("latin1")
+    # parse the $#xxxx entities sent by chrome
+    text = pars.unescape(text)
+    algNames = form.getlist("alg")
+    #print type(text)
+    return text, algNames
+
+def showForm():
+    print """
+    <form method="post" action="pubAnnot">
+
+    Paste your text:<p>
+    <textarea name="text"  rows="30" cols="100"></textarea><p>
+
+    <input type="checkbox" name="alg" value="dnaSearch" /> DNA sequences <br>
+    <input type="checkbox" name="alg" value="protSearch" /> Protein sequences <br>
+    <input type="checkbox" name="alg" value="orgDetect" /> Organism names<br>
+    <p>
+    <input type="submit" name="submit" value="OK" />
+
+    </form>
+    """
+def main():
+    text, algNames = getVars()
+    if text==None:
+        showForm()
+    else:
+        #print text
+        #print text.replace("\n", "<br>")
+        reader = pubStore.PubReaderTest(None, text)
+        for algName in algNames:
+            alg = pubAlg.getAlg(algName, defClass="Annotate")
+            for row in pubAlg.runAnnotateIter(reader, alg, {}, False):
+                print row,"<br>"
+    
+main()
