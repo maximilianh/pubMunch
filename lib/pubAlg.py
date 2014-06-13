@@ -327,8 +327,9 @@ def getSnippet(text, start, end, minContext=0, maxContext=150):
     snippet = snippet.replace("\t", " ")
     return snippet
 
-def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields):
-    """ use alg to annotate fileData, write to outFh, adding annotIdAdd to all annotations 
+#def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields):
+def iterAnnotRows(alg, articleData, fileData, annotIdAdd, doSectioning, addFields):
+    """ use alg to annotate fileData, yield rows, adding annotIdAdd to all annotations 
     return next free annotation id.
     """
     annotDigits = int(pubConf.ANNOTDIGITS)
@@ -402,17 +403,13 @@ def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning
             #fields = [unicode(x).encode("utf8") for x in fields]
             fields = [pubStore.removeTabNl(unicode(x)) for x in fields]
                 
-            line = "\t".join(fields)
-            outFh.write(line+"\n")
+            #line = "\t".join(fields)
+            #outFh.write(line+"\n")
             annotCount+=1
             assert(annotCount<10**annotDigits) # we can only store 100.000 annotations per file
-    return annotCount
+            yield fields
 
-def writeHeaders(alg, outFh, doSectioning, addFields):
-    """ write headers from algorithm to outFh, 
-    add a section field if doSectioning is true
-    add fields from addFields list after the external id
-    """
+def getHeaders(alg, doSectioning, addFields):
     if "headers" not in dir(alg) and not "headers" in alg.__dict__:
         logging.error("headers variable not found.")
         logging.error("You need to define a variable 'headers' in your python file or class")
@@ -432,6 +429,14 @@ def writeHeaders(alg, outFh, doSectioning, addFields):
 
     if not "snippet" in headers and "start" in headers and "end" in headers:
         headers.append("snippet")
+    return headers
+
+def writeHeaders(alg, outFh, doSectioning, addFields):
+    """ write headers from algorithm to outFh, 
+    add a section field if doSectioning is true
+    add fields from addFields list after the external id
+    """
+    headers = getHeaders(alg, doSectioning, addFields)
     logging.debug("Writing headers %s to %s" % (headers, outFh.name))
     outFh.write("\t".join(headers)+"\n")
 
@@ -541,8 +546,9 @@ def getAlgPrefs(alg, paramDict):
     logging.info("Only best main files: %s" % bestMain)
     return onlyMain, onlyMeta, bestMain
 
+
 def runAnnotate(reader, alg, paramDict, outName):
-    """ annotate all articles in reader
+    """ annotate all articles in reader, write to outName in an atomic way via tempfile
     """
     tmpOutFname = makeLocalTempFile()
 
@@ -553,29 +559,35 @@ def runAnnotate(reader, alg, paramDict, outName):
 
     doSectioning = attributeTrue(alg, "sectioning")
     logging.debug("Sectioning activated: %s" % doSectioning)
+    addFields = paramDict.get("addFields", [])
 
+    writeHeaders(alg, outFh, doSectioning, addFields)
+
+    for row in runAnnotateIter(reader, alg, paramDict, doSectioning, addFields):
+        line = "\t".join(row)
+        outFh.write(line)
+        outFh.write("\n")
+
+    if outName!="stdout":
+        outFh.close()
+        moveTempToFinal(tmpOutFname, outName)
+        
+def runAnnotateIter(reader, alg, paramDict, doSectioning=None, addFields=None):
+    """ annotate all articles in reader and yield a list of fields
+    """
     if "startup" in dir(alg):
         logging.debug("Running startup")
         alg.startup(paramDict)
 
-    addFields = paramDict.get("addFields", [])
-    writeHeaders(alg, outFh, doSectioning, addFields)
-
     annotIdAdd = getAnnotId(alg, paramDict)
     onlyMain, onlyMeta, bestMain = getAlgPrefs(alg, paramDict)
-
-    #addSnippet = "snippet" in alg.headers
 
     for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
         logging.debug("Annotating article %s with %d files, %s" % \
             (articleData.articleId, len(fileDataList), [x.fileId for x in fileDataList]))
         for fileData in fileDataList:
-            writeAnnotations(alg, articleData, fileData, outFh, \
-                annotIdAdd, doSectioning, addFields)
-
-    if outName!="stdout":
-        outFh.close()
-        moveTempToFinal(tmpOutFname, outName)
+            for row in iterAnnotRows(alg, articleData, fileData, annotIdAdd, doSectioning, addFields):
+                yield row
 
 def unmarshal(fname):
     if fname.endswith(".gz"):

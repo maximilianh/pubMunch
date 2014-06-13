@@ -105,7 +105,7 @@ crawlSuppExts = set(['gif', 'svg', 'tiff', 'tif', 'jpg', 'xls', 'doc', 'pdf', 'p
 # for Elsevier updates:
 # We need the URL to the Consyn Update RSS feed. 
 # Login to consyn.elsevier.com, click on batches/RSS feed, paste the URL here
-# they look like ttp://consyn.elsevier.com/batch/atom?key=XXXXXXXXXXXXXXXXXXX
+# they look like https://consyn.elsevier.com/batch/atom?key=XXXXXXXXXXXXXXXXXXX
 # (at UCSC: this is defined in ~/.pubTools.conf)
 consynRssUrl = "YOURURL"
 

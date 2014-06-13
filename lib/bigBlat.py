@@ -7,6 +7,9 @@ from itertools import groupby
 # name of script to submit
 bigBlatJobSrc = "bigBlatJob.py"
 
+# the job script also contains a function we need
+import bigBlatJob
+
 # mark's libraries
 GENBANKDIR = "/cluster/data/genbank"
 # read the locations of 2bit/nib files and the lft files 
@@ -138,6 +141,7 @@ def splitTargetDbSpecs(target, conf, params):
     winSize = params.get("window", 80000000)
     overlap = params.get("overlap", 3000000)
     twoBitFname = splitter.twoBitFname
+    #twoBitFname = "/cluster/data/%s/%s.2bit" % (target, target)
 
     maxJobSize = winSize+overlap
 
@@ -201,6 +205,7 @@ def writeBlatSpecs(conf, db, outDir, params={}):
     """
     twoBitFname, specs = splitTargetDbSpecs(db, conf, params)
     specNames = []
+    chroms = set()
 
     jobId = 0
     allJobsSize = 0
@@ -210,6 +215,7 @@ def writeBlatSpecs(conf, db, outDir, params={}):
         ofh = open(outFname, "w")
         for win in jobList:
             chrom, start, end = win
+            chroms.add(chrom)
             ofh.write("%s:%s:%d-%d" % (abspath(twoBitFname), chrom, start, end))
             ofh.write("\n")
             allJobsSize+= (end-start)
@@ -217,7 +223,8 @@ def writeBlatSpecs(conf, db, outDir, params={}):
         logging.debug("Wrote %s" % outFname)
         jobId += 1
     logging.info("Number of target chunks: %d" % len(specs))
-    logging.info("Total job size: %d" % allJobsSize)
+    logging.info("Sum of alignment target job size: %d" % allJobsSize)
+    logging.info("Number of seqs: %d" % len(chroms))
     return twoBitFname, specNames
 
 def findChromSizes(twoBitFname):
@@ -374,24 +381,41 @@ def doSwapNetSubset(target, outDir):
     runCommand(cmd)
     logging.info("Result is in %s" % qOverFname)
 
-def doPslCat(target, outDir):
+def doPslCat(target, outDir, pslOptions=None, singleOutFname=None):
     """
     concats psl files, creates one per query
+    Optionally sort by query and run pslCdnaFilter on it.
     """
-    pslCatDir = abspath(join(outDir, "pslCat", target))
-    if not isdir(pslCatDir):
-        os.makedirs(pslCatDir)
-
     pslDir = abspath(join(outDir, "psl", target))
     pslCatFnames = []
+
+    if singleOutFname:
+        if isfile(singleOutFname):
+            open(singleOutFname, "w") # truncate to 0 bytes
+    else:
+        pslCatDir = abspath(join(outDir, "pslCat", target))
+        if not isdir(pslCatDir):
+            os.makedirs(pslCatDir)
+
     for queryName in os.listdir(pslDir):
-        logging.info("Concatting psl files for query %s" % queryName)
-        queryPath = join(pslDir, queryName)
-        pslCatName = join(pslCatDir, queryName)
+        if singleOutFname:
+            pslCatName = singleOutFname
+            pipeOp = ">>"
+        else:
+            pslCatName = join(pslCatDir, queryName)
+            pipeOp = ">"
         if not pslCatName.endswith(".psl"):
             pslCatName += ".psl"
+
+        logging.info("Concatting psls for query %s to %s" % (queryName, pslCatName))
+        queryPath = join(pslDir, queryName)
         pslCatFnames.append(pslCatName)
-        cmd = "cat %(queryPath)s/* > %(pslCatName)s" % locals()
+        sortCmd = ""
+        if pslOptions:
+            filtOpt = bigBlatJob.splitAddDashes(pslOptions)
+            sortCmd = " | sort -k10,10 | pslCDnaFilter %s stdin stdout " % (filtOpt)
+
+        cmd = "cat %(queryPath)s/* %(sortCmd)s %(pipeOp)s %(pslCatName)s" % locals()
         runCommand(cmd)
 
 def toTwoBit(qFastas, twoBitDir):
@@ -427,7 +451,7 @@ def splitQuery(qFastas, outDir):
     existSizes = glob.glob(join(qSizeDir, "*.sizes"))
     if len(existNames)==len(qFastas)==len(existSizes):
         logging.warn("Found fa files in %s, not splitting query" % splitDir)
-        return existNames
+        return existNames, qSizeDir
 
     logging.info("Splitting query fastas")
     if not isdir(splitDir):
@@ -457,12 +481,13 @@ def splitQuery(qFastas, outDir):
             sizeFh.write("%s\t%d\n" % (seqId, seqSize))
             allSizeFh.write("%s\t%d\n" % (seqId, seqSize))
             start = 0
+            end = 0
             while start+5000 < seqSize:
                 end = start+5000
                 splitFh.write(">%(seqId)s:%(start)d-%(end)d\n" % locals())
                 splitFh.write("%s\n" % seq[start:end])
                 start += 5000
-            if end != seqSize:
+            if (end != seqSize):
                 splitFh.write(">%(seqId)s:%(end)d-%(seqSize)d\n" % locals())
                 splitFh.write("%s\n" % seq[end:])
 
@@ -525,7 +550,7 @@ def chunkTargetWriteSpecs(target, outDir, conf):
     if not isdir(specDir):
         os.makedirs(specDir)
 
-    logging.info("Chunking target %s to %s" % (target, specDir))
+    logging.info("Partitioning target %s to %s" % (target, specDir))
     twoBitFname, specFnames = writeBlatSpecs(conf, target, specDir)
     oocFname = findOocFname(conf, target, twoBitFname)
     sizeFname = findChromSizes(twoBitFname)

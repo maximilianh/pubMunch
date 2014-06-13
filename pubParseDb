@@ -144,7 +144,7 @@ entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId
     "hgncSym", "hgncId", "refSeq", "refSeqProt", "ncbiGene", "ensemblGene", "ensemblProt", \
     "emblMrna", "emblMrnaProt", "emblDna", "emblDnaProt", \
     "pdb", "ec", \
-    "uniGene", "omimGene", "omimPhenotype", "isoIds", "isoSeqs"]
+    "uniGene", "omimGene", "omimPhenotype", "mainSeq", "isoIds", "isoSeqs"]
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
@@ -741,6 +741,8 @@ def parseRecInfo(entryEl, entry, isoSeqs):
     findSaveList(entryEl, "comment/isoform/name", entry, "isoNames")
 
     mainSeq = entryEl.find("sequence").text
+    entry["mainSeq"] = mainSeq
+
     isoIds, isoNames, seqs = parseIsoforms(entry["acc"], mainSeq, entryEl, isoSeqs)
     dbRefs = parseDbRefs(entryEl)
     entry["mainIsoAcc"] = isoIds[0]
@@ -898,7 +900,7 @@ def parseUniprot(db, inDir, outDir, taxonIds):
 
     emptyEntry = dict(zip(entryHeaders, len(entryHeaders)*[""]))
 
-    pm = maxCommon.ProgressMeter(recCound)
+    pm = maxCommon.ProgressMeter(recCount)
     for _, entryEl in etree.iterparse(xmlFile, tag='{http://uniprot.org/uniprot}entry'):
         strip_namespace_inplace(entryEl) # die, die stupid namespaces!!
         entry = copy.copy(emptyEntry)
@@ -934,7 +936,7 @@ def main(args, options):
         doctest.testmod()
         sys.exit(0)
 
-    pubGeneric.setupLogging("", options)
+    pubGeneric.setupLogging("pubParseDb", options)
     db = args[0]
 
     refDir = pubConf.dbRefDir
@@ -947,7 +949,9 @@ def main(args, options):
     elif db in ["uniprot", "uniprotTrembl"]:
         dbDir = pubConf.uniProtBaseDir
         #taxonIds = set(pubConf.uniProtTaxonIds)
-        taxonIds = None
+        taxonIds = options.taxon
+        if taxonIds:
+            taxonIds=taxonIds.split(",")
         parseUniprot(db, dbDir, refDir, taxonIds)
     else:
         assert(False) # illegal db arg
@@ -969,6 +973,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
 parser.add_option("-p", "--parse", dest="parse", action="store", help="parse a single uniprot xml file (debugging)")
+parser.add_option("", "--taxon", dest="taxon", action="store", help="uniprot: only parse specified comma-sep list of taxons and add suffix .<taxonId>. to output files")
 (options, args) = parser.parse_args()
 
 if args==[] and not options.test:

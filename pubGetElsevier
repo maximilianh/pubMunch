@@ -26,7 +26,7 @@ except ImportError:
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - download newest update from Elsevier Consyn and place into outDir
 
 NB: The initial download has to be uploaded by Elsevier into your own ftp server
-    or are shipped on blue ray discs. This scripts only downloads the updates
+    or are shipped on blue ray discs. This script only downloads the updates
 
 """)
 
@@ -39,7 +39,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 def downloadConsyn(rssUrl, outDir):
     " parse RSS feed and download file to outDir "
     # parse xml
-    logging.debug("Download RSS from %s" % rssUrl)
+    logging.debug("Downloading RSS from %s" % rssUrl)
     xmlString = urllib2.urlopen(rssUrl).read()
     xml = maxXml.XmlParser(string=xmlString, removeNamespaces=True)
     entriesXml = list(xml.getXmlAll("entry"))

@@ -4,25 +4,25 @@ from types import *
 from os.path import isfile, isdir, getsize
 from collections import defaultdict
 
-tmpDirs = []
+tempPaths = []
 
 def delTemp():
-    for tmpDir in tmpDirs:
-        if tmpDir!=None and isdir(tmpDir):
-            logging.info("Deleting dir+subdirs %s" % tmpDir)
-            shutil.rmtree(tmpDir)
-        elif tmpDir!=None and isfile(tmpDir):
-            logging.info("Deleting file %s" % tmpDir)
-            os.remove(tmpDir)
+    for tmpPath in tempPaths:
+        if tmpPath!=None and isdir(tmpPath):
+            logging.info("Deleting dir+subdirs %s" % tmpPath)
+            shutil.rmtree(tmpPath)
+        elif tmpPath!=None and isfile(tmpPath):
+            logging.info("Deleting file %s" % tmpPath)
+            os.remove(tmpPath)
         else:
             # has already been deleted
             pass
 
 def delOnExit(path):
     "make sure that path or file gets deleted upon program exit"
-    global tmpDirs
+    global tempPaths
     atexit.register(delTemp)
-    tmpDirs.append(path)
+    tempPaths.append(path)
 
 def which(program):
     import os

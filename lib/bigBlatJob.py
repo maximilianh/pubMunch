@@ -10,41 +10,6 @@ from os.path import *
 from tempfile import *
 
 # === COMMAND LINE PARSING / HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <genomeSpec> <queryFile> <outFile> <pslOptions> - run blat on a piece of a twoBit file, lift if necessary, filter with pslCdnaFilter and copy to outFile. 
-
-genomeSpec format is one of the following:
-- <dbFile>
-- <dbFile>:<chrom>
-- <dbSpecFile>, like the one that can be read by BLAT: one range per line, like chr1:1-1000
-  This requires the -s option
-
-examples:
-
-bigBlatJob.py  /tmp/test/fasta/ci2.long.fa test.psl -f "minNearTopSize=19 nearTop=0.01 minCover=0.80 ignoreSize"
-
-bigBlatJob.py /scratch/data/hg19/hg19.2bit:123213213:chr1:227417-267719 /tmp/test/fasta/hg19.fa test.psl -f "minNearTopSize=19 nearTop=0.01 minCover=0.80 ignoreSize" -b "minScore=20"
-""")
-
-parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
-parser.add_option("-f", "--filterOption", dest="filterOptions", action="store", help="add these space-sep options to pslCDnaFilter, do not specify the leading '-'")
-parser.add_option("-b", "--blatOption", dest="blatOptions", action="store", help="add these space-sep options to blat, do not specify the leading '-'")
-parser.add_option("-t", "--tmpDir", dest="tmpDir", action="store", help="local cluster node temp dir, default %s", default="/dev/shm")
-parser.add_option("-s", "--chromSizes", dest="chromSizes", action="store", help="file with sizes for chromosomes, required if using the dbSpecFile target format")
-parser.add_option("-l", "--queryLiftFile", dest="queryLift", action="store", help="file with a query liftUp filename")
-parser.add_option("", "--dbDir", dest="dbDir", action="store", help="local cluster genome dir, default %s", default="/scratch/data/")
-parser.add_option("", "--querySizes", dest="querySizeFname", action="store", help="a file with queryName, querySize, one per line. Triggers query chunking: each job will go over query in 5kbp chunks and create alignments for each chunk, this is required for fastMap mode")
-
-(options, args) = parser.parse_args()
-
-if options.debug:
-    logger = logging.getLogger('').setLevel(logging.DEBUG)
-else:
-    logger = logging.getLogger('').setLevel(logging.INFO)
-
-if len(args)!=3:
-    parser.print_help()
-    sys.exit(1)
-
 # ===== FUNCTIONS =====
 
 def mustRunCommand(cmd):
@@ -87,88 +52,124 @@ from itertools import groupby
     #return querySpecFname
 
 # ===== MAIN ====
-tSpec, qFname, outFname = args
+if __name__ == "__main__":
+    parser = optparse.OptionParser("""usage: %prog [options] <genomeSpec> <queryFile> <outFile> <pslOptions> - run blat on a piece of a twoBit file, lift if necessary, filter with pslCdnaFilter and copy to outFile. 
 
-specParts = tSpec.split(":")
+    genomeSpec format is one of the following:
+    - <dbFile>
+    - <dbFile>:<chrom>
+    - <dbSpecFile>, like the one that can be read by BLAT: one range per line, like chr1:1-1000
+      This requires the -s option
 
-if tSpec.endswith(".spec"):
-    # parse the full target spec string
-    # /scratch/hg19/hg19.2bit:123213213:chr1:227417-267719
-    # or a filename like
-    # /hive/data/inside/blatrun/targets/0000.spec
-    #twoBitFname, chrom, chromSize, chromRange = specParts
-    #db = splitext(basename(twoBitFname))[0]
-    #startEnd = chromRange.split("-")
-    #tStart = startEnd[0]
-    #tEnd = startEnd[1]
-    #tChromSize = str(int(tEnd)-int(tStart))
-    #tChromSize = chromSize
-    #seqFrag = ":".join([chrom, chromRange]) 
+    examples:
 
-    # create a temp liftUp file
-    #liftData = [tStart, seqFrag, tChromSize, chrom, tChromSize]
-    #liftFilePrefix = "%s-%s-%s" % (db, chrom, tStart)
-    #liftFile = NamedTemporaryFile(dir=options.tmpDir, suffix=".lift", prefix=liftFilePrefix)
-    #liftFile.write("\t".join(liftData))
-    #liftFile.write("\n")
-    #liftFile.file.flush()
-    #liftFileName = liftFile.name
+    bigBlatJob.py  /tmp/test/fasta/ci2.long.fa test.psl -f "minNearTopSize=19 nearTop=0.01 minCover=0.80 ignoreSize"
 
-    # prep 2bit spec with db,chrom,pos
-    #twoBitFname = join(options.dbDir, db, db+".2bit")
-    blatTargetSpec = tSpec
-    chromSizesFname = options.chromSizes
-    needTLifting=True
+    bigBlatJob.py /scratch/data/hg19/hg19.2bit:123213213:chr1:227417-267719 /tmp/test/fasta/hg19.fa test.psl -f "minNearTopSize=19 nearTop=0.01 minCover=0.80 ignoreSize" -b "minScore=20"
+    """)
 
-elif len(specParts)==1:
-    # prep 2bit spec from only db
-    twoBitFname = specParts[0]
-    blatTargetSpec = twoBitFname
-    needTLifting = False
+    parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+    parser.add_option("-f", "--filterOption", dest="filterOptions", action="store", help="add these space-sep options to pslCDnaFilter, do not specify the leading '-'")
+    parser.add_option("-b", "--blatOption", dest="blatOptions", action="store", help="add these space-sep options to blat, do not specify the leading '-'")
+    parser.add_option("-t", "--tmpDir", dest="tmpDir", action="store", help="local cluster node temp dir, default %s", default="/dev/shm")
+    parser.add_option("-s", "--chromSizes", dest="chromSizes", action="store", help="file with sizes for chromosomes, required if using the dbSpecFile target format")
+    parser.add_option("-l", "--queryLiftFile", dest="queryLift", action="store", help="file with a query liftUp filename")
+    parser.add_option("", "--dbDir", dest="dbDir", action="store", help="local cluster genome dir, default %s", default="/scratch/data/")
+    parser.add_option("", "--querySizes", dest="querySizeFname", action="store", help="a file with queryName, querySize, one per line. Triggers query chunking: each job will go over query in 5kbp chunks and create alignments for each chunk, this is required for fastMap mode")
 
-elif len(specParts)==2:
-    # prep 2bit spec from db and chrom
-    twoBitFname, chrom = specParts
-    blatTargetSpec = twoBitFname+":"+chrom
-    needTLifting = False
+    (options, args) = parser.parse_args()
 
-else:
-    raise Exception("illegal format for target spec")
-    
-blatOptString = splitAddDashes(options.blatOptions)
-filterOptString = splitAddDashes(options.filterOptions)
+    if options.debug:
+        logger = logging.getLogger('').setLevel(logging.DEBUG)
+    else:
+        logger = logging.getLogger('').setLevel(logging.INFO)
 
-tmpPslFile = NamedTemporaryFile(dir=options.tmpDir, prefix="bigBlatJob", suffix=".psl")
-tmpPslFname = tmpPslFile.name
+    if len(args)!=3:
+        parser.print_help()
+        sys.exit(1)
 
-if needTLifting:
-    blatOutName = "stdout"
-else:
-    blatOutName = tmpPslFname
+    tSpec, qFname, outFname = args
 
-if options.querySizeFname:
-    qSizeFname = options.querySizeFname
-    #querySizes = readSizes(options.querySizeFname)
-    #querySpecFile = NamedTemporaryFile(dir=options.tmpDir, prefix="bigBlatJob.querySpec", suffix=".spec")
-    #querySpecFile = open("/tmp/temp.sizes", "w")
-    #qFname = write5kbSpec(querySpecFile, qFname, querySizes)
+    specParts = tSpec.split(":")
 
-blatCmd = "blat %(blatTargetSpec)s %(qFname)s %(blatOutName)s -noHead %(blatOptString)s" % locals()
+    if tSpec.endswith(".spec"):
+        # parse the full target spec string
+        # /scratch/hg19/hg19.2bit:123213213:chr1:227417-267719
+        # or a filename like
+        # /hive/data/inside/blatrun/targets/0000.spec
+        #twoBitFname, chrom, chromSize, chromRange = specParts
+        #db = splitext(basename(twoBitFname))[0]
+        #startEnd = chromRange.split("-")
+        #tStart = startEnd[0]
+        #tEnd = startEnd[1]
+        #tChromSize = str(int(tEnd)-int(tStart))
+        #tChromSize = chromSize
+        #seqFrag = ":".join([chrom, chromRange]) 
 
-if needTLifting:
-    #blatCmd += "| liftUp -type=.psl %(tmpPslFname)s %(liftFileName)s error stdin" % locals()
-    blatCmd += "| pslLiftSubrangeBlat stdin %(tmpPslFname)s -tSizes=%(chromSizesFname)s" % locals()
-mustRunCommand(blatCmd)
+        # create a temp liftUp file
+        #liftData = [tStart, seqFrag, tChromSize, chrom, tChromSize]
+        #liftFilePrefix = "%s-%s-%s" % (db, chrom, tStart)
+        #liftFile = NamedTemporaryFile(dir=options.tmpDir, suffix=".lift", prefix=liftFilePrefix)
+        #liftFile.write("\t".join(liftData))
+        #liftFile.write("\n")
+        #liftFile.file.flush()
+        #liftFileName = liftFile.name
 
-#filterCommand = "pslReps -nohead %(filterOptString)s  %(tmpPslFname)s %(outFname)s /dev/null" % locals()
+        # prep 2bit spec with db,chrom,pos
+        #twoBitFname = join(options.dbDir, db, db+".2bit")
+        blatTargetSpec = tSpec
+        chromSizesFname = options.chromSizes
+        needTLifting=True
 
-if options.querySizeFname:
-    filterOutFname = "stdout"
-else:
-    filterOutFname = outFname
+    elif len(specParts)==1:
+        # prep 2bit spec from only db
+        twoBitFname = specParts[0]
+        blatTargetSpec = twoBitFname
+        needTLifting = False
 
-filterCommand = "pslCDnaFilter %(filterOptString)s  %(tmpPslFname)s %(filterOutFname)s" % locals()
-if options.querySizeFname:
-    filterCommand += " | pslLiftSubrangeBlat stdin %(outFname)s -qSizes=%(qSizeFname)s" % locals()
+    elif len(specParts)==2:
+        # prep 2bit spec from db and chrom
+        twoBitFname, chrom = specParts
+        blatTargetSpec = twoBitFname+":"+chrom
+        needTLifting = False
 
-mustRunCommand(filterCommand)
+    else:
+        raise Exception("illegal format for target spec")
+        
+    blatOptString = splitAddDashes(options.blatOptions)
+    filterOptString = splitAddDashes(options.filterOptions)
+
+    tmpPslFile = NamedTemporaryFile(dir=options.tmpDir, prefix="bigBlatJob", suffix=".psl")
+    tmpPslFname = tmpPslFile.name
+
+    if needTLifting:
+        blatOutName = "stdout"
+    else:
+        blatOutName = tmpPslFname
+
+    if options.querySizeFname:
+        qSizeFname = options.querySizeFname
+        #querySizes = readSizes(options.querySizeFname)
+        #querySpecFile = NamedTemporaryFile(dir=options.tmpDir, prefix="bigBlatJob.querySpec", suffix=".spec")
+        #querySpecFile = open("/tmp/temp.sizes", "w")
+        #qFname = write5kbSpec(querySpecFile, qFname, querySizes)
+
+    blatCmd = "set -o pipefail; blat %(blatTargetSpec)s %(qFname)s %(blatOutName)s -noHead %(blatOptString)s" % locals()
+
+    if needTLifting:
+        #blatCmd += "| liftUp -type=.psl %(tmpPslFname)s %(liftFileName)s error stdin" % locals()
+        blatCmd += "| pslLiftSubrangeBlat stdin %(tmpPslFname)s -tSizes=%(chromSizesFname)s" % locals()
+    mustRunCommand(blatCmd)
+
+    #filterCommand = "pslReps -nohead %(filterOptString)s  %(tmpPslFname)s %(outFname)s /dev/null" % locals()
+
+    if options.querySizeFname:
+        filterOutFname = "stdout"
+    else:
+        filterOutFname = outFname
+
+    filterCommand = "set -o pipefail; pslCDnaFilter %(filterOptString)s  %(tmpPslFname)s %(filterOutFname)s" % locals()
+    if options.querySizeFname:
+        filterCommand += " | pslLiftSubrangeBlat stdin %(outFname)s -qSizes=%(qSizeFname)s" % locals()
+
+    mustRunCommand(filterCommand)

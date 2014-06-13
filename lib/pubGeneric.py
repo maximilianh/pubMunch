@@ -142,6 +142,7 @@ def addGeneralOptions(parser, noCluster=False, logDir=False):
     """ add the options that most cmd line programs accept to optparse parser object """
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+    #parser.add_option("", "--quiet", dest="verbose", action="store_true", help="show more debug messages")
     if not noCluster:
         parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
     if logDir:
@@ -150,9 +151,10 @@ def addGeneralOptions(parser, noCluster=False, logDir=False):
 
 debugMode=False
 
-def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
+def setupLogging(progName, options, parser=None, logFileName=None, \
         debug=False, fileLevel=logging.DEBUG, minimumLog=False, fileMode="w"):
     """ direct logging to a file and also to stdout, depending on options (debug, verbose, jobId, etc) """
+    assert(progName!=None)
     global debugMode
     logging.addLevelName(5,"VERBOSE")
 
@@ -177,13 +179,13 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
         stdoutLevel=logging.ERROR
 
     elif "logDir" in options.__dict__ and options.logDir:
-        stdoutLevel=LOGGING.CRITICAL
-        fileLevel = LOGGING.INFO
+        stdoutLevel=logging.CRITICAL
+        fileLevel = logging.INFO
         debugMode = True
 
         timeStr = strftime("_%Y-%m-%d_%H%M%S", gmtime())
         logFileName = join(options.logDir, progName+timeStr)
-        logging.info("Writing message log to %s" % logFileName)
+        logging.warn("Writing message log to %s" % logFileName)
 
     else:
         stdoutLevel=logging.INFO
@@ -194,12 +196,20 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
     logging.root.handlers = []
 
     logging.verbose = verboseFunc
-    if logFileName:
-        logging.basicConfig(level=fileLevel,
-                            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                            datefmt='%m-%d %H:%M',
-                            filename= logFileName,
-                            filemode=fileMode, stream=None)
+    # setup file logger
+    if logFileName != None and logFileName!="":
+        fh = logging.FileHandler(logFileName)
+        fh.setLevel(logging.DEBUG)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        rootLog.addHandler(fh)
+
+    #if logFileName != None:
+        #logging.basicConfig(level=fileLevel,
+                            #format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                            #datefmt='%m-%d %H:%M',
+                            #filename= logFileName,
+                            #filemode=fileMode, stream=None)
     # define a handler which writes messages to sys.stderr
     console = logging.StreamHandler()
     # set a format which is simpler for console use
@@ -210,7 +220,7 @@ def setupLogging(PROGNAME, options, parser=None, logFileName=False, \
     # make sure that the root logger gets verbose messages 
     logging.getLogger('').setLevel(min(stdoutLevel, fileLevel))
     # add the handler to the root logger
-    logging.getLogger('').addHandler(console)
+    rootLog.addHandler(console)
 
 def printOut(stdout, stderr):
     """ send two strings to logging """
@@ -229,7 +239,7 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     alternatively as a pathname via 'locFname' """
     # create temp file
     fd, inFname = tempfile.mkstemp(suffix="."+fileExt, dir=tempDir, prefix="pubConvPmc.in.")
-    logging.info("Created %s" % inFname)
+    logging.debug("Created %s" % inFname)
     maxCommon.delOnExit(inFname)
 
     inFile = os.fdopen(fd, "wb")
@@ -270,7 +280,7 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
     if not skipFile:
         asciiData = open(outFname).read()
 
-    logging.info("Removing %s" % inFname)
+    logging.debug("Removing %s" % inFname)
     os.remove(inFname)
     os.remove(outFname)
 
@@ -732,7 +742,8 @@ def splitAnnotIdString(annotIdString):
     return articleId, fileId, annotId
 
 def makeTempDir(prefix, tmpDir=None):
-    """ create unique temp subdir in pubtools temp dir.
+    """ create unique local temp subdir in pubtools temp dir.
+        the pubtools temp dir is usually located on a local disk or ramdisk.
     """
     if tmpDir==None:
         tmpDir=pubConf.getTempDir()

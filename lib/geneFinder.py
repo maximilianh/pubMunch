@@ -780,6 +780,22 @@ def entrezSymbol(entrezId):
     entrezId = int(entrezId)
     return entrezToSym.get(entrezId, "invalidEntrezId")
 
+def loadMappings():
+    global accToUps, upToEntrez, upToSym, entrezToUp, pmidToEntrez, entrezToSym, symToEntrez
+    fname = join(GENEDATADIR, "uniprot.tab.marshal")
+    logging.info("Loading %s" % fname)
+    data = marshal.load(open(fname))[9606]
+    accToUps = data["accToUps"]
+    upToEntrez = data["upToEntrez"]
+    upToSym = data["upToSym"]
+    entrezToUp = data["entrezToUp"]
+
+    fname = join(GENEDATADIR, "entrez.9606.tab.marshal")
+    logging.info("Loading %s" % fname)
+    data = marshal.load(open(fname))
+    entrezToSym = data["entrez2sym"]
+    symToEntrez = dict([(y,x) for (x,y) in entrezToSym.iteritems()])
+
 def markerToGenes(markerType, markerId):
     """ 
     resolve any accession to a dict of entrez genes, return a dict entrezGeneId -> symbol
@@ -823,19 +839,7 @@ def markerToGenes(markerType, markerId):
     global accToUps, upToEntrez, upToSym, entrezToUp, pmidToEntrez, entrezToSym, symToEntrez
     # entrez is already OK, accepts "/" separated lists
     if accToUps==None:
-        fname = join(GENEDATADIR, "uniprot.tab.marshal")
-        logging.info("Loading %s" % fname)
-        data = marshal.load(open(fname))[9606]
-        accToUps = data["accToUps"]
-        upToEntrez = data["upToEntrez"]
-        upToSym = data["upToSym"]
-        entrezToUp = data["entrezToUp"]
-
-        fname = join(GENEDATADIR, "entrez.9606.tab.marshal")
-        logging.info("Loading %s" % fname)
-        data = marshal.load(open(fname))
-        entrezToSym = data["entrez2sym"]
-        symToEntrez = dict([(y,x) for (x,y) in entrezToSym.iteritems()])
+        loadMappings()
 
     # don't do a lot if we already have an entrez ID, just map to possible symbols
     if markerType in alreadyEntrez:

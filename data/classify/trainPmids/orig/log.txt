@@ -160,3 +160,20 @@ wget http://downloads.yeastgenome.org/curation/literature/interaction_data.tab -
 
 # drugbank
 less drugbank.txt | gawk '/Drug_References/ {f=1} /Essentiality:/ {f=0} f' | less | grep -v \# | less | cut -f1 | less | sort -u | tr -s '\n' > ~/projects/pubs/tools/data/classify/trainPmids/orig/pos.drugbank.txt
+
+# cancer peptide database, http://cancerimmunity.org/peptide/
+# exported with pepDbToTab and used only last column
+# pos.cancerPepDb.txt
+
+# human epitope db - http://www.iedb.org/
+# downloaded sql dump, loaded into maxIedb database
+hgsql maxIedb -e 'select pubmed_id from article' | sort -u | grep -v pubmed > pos.iedb.txt
+
+# RNA-binding protein database (rbpdb) - http://rbpdb.ccbr.utoronto.ca/
+# manually pasted from http://rbpdb.ccbr.utoronto.ca/downloads/RBPDB_v1.3.1_experiments_2012-11-21.csv
+
+# SpliceAid a database of experimental RNA target motifs bound by splicing
+# proteins in humans - http://www.introni.it/splicing.html
+# manually downloaded their html file, pasted into excel, used the PMID column
+
+

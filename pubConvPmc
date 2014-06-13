@@ -389,11 +389,12 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chu
     pmcTabFname = join(pmcDirectory, "PMC-ids.csv.gz")
     pmcToPmid = parsePmcIds(pmcTabFname)
 
-    # write big index
+    # create temporary directory and schedule for deletion
     outDir     = tempfile.mktemp(dir = finalOutDir, prefix = "update%d.tmp." % updateId)
     os.makedirs(outDir)
     maxCommon.delOnExit(outDir)
 
+    # write big index
     indexFile = join(outDir, "%d_index.tab" % updateId)
     fileListFname = "file_list.txt" 
     if int(updateId)==0:
@@ -416,12 +417,13 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chu
         outFname = os.path.join(outDir, chunkId+".articles.gz")
         chunkFname = os.path.join(indexDir, chunkId)
         maxCommon.mustNotExist(outFname)
-        command = "%s %s {check in line %s} {check out exists+ %s}" % (sys.executable, progFile, chunkFname, outFname)
+        command = "%s %s {check in line %s} {check out exists %s}" % (sys.executable, progFile, chunkFname, outFname)
         runner.submit(command)
     runner.finish(wait=True)
+
+    pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
     pubStore.moveFiles(outDir, finalOutDir)
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, lastArticleId, newPmcIds)
-    pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
     shutil.rmtree(outDir)
 
 def extractTgz(baseDir, fname):
@@ -596,6 +598,11 @@ def main(args, options):
     else:
         pmcDir, outDir = args
     maxCommon.mustExist(pmcDir)
+
+    # first clean old temp directories
+    tmpMask = join(outDir, "update*.tmp*")
+    cmd = "rm -rf %s" % tmpMask
+    maxCommon.runCommand(cmd, ignoreErrors=True)
 
     minId = options.minId
     chunkCount = options.chunkCount

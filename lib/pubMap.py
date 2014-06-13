@@ -259,7 +259,7 @@ def submitSortPslJobs(runner, seqType, inDir, outDir, dbList):
         if seqType in ["c", "p"]:
             cmd += " --cdnaDir " + pubConf.cdnaDir
         runner.submit(cmd)
-    logging.info("If batch went through: output can be found in %s" % dbOutFile)
+    #logging.info("If batch went through: output can be found in %s" % dbOutFile)
         
 def concatFiles(inFnames, outFile, cutFields=None):
     # concat all files into some file

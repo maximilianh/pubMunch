@@ -601,8 +601,11 @@ class PubReaderFile:
 
 class PubReaderTest:
     """ reads only a single text file """
-    def __init__(self, fname):
-        self.text = open(fname).read()
+    def __init__(self, fname, text=None):
+        if text:
+            self.text=text
+        else:
+            self.text = open(fname).read()
 
     def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False, onlyMain=False):
         class C:
@@ -625,6 +628,7 @@ class PubReaderTest:
         fileObj.content = self.text
         fileObj.fileType = "main"
         fileObj.externalId = "file0000"
+        fileObj.desc="desc"
         
         yield art, [fileObj]
 

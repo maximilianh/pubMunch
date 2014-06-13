@@ -1487,7 +1487,7 @@ def makeCellNames():
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
     step = args[0]
-    uniprotDir = join(pubConf.dbRefDir)
+    uniprotDir = pubConf.dbRefDir
 
     global geneDataDir
     geneDataDir = pubConf.geneDataDir

@@ -4,9 +4,9 @@
 # can also run python functions instead of commands by calling itself on the cluster
 # system and then calling the function (see main() and submitPythonFunc)
 
-import os, sys, logging, shutil, types, optparse, multiprocessing, subprocess, shlex, time
+import os, sys, logging, shutil, types, optparse, multiprocessing, subprocess, shlex, time, imp
 import pubGeneric
-from os.path import isfile, join
+from os.path import isfile, join, basename, dirname, abspath
 
 def removeFinishedProcesses(processes):
     " given a list of (commandString, process), remove those that have completed and return "
@@ -72,6 +72,7 @@ class Runner:
         self.delayTime = delayTime
         self.maxPush = maxPush
         self.maxJob = maxJob
+        batchDir = abspath(batchDir)
         self.batchDir = batchDir
         self.maxRam = maxRam
 
@@ -127,7 +128,7 @@ class Runner:
             #self.maxCpu = int(self.clusterType.split(":")[1])
             #assert(self.maxCpu <= multiprocessing.cpu_count())
             #self.clusterType="smp"
-        elif self.clusterType in ["sge","local","smp"]:
+        elif self.clusterType in ["sge","local","smp","localhost"]:
             pass
         else:
             logging.error("Illegal cluster type")
@@ -153,9 +154,10 @@ class Runner:
             sys.exit(1)
 
     def submit(self, command, jobName=None):
-        """ submit command on sge, add command to joblist for parasol 
+        """ submit command on sge, add command to joblist for parasol, run
+        command for the "localhost" cluster system
 
-        removes the special parasol tags {check out line, {check in line etc for SGE/local
+        removes the special parasol tags {check out line, {check in line etc for SGE/localhost
         
         """
 
@@ -188,7 +190,7 @@ class Runner:
             logging.info("Running command: %s" % command)
             self._exec(command, stopOnError=True)
 
-        elif self.clusterType=="smp":
+        elif self.clusterType=="smp" or self.clusterType=="localhost":
             self.commands.append(command)
 
         elif self.clusterType=="parasol":
@@ -250,10 +252,11 @@ class Runner:
                 else:
                     sshDir = os.getcwd()
 
-                if isfile(join(sshDir, "batch")):
-                    cleanCmd = "para clearSickNodes; para resetCounts; para freeBatch; "
-                else:
-                    cleanCmd = ""
+                batchFname = join(sshDir, "batch")
+                #if isfile(batchFname):
+                cleanCmd = "para clearSickNodes; para resetCounts; para freeBatch; "
+                #else:
+                #cleanCmd = ""
 
                 cmd = "ssh %s 'cd %s; %s %s'" % \
                     (self.headNode, sshDir, cleanCmd, cmd)
@@ -303,21 +306,24 @@ def loadModule(moduleFilename):
     if not os.path.isfile(moduleFilename):
         logging.error("Could not find %s" % moduleFilename)
         sys.exit(1)
-    modulePath, moduleName = os.path.split(moduleFilename)
-    moduleName = moduleName.replace(".py","")
-    logging.info("Loading %s" % (moduleFilename))
-    sys.path.append(modulePath)
+    if moduleFilename.endswith(".py") or moduleFilename.endswith(".pyc"):
+        modulePath, moduleName = os.path.split(moduleFilename)
+        moduleName = moduleName.replace(".py","")
+        logging.info("Loading %s" % (moduleFilename))
+        sys.path.append(modulePath)
 
-    # load algMod as a module, copied from 
-    # http://code.activestate.com/recipes/223972-import-package-modules-at-runtime/
-    try:
-        aMod = sys.modules[moduleName]
-        if not isinstance(aMod, types.ModuleType):
-            raise KeyError
-    except KeyError:
-        # The last [''] is very important!
-        aMod = __import__(moduleName, globals(), locals(), [''])
-        sys.modules[moduleName] = aMod
+        # load algMod as a module, copied from 
+        # http://code.activestate.com/recipes/223972-import-package-modules-at-runtime/
+        try:
+            aMod = sys.modules[moduleName]
+            if not isinstance(aMod, types.ModuleType):
+                raise KeyError
+        except KeyError:
+            # The last [''] is very important!
+            aMod = __import__(moduleName, globals(), locals(), [''])
+            sys.modules[moduleName] = aMod
+    else:
+        aMod = imp.load_source(basename(moduleFilename), moduleFilename)
 
     return aMod
 
@@ -332,7 +338,7 @@ def main():
     parser = optparse.OptionParser("%s pythonFile functionName param1 param2 ... - call function with params, this is supposed to be used from a batch system to call python functions")
     pubGeneric.addGeneralOptions(parser)
     (options, args) = parser.parse_args()
-    pubGeneric.setupLogging(__file__, options)
+    #pubGeneric.setupLogging(__file__, options)
 
     modName, methodName = args[:2]
     params = args[2:]
