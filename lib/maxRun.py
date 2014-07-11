@@ -75,6 +75,7 @@ class Runner:
         batchDir = abspath(batchDir)
         self.batchDir = batchDir
         self.maxRam = maxRam
+        self.headNode = None
 
         self.commands = [] # for smp commands
         if not os.path.isdir(batchDir):
@@ -99,7 +100,7 @@ class Runner:
             self.clusterType = "local"
 
         # auto-detect cluster type
-        if self.clusterType=="auto":
+        elif self.clusterType=="auto":
             # if we got a headNode, but no cluster system, need to ssh there
             if self.headNode is not None:
                 prefixCmd = "ssh %s " % self.headNode

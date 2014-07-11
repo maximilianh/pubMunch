@@ -33,13 +33,14 @@ parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a 
 Make sure that you set the minId parameter. 
 (ArticleIds should not overlap between different datasets.)
 Example:
-    pubConvPdfDir /hive/data/outside/pubs/spliceAid/ /hive/data/inside/literature/text/spliceAid2/ -minId=5000000000
+    pubConvFiles /hive/data/outside/pubs/spliceAid/ /hive/data/inside/literature/text/spliceAid2/ -minId=5000000000
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"])
 parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
+#parser.add_option("-e", "--encoding", dest="encoding", action="store", help="encoding to convert to, by default input is assumed to be in UTF8 and is also encoded as such") 
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -65,11 +66,15 @@ def createIndex(inDir, outDir, minId):
     indexFile.write("\t".join(headers)+"\n")
     articleId = minId
     for extId, files in idFiles.iteritems():
+        logging.debug("processing file with extId %s" % extId)
         if not extId.isdigit():
             continue
         chunkId = "0_00000"
         mainFile = extId
-        files.remove(mainFile)
+        if mainFile+".pdf" in files:
+            files.remove(mainFile+".pdf")
+        if mainFile+".txt" in files:
+            files.remove(mainFile+".txt")
         row = [chunkId, str(articleId), extId, mainFile, ",".join(files)]
         indexFile.write("\t".join(row)+"\n")
         articleId += 1
@@ -89,9 +94,16 @@ def createFileData(baseDir, fname, extId, isSupp):
 
     fileData["fileType"] = fileType
     fileData["url"] = fname
-    mainPath = join(baseDir, fname+".pdf")
+    mainPath = join(baseDir, fname)
     if not isfile(mainPath):
         mainPath = join(baseDir, fname+".txt")
+    if not isfile(mainPath):
+        mainPath = join(baseDir, fname+".pdf")
+
+    if not isfile(mainPath):
+        maxCommon.errAbort("%s not found" % mainPath)
+
+    assert(isfile(mainPath))
         
     fileData["mimeType"] = mimetypes.guess_type(mainPath)[0]
 

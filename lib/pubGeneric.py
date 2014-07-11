@@ -138,7 +138,7 @@ def verboseFunc(message):
     " we add this to logging "
     logging.log(5, message)
 
-def addGeneralOptions(parser, noCluster=False, logDir=False):
+def addGeneralOptions(parser, noCluster=False, logDir=False, keepTemp=False):
     """ add the options that most cmd line programs accept to optparse parser object """
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
@@ -147,6 +147,8 @@ def addGeneralOptions(parser, noCluster=False, logDir=False):
         parser.add_option("-c", "--cluster", dest="cluster", action="store", help="override the default cluster head node from the config file, or 'localhost'")
     if logDir:
         parser.add_option("-l", "--logDir", dest="logDir", action="store", help="log messages to directory")
+    if keepTemp:
+        parser.add_option("", "--keepTemp", dest="keepTemp", action="store_true", help="keep temporary files, for debugging")
     return parser
 
 debugMode=False
@@ -162,6 +164,9 @@ def setupLogging(progName, options, parser=None, logFileName=None, \
         global forceHeadnode
         # for makeClusterRunner
         forceHeadnode = options.cluster
+
+    if options!=None and "keepTemp" in options.__dict__ and options.keepTemp==True:
+        maxCommon.keepTemp=True
 
     if options==None:
         stdoutLevel=logging.DEBUG
@@ -385,7 +390,7 @@ def toAscii(fileData, mimeType=None, \
             asciiData = pubXml.stripXmlTags(fileContent)
 
         if asciiData==None:
-            logging.warn("Could not convert xml to ascii")
+            logging.debug("Could not convert xml to ascii, file %s" % fileData["url"])
             return None
         fileData["content"]=asciiData
     else:

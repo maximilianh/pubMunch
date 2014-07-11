@@ -37,7 +37,7 @@ $PYTHON $BIN/pubGetPmc $DOWNBASE/pmc
 echo __DOWNLOADING SPRINGER
 $PYTHON $BIN/pubGetSpringer $DOWNBASE/springer
 
-# execute the rest only if there is no ongoing job
+# execute the rest only if there is no running job
 if [ -e "${FLAGFILE}" ]
 then 
    echo not running cronjob, ${FLAGFILE} exists, looks like an old one is still running.

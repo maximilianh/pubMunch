@@ -39,7 +39,7 @@ parser.add_option("-c", "--check", dest="check", action="store_true", \
 parser.add_option("", "--justCheck", dest="justCheck", action="store_true", \
     help="just check if all files in the current file_list.txt are really on disk")
 parser.add_option("", "--auto", dest="auto", action="store_true", \
-    help="automatically set the output directory based on pubConf.textBaseDir")
+    help="automatically set the output directory based on pubConf.extDir")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====

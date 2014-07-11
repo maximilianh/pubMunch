@@ -176,4 +176,12 @@ hgsql maxIedb -e 'select pubmed_id from article' | sort -u | grep -v pubmed > po
 # proteins in humans - http://www.introni.it/splicing.html
 # manually downloaded their html file, pasted into excel, used the PMID column
 
+# mirbase - http://www.mirbase.org
+wget ftp://mirbase.org/pub/mirbase/CURRENT/miRNA.dat.gz -O -  | zgrep PUBMED | cut -d' ' -f5 | tr -d '.' | tabUniq -rs | cut -f1 > pos.mirbase.txt
+
+# miRNAs/MESH
+mv ~/pubmed_result.txt ./pos.meshMirnas.txt
+
+# NCI Cancer Pathway Database - pid.nci.nih.gov
+cat /hive/data/inside/pubs/pathways/nci/NCI-Nature_Curated.xml | grep pmid | cut -d= -f2 | cut -d\> -f1 | tr -d '"' > pos.nciPathways.txt
 

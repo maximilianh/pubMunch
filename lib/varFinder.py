@@ -381,7 +381,7 @@ class SeqData(object):
 class MappedVariant(object):
     """ A mapped variant is a type-range-sequence combination from a text,
         located on one or multiple sequences
-        It has a name, a unified textual description.
+        It has a name, which is a unified textual ID.
     """
     __slots__=VariantFields
 
@@ -1014,9 +1014,14 @@ def mapToGenome(rnaVars, protVars, bedName):
         if bed==None:
             logging.debug("found mapping psl but nothing was mapped")
             continue
-        bed.append("%s:%d" % (rnaVar.seqId, start))
+        # .e.g NM_004006.1:c.3G>T
+        #bed.append("%s:c.%d%s>%s" % (rnaVar.seqId, start, rnaVar.origSeq, rnaVar.mutSeq))
+        bed.append(rnaVar.getName())
 
-        protVarDescs = ["%s:%d" % (p.seqId, p.start) for p in protVars]
+        # generate prot var
+        # e.g. NP_12323.2:p.Trp13Ser
+        #protVarDescs = ["%s:%s%d%s" % (p.seqId, p.origSeq, p.start, rnaVar.mutSeq) for p in protVars]
+        protVarDescs = [p.getName() for p in protVars]
         bed.append(",".join(protVarDescs))
 
         logging.debug("Got bed: %s" % str(bed))

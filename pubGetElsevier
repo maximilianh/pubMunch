@@ -32,6 +32,8 @@ NB: The initial download has to be uploaded by Elsevier into your own ftp server
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
+parser.add_option("", "--auto", dest="auto", action="store_true", \
+    help="automatically set the output directory based on pubConf.extDir")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -50,12 +52,12 @@ def downloadConsyn(rssUrl, outDir):
     entriesXml.reverse()
 
     downloadCount = 0
+    logging.info("Downloading...")
     for entryXml in entriesXml:
         fileUrl = entryXml.getXmlFirst("link").getAttr("href")
         fileName = entryXml.getTextFirst("title")
 
         outFilename = join(outDir, fileName)
-        logging.info("Downloading...")
         if isfile(outFilename):
             logging.debug("Not downloading %s, found %s" % (fileUrl, fileName))
         else:
@@ -64,8 +66,10 @@ def downloadConsyn(rssUrl, outDir):
             #logging.debug("Downloading %s" % (fileUrl))
             logFh.write("%s -> %s\n" % (fileUrl, outFilename))
             logging.debug("Downloading %s to %s" % (fileUrl, tmpName))
-            subprocess.call(["wget", fileUrl, "-O", tmpName, "-q"])
+            subprocess.call(["wget", fileUrl, "-O", tmpName, "-q", "--no-check-certificate"])
+            #subprocess.call(["wget", fileUrl, "-O", tmpName, "-q"])
 
+            assert(os.path.getsize(tmpName)!=0)
             logging.debug("Moving %s to %s" % (tmpName, outFilename))
             shutil.copy(tmpName, outFilename)
             # tmpFile is running out of scope here -> will get deleted automatically
@@ -75,7 +79,7 @@ def downloadConsyn(rssUrl, outDir):
 
 # ----------- MAIN --------------
 # only for debugging
-if args==[]:
+if args==[] and not options.auto:
     parser.print_help()
     exit(1)
 
@@ -85,7 +89,11 @@ if args==[]:
 pubGeneric.setupLogging(progFile, options)
 
 #outDir = pubConf.consynDownloadDir
-outDir = args[0]
+if options.auto:
+    outDir = join(pubConf.extDir, "elsevier")
+else:
+    outDir = args[0]
 rssUrl = pubConf.consynRssUrl
 downloadConsyn(rssUrl, outDir)
+
 

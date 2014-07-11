@@ -11,7 +11,7 @@
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
 import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator
-import zipfile, gzip, re, random
+import zipfile, gzip, re, random, tempfile, copy
 try:
     import sqlite3
 except ImportError:
@@ -20,6 +20,7 @@ except ImportError:
 import pubGeneric, pubConf, maxCommon, unicodeConvert, maxTables, pubPubmed
 
 from os.path import *
+from collections import namedtuple
 
 # need to increase maximum size of fields for csv module
 csv.field_size_limit(50000000)
@@ -68,11 +69,17 @@ fileDataFields = [
 "content" # the data from this file (newline => \a, tab => space, cr => space, \m ==> \a)
 ]
 
-ArticleRec = collections.namedtuple("ArticleRec", articleFields)
+
+refArtFields = ["articleId", "externalId", "artDoi", "artPmid"]
+refFields    = ["authors", "title", "journal", "year", "month", "vol", "issue", "page", "pmid", "doi"]
+
+ArticleRec = namedtuple("ArticleRec", articleFields)
 emptyArticle = ArticleRec(*len(articleFields)*[""])
 
-FileDataRec = collections.namedtuple("FileRecord", fileDataFields)
+FileDataRec = namedtuple("FileRecord", fileDataFields)
 emptyFileData = FileDataRec(*len(fileDataFields)*[""])
+
+RefRec = namedtuple("citRec", refFields)
 
 def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=None, \
     fileType=None, desc=None, externalId=None, locFname=None):
@@ -268,26 +275,36 @@ class PubWriterFile:
     def __init__(self, fileDataFilename):
         self.articlesWritten = 0
         self.filesWritten = 0
-        tempDir = pubConf.getTempDir()
+        self.tempDir = pubConf.getTempDir()
 
         # very convoluted way to find output filenames
         # needed because of parasol 
         outDir = os.path.dirname(fileDataFilename)
         fileDataBasename = os.path.basename(fileDataFilename)
         chunkId = fileDataBasename.split(".")[0]
-        fileBaseName = chunkId+".files"
+        self.fileBaseName = chunkId+".files"
         articleBaseName = chunkId+".articles"
+        refBaseName = chunkId+".refs"
 
         self.finalArticleName = join(outDir, articleBaseName+".gz")
-        self.finalFileDataName    = join(outDir, fileBaseName+".gz")
+        self.finalFileDataName    = join(outDir, self.fileBaseName+".gz")
 
-        fileFname = os.path.join(tempDir, fileBaseName)
+        # setup reference table handle
+        self.refDir = join(outDir, "refs")
+        self.finalRefFname = join(self.refDir, refBaseName+".gz")
+        self.tempRefName = join(self.tempDir, refBaseName)
+        self.refFh = None
+
+        # setup file and article table handles
+        fileFname = os.path.join(self.tempDir, self.fileBaseName)
         self.fileFh = codecs.open(fileFname, "w", encoding="utf8")
         self.fileFh.write("#"+"\t".join(fileDataFields)+"\n")
+        maxCommon.delOnExit(fileFname)
 
-        articleFname = os.path.join(tempDir, articleBaseName)
+        articleFname = os.path.join(self.tempDir, articleBaseName)
         self.articleFh = codecs.open(articleFname, "w", encoding="utf8") 
         self.articleFh.write("#"+"\t".join(articleFields)+"\n")
+        maxCommon.delOnExit(articleFname)
 
         self.outFilename = os.path.join(outDir, fileDataBasename)
 
@@ -298,6 +315,43 @@ class PubWriterFile:
             newDict[key] = removeTabNl(val)
         return newDict
         
+    def writeRefs(self, artDict, refRows):
+        " write references to table in refs/ subdir"
+        if self.refFh==None:
+            # lazily open ref file, add headers
+            logging.warn("YES!!")
+            if not os.path.isdir(self.refDir):
+                os.makedirs(self.refDir)
+            #self.refFh = tempfile.NamedTemporaryFile(dir=self.tempDir, suffix=".gz", prefix=self.fileBaseName+".")
+            self.refFh = open(self.tempRefName, "w")
+            logging.info("Created tempfile for refs %s" % self.refFh.name)
+            maxCommon.delOnExit(self.tempRefName)
+
+            refHeaders = copy.copy(refArtFields)
+            refHeaders.extend(refFields)
+            self.refFh.write("#"+"\t".join(refHeaders)+"\n")
+
+        # prepare a list of article IDs of the source article
+        srcArtFields = []
+        for artField in refArtFields:
+            if artField=="artDoi":
+                artField="doi"
+            if artField=="artPmid":
+                artField="pmid"
+            artVal = artDict[artField]
+            srcArtFields.append(artVal)
+        srcPrefix = "\t".join(srcArtFields)+"\t"
+
+        # output all references
+        logging.debug("Writing %d references for article %s" % (len(refRows), artDict["externalId"]))
+        for ref in refRows:
+            # output the source article IDs
+            self.refFh.write(srcPrefix.encode("utf8"))
+
+            # output the reference article fields
+            self.refFh.write(u'\t'.join(ref).encode("utf8"))
+            self.refFh.write("\n")
+
     def writeFile(self, articleId, fileId, fileDict, externalId=""):
         """ appends id and data to current .file table,
             will not write if maximum filesize exceeded
@@ -364,7 +418,7 @@ class PubWriterFile:
         self.articlesWritten += 1
         logging.log(5, "%d articles written" % self.articlesWritten)
         
-    def _gzipAndMove(self, fname, finalName):
+    def _gzipAndMove(self, fname, finalName, removeSrc=True):
         " gzip fname and move to finalName "
         gzName = fname+".gz"
         if isfile(gzName):
@@ -372,7 +426,8 @@ class PubWriterFile:
         maxCommon.runCommand("gzip %s" % fname)
         logging.debug("compressing and copying files table to %s" % finalName)
         shutil.copyfile(gzName, finalName)
-        os.remove(gzName)
+        if removeSrc:
+            os.remove(gzName)
 
     def close(self, keepEmpty=False):
         """ 
@@ -384,7 +439,7 @@ class PubWriterFile:
 
         self.fileFh.close()
         if self.articlesWritten==0:
-            logging.warn("No articles received, not writing anything, but a 0 sized file for parasol")
+            logging.warn("No articles received, not writing anything, but creating a 0 sized file for parasol")
             # just create a 0-size file for parasol
             open(self.finalArticleName, "w")
             
@@ -394,6 +449,10 @@ class PubWriterFile:
         self.articleFh.close()
         if self.articlesWritten > 0 or keepEmpty:
             self._gzipAndMove(self.articleFh.name, self.finalArticleName)
+
+        if self.refFh!=None:
+            self.refFh.close()
+            self._gzipAndMove(self.refFh.name, self.finalRefFname, removeSrc=False)
 
 def createPseudoFile(articleData):
     """ create a file from the abstract and title of an article,
@@ -779,6 +838,7 @@ def parseUpdatesTab(outDir, minArticleId):
 
     doneFiles = set()
     row = None
+    logging.debug("Parsing %s" % inFname)
     for row in maxTables.TableParser(inFname).lines():
         rowFiles = row.files.split(",")
         doneFiles.update(rowFiles)
@@ -838,17 +898,17 @@ def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     outFh.write("\n")
     outFh.close()
 
-def moveFiles(srcDir, trgDir):
-    " move all files from src to target dir "
+def moveFiles(srcDir, trgDir, subDirs=[]):
+    " move all files from src to target dir, and also a given list of subDirs, but not any other subDirs "
     for fname in os.listdir(srcDir):
         infname = join(srcDir, fname)
         outfname = join(trgDir, fname)
-        if isdir(infname):
+        if isdir(infname) and not basename(infname) in subDirs:
             continue
         if isfile(outfname):
             logging.debug("Deleting %s" % outfname)
             os.remove(outfname)
-        logging.debug("moving file %s to %s" % (infname, outfname))
+        logging.debug("moving %s to %s" % (infname, outfname))
         shutil.move(infname, outfname)
 
 def articleIdToDataset(articleId):
@@ -938,7 +998,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     " load pubDoc files into sqlite db table, keep track of loaded file names "
     if len(tsvFnames)==0:
         return
-    logging.debug("Loading %d files into table %s, db %s" %(len(tsvFnames), tableName, dbFname))
+    logging.debug("Preparing to load %d files into table %s, db %s" %(len(tsvFnames), tableName, dbFname))
     firstFname = tsvFnames[0]
     if firstFname.endswith(".gz"):
         firstFh = gzip.open(firstFname)
@@ -948,6 +1008,7 @@ def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
     headers = articleFields
     logging.debug("DB fields are: %s" % headers)
     toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
+    logging.debug("Loading %d files" % (len(toLoadFnames)))
     toLoadFnames = sortPubFnames(toLoadFnames)
 
     #if not isfile(dbFname):
@@ -1092,6 +1153,9 @@ def lookupArticleData(articleId, lookupKey="articleId"):
 
     if textDir not in conCache:
         dbPath = join(textDir, "articles.db")
+        #assert(isfile(dbPath))
+        if not (isfile(dbPath)):
+            return None
         cur, con = maxTables.openSqlite(dbPath, asDict=True)
         conCache[textDir] = (cur, con)
     else:

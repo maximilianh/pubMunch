@@ -202,7 +202,10 @@ def parseOneBlastFile(inFname, outFname):
     #try:
     for match in parseBlastXmlFile(inFname):
         articleId = match.tId[:10]
-        artData = pubGeneric.lookupArticleData(articleId)
+        artData = pubStore.lookupArticleData(articleId)
+        if artData==None:
+            logging.warn("Could not resolve artId %s" % str(articleId))
+            continue
         match = [str(x) for x in match]
         match.append(artData["articleId"].encode("utf8"))
         match.append(artData["authors"].encode("utf8"))
@@ -307,7 +310,7 @@ def submitParseJobs(inDir, outDir):
 
     logging.info("Running jobs")
     #parseBlastLookupArticle(inDir, outFile)
-    cmd = "ssh swarm 'cd %s; para resetCounts; para clearSickNodes; para make jobList'" % os.getcwd()
+    cmd = "ssh ku 'cd %s; para resetCounts; para clearSickNodes; para make jobList'" % os.getcwd()
     os.system(cmd)
 
 def iterIds(faFname):
@@ -433,7 +436,7 @@ parser = optparse.OptionParser("""usage:
 
 %prog parse <outDir> <outFile>  - parse blast xml files in outDir and subdirs to outFile
 ALTERNATIVE:
-%prog clustParse <outDir> <parseOutDir>  - parse blast xml files on swarm to .tab files
+%prog clustParse <outDir> <parseOutDir>  - parse blast xml files on ku to .tab files
 %prog clustCat <parseOutDir> <outFile>  - concat .tab files
 
 %prog html <outFile> <outHtmlFile> - write html summary 

@@ -4,9 +4,16 @@ from types import *
 from os.path import isfile, isdir, getsize
 from collections import defaultdict
 
+# global flag to suppress all removal of temporary files, only useful for debugging
+keepTemp = False
+
 tempPaths = []
 
 def delTemp():
+    if keepTemp:
+        logging.info("Not deleting temporary files: %s" % ",".join(tempPaths))
+        return
+
     for tmpPath in tempPaths:
         if tmpPath!=None and isdir(tmpPath):
             logging.info("Deleting dir+subdirs %s" % tmpPath)

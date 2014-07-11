@@ -3,6 +3,7 @@
 # default python packages
 import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math, glob, tempfile, shutil
 from os.path import *
+from collections import namedtuple
 
 # add <scriptDir>/lib/ to package search path
 progFile = os.path.abspath(sys.argv[0])
@@ -40,7 +41,7 @@ parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do n
 parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export data to sqlite db defined in pubConf")
 parser.add_option("", "--auto", dest="auto", action="store_true", help="set input and output dirs based on pubConf directories")
 
-pubGeneric.addGeneralOptions(parser, logDir=True)
+pubGeneric.addGeneralOptions(parser, logDir=True, keepTemp=True)
 (options, args) = parser.parse_args()
 
 
@@ -72,6 +73,9 @@ def metaInfoFromTree(metaInfo, field, etree, path, convertToAscii=False, reqAttr
     if metaInfo[field] != None:
         metaInfo[field] = metaInfo[field].replace("\n", " ")
         metaInfo[field] = metaInfo[field].replace("\t", " ")
+    
+    if metaInfo[field] == None:
+        metaInfo[field] = ""
 
 def extractNames(contribNodeList):
     """ 
@@ -215,6 +219,77 @@ def parseSupplMatList(suppDataList):
             logging.debug("Found media filename, href=%s" % fname)
     return suppFileInfo
 
+def iterAllCitElements(tree):
+    " iterate over all sorts of citation elements "
+    for citEl in tree.findall("citation"):
+        yield citEl
+    for citEl in tree.findall("mixed-citation"):
+        yield citEl
+    for citEl in tree.findall("citation-element"):
+        yield citEl
+
+def parseCit(citEl):
+    " construct a pubStore.RefRec from a XML citation-like element and return it "
+    """ <ref id="pone.0046865-Qu2">
+        <label>44</label>
+        <mixed-citation publication-type="journal">
+          <name>
+            <surname>Qu</surname>
+            <given-names>Z</given-names>
+          </name>, <name><surname>Fischmeister</surname><given-names>R</given-names></name>, <name><surname>Hartzell</surname><given-names>C<
+      </ref>
+
+     <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Chen</surname>
+              <given-names>JK</given-names>
+            </name>
+    """
+    citDict = {}
+
+    authors = []
+    nameEls = citEl.findall(".//name")
+    for nameEl in nameEls:
+        surNameEl = nameEl.find("surname")
+        givenNameEl = nameEl.find("given-names")
+        if surNameEl!=None and givenNameEl!=None:
+            surName = surNameEl.text
+            givenName = givenNameEl.text
+            if givenName==None:
+                givenName=""
+            if surName==None:
+                surName =""
+            authors.append(surName+", "+givenName)
+    authorStr = "; ".join(authors)
+    citDict["authors"] = authorStr
+
+    metaInfoFromTree(citDict, "journal", citEl, "source", squeak=False)
+    metaInfoFromTree(citDict, "year", citEl, "year", squeak=False)
+    metaInfoFromTree(citDict, "vol", citEl, "volume", squeak=False)
+    metaInfoFromTree(citDict, "issue", citEl, "issue", squeak=False)
+    metaInfoFromTree(citDict, "month", citEl, "month", squeak=False)
+    metaInfoFromTree(citDict, "page", citEl, "fpage", squeak=False)
+    metaInfoFromTree(citDict, "title", citEl, "article-title", squeak=False)
+    # <pub-id pub-id-type="pmid">19426717</pub-id></mixed-citation>
+    metaInfoFromTree(citDict, "pmid", citEl, "pub-id", reqAttrName="pub-id-type", reqAttrValue="pmid", squeak=False)
+    metaInfoFromTree(citDict, "doi", citEl, "pub-id", reqAttrName="pub-id-type", reqAttrValue="doi", squeak=False)
+
+    return pubStore.RefRec(**citDict)
+
+def parseRefSection(articleTree):
+    " return references as a list of namedtuples "
+    rows = []
+
+    refLists = articleTree.findall(".//ref-list")
+    for refListEl in refLists:
+        for refEl in refListEl.findall(".//ref"):
+            for citEl in iterAllCitElements(refEl):
+                citRow = parseCit(citEl)
+                if citRow!=None:
+                    rows.append(citRow)
+    return rows
+
 def parsePmcXml(xml, metaInfo):
     """ return the meta information contained in an pmc xml file as a metaInfo-dictionary """
 
@@ -285,7 +360,10 @@ def parsePmcXml(xml, metaInfo):
 
     metaInfo     = pubGeneric.dictToUnicode(metaInfo)
     #suppFileInfo = suppFileInfo)
-    return metaInfo, suppFileInfo
+    
+    refData = parseRefSection(articleTree)
+
+    return metaInfo, suppFileInfo, refData
     
 def createIndexFile( inDir, inFname, pmcToPmid, \
         outFname, updateId, chunkSize, chunkCount, startId, \
@@ -422,7 +500,7 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chu
     runner.finish(wait=True)
 
     pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
-    pubStore.moveFiles(outDir, finalOutDir)
+    pubStore.moveFiles(outDir, finalOutDir, ["refs"])
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, lastArticleId, newPmcIds)
     shutil.rmtree(outDir)
 
@@ -555,7 +633,7 @@ def convertOneChunk(inIndexFile, outFile):
         if nxmlData==None:
             continue
         articleData = pubStore.createEmptyArticleDict(publisher="pmc")
-        articleData, suppFileDict = parsePmcXml(nxmlData, articleData)
+        articleData, suppFileDict, refs = parsePmcXml(nxmlData, articleData)
         articleData["origFile"] = tgzName+":"+nxmlName
         articleData["publisher"] = "pmc"
 
@@ -565,15 +643,22 @@ def convertOneChunk(inIndexFile, outFile):
         fileIdx = 0
         for fileData in fileDataList:
             fileId   = (1000*int(articleId))+fileIdx
+            fileDebugDesc = fileData["locFname"]
             fileData = pubGeneric.toAsciiEscape(fileData)
             fileIdx+=1
-            if fileData!=None:
+
+            if fileData==None:
+                logging.warn("Could not convert file %s" % fileDebugDesc)
+            else:
                 store.writeFile(articleId, fileId, fileData, externalId=articleData["externalId"])
                 fileWritten = True
 
         # only write article meta information if at least one article file could be converted
         if fileWritten:
             store.writeArticle(articleId, articleData)
+            store.writeRefs(articleData, refs)
+        else:
+            logging.warn("Not writing anything, not a single article file converted")
 
     store.close()
 
@@ -587,10 +672,13 @@ def main(args, options):
         # debug mode, just specify an xml file
         pubGeneric.setupLogging(progFile, options)
         articleData = pubStore.createEmptyArticleDict()
-        articleData, suppFileDict = parsePmcXml(open(args[0]).read(), articleData)
+        articleData, suppFileDict, refData = parsePmcXml(open(args[0]).read(), articleData)
         for key, val in articleData.iteritems():
             print key, val
         print suppFileDict
+        print "* references:"
+        for row in refData:
+            print row
         sys.exit(0)
 
     if options.auto:
@@ -609,10 +697,12 @@ def main(args, options):
     dryRun = options.dryRun
 
     pubGeneric.setupLogging(progFile, options)
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
 
     if os.path.isdir(pmcDir):
+        maxCommon.mustExist(outDir)
+        pubGeneric.setLockFile(outDir, "pubConvPmc")
         maxCommon.mustExistDir(outDir)
+        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
         if not options.updateDb:
             splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, runner, chunkCount)
         tsvFnames = glob.glob(join(outDir,"*.articles.gz"))

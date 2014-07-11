@@ -30,6 +30,7 @@ pubConvCrawler /hive/data/outside/pubs/crawler /hive/data/inside/pubs/text/crawl
 """)
 
 parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export meta data to sqlite db 'articles.db' in outDir")
+parser.add_option("", "--auto", dest="auto", action="store_true", help="set input and output dirs based on pubConf directories")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -335,23 +336,30 @@ def convertOneChunk(inFname, outFname, outArtFname):
 def main(args):
     pubGeneric.setupLogging(progFile, options)
 
-    cmd = args[0]
-    if cmd!="convertJob":
-        inDir, outDir = args
+    if len(args)==0 or args[0]!="convertJob":
+
+        if options.auto:
+            inDir, outDir = join(pubConf.extDir, "crawler"), join(pubConf.textBaseDir, "crawler")
+        else:
+            inDir, outDir = args
+
         maxCommon.mustExistDir(outDir)
         pubGeneric.setLockFile(outDir, "pubConvCrawler")
+
         if not options.updateDb:
             submitJobs(inDir, outDir, options.cluster)
 
         tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
         dbPath    = join(outDir, "articles.db")
         pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+
     else:
+        # this is a cluster job -> just convert one chunk
         cmd, inFile, outFile, outArtFname = args
         convertOneChunk(inFile, outFile, outArtFname)
 
 # ----------- MAIN --------------
-if args==[]:
+if args==[] and not options.auto:
     parser.print_help()
     exit(1)
 

@@ -181,7 +181,7 @@ class TableParser:
         if not self.types:
             self.types = [StringType] * len(self.headers)
 
-        logging.debug("Headers are: %s" % str(self.headers))
+        #logging.debug("Headers are: %s" % str(self.headers))
         self.Record = collections.namedtuple("tuple", self.headers) # this is a backport from python2.6
 
     def parseTuple(self, tuple):

@@ -128,7 +128,8 @@ FASTTEMPDIR = TEMPDIR
 
 maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
-minTxtFileSize = 200 # minimum filesize of any file after conversion to ASCII
+minTxtFileSize = 60 # minimum filesize of any file after conversion to ASCII
+# 60 to allow files with just a figure legend to be processed
 mapReduceTmpDir = _pubsDir + "/mapReduceTemp" # cluster-wide directory to collect results
 
 # parasol batches dir
@@ -202,6 +203,7 @@ extToolDir = _sourceDir+"/external"
 # $in and $out will be replaced with temp filenames
 # pdf2 is only used if output of pdf contains more than 10 unprintable characters
 # as pdfbox is quite slow
+# you can define variables and use them, see extToolDir
 CONVERTERS = {
     "doc":"catdoc $in > $out",
     "docx":"%(extToolDir)s/docx2txt-1.2/docx2txt.pl < $in > $out",

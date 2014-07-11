@@ -25,13 +25,18 @@ The first "download" is shipped on harddisk. See pubConvSpringer.
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
+parser.add_option("", "--auto", dest="auto", action="store_true", \
+    help="automatically set the output directory based on pubConf.textBaseDir")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
 def downloadSpringer(user, password, outDir):
+    ftpUrl, ftpDir = "ftp.springer-dds.com", "data/in"
+    logging.debug("Connecting to %s, dir %s, user %s, password %s" % (ftpUrl, ftpDir, user, password))
     ftp = ftplib.FTP("ftp.springer-dds.com", user, password)
     ftp.cwd("/data/in")
     fileNames = ftp.nlst()
+    logging.debug("Files on server: %s" % ",".join(fileNames))
     
     i = 0
     size = 0
@@ -39,6 +44,7 @@ def downloadSpringer(user, password, outDir):
     for fileName in fileNames:
         locFileName = join(outDir, fileName)
         locTmpFile, locTmpFname = pubGeneric.makeTempFile("pubGetSpringer", ".zip")
+        maxCommon.delOnExit(locTmpFname)
 
         logging.debug("Retrieving file %s to %s" % (fileName, locTmpFname))
         ftp.retrbinary('RETR %s' % fileName, locTmpFile.write)
@@ -61,14 +67,17 @@ def downloadSpringer(user, password, outDir):
 
 # ----------- MAIN --------------
 # only for debugging
-if args==[]:
+if args==[] and not options.auto:
     parser.print_help()
     exit(1)
 
 pubGeneric.setupLogging(progFile, options)
 
 #outDir = pubConf.consynDownloadDir
-outDir = args[0]
+if options.auto:
+    outDir = join(pubConf.extDir, "springer")
+else:
+    outDir = args[0]
 user = pubConf.springerUser
 password = pubConf.springerPass
 downloadSpringer(user, password, outDir)
