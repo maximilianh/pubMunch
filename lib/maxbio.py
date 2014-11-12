@@ -52,7 +52,7 @@ def writeToTsv(fileObj, rec):
 def parseFastaAsDict(fname, inDict=None):
     if inDict==None:
         inDict = {}
-    logging.info("Parsing %s" % fname)
+    #logging.info("Parsing %s" % fname)
     fr = FastaReader(fname)
     for (id, seq) in fr.parse():
         if id in inDict:

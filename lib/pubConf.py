@@ -310,13 +310,15 @@ speciesNames = {
 'ce10' : ['elegans', 'Caenorhabditis', 'nematode', ' worms'],
 'ci2' : ['ascidian', 'intestinalis', 'chordates', 'Ciona'],
 'sacCer2' : ['cerevisiae', 'Saccharomyces', 'yeast'],
+'felCat5' : ["domestic cat", "felis cattus", "felidae", " cats "],
 'nonUcsc_arabidopsisTair10' : ['arabidopsis', 'Arabidopsis', 'thaliana', 'thale cress'],
 'nonUcsc_Pfalciparum3D7' : ['plasmodium', 'Plasmodium', 'falciparium', 'malaria'],
 'nonUcsc_grapevine12x' : [' grapevine ', ' vitis ', 'pinot noir', ' vigne'],
 'nonUcsc_bacteria' : ['bacteria ', 'bacterial ', 'microbiology', "coli ", "prokaryotes"],
 'nonUcsc_viral' : [' virus ', 'viral '],
 'nonUcsc_fungi' : ['Aspergillus'],
-'nonUcsc_dnasu' : ['plasmid', 'cloned into', 'cloning vector', 'restriction site']
+'nonUcsc_dnasu' : ['plasmid', 'cloned into', 'cloning vector', 'restriction site'],
+'nonUcsc_wolb1' : ['wolbachia']
 #'nonUcsc_dnasu' : [' plasmid ']
 }
 
@@ -335,8 +337,8 @@ nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
 # e.g. nonUcsc_archaea will be resolved to /hive/data/inside/pubs/nonUcscGenomes/archaea.2bit
 # The BLAT-wrapper also needs a .ooc file with the same name.
 #alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'nonUcsc_archaea', 'danRer7', 'dm3',
-alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'danRer7', 'dm3',
-'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'ci2', 'ce10', 'sacCer2',
+alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'danRer7', 'nonUcsc_wolb1', 'dm3',
+'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'felCat5', 'ci2', 'ce10', 'sacCer2',
 'nonUcsc_arabidopsisTair10', 'nonUcsc_Pfalciparum3D7', 'nonUcsc_grapevine12x',
 'nonUcsc_bacteria', 'nonUcsc_viral', 'nonUcsc_fungi', 'nonUcsc_dnasu'
 ]
@@ -587,7 +589,7 @@ def resolveTextDir(dataDir, makeDir=False):
     else:
         dataDir = dataDir2
     logging.debug("Resolved dataset name %s to dataset directory %s" % (inName, dataDir))
-    return dataDir
+    return abspath(dataDir)
 
 def resolveTextDirs(dataString):
     " like resolveTextDir but accepts comma-sep strings and yields many "

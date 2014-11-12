@@ -205,8 +205,8 @@ def parseUniprotLinks(uniprotDir, taxId):
                 omimIds = row.omimGene.split("|")
                 appendToDict(accToUps, omimIds, acc, stripVer=True, prefix="omim")
 
-            if row.ncbiGene!="":
-                ncbiGenes = row.ncbiGene.split("|")
+            if row.entrezGene!="":
+                ncbiGenes = row.entrezGene.split("|")
                 appendToDict(accToUps, ncbiGenes, acc, stripVer=True, prefix="entrez")
                 for ncbiGene in ncbiGenes:
                     ncbiGene = int(ncbiGene)

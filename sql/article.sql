@@ -5,7 +5,7 @@ CREATE TABLE article (
     source varchar(255),	# the origin of the article, something like elsevier, pmc, pubmed or crawler
     publisher varchar(255),     # code of publisher, something like elsevier, aai, pmc or pnas
     origFile varchar(1000),     # original file from which this was imported, e.g. zipfile or tarfile
-    journal varchar(255),	# journal or book title
+    journal varchar(1000),	# journal or book title
     printIssn varchar(255),	# ISSN of the print edition of the article
     eIssn varchar(255),	 # optional: ISSN of the electronic edition of the journal/book 
     journalUniqueId varchar(255),	 # only medline: nlm unique journal ID
