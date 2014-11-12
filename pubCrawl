@@ -22,7 +22,8 @@ def main(args, options):
         pubCrawlConf.printConfig()
         sys.exit(0)
 
-    if options.waitTime:
+    if options.waitTime!=None:
+        logging.info("Http delay is set to %d secs from command line." % options.waitTime)
         pubCrawl.globalForceDelay = options.waitTime
 
     totalCount = 0
@@ -79,7 +80,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("-c", "--printConf", dest="printConf", action="store_true", help="just output current crawl config and stop")
 parser.add_option("-r", "--restrictPublisher", dest="restrictPublisher", action="store_true", help="uses the name of the output directory to find webservers for this publisher and limits downloads to the webservers defined in pubConf.py")
-parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, overrides all other settings")
+parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, overrides all other default delay settings")
 parser.add_option("", "--test", dest="testPmid", action="store", help="test crawling with this PMID")
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
 parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")

@@ -29,7 +29,7 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     freeFormCitFields = [mid["authors"], '"%s"' % mid["title"], mid["journal"],mid["year"], "vol. "+mid["vol"], "no. "+ mid["issue"], "pp. "+mid["page"],  mid["printIssn"]]
     freeFormCitStr = ", ".join(freeFormCitFields)
     queryData = {"q" : freeFormCitStr}
-    url = "http://search.labs.crossref.org/links?" 
+    url = "http://search.crossref.org/links?" 
     jsonParam = json.dumps([freeFormCitStr])
     logging.debug("JSON string %s" % jsonParam)
     queryParam = {"q" : jsonParam}
