@@ -4,7 +4,7 @@ import logging
 # GENERAL SETTINGS   ================================================
 # baseDir for internal data, accessible from cluster 
 # used for data created during pipeline runs
-pubsDataDir = '/hive/data/inside/pubs'
+pubsDataDir = '.'
 
 # static data, accessible from cluster, but part of distribution
 # these are basic files like gene lists, marker lists, journal lists
@@ -22,11 +22,11 @@ journalListDir = join(pubsDataDir, "journalLists")
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
 # it contains the ISSNs and server names for each publisher
 # it is required by pubCrawl for the highwire configuration
-publisherIssnTable = join(staticDataDir, "journals", "publishers.tab")
+publisherIssnTable = join(staticDataDir, "publishers", "publishers.tab")
 
 # same info, but one line per journal
 # not used anymore
-journalTable = join(staticDataDir, "journals", "journals.tab")
+journalTable = join(staticDataDir, "publishers", "journals.tab")
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
@@ -64,10 +64,10 @@ medlineDbPath = join(textDir, "medline", "medline.db")
 httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 
 # how long to wait for DNS queries, TCP connects, between retries and TCP reads, in seconds
-httpTimeout = 20
+httpTimeout = 1
 
 # how to long wait for the downloading of files, in seconds
-httpTransferTimeout = 30
+httpTransferTimeout = 2
 
 # if you need to use a proxy to access journals, set it here
 httpProxy = None
@@ -118,7 +118,7 @@ springerPass = ""
 # GENERAL PUBLICATION FILE CONFIG SETTINGS ============================
 
 # used for other defitions in here: basedir for many other dirs
-_pubsDir = "/hive/data/inside/pubs"
+_pubsDir = "."
 
 # which dataset should be loaded by the "load" step in pubMap ?
 loadDatasets = ["elsevier", "pmc", "crawler"]
@@ -276,7 +276,7 @@ genbankMaxRefCount = 50
 
 # DNA MAPPING / GENOME BLATTING SETTINGS ============================
 
-pubMapBaseDir = "/hive/data/inside/pubs/map/"
+pubMapBaseDir = "./map/"
 
 # directory for exported cdr3 files
 cdr3Dir = pubMapBaseDir + "cdr3Export/"

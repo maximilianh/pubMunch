@@ -319,8 +319,9 @@ def getFileExt(fileData, locFname, mimeType):
     if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
         mimeType = fileData["mimeType"]
         logging.debug("mime type is %s" % mimeType)
+
     # get extensions from mime TYpe
-    elif mimeType!=None:
+    if mimeType!=None:
         fileExt = pubConf.MIMEMAP.get(mimeType, None)
         logging.debug("File extension based on mime type %s" % mimeType)
 
