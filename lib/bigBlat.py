@@ -4,8 +4,11 @@ import glob, sys, os, logging, optparse
 from os.path import *
 from itertools import groupby
 
-# name of script to submit
+# name of blat script to submit
 bigBlatJobSrc = "bigBlatJob.py"
+
+# name of sort/filter/cat script to submit
+bigBlatCatJobSrc = "bigBlatCatJob.py"
 
 # the job script also contains a function we need
 import bigBlatJob
@@ -415,8 +418,38 @@ def doPslCat(target, outDir, pslOptions=None, singleOutFname=None):
             filtOpt = bigBlatJob.splitAddDashes(pslOptions)
             sortCmd = " | sort -k10,10 | pslCDnaFilter %s stdin stdout " % (filtOpt)
 
+        # yield job line: 
+        # queryPath filtOpt pslCatName
         cmd = "cat %(queryPath)s/* %(sortCmd)s %(pipeOp)s %(pslCatName)s" % locals()
         runCommand(cmd)
+
+def getCatJoblines(target, outDir, pslOptions):
+    """
+    returns a list of joblines to concat psl files, one per query
+    outDir is the main bigBlat outDir
+    pslOptions can be None, no sorting and psl filtering is performed then
+    """
+    pslDir = abspath(join(outDir, "psl", target))
+    pslOptions = str(pslOptions)
+
+    pslCatDir = abspath(join(outDir, "pslCat", target))
+    if not isdir(pslCatDir):
+        os.makedirs(pslCatDir)
+    mustBeEmptyDir(pslCatDir)
+
+    progDir = dirname(__file__) # assume that jobscript is in same dir as we are
+    jobScriptPath = join(progDir, bigBlatCatJobSrc)
+
+    jobLines = []
+
+    for queryName in os.listdir(pslDir):
+        pslCatName = join(pslCatDir, queryName)
+        if not pslCatName.endswith(".psl"):
+            pslCatName += ".psl"
+
+        queryPath = join(pslDir, queryName)
+        jobLines.append("%(jobScriptPath)s %(queryPath)s {check out exists %(pslCatName)s} %(pslOptions)s " % locals())
+    return jobLines
 
 def toTwoBit(qFastas, twoBitDir):
     """ accepts a list of filenames and converts all of them to .twoBit in twoBitDir """
@@ -561,12 +594,11 @@ def getJoblines(targetList, queryFnames, outDir, params={}, \
     splitTarget=False, blatOpt=None, pslFilterOpt=None, \
     qSizeDir=None, noOocFile=False):
     """ get individual job command lines for big Blat job.
-    creates a file joblist in outDir.
     This is more or less a rewrite of partitionGenome.pl based on Mark Diekhans code
 
     - faQuery can be a list of fasta filenames, a directory with .fa files or a single fa filename
-    - targetList can be a list of string with Dbs ("hg19"), 2bit files or fasta-files
-    - configuration to find 2bit files will be read from GENBANKDIR
+    - targetList can be a list of strings with Dbs ("hg19"), 2bit files or fasta-files
+    - if db names are given, the configuration to find 2bit files will be read from GENBANKDIR
     - if splitTargetDir is set, will chunk up target around gaps and write
       blatSpec files to this directory.
     - outDir must be an empty directory
@@ -659,6 +691,8 @@ def writeJoblist(dbList, faQuery, outDir, params={}, \
     for line in jobLines:
         jobListFile.write(line+"\n")
         lineCount+=1
+
+    jobListFile.close()
     logging.info("Written %d lines to jobList file" % lineCount)
 
 # MAIN ENTRY POINT, if script is called from shell

@@ -5,12 +5,13 @@ import logging, optparse, sys, glob, gzip, collections, copy, gzip, os, doctest,
 from os.path import *
 from collections import defaultdict
 
-try:
-  from lxml import etree
-except ImportError:
-    # Python 2.5
-    print "py 2.5 fallback etree"
-    import xml.etree.cElementTree as etree
+#try:
+#from lxml import etree
+#except ImportError:
+    ## Python 2.5
+    #print "py 2.5 fallback etree"
+import xml.etree.cElementTree as etree
+    # doesn't work anymore, we need the partial parsing option
 
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
@@ -133,7 +134,22 @@ featTypes = {
     "propeptide" : "propep",
     "intramembrane region" : "intramem",
     "peptide" : "peptide",
-    "nucleotide phosphate-binding region" : "nucl phos bind"
+    "nucleotide phosphate-binding region" : "nucl phos bind",
+    "helix" : "helix",
+    "chain" : "chain",
+    "coiled-coil region" : "coiled-coil",
+    "turn" : "turn",
+    "strand" : "beta",
+    "domain" : "domain",
+    "zinc finger region" : "zinc finger",
+    "repeat" : "repeat",
+    "compositionally biased region" : "biased",
+    "initiator methionine" : "init Met",
+    "non-standard amino acid" : "non-std",
+    "non-consecutive residues" : "non-consec",
+    "unsure residue" : "unsure",
+    "DNA-binding region" : "DNA-binding",
+    "non-terminal residue" : "nonTerm"
 }
 
 # main record info
@@ -141,10 +157,10 @@ entryHeaders = ["dataset", "acc", "mainIsoAcc", "orgName", "orgCommon", "taxonId
     "protFullNames", "protShortNames", "protAltFullNames", "protAltShortNames", \
     "geneName", "geneSynonyms", "isoNames", \
     "geneOrdLocus", "geneOrf", \
-    "hgncSym", "hgncId", "refSeq", "refSeqProt", "ncbiGene", "ensemblGene", "ensemblProt", \
-    "emblMrna", "emblMrnaProt", "emblDna", "emblDnaProt", \
+    "hgncSym", "hgncId", "refSeq", "refSeqProt", "entrezGene", "ensemblGene", "ensemblProt", \
+    "kegg", "emblMrna", "emblMrnaProt", "emblDna", "emblDnaProt", \
     "pdb", "ec", \
-    "uniGene", "omimGene", "omimPhenotype", "mainSeq", "isoIds", "isoSeqs"]
+    "uniGene", "omimGene", "omimPhenotype", "subCellLoc", "functionText", "mainSeq", "isoIds", "isoSeqs"]
 EntryRec = collections.namedtuple("uprec", entryHeaders)
 
 # disease associated mutation
@@ -227,8 +243,10 @@ def parseDiseases(fname):
             dis[code]=name
     return dis
 
-def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAttrib=None):
-    " find all text of subelemets matching path with given attrib and save into dataDict with key"
+def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAttrib=None, subSubEl=None):
+    """ find all text of subelemets matching path with given optionally attrib and save into dataDict with key
+    You can specify a subSubEl of the element to get the text from.
+    """
     l = []
     for se in el.findall(path):
         if attribKey!=None and se.attrib.get(attribKey, None)!=attribVal:
@@ -236,7 +254,10 @@ def findSaveList(el, path, dataDict, key, attribKey=None, attribVal=None, useAtt
         if useAttrib:
             val = se.attrib[useAttrib]
         else:
-            val = se.text
+            if subSubEl:
+                val = se.find(subSubEl).text
+            else:
+                val = se.text
         l.append(val)
     s = "|".join(l)
     dataDict[key] = s
@@ -739,6 +760,8 @@ def parseRecInfo(entryEl, entry, isoSeqs):
     findSaveList(entryEl, "organism/dbReference", entry, "taxonId", useAttrib="id")
     findSaveList(entryEl, "comment/isoform/id", entry, "isoIds")
     findSaveList(entryEl, "comment/isoform/name", entry, "isoNames")
+    findSaveList(entryEl, "comment/subcellularLocation/location", entry, "subCellLoc")
+    findSaveList(entryEl, "comment", entry, "functionText", attribKey="type", attribVal="function", subSubEl="text")
 
     mainSeq = entryEl.find("sequence").text
     entry["mainSeq"] = mainSeq
@@ -753,7 +776,8 @@ def parseRecInfo(entryEl, entry, isoSeqs):
     entry["refSeqProt"] = dbRefs.get("RefSeq", "")
     entry["ensemblProt"] = dbRefs.get("ensemblProt", "")
     entry["ensemblGene"] = dbRefs.get("ensemblGene", "")
-    entry["ncbiGene"] = dbRefs.get("GeneId", "")
+    entry["entrezGene"] = dbRefs.get("GeneID", "")
+    entry["kegg"] = dbRefs.get("KEGG", "")
     entry["uniGene"] = dbRefs.get("UniGene", "")
     entry["omimGene"] = dbRefs.get("omimGene", "")
     entry["omimPhenotype"] = dbRefs.get("omimPhenotype", "")
@@ -846,7 +870,7 @@ def writeFaSeqs(entry, faFiles, allVariants=False):
         # uniprot lifter file?
         #if c==0 and allVariants:
             #seqId = entry.acc
-        ofh.write(">%s\n%s\n" % (seqId, seq))
+        ofh.write(">%s\n%s\n" % (seqId.strip(), seq.strip()))
         c+=1
 
 def openFaFiles(taxonIds, outDir, outPrefix, seqType="base"):
@@ -889,9 +913,13 @@ def parseUniprot(db, inDir, outDir, taxonIds):
         xmlFile = gzip.open(join(inDir, xmlBase))
         logging.info("Parsing main XML file %s" % xmlFile.name)
 
-    entryOf = openOutTabFile(outDir, outPrefix+".tab", entryHeaders)
-    refOf = openOutTabFile(outDir, outPrefix+".refs.tab", refHeaders)
-    mutOf = openOutTabFile(outDir, outPrefix+".mut.tab", mutHeaders)
+    # create a dict taxonId -> output file handles for record info, pmid reference info and mutation info
+    outFhs = {}
+    for taxId in taxonIds:
+        entryOf = openOutTabFile(outDir, "%s.%s.tab" % (outPrefix, taxId), entryHeaders)
+        refOf = openOutTabFile(outDir, "%s.%s.refs.tab" % (outPrefix, taxId), refHeaders)
+        mutOf = openOutTabFile(outDir, "%s.%s.mut.tab" % (outPrefix, taxId), mutHeaders)
+        outFhs[taxId] = (entryOf, refOf, mutOf)
 
     disToName = parseDiseases(join(inDir, "humdisease.txt"))
     # base and variant sequence filehandles
@@ -901,14 +929,19 @@ def parseUniprot(db, inDir, outDir, taxonIds):
     emptyEntry = dict(zip(entryHeaders, len(entryHeaders)*[""]))
 
     pm = maxCommon.ProgressMeter(recCount)
-    for _, entryEl in etree.iterparse(xmlFile, tag='{http://uniprot.org/uniprot}entry'):
+    #for _, entryEl in etree.iterparse(xmlFile.name, tag='{http://uniprot.org/uniprot}entry'):
+    for _, entryEl in etree.iterparse(xmlFile):
+        if entryEl.tag!="{http://uniprot.org/uniprot}entry":
+            continue
         strip_namespace_inplace(entryEl) # die, die stupid namespaces!!
         entry = copy.copy(emptyEntry)
 
         pm.taskCompleted()
 
-        if taxonIds!=None and int(entryEl.find("organism/dbReference").attrib["id"]) not in taxonIds:
+        entryTax = int(entryEl.find("organism/dbReference").attrib["id"])
+        if taxonIds!=None and entryTax not in taxonIds:
             continue
+        entryOf, refOf, mutOf = outFhs[taxId]
 
         entryRow = parseRecInfo(entryEl, entry, isoSeqs)
         writeFaSeqs(entryRow, faFiles)
@@ -949,9 +982,12 @@ def main(args, options):
     elif db in ["uniprot", "uniprotTrembl"]:
         dbDir = pubConf.uniProtBaseDir
         #taxonIds = set(pubConf.uniProtTaxonIds)
-        taxonIds = options.taxon
+        if len(args)==1:
+            raise Exception("Please specify a taxonId or list of taxonIds, like 9606")
+
+        taxonIds = args[1]
         if taxonIds:
-            taxonIds=taxonIds.split(",")
+            taxonIds=[int(x) for x in taxonIds.split(",")]
         parseUniprot(db, dbDir, refDir, taxonIds)
     else:
         assert(False) # illegal db arg
@@ -973,7 +1009,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
 parser.add_option("-p", "--parse", dest="parse", action="store", help="parse a single uniprot xml file (debugging)")
-parser.add_option("", "--taxon", dest="taxon", action="store", help="uniprot: only parse specified comma-sep list of taxons and add suffix .<taxonId>. to output files")
+parser.add_option("", "--taxon", dest="taxon", action="store", help="uniprot: only parse specified comma-sep list of taxons and add suffix .<taxonId>. to output files, default %default", default="9606")
 (options, args) = parser.parse_args()
 
 if args==[] and not options.test:

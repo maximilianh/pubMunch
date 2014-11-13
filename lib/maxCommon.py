@@ -248,9 +248,15 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
 
     if headers==None:
         line1 = fh.readline()
-        line1 = line1.strip("\n").strip("#")
+        line1 = line1.rstrip("\n").strip("#").rstrip("\t")
         headers = line1.split(fieldSep)
         headers = [re.sub("[^a-zA-Z0-9_]","_", h) for h in headers]
+        newHeaders = []
+        for h in headers:
+            if h[0].isdigit():
+                h = "n"+h
+            newHeaders.append(h)
+        headers = newHeaders
 
     if makeHeadersUnique:
         newHeaders = []
@@ -285,6 +291,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             logging.error("Line was: %s" % line)
             logging.error("Does number of fields match headers?")
             logging.error("Headers are: %s" % headers)
+            logging.error("Header field count is %d, line field count is %d" % (len(headers), len(fields)))
             raise Exception("wrong field count in line %s" % line)
         # convert fields to correct data type
         yield rec

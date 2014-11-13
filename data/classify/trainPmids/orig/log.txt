@@ -182,6 +182,11 @@ wget ftp://mirbase.org/pub/mirbase/CURRENT/miRNA.dat.gz -O -  | zgrep PUBMED | c
 # miRNAs/MESH
 mv ~/pubmed_result.txt ./pos.meshMirnas.txt
 
-# NCI Cancer Pathway Database - pid.nci.nih.gov
+# NCI Cancer Pathway Database - http://pid.nci.nih.gov
 cat /hive/data/inside/pubs/pathways/nci/NCI-Nature_Curated.xml | grep pmid | cut -d= -f2 | cut -d\> -f1 | tr -d '"' > pos.nciPathways.txt
 
+# Pathway Commons - http://www.pathwaycommons.org
+cat /hive/data/inside/pubs/pathways/pathwayCommons/low.tab  | cut -f5 | grep -v unknown | sort -u > pos.pathwayCommons.txt
+
+# TCDB Transporter Classification Database - http://www.tcdb.org
+wget http://www.tcdb.org/public/pmid.tsv -O - | cut -f1 | sort -u > pos.tcdb.txt

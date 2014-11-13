@@ -198,6 +198,12 @@ class Runner:
             self.jobListFh.write(command)
             self.jobListFh.write("\n")
 
+    def submitAll(self, lines):
+        " like submit, but accepts a list of lines "
+        for line in lines:
+            self.submit(line)
+        logging.info("Submitted %d jobs" % len(lines))
+
     def submitPythonFunc(self, moduleName, funcName, params, jobName=None):
         """ 
         Submit a cluster job to run a python function with some parameters.
@@ -309,7 +315,7 @@ def loadModule(moduleFilename):
         sys.exit(1)
     if moduleFilename.endswith(".py") or moduleFilename.endswith(".pyc"):
         modulePath, moduleName = os.path.split(moduleFilename)
-        moduleName = moduleName.replace(".py","")
+        moduleName = moduleName.replace(".pyc","").replace(".py","")
         logging.info("Loading %s" % (moduleFilename))
         sys.path.append(modulePath)
 

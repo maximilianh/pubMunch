@@ -2,63 +2,106 @@ import logging, optparse, os, glob, zipfile, types, gzip, shutil, sys
 from os.path import *
 import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 
-def filterOneChunk(inFname, pmidFname, outFname):
+def filterOneChunk(inFname, searchSpec, outFname):
     """ 
-    filter one chunk
+    filter one chunk. searchSpec can be a list of keywords (e.g. ebola,filovirus) or 
+    a filename of a list of PMIDs.
     """ 
-    pmids = set([int(l.strip()) for l in open(pmidFname)])
+    logging.debug("filtering %s" % inFname)
+    pmids = None
+    if isfile(searchSpec):
+        pmids = set([int(l.strip()) for l in open(searchSpec)])
+    else:
+        words = searchSpec.split(",")
+        words = [w.lower() for w in words]
+
     reader = pubStore.PubReaderFile(inFname)
     store  = pubStore.PubWriterFile(outFname)
     for article, files in reader.iterArticlesFileList():
-        if article.pmid=="" or int(article.pmid) not in pmids:
-            logging.debug("skipping %s, no PMID or not in filter file" % article.pmid)
-            continue
+        # this is the filtering part: continue if article is not accepted
+        if pmids!=None:
+            if (article.pmid=="" or int(article.pmid) not in pmids):
+                logging.debug("skipping %s, no PMID or not in filter file" % article.pmid)
+                continue
+        else:
+            foundMatch = False
+            for w in words:
+                for fileRow in files:
+                    cont = fileRow.content.lower()
+                    if w in cont:
+                        foundMatch = True
+                        break
+                if foundMatch:
+                    break
+
+            if not foundMatch:
+                continue
+
+        # now write the article to output
         store.writeArticle(article.articleId, article._asdict())
         for fileRow in files:
             store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
     store.close()
 
-def submitJobs(inSpec, pmidFname, outDir):
+def submitJobs(inSpec, filterSpec, outDir):
     inDirs = pubConf.resolveTextDirs(inSpec)
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, algName=inSpec)
-    pmidFname = os.path.abspath(pmidFname)
 
+    outFnames = []
     for inDir in inDirs:
         inFnames = glob.glob(join(inDir, "*.articles.gz"))
         for inFname in inFnames:
-            outFname = join(outDir, basename(inFname))
-            command = "%s %s filterJob {check in exists %s} %s %s" % \
-                (sys.executable, __file__, inFname, pmidFname, outFname)
-            runner.submit(command)
+            outFname = join(outDir, basename(dirname(inFname))+"-"+basename(inFname))
+            outFnames.append(outFname)
+            outFnames.append(outFname.replace('.articles.gz','.files.gz')
+            #command = "%s %s filterJob {check in exists %s} %s %s" % \
+                #(sys.executable, __file__, inFname, pmidFname, outFname)
+            runner.submitPythonFunc(__file__, "filterOneChunk", [inFname, filterSpec, outFname])
     runner.finish(wait=True)
+    return outFnames
 
-def rechunkCmd(args, options):
-    #reader = pubStore.PubReaderFile(inFname)
-    #artCount = 0
-    #chunkCount = 0
-    #logging.debug("Writing to %s" % outFname)
-    #store = pubStore.PubWriterFile(join(outDir, "0_00000.articles.gz"))
-    #print "Directory: %s" % inDir
-    #pm = maxCommon.ProgressMeter(len(inFnames))
-    #artCount += 1
-    #if artCount % pubConf.chunkArticleCount == 0:
-    pass
-        #store.close()
-        #chunkCount += 1
-        #store = pubStore.PubWriterFile(join(outDir, "0_%05d.articles.gz" % chunkCount))
-        #logging.info("Accepting %s, %d files" % (article.externalId, len(files)))
-        #store.writeArticle(article.articleId, article._asdict())
-        #for fileRow in files:
-            #store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
-            #pm.taskCompleted()
-    #store.close()
+def rechunk(inDir, outDir):
+    " merge bits and pieces into fresh chunks "
+    #maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    existOutFnames = glob.glob(join(outDir, "*"))
+    assert(len(existOutFnames)==1) # only one "parts" directory allowed
+    inFnames = glob.glob(join(inDir, "*.articles.gz"))
+    logging.info("rechunking %d input chunks" % len(inFnames))
+    artCount = 0
+    chunkCount = 0
+    store = None
+    pm = maxCommon.ProgressMeter(len(inFnames))
+    for inFname in inFnames:
+        reader = pubStore.PubReaderFile(inFname)
+        logging.debug("Reading %s" % inFname)
+        for article, files in reader.iterArticlesFileList():
+            if store==None:
+                outFname = join(outDir, "0_%05d.articles.gz" % chunkCount)
+                store = pubStore.PubWriterFile(outFname)
+                logging.debug("Writing to %s" % outFname)
 
-def filterCmd(args, options):
-    inSpec, pmidFname, outSpec = args
+            logging.debug("Adding %s, %d files" % (article.externalId, len(files)))
+            store.writeArticle(article.articleId, article._asdict())
+            for fileRow in files:
+                store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
+
+            artCount += 1
+            if artCount % pubConf.chunkArticleCount == 0:
+                store.close()
+                store = None
+                chunkCount += 1
+
+        pm.taskCompleted()
+
+    logging.info("Created %d chunks with %d article" % (chunkCount+1, artCount))
+    if store!=None:
+        store.close()
+
+def filterCmd(inSpec, searchSpec, outSpec, options):
     outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
     assert(outDir!=None)
     maxCommon.mustBeEmptyDir(outDir)
-    submitJobs(inSpec, pmidFname, outDir)
+    return submitJobs(inSpec, searchSpec, outDir)
 
 def parseIdFname(fname):
     res = {}

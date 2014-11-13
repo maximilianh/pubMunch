@@ -319,9 +319,12 @@ class PubWriterFile:
         " write references to table in refs/ subdir"
         if self.refFh==None:
             # lazily open ref file, add headers
-            logging.warn("YES!!")
             if not os.path.isdir(self.refDir):
-                os.makedirs(self.refDir)
+                try:
+                    os.makedirs(self.refDir)
+                except OSError:
+                    logging.info("makedir %s failed, probably just race condition" % self.refDir)
+                    pass
             #self.refFh = tempfile.NamedTemporaryFile(dir=self.tempDir, suffix=".gz", prefix=self.fileBaseName+".")
             self.refFh = open(self.tempRefName, "w")
             logging.info("Created tempfile for refs %s" % self.refFh.name)
@@ -480,14 +483,14 @@ class PubReaderFile:
         logging.debug("Reading %s and %s" % (articleFn, fileFn))
 
         self.articleRows = None
-        if isfile(articleFn):
+        if isfile(articleFn) and getsize(articleFn)!=0:
             self.articleRows = maxCommon.iterTsvRows(articleFn, encoding="utf8")
                 
         self.fileRows = None
-        if isfile(fileFn):
+        if isfile(fileFn) and getsize(fileFn)!=0:
             self.fileRows  = maxCommon.iterTsvRows(fileFn, encoding="utf8")
 
-        assert(self.articleRows!=None or self.fileRows!=None)
+        #assert(self.articleRows!=None or self.fileRows!=None)
 
     def iterFileRows(self):
         """ iterate over file data """
@@ -572,6 +575,9 @@ class PubReaderFile:
         """
         fileDataList = []
         lastFileData = None
+        if self.articleRows==None:
+            raise StopIteration
+
         for articleData in self.articleRows:
             if len(fileDataList)!=0 and fileDataList[0].articleId!=articleData.articleId:
                 logging.warn("skipping %s, seems that articleId is out of sync with files" %
@@ -898,12 +904,18 @@ def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     outFh.write("\n")
     outFh.close()
 
-def moveFiles(srcDir, trgDir, subDirs=[]):
+def moveFiles(srcDir, trgDir):
     " move all files from src to target dir, and also a given list of subDirs, but not any other subDirs "
+    if not isdir(trgDir):
+        logging.info("Creating directory %s" % trgDir)
+        os.makedirs(trgDir)
+
     for fname in os.listdir(srcDir):
         infname = join(srcDir, fname)
         outfname = join(trgDir, fname)
-        if isdir(infname) and not basename(infname) in subDirs:
+        #if isdir(infname) and not basename(infname) in subDirs:
+            #continue
+        if isdir(infname):
             continue
         if isfile(outfname):
             logging.debug("Deleting %s" % outfname)

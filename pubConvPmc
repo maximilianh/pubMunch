@@ -500,7 +500,8 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chu
     runner.finish(wait=True)
 
     pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
-    pubStore.moveFiles(outDir, finalOutDir, ["refs"])
+    pubStore.moveFiles(join(outDir, "refs"), join(finalOutDir, "refs"))
+    pubStore.moveFiles(outDir, finalOutDir)
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, lastArticleId, newPmcIds)
     shutil.rmtree(outDir)
 

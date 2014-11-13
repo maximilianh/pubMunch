@@ -19,14 +19,21 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 import pubChange
+import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] command options
 
-command "filter": 
+command "filterText": 
+    create subset of dataset(s) with text that contains a keyword
+    %prog filter <datasetList> <keywordListCommaSep> <datasetOut> 
+
+example:
+%prog filter pmc,elsevier,crawler ebola,filovirus ebola
+
+command "filterPmid": 
     create subset of dataset(s) with a list of PMIDs, create a new dataset
     %prog filter <datasetList> <pmidListFile> <datasetOut> 
 
@@ -55,11 +62,31 @@ pubGeneric.addGeneralOptions(parser)
 def main(args, options):
     cmd = args[0]
 
-    if cmd=="filter":
-        pubChange.filterCmd(args[1:], options)
-    if cmd=="filterJob":
+    if cmd=="filterPmid":
+        inSpec, pmidFname, outDir = args[1:]
+        pmidFname = os.path.abspath(pmidFname)
+        assert(isfile(pmidFname))
+        pubChange.filterCmd(inSpec, pmidFname, outDir, options)
+    elif cmd=="filterText":
+        inSpec, searchSpec, outDir = args[1:]
+
+        partsDir = join(outDir, "parts")
+        maxCommon.mustBeEmptyDir(partsDir, makeDir=True)
+        outFnames = pubChange.filterCmd(inSpec, searchSpec, partsDir, options)
+        pubChange.rechunk(partsDir, outDir)
+
+        # cleanup
+        for fname in outFnames:
+            os.remove(fname)
+        os.removedirs(partsDir)
+
+    elif cmd=="filterJob":
         inSpec, pmidFname, outSpec = args[1:]
         pubChange.filterOneChunk(inSpec, pmidFname, outSpec)
+    elif cmd=="rechunk":
+        inDir, outDir = args[1:]
+        pubChange.rechunk(inDir, outDir)
+
     elif cmd=="addPmids":
         pubChange.addPmids(args[1])
     else:
