@@ -22,11 +22,11 @@ journalListDir = join(pubsDataDir, "journalLists")
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
 # it contains the ISSNs and server names for each publisher
 # it is required by pubCrawl for the highwire configuration
-publisherIssnTable = join(staticDataDir, "publishers", "publishers.tab")
+publisherIssnTable = join(staticDataDir, "journals", "publishers.tab")
 
 # same info, but one line per journal
 # not used anymore
-journalTable = join(staticDataDir, "publishers", "journals.tab")
+journalTable = join(staticDataDir, "journals", "journals.tab")
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
