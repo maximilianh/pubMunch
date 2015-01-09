@@ -126,12 +126,12 @@ The scripts can use Java classes. If the name of the script starts with "java", 
 files to sys.path in your script and use the Java classes as you would use python classes.
 
 The annotators can set a few additional special variables, apart from "headers":
-- "sectioning": If this is true, the document is sent in separate chunks, one per "intro", "material", "results" and "discussion" section. The sectioning is very rough at the moment.
 - "onlyMain": If this is set to True, the annotator will only be run on the main files, not the supplemental data.
 - "onlyMeta": If True, annotator will only be run on the metadata, not the fulltext
-- "bestMain": If True, annotator will only be run on the XML fulltext, not any PDF fulltext versions, if both are available. If only PDF is available, it will still be used.
+- "preferXml": If True, annotator will prefer XML/HTML files, if both PDF and XML are available. If only PDF is available, this has no effect. Use this for highest quality text, e.g. grammatical parsers.
+- "preferPdf": Like preferXml, but priority on PDF files. Use this for most comprehensive text, e.g. identifier search.
 
-Apart from the annotate() function, the annotators can provide three other functions, which are loosely
+Apart from the annotateFile() function, the annotators can provide three other functions, which are loosely
 inspired by Hadoop:
 - "setup": function that is run before any files are opened, when the job comes up. The parameter is 
   paramDict, a dictionary with parameters specified on the command line in the format key=value.
