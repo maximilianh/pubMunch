@@ -4,7 +4,7 @@
 '''
 Finds sentences from a file that mention two proteins and an interaction. Outputs sentences delimited by newlines in a file and associated information (provenance, expected genes, etc.) into another file. Requires a working version of geneFinder.py.
 
-Cool things attempted:
+cool things attempted:
 - pubGeneric.py's section splitter: I wasn't able to successfully split any papers so I took this out.
 - Cutting words from sentences to the left and right of the area encompassed by the genes and interactions: not a good idea actually, we don't want to cut out information useful for NLP
 - Remove inline citations such as [17,18]: regular expression too slow, especially on matrices

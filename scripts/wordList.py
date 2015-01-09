@@ -25,7 +25,7 @@ runOn = "files"
 # we only want main files
 onlyMain = True
 # only give us one single main article file
-bestMain = True
+preferXml = True
 
 sentSplitter = re.compile(r'[.!?;][ ]')
 wordSplitter = re.compile(r'[;:",. !?=\[\]()\t\n\r\f\v]')

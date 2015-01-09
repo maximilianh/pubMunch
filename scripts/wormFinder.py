@@ -1,4 +1,4 @@
-# annotator to look for certain protein interaction keywords
+# annotator to look for wormbase identifiers
 import logging, maxCommon, re
 from os.path import join, dirname
 from collections import defaultdict
@@ -9,7 +9,7 @@ from collections import defaultdict
 headers = ["start", "end", "geneId", "keyword", "snippet"]
 
 onlyMain = True
-bestMain = True
+preferPdf = True
 
 # require that genes appear at least x times in doc
 MINCOUNT = 2

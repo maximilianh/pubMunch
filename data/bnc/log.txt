@@ -1,0 +1,4 @@
+http://www.kilgarriff.co.uk/BNClists/all.num.o5
+less all.num.o5 | grep -v WHOLE | grep -v \' | grep -v -- - | gawk '($1>100) {OFS="\t";print $2,$1}' | cut -f1 > bnc.tab
+less all.num.o5 | grep -v WHOLE | grep -v \' | grep -v -- - | gawk '($1>100) {OFS="\t";print $2,$1}' | cut -f1 > bnc.txt
+head -n1000 bnc.txt > bncTop1000.txt

@@ -1,7 +1,7 @@
 import geneFinder, varFinder
 
 onlyMain = True
-bestMain = True
+preferPdf = True
 
 headers = list(varFinder.mutFields)
 
