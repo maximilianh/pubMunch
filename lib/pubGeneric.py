@@ -394,8 +394,10 @@ def toAscii(fileData, mimeType=None, \
             logging.debug("Could not convert xml to ascii, file %s" % fileData["url"])
             return None
         fileData["content"]=asciiData
+
     else:
         asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
+
         # try to detect corrupted pdf2text output and run second converter
         if fileExt=="pdf" and \
             ((asciiData==None or len(asciiData)<minTxtFileSize) or countBadChars(asciiData)>=10):
@@ -610,119 +612,6 @@ def getFtpDir(server, path):
     return dirLines
 
 
-# SECTIONING OF TEXT
-
-# examples of articles where this DOES NOT work:
-#  unzip /hive/data/outside/literature/ElsevierConsyn/2-00290-FULL-XML.ZIP 0140-6736/S0140673600X41633/S0140673686920064/S0140673686920064.xml - raw text, no linebreaks (but dots)
-
-# regular expressions more or less copied from Ruihua Fang, based on her textpresso code
-# see BMC http://www.biomedcentral.com/1471-2105/13/16/abstract
-flags = re.IGNORECASE | re.UNICODE | re.MULTILINE
-prefix = "^[\s\d.IVX]*"
-sectionRes = {
-    'abstract' :
-    re.compile(r"%s(abstract|summary)\s*($|:)" % prefix, flags),
-    'intro' :
-    re.compile(r"%s(introduction|background)\s*($|:)" % prefix, flags),
-    'methods':
-    re.compile(r"%s(materials?\s*and\s*methods|patients and methods|methods|experimental\s*procedures|experimental\s*methods)\s*($|:)" % prefix, flags),
-    'results':
-    re.compile(r"%s(results|case report|results\s*and\s*discussion|results\/discussion)\s*($|:)" % prefix, flags),
-    'discussion':
-    re.compile(r"%sdiscussion\s*($|:)" % prefix, flags),
-    'conclusions':
-    re.compile(r"%s(conclusion|conclusions|concluding\s*remarks)\s*($|:)" % prefix, flags),
-    'ack':
-    re.compile(r"%s(acknowledgment|acknowledgments|acknowledgement|acknowledgements)\s*($|:)" % prefix, flags),
-    'refs':
-    re.compile(r"%s(literature\s*cited|references|bibliography|refereces|references\s*and\s*notes)\s*($|:)" % prefix, flags)
-}
-
-def sectionRanges(text):
-    """
-    split text into  sections 'header', 'abstract', 'intro', 'results', 'discussion', 'methods', 'ack', 'refs', 'conclusions', 'footer'
-    return as ordered dictionary sectionName -> (start, end) tuple
-    >>> sectionRanges("Introduction\\nResults\\n\\nReferences\\nNothing\\nAcknowledgements")
-    OrderedDict([('header', (0, 0)), ('intro', (0, 13)), ('results', (13, 21)), ('refs', (21, 41)), ('ack', (41, 57))])
-    """
-    text = text.replace("\a", "\n")
-    # get start pos of section headers, create list ('header',0), ('discussion', 400), etc
-    sectionStarts = []
-    for section, regex in sectionRes.iteritems():
-        logging.log(5, "Looking for %s" % section)
-        for match in regex.finditer(text):
-            logging.log(5, "Found at %d" % match.start())
-            sectionStarts.append((section, match.start()))
-    sectionStarts.sort(key=operator.itemgetter(1))
-    sectionStarts.insert(0, ('header', 0))
-    sectionStarts.append((None, len(text)))
-
-    # convert to dict of starts for section
-    # create dict like {'discussion' : [200, 500, 300]}
-    sectionStartDict = orderedDict.OrderedDict()
-    for section, secStart in sectionStarts:
-        sectionStartDict.setdefault(section, [])
-        sectionStartDict[section].append( secStart )
-
-    if len(sectionStartDict)-2<2:
-        logging.log(5, "Fewer than 2 sections, found %s, aborting sectioning" % sectionStarts)
-        return None
-
-    # convert to list with section -> (best start)
-    bestSecStarts = []
-    for section, starts in sectionStartDict.iteritems():
-        if len(starts)>2:
-            logging.log(5, "Section %s appears more than twice, aborting sectioning" % section)
-            return None
-        if len(starts)>1:
-            logging.log(5, "Section %s appears more than once, using only second instance" % section)
-            startIdx = 1
-        else:
-            startIdx = 0
-        bestSecStarts.append( (section, starts[startIdx]) )
-    logging.log(5, "best sec starts %s" % bestSecStarts)
-
-    # skip sections that are not in order
-    filtSecStarts = []
-    lastStart = 0
-    for section, start in bestSecStarts:
-        if start >= lastStart:
-            filtSecStarts.append( (section, start) )
-            lastStart = start
-    logging.log(5, "filtered sec starts %s" % filtSecStarts)
-
-    # convert to dict with section -> start, end
-    secRanges = orderedDict.OrderedDict()
-    for i in range(0, len(filtSecStarts)-1):
-        section, secStart = filtSecStarts[i]
-        secEnd = filtSecStarts[i+1][1]
-        secRanges[section] = (secStart, secEnd)
-
-    # bail out if any section but [header, footer] is of unusual size
-    maxSectSize = int(0.7*len(text))
-    minSectSize = int(0.003*len(text))
-    for section, secRange in secRanges.iteritems():
-        if section=='header' or section=='footer':
-            continue
-        start, end = secRange
-        secSize = end - start
-        if secSize > maxSectSize:
-            logging.debug("Section %s too long, aborting sectioning" % section)
-            return None
-        elif secSize < minSectSize and section not in ["abstract", "ack"]:
-            logging.debug("Section %s too short, aborting sectioning" % section)
-            return None
-        else:
-            pass
-
-    logging.debug("Sectioning OK, found %s" % secRanges)
-    return secRanges
-
-def test_sectioning():
-    text = "hihihi sflkjdf\n Results and Discussion\nbla bla bla\nI. Methods\n123. Bibliography\n haha ahahah ahah test test\n"
-    sec = sectionRanges(text)
-    print sec
-
 def resolveDatasetDesc(descs):
     " resolve a comma-sep list of dataset identifiers like pmc or elsevier to a list of directories "
     dirs = []
@@ -864,9 +753,11 @@ def removeLockFiles():
         os.remove(lockFname)
 
 def setInOutDirs(useDefault, args, pubName):
-    " get in and output dir either from args or create default values, depending on useDefault "
+    """ get in and output dir either from args or create default values,
+    depending on useDefault """
+
     if useDefault:
-        inDir, outDir = join(pubConf.extDir, "elsevier"), join(pubConf.textDir, "elsevier")
+        inDir, outDir = join(pubConf.extDir, pubName), join(pubConf.textDir, pubName)
     else:
         inDir, outDir = args[:2]
     return inDir, outDir

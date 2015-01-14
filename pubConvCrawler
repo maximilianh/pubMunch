@@ -135,21 +135,21 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
     # write to outDir
     return chunkNames, pmids
 
-def toUnicode(var):
-    " force variable to unicode, somehow "
-    if type(var)==type(1):
-        var = unicode(var)
-    if var==None:
-        var = "NotSpecified"
-    elif type(var)==type(unicode()):
-        pass
-    else:
-        try:
-            var = var.decode("utf8")
-        except UnicodeDecodeError, msg:
-            logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
-            var = var.decode("latin1")
-    return var
+#def toUnicode(var):
+    #" force variable to unicode, somehow "
+    #if type(var)==type(1):
+        #var = unicode(var)
+    #if var==None:
+        #var = "NotSpecified"
+    #elif type(var)==type(unicode()):
+        #pass
+    #else:
+        #try:
+            #var = var.decode("utf8")
+        #except UnicodeDecodeError, msg:
+            #logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
+            #var = var.decode("latin1")
+    #return var
 
 def submitJobs(inDir, outDir, useCluster):
     " split crawler article info (article info + additional fields) into chunks"
@@ -233,7 +233,8 @@ def convSaveFile(writer, externalId, fileType, url, mimeType, fname, fileId, art
         newUrl = urlparse.urlunparse(newParts)
         fileDict["url"] = newUrl
         fileDict["mimeType"] = mimeType
-        fileDict["content"] = open(fname).read()
+        binData = open(fname).read()
+        fileDict["content"] = binData
         fileDict["locFname"] = fname
         fileDict = pubGeneric.toAsciiEscape(fileDict)
         if fileDict==None:

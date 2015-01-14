@@ -19,7 +19,7 @@ class splitSent:
 
     def startup(self, paramDict):
         " called once upon startup on each cluster node "
-        pass
+        pubNlp.initCommonWords()
 
     def annotateFile(self, article, file):
         text = file.content
@@ -28,9 +28,31 @@ class splitSent:
                 logging.info("Skipping ref section %d-%d" % (secStart, secEnd))
                 continue
 
+            print secStart, secEnd, section
             secText = text[secStart:secEnd]
             for sentStart, sentEnd, sentence in pubNlp.sentSplitter(secText):
                 if sentEnd-sentStart < 30:
                     logging.debug("Sentence too short: %s" % sentence)
                     continue
-                yield [section, secStart+sentStart, secStart+sentEnd, sentence]
+
+                sentWords = pubNlp.wordSet(sentence)
+                if len(sentWords)<5:
+                    logging.debug("Sentence skipped, too few words: %s" % sentence)
+                    continue
+
+                commSentWords = sentWords.intersection(pubNlp.commonWords)
+                if len(commSentWords)==0:
+                    logging.debug("Sentence skipped, no common English word: %s" % sentence)
+                    continue
+                    
+                nlCount = sentence.count("\n")
+                if nlCount > 10:
+                    logging.debug("Sentence spread over too many lines: %s" % sentence)
+                    continue
+
+                spcCount = sentence.count(" ")
+                if spcCount < 4:
+                    logging.debug("Sentence has too few spaces: %s" % sentence)
+                    continue
+                sentence = sentence.replace("\n", " ")
+                yield [section, nlCount, secStart+sentStart, secStart+sentEnd, sentence]

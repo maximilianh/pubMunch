@@ -13,7 +13,7 @@ import logging, sys, os, shutil, glob, optparse, copy, types, string, pipes, gzi
 from os.path import *
 from maxCommon import *
 
-import pubGeneric, maxRun, pubConf, pubStore, pubAlg, maxCommon
+import pubGeneric, maxRun, pubConf, pubStore, maxCommon
 
 # make sure that sys.stdout uses utf8
 sys.stdout = codecs.getwriter('utf8')(sys.stdout)
@@ -75,23 +75,29 @@ def loadPythonObject(moduleFilename, className, defClass=None):
 def getAlg(algName, defClass=None):
     """ given a name, returns an alg object
 
-    name can be name of a python module 
-    or moduleName:className
+    name can be the name of a python module or moduleName:className
 
-    object or module needs to support the operation annotate(string) and the 
-    variable "headers" or "writerTypes"
+    object or module needs to support the operation annotateFile(artData,
+    fileData) and the variable "headers" or "writerTypes"
 
-    defaultClass can be "Annotate" or "Map"
+    defClass can be "Annotate" or "Map"
+
+    >>> getAlg("dnaSearch:Annotate").headers
+    ['start', 'end', 'seq', 'partCount', 'tainted', 'dbs']
+    >>> getAlg("bandSearch").headers
+    ['start', 'end', 'band']
     """
     logging.debug("Creating algorithm object for %s " % (algName))
     if ":" in algName:
         filename, className = algName.split(":")
     else:
         filename, className = algName, None
+
     if filename.endswith(".pyc"):
         filename = filename.replace(".pyc", "")
     if not filename.endswith(".py"):
         filename = filename+".py"
+
     alg = loadPythonObject(filename, className, defClass=defClass)
     alg.algName = getAlgName(algName)
     return alg
@@ -316,6 +322,9 @@ def getSnippet(text, start, end, minContext=0, maxContext=150):
     """
     start = int(start)
     end = int(end)
+    if start==end==0:
+        return ""
+
     rightDotPos = findBestSnippet(text, start, end, end+minContext, end+maxContext, isLeft=False)
     leftDotPos = findBestSnippet(text, start, end, start-maxContext, start-minContext, isLeft=True)
 
@@ -327,10 +336,11 @@ def getSnippet(text, start, end, minContext=0, maxContext=150):
     snippet = snippet.replace("\t", " ")
     return snippet
 
-#def writeAnnotations(alg, articleData, fileData, outFh, annotIdAdd, doSectioning, addFields):
-def iterAnnotRows(alg, articleData, fileData, annotIdAdd, doSectioning, addFields):
-    """ use alg to annotate fileData, yield rows, adding annotIdAdd to all annotations 
-    return next free annotation id.
+def iterAnnotRows(alg, articleData, fileData, annotIdAdd, addFields):
+    """ 
+    Run the algorithm alg over the text data in fileData.
+    Prefix with annotation and article IDs and postfix with a snippet
+    Return next free annotation id.
     """
     annotDigits = int(pubConf.ANNOTDIGITS)
     fileDigits = int(pubConf.FILEDIGITS)
@@ -339,77 +349,50 @@ def iterAnnotRows(alg, articleData, fileData, annotIdAdd, doSectioning, addField
         % (articleData.externalId, fileData.fileId, annotIdStart, len(fileData.content)))
 
     text = fileData.content.replace("\a", "\n")
+    fileData = fileData._replace(content=text)
 
-    if fileData.fileType=="supp":
-        sections = {"supplement": (0, len(text))}
-    else:
-        allTextSections = {"unknown": (0, len(text))}
-        if doSectioning:
-            sections = pubGeneric.sectionRanges(text)
-            if sections==None:
-                sections = allTextSections
-        else:
-            sections = allTextSections
-
+    annots = alg.annotateFile(articleData, fileData)
     annotCount = 0
-    for section, sectionRange in sections.iteritems():
-        secStart, secEnd = sectionRange
-        if section!="unknown":
-            logging.debug("Annotating section %s, from %d to %d" % (section, secStart, secEnd))
-        secText = text[secStart:secEnd]
-        fileData = fileData._replace(content=secText)
-        annots = alg.annotateFile(articleData, fileData)
-        if annots==None:
-            logging.debug("No annotations received")
-            continue
 
-        for row in annots:
-            # prefix with fileId, extId
-            logging.debug("received annotation row: %s" %  str(row))
-            fields = ["%018d" % (int(annotIdStart)+annotCount)]
-            if articleData!=None:
-                extId = articleData.externalId
-            else:
-                extId = "0"
-            fields.append(extId)
-            # add addFields
-            artDict = articleData._asdict()
-            if addFields!=None:
-                for addField in addFields:
-                    fields.append(artDict.get(addField, ""))
-            # add other fields
-            try:
-                fields.extend(row)
-            except TypeError:
-                raise Exception("return type from annotator is not iterable. It needs to be a list, set or similar")
+    for row in annots:
+        # field0: internal ID of an annotation
+        logging.debug("received annotation row: %s" %  str(row))
+        fields = ["%018d" % (int(annotIdStart)+annotCount)]
 
-            # check if alg actually returns coordinates
-            if alg.headers[0]=="start" and alg.headers[1]=="end":
-                start, end = row[0:2]
-                if (start,end) == (0,0):
-                    snippet = None
-                else:
-                    snippet = getSnippet(secText, start, end)
-                    # lift start and end if sectioning
-                    start = secStart+int(start)
-                    end = secStart+int(end)
+        # field1: external ID of document
+        extId = articleData.externalId
+        fields.append(extId)
 
-                # postfix with snippet
-                logging.debug("Got row: %s" % str(row))
-                if doSectioning:
-                    fields.append(section)
-                if snippet!=None:
-                    fields.append(snippet)
-            #fields = [unicode(x).encode("utf8") for x in fields]
-            fields = [pubStore.removeTabNl(unicode(x)) for x in fields]
-                
-            #line = "\t".join(fields)
-            #outFh.write(line+"\n")
-            annotCount+=1
-            assert(annotCount<10**annotDigits) # we can only store 100.000 annotations per file
-            yield fields
+        # more article fields requests on command line
+        artDict = articleData._asdict()
+        if addFields!=None:
+            for addField in addFields:
+                fields.append(artDict.get(addField, ""))
 
-def getHeaders(alg, doSectioning, addFields):
+        # add other fields
+        try:
+            fields.extend(row)
+        except TypeError:
+            raise Exception("annotator has to return an iterable (set/list/...)")
+
+        # if the first two fields are start and end, add a snippet field
+        if alg.headers[:2]==("start","end"):
+            start, end = row[0:2]
+            snippet = getSnippet(text, start, end)
+
+            # last field is snippet
+            if snippet!=None:
+                fields.append(snippet)
+        fields = [pubStore.removeTabNl(unicode(x)) for x in fields]
+            
+        annotCount+=1
+        assert(annotCount<10**annotDigits) # not more than 100.000 annotations per doc
+        yield fields
+
+def getHeaders(alg, addFields):
+    """ get the headers variable from the algorithm object, possibly add addFields 
+    add final field "snippet" if the first two fields are "start" and "end"
+    """
     if "headers" not in dir(alg) and not "headers" in alg.__dict__:
         logging.error("headers variable not found.")
         logging.error("You need to define a variable 'headers' in your python file or class")
@@ -424,32 +407,23 @@ def getHeaders(alg, doSectioning, addFields):
         for i, addField in enumerate(addFields):
             headers.insert(2+i, addField)
 
-    if doSectioning:
-        headers.append("section")
-
-    if not "snippet" in headers and "start" in headers and "end" in headers:
+    if headers[-1]!="snippet" and headers[:2]==('start', 'end'):
         headers.append("snippet")
     return headers
 
-def writeHeaders(alg, outFh, doSectioning, addFields):
+def writeHeaders(alg, outFh, addFields):
     """ write headers from algorithm to outFh, 
-    add a section field if doSectioning is true
     add fields from addFields list after the external id
     """
-    headers = getHeaders(alg, doSectioning, addFields)
+    headers = getHeaders(alg, addFields)
     logging.debug("Writing headers %s to %s" % (headers, outFh.name))
     outFh.write("\t".join(headers)+"\n")
 
 def getAlgName(algName):
-    " return name of algorithm: either name of module or name of class "
+    """ return name of algorithm: either name of module or name of class """
     algName = algName.split(":")[0]
     algName = algName.split(".")[0]
     algName = basename(algName)
-    #logging.debug("alg is %s" % dir(alg))
-    #logging.debug("alg is %s" % dir(alg.__name__))
-    #algName = alg.__class__.__name__
-    #if algName=="module":
-        #algName = alg.__name__
     logging.debug("Algorithm name is %s" % algName)
     return algName
 
@@ -485,9 +459,8 @@ def moveTempToFinal(tmpOutFname, outFname):
 
 def attributeTrue(obj, attrName):
     " returns true if obj has attribute and it is true "
-    if attrName in dir(obj):
-        if obj.__dict__[attrName]==True:
-            return True
+    if obj.__dict__.get(attrName, False)==True:
+        return True
     return False
 
 def openOutfiles(outName, outTypes):
@@ -522,8 +495,8 @@ def runAnnotateWrite(reader, alg, paramDict, outName):
         logging.debug("Running startup")
         alg.startup(outFiles)
 
-    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg, paramDict)
-    for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
+    algPrefs = getAlgPrefs(alg, paramDict)
+    for articleData, fileDataList in reader.iterArticlesFileList(algPrefs):
         alg.annotate(articleData, fileDataList)
 
     if "cleanup" in dir(alg):
@@ -532,20 +505,35 @@ def runAnnotateWrite(reader, alg, paramDict, outName):
 
     moveResults(outFiles, finalNames)
 
+class Ret:
+  # an empty struct, to be filled with values, for getAlgPrefs
+  pass
+
 def getAlgPrefs(alg, paramDict):
-    onlyMain = attributeTrue(alg, "onlyMain")
-    onlyMain = paramDict.get("onlyMain", onlyMain)
-    if isinstance(onlyMain, basestring):
-        onlyMain = (onlyMain.lower()=="true")
-    logging.info("Only main files: %s" % onlyMain)
+    """ algorithms can specify what type of input they prefer to run on.
+    pull out the four attributes onlyMain, onlyMeta, preferPdf and preferXml
+    from the alg into a separate struct (=class).
+    """
+    ret = Ret()
+    ret.onlyMain = attributeTrue(alg, "onlyMain")
+    if ret.onlyMain:
+        logging.info("Only main files")
 
-    onlyMeta = attributeTrue(alg, "onlyMeta")
-    logging.info("Only meta files: %s" % onlyMeta)
+    ret.onlyMeta = attributeTrue(alg, "onlyMeta")
+    if ret.onlyMeta:
+        logging.info("Only meta files")
 
-    bestMain = attributeTrue(alg, "bestMain")
-    logging.info("Only best main files: %s" % bestMain)
-    return onlyMain, onlyMeta, bestMain
+    ret.preferPdf = attributeTrue(alg, "preferPdf")
+    if ret.preferPdf:
+        logging.info("Only main, prefer pdf")
 
+    ret.preferXml = attributeTrue(alg, "preferXml")
+    if ret.preferXml:
+        logging.info("Only main, prefer Xml")
+
+    assert(not(ret.onlyMain and ret.onlyMeta)) # can't have main and meta at same time
+    assert(not(ret.preferPdf and ret.preferXml)) # can't have pdf and xml at the same time
+    return ret
 
 def runAnnotate(reader, alg, paramDict, outName):
     """ annotate all articles in reader, write to outName in an atomic way via tempfile
@@ -557,13 +545,11 @@ def runAnnotate(reader, alg, paramDict, outName):
     else:
         outFh = pubStore.utf8GzWriter(tmpOutFname)
 
-    doSectioning = attributeTrue(alg, "sectioning")
-    logging.debug("Sectioning activated: %s" % doSectioning)
     addFields = paramDict.get("addFields", [])
 
-    writeHeaders(alg, outFh, doSectioning, addFields)
+    writeHeaders(alg, outFh, addFields)
 
-    for row in runAnnotateIter(reader, alg, paramDict, doSectioning, addFields):
+    for row in runAnnotateIter(reader, alg, paramDict, addFields):
         line = "\t".join(row)
         outFh.write(line)
         outFh.write("\n")
@@ -572,7 +558,7 @@ def runAnnotate(reader, alg, paramDict, outName):
         outFh.close()
         moveTempToFinal(tmpOutFname, outName)
         
-def runAnnotateIter(reader, alg, paramDict, doSectioning=None, addFields=None):
+def runAnnotateIter(reader, alg, paramDict, addFields=None):
     """ annotate all articles in reader and yield a list of fields
     """
     if "startup" in dir(alg):
@@ -580,13 +566,15 @@ def runAnnotateIter(reader, alg, paramDict, doSectioning=None, addFields=None):
         alg.startup(paramDict)
 
     annotIdAdd = getAnnotId(alg, paramDict)
-    onlyMain, onlyMeta, bestMain = getAlgPrefs(alg, paramDict)
+    algPrefs = getAlgPrefs(alg, paramDict)
 
-    for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain, onlyMain):
+    for articleData, fileDataList in reader.iterArticlesFileList(algPrefs):
+        fileIds = [x.fileId for x in fileDataList]
         logging.debug("Annotating article %s with %d files, %s" % \
-            (articleData.articleId, len(fileDataList), [x.fileId for x in fileDataList]))
+            (articleData.articleId, len(fileDataList), fileIds))
+
         for fileData in fileDataList:
-            for row in iterAnnotRows(alg, articleData, fileData, annotIdAdd, doSectioning, addFields):
+            for row in iterAnnotRows(alg, articleData, fileData, annotIdAdd, addFields):
                 yield row
 
 def unmarshal(fname):
@@ -630,11 +618,10 @@ def runMap(reader, alg, paramDict, outFname):
     if "startup" in dir(alg):
         alg.startup(paramDict, results)
 
-    # run data through algorithm
-    onlyMeta = attributeTrue(alg, "onlyMeta")
-    bestMain = attributeTrue(alg, "bestMain")
+    algPrefs = getAlgPrefs(alg, paramDict)
 
-    for articleData, fileDataList in reader.iterArticlesFileList(onlyMeta, bestMain):
+    # run data through algorithm
+    for articleData, fileDataList in reader.iterArticlesFileList(algPrefs):
         logging.debug("Running on article id %s" % articleData.articleId)
         for fileData in fileDataList:
             logging.debug("Running on file id %s" % fileData.fileId)
@@ -809,13 +796,14 @@ def submitAnnotateWrite(runner, algName, textDirs, paramDict, outDir, updateIds=
     """ 
     submit annotation writer jobs to batch system 
 
-    The only difference from anntation jobs are that annotation writers need to declare what
-    types of data they return in the list "outTypes". Their startup method gets a dictionary
-    with file object, one per outType. The annotators must then write their output themselves
-    into the files. The annotate function does not return anything.
+    The only difference from anntation jobs is that annotation writers need to
+    declare what types of data they return in the list "outTypes". Their
+    startup method gets a dictionary with file object, one per outType. The
+    annotators must then write their output themselves into the files. The
+    annotate function does not return anything.
 
     """
-    alg = pubAlg.getAlg(algName)
+    alg = getAlg(algName)
     outExt = getLastOutType(alg, paramDict)
 
     outNames = []
@@ -837,8 +825,14 @@ def submitAnnotateWrite(runner, algName, textDirs, paramDict, outDir, updateIds=
     return outNames
 
 def testAlg(algName, paramDict):
+    " make sure algName can be run before we start this on the cluster "
     logging.debug("Testing algorithm %s startup" % algName)
-    alg = getAlg(algName, defClass="Annotate") # just to check if algName is valid
+    alg = getAlg(algName, defClass="Annotate") # check if algName is valid
+
+    # do some more checks
+    if "headers" not in dir(alg):
+        logging.error("Could not find a 'headers' variable in %s"  % algName)
+        sys.exit(1)
 
     if "annotateFile" not in dir(alg) and "annotateWrite" not in dir(alg):
         logging.error("Could not find an annotateFile() function in %s" % algName)
@@ -988,7 +982,14 @@ if __name__ == '__main__':
     """)
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
     parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+    parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
+
     (options, args) = parser.parse_args()
+    if options.test:
+        import doctest
+        doctest.testmod()
+        sys.exit(0)
+
     pubGeneric.setupLogging(__file__, options)
 
     if len(args)==0:
@@ -1002,7 +1003,7 @@ if __name__ == '__main__':
     for key, val in paramDict.iteritems():
         logging.log(5, "parameter %s = %s" % (key, str(val)))
 
-    alg = pubAlg.getAlg(algName, defClass=string.capitalize(algMethod))
+    alg = getAlg(algName, defClass=string.capitalize(algMethod))
 
     if algMethod!="combine":
         reader = pubStore.PubReaderFile(inName)
