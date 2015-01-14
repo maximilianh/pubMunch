@@ -186,11 +186,13 @@ def _readFamNames():
     famNames.update(["references", "bibliography", "literature", "refereces"])
     logging.info("Loaded %d family names" % len(famNames))
 
-def _skipForwMax(text, start, maxDist):
+def skipForwMax(text, start, maxDist):
     """ skip forward to next linebreak from start to start+maxDist
     Return start if not found, otherwise position of linebreak 
-    >>> _skipForwMax("hi there \\nis no linebreak", 3, 20)
+    >>> skipForwMax("hi there \\nis no linebreak", 3, 20)
     9
+    >>> skipForwMax("hi there \\nis no linebreak", 3, 2)
+    3
     """
     for i in range(start, min(start+maxDist, len(text))):
         if text[i] in ["\a", "\n", "\r"]:
@@ -268,7 +270,7 @@ def findRefSection(text, nameExt=250):
     if refEnd-refStart > nameExt:
         refEnd = refEnd - (nameExt/2)
     # try to move refEnd up to the next linebreak
-    refEnd = _skipForwMax(text, refEnd, 250)
+    refEnd = skipForwMax(text, refEnd, 250)
 
     # ref section has to start in 2nd half of doc
     if refStart < len(text)/2:
@@ -396,7 +398,65 @@ def initCommonWords():
 
 def isCommonWord(w):
     " this is somewhat slower than to use the commonWords set directly "
+    initCommonWords()
     return (w in commonWords)
+
+def sectionSentences(text, fileType="", minChars=30, minWords=5, maxLines=10, \
+        minSpaces=4, mustBeEnglish=True):
+    """
+    Try split the text into sections and these into clean 
+    grammatically parsable English sentences. Skip the reference
+    section of the text. Skip too long, too short
+    and sentences that go over too many lines or sentences that don't contain a
+    common English word.  These are all most likely garbage (e.g. html menus,
+    TOCs, figures, tables etc).   
+    Yields tuples (section, start, end, sentence). Sentence has newline replaced
+    with space.
+    >>> text = "Methods\\n no. yes. palim palim. We did something great and were right.\\nResults\\nOur results are very solid\\nand strong and reliable."
+    >>> list(sectionSentences(text))
+    [['methods', 31, 69, 'We did something great and were right.'], ['results', 77, 129, ' Our results are very solid and strong and reliable.']]
+
+    """
+    if mustBeEnglish:
+        initCommonWords()
+
+    for secStart, secEnd, section in sectionSplitter(text, fileType):
+        if section=="refs":
+            logging.info("Skipping ref section %d-%d" % (secStart, secEnd))
+            continue
+
+        # skip the section title ("Results") line
+        secStart = skipForwMax(text, secStart, 60)
+
+        secText = text[secStart:secEnd]
+        for sentStart, sentEnd, sentence in sentSplitter(secText):
+            if sentEnd-sentStart < minChars:
+                logging.debug("Sentence too short: %s" % sentence)
+                continue
+
+            sentWords = wordSet(sentence)
+            if len(sentWords) < minWords:
+                logging.debug("Sentence skipped, too few words: %s" % sentence)
+                continue
+
+            if mustBeEnglish is True:
+                commSentWords = sentWords.intersection(commonWords)
+                if len(commSentWords)==0:
+                    logging.debug("Sentence skipped, no common English word: %s" % sentence)
+                    continue
+                
+            nlCount = sentence.count("\n")
+            if nlCount > maxLines:
+                logging.debug("Sentence spread over too many lines: %s" % sentence)
+                continue
+
+            spcCount = sentence.count(" ")
+            if spcCount < minSpaces:
+                logging.debug("Sentence has too few spaces: %s" % sentence)
+                continue
+
+            sentence = sentence.replace("\n", " ")
+            yield [section, secStart+sentStart, secStart+sentEnd, sentence]
 
 if __name__ == "__main__":
    import doctest
