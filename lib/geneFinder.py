@@ -655,7 +655,8 @@ def findGenes(text, pmid=None, seqCache=None):
     
 def findGenesResolveByType(text, pmid=None, seqCache=None):
     """ 
-    find markers in text, resolve them to genes and return as dict geneId -> list of (start, end)
+    find markers in text, resolve them to genes and return as dict geneId ->
+    list of (start, end)
 
     Resolve ambiguous gene symbols and flip unsure symbols to sure symbols if some other
     identifier in the document supports them.

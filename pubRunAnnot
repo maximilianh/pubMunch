@@ -45,11 +45,10 @@ a ":", like "dnaSearch.py:Annotate"
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout") 
 #parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
 parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test and <in> is just a single text file")
-parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. pmid or doi. can be used several times")
+parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. doi or title. Option can be used several times")
 parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs on the cluster")
 parser.add_option("", "--cat", dest="concat", action="store_true", help="write output to <out>.dir and concat all files to <out> when jobs are finished")
 parser.add_option("-k", "--keepOldFiles", dest="keepOldFiles", action="store_true", help="do not wipe the output dir before running the jobs")
-parser.add_option("-p", "--addPmid", dest="addPmid", action="store_true", help="try to add PMID to all output rows (this is the same as -a pmid)")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -110,11 +109,6 @@ if not algName.startswith("java"):
 
 paramDict["startAnnotId"] = 0
 paramDict["addFields"] = options.addFields
-
-if options.addPmid:
-    if options.addFields==None:
-        options.addFields=[]
-    options.addFields.append("pmid")
 
 if options.test or options.oneText:
     testMode()

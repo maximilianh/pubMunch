@@ -282,6 +282,8 @@ def _findLongestRun(arr):
     """ find longest run of 1s in mask 
     >>> _findLongestRun([0,0,0,0,1,1,1,1,0,1,1,0,0,0,1,1]) 
     (4, 8)
+    >>> _findLongestRun([0,0,0,0,1,1,1,1,0,1,1,1,1,1,1,1]) 
+    (9, 15)
     """
     size = 0
     maxSize = 0
@@ -297,9 +299,13 @@ def _findLongestRun(arr):
             if size > maxSize:
                 bestStart = runStart
                 bestEnd = i
+                if size > 1000:
+                    logging.log(5, "name-run found at %d-%d" % (bestStart, bestEnd))
                 maxSize = size
             size = 0
             runStart = None
+    if size > maxSize:
+        bestStart, bestEnd = runStart, i
 
     return bestStart, bestEnd
                 
@@ -343,6 +349,7 @@ def findRefSection(text, nameExt=250):
 
     refStart, refEnd = _findLongestRun(mask)
     logging.log(5, "reference section based on names: %d-%d" % (refStart, refEnd))
+    logging.log(5, "excerpt: %s" % (text[refStart:refEnd]))
 
     # refStart should be the start of the first author name, so take back extension
     refStart = refStart + nameExt
@@ -486,8 +493,6 @@ def initCommonWords(listName="top1000"):
     True
     """
     global commonWords
-    if commonWords!=None:
-        return
     commonWords = set()
     fname = join(pubConf.staticDataDir, "bnc", listName+".txt")
     for line in open(fname):
@@ -498,7 +503,8 @@ def initCommonWords(listName="top1000"):
 
 def isCommonWord(w):
     " this is somewhat slower than to use the commonWords set directly "
-    initCommonWords()
+    if commonWords==None:
+        initCommonWords()
     return (w in commonWords)
 
 # - cleaning of sentences -
