@@ -571,7 +571,7 @@ class PubReaderFile:
                     del mainFiles["text/xml"]
                     logging.debug("Removing xml")
                 if "text/html" in mainFiles:
-                    del mainFiles["text/thml"]
+                    del mainFiles["text/html"]
                     logging.debug("Removing html")
         else:
             assert(False)

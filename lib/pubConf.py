@@ -161,7 +161,7 @@ clusterType = "localhost"
 _sourceDir = "/cluster/home/max/projects/pubs/tools"
 
 # base directory for searcher algorithm code, like regex annotation, dna annotation, etc
-scriptDir = _sourceDir+"/scripts"
+scriptDir = _sourceDir+"/taggers"
 
 # cmdLine to start jython, used to run java annotators
 jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java -jar "+dirname(__file__)+"/jython.jar"
@@ -462,10 +462,10 @@ _pubsDataDir = "/hive/data/inside/pubs/pubMapData"
 # where to store the cDNA data (refseq alignments and fasta files)
 cdnaDir = _pubsDataDir + "/cdnaDb"
 
-# where to store the loci data (regions around longest transcripts for genes, their symbols and entrez IDs)
-# a directory with <db>.bed files that associate genomic locations with the closest 
-# entrez gene and symbol
-# loci creation also requires ncbiGenesDir
+# where to store the loci data (regions around longest transcripts for genes,
+# their symbols and entrez IDs) a directory with <db>.bed files that associate
+# genomic locations with the closest entrez gene and symbol loci creation also
+# requires ncbiGenesDir
 lociDir = _pubsDataDir+"/loci"
 
 # file with impact factors for bed annotation
