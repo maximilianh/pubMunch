@@ -70,7 +70,8 @@ symLeftReqWords = None
 symRightReqWords = None
 
 # words that are usually not gene names, rather used for cell lines or pathways or other stuff
-stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9', 'SMS', 'Arg', 'Ser'])
+stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9', 'SMS', 'Arg', 'Ser', 'TSA'])
+# buffers: TSA
 
 # Some identifiers are so general that we want to restrict our search
 # to documents that contain some keyword

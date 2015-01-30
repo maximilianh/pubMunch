@@ -7,7 +7,7 @@
 
 import re, logging, gzip, array, operator, orderedDict
 from os.path import join
-import pubGeneric, pubConf
+import pubGeneric, pubConf, fastFind
 import unidecode
 
 # GLOBALS
@@ -53,6 +53,9 @@ def sentSplitter(text):
     >>> text = "Mr. Smith bought cheapsite.com for 1.5 million dollars, i.e. he paid a lot for it.  Come here, dog no. 5! Did he mind? Adam Jones Jr. thinks he didn't. In any case, this isn't true... Well, with a probability of .9 it isn't. The U.S.A. is a big country. C. elegans is tricky on Fig. 5 so is B. subtilis. Kent et al. is just a reference."
     >>> list(sentSplitter(text))
     [(0, 82, 'Mr. Smith bought cheapsite.com for 1.5 million dollars, i.e. he paid a lot for it.'), (84, 105, 'Come here, dog no. 5!'), (106, 118, 'Did he mind?'), (119, 151, "Adam Jones Jr. thinks he didn't."), (152, 183, "In any case, this isn't true..."), (184, 224, "Well, with a probability of .9 it isn't."), (225, 253, 'The U.S.A. is a big country.'), (254, 303, 'C. elegans is tricky on Fig. 5 so is B. subtilis.'), (304, 336, 'Kent et al. is just a reference.')]
+    >>> text = "(Crous  et al.  2004a), is a segregation "
+    >>> list(sentSplitter(text))
+    [(0, 41, '(Crous  et al.  2004a), is a segregation ')]
     """
     lastStart = 0
     for match in sentSplitRe.finditer(text):
@@ -510,7 +513,7 @@ def isCommonWord(w):
 # - cleaning of sentences -
 
 def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
-        minWords=5, maxLines=10, minSpaces=4, mustHaveVerb=True):
+        minWords=5, maxLines=10, minSpaces=4, mustHaveVerb=True, skipSections=["refs","ack"]):
     """
     Try split the text into sections and these into clean 
     grammatically parsable English sentences. Skip the reference
@@ -528,8 +531,8 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
         initCommonWords("verbs")
 
     for secStart, secEnd, section in sectionSplitter(text, fileType, minDist=minSectDist):
-        if section=="refs":
-            logging.info("Skipping ref section %d-%d" % (secStart, secEnd))
+        if section in skipSections:
+            logging.info("Skipping section %s %d-%d" % (section, secStart, secEnd))
             continue
 
         # skip the section title ("Results") line
@@ -565,6 +568,40 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
             sentence = sentence.replace("\n", " ")
             sentence = unidecode.unidecode(sentence)
             yield [section, secStart+sentStart, secStart+sentEnd, sentence]
+
+# disease dictionary 
+disLex = None
+
+def findDiseases(text):
+    """ find diseases in string and return as (start, end, diseaseName) 
+    >>> list(findDiseases("AlzhEImer's Disease"))
+    [(0, 19, 'Alzheimer Disease')]
+    """
+    global disLex
+    if disLex==None:
+        disPath = join(pubConf.staticDataDir, "diseases", "diseases.marshal.gz")
+        disLex = fastFind.loadLex(disPath)
+
+    for (start, end, name) in fastFind.fastFind(text, disLex, toLower=True):
+        yield start, end, name
+        
+# drug dictionary 
+drugLex = None
+
+def findDrugs(text):
+    """ find drugs in string and return as (start, end, drugbankName) 
+    >>> list(findDrugs("Acetaminophen, Penicillin V and Herceptin"))
+    [(0, 13, 'Acetaminophen'), (15, 27, 'Penicillin V'), (32, 41, 'Trastuzumab')]
+    """
+    global drugLex
+    if drugLex==None:
+        drugPath = join(pubConf.staticDataDir, "drugs", "drugbank.marshal.gz")
+        drugLex = fastFind.loadLex(drugPath)
+
+    for (start, end, name) in fastFind.fastFind(text, drugLex, toLower=True):
+        yield start, end, name
+        
+
 
 if __name__ == "__main__":
    import doctest

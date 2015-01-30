@@ -26,6 +26,9 @@ staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 # scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
 
+# external tools
+extToolDir = normpath(join(dirname(__file__), "..", "ext"))
+
 # a directory with files that associate publishers with journals
 # one of them is the NLM Catalog, others we got from publishers or created them semi-
 # manually

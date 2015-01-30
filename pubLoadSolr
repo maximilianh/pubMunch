@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+
+# a command line tool to load a pubtools database into solr
+
+# load default python packages
+import logging, optparse, os, shutil, glob, tempfile, sys
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
+
+# load our own libraries
+import pubConf, pubGeneric, pubStore, maxCommon
+
+#import scorched
+from mysolr import Solr
+
+# ===== FUNCTIONS =======
+
+def loadIntoSolr(inDirs):
+    " load data from inDirs into solr "
+    solrUrl = pubConf.solrUrl
+    solr = Solr(solrUrl, version=4)
+    i = 0
+    docs = []
+    for inDir in inDirs:
+        for article, fileList in pubStore.iterArticleDirList(inDir):
+            i+=1
+            articleInfo = article._asdict()
+            for fileData in fileList:
+                doc = dict(fileData._asdict())
+                doc.update(articleInfo)
+
+                newDoc = {}
+                for key, val in doc.iteritems():
+                    if key=="fileId":
+                        newDoc["id"] = val
+                    else:
+                        newDoc[key+"_t"]=val
+                docs.append(newDoc)
+
+            if len(docs)>10000:
+                print "COMMIT", i
+                print solr.update(docs)
+                docs = []
+
+def main(args, options):
+    pubGeneric.setupLoggingOptions(options)
+    inDirs = pubGeneric.resolveDatasetDesc(args[0])
+    loadIntoSolr(inDirs)
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] <inDirOrFiles> - load articles meta info and files into a solr server configured in pubConf.
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)

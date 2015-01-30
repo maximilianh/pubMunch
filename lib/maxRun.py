@@ -52,8 +52,8 @@ class Runner:
             clusterType can be "local", "sge" or "parasol"
 
             if headNode is set, will ssh onto headNode to submit batch and cd into batchDir or cwd
-
             if runNow is set, will block until job is finished (doesn't work on SGE)
+            maxRam is an int, the number of gigabytes.
 
             delayTime, maxPush, maxJob are only used for parasol
             queue is only used for SGE
@@ -250,7 +250,7 @@ class Runner:
             if self.maxPush:
                 cmd = cmd+" -maxPush="+str(self.maxPush)
             if self.maxRam:
-                cmd = cmd+" -ram="+str(self.maxRam)
+                cmd = cmd+" -ram="+str(self.maxRam)+"g"
 
             # add ssh command if headNode is set
             if self.headNode:

@@ -243,6 +243,8 @@ def removeTabNl(var):
     # RAHHH! CRAZY UNICODE LINEBREAKS
     # the following would not work because of python's interpretation of unicode
     #newDict[key] = val.replace("\t", " ").replace("\n", " ")
+    # there are more newlines than just \n and \m when one is using the 
+    # 'for line in file' construct in python
     # so we do this
     cleanString = " ".join(unicode(var).splitlines()).replace("\t", " ")
     #logging.debug("cleaned string is %s" % repr(newStr))

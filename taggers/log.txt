@@ -1,1 +1,3 @@
 xls2csv PO_down.xls > chimerDb.tab
+time pubRunAnnot msr:splitSent pmcTest temp/ -t > temp.log 2>&1 &
+time pubRunAnnot msr:splitSent pmcTest temp/ -t -d > temp.log 2>&1 &

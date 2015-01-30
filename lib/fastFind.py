@@ -68,6 +68,8 @@ def constructLex(keywordList, wordRe=WORDRE):
     """
     converts a list of textstrings and identifiers to
     nested dictionaries that allow faster matching
+    Careful: always use the same wordRe expression for constructing the lexicon
+    and when matching. 
     >>> constructLex( [("q1", ["how are you"]), ("q2", ["do you"])] )
     {'how': {'are': {'you': {0: 'q1'}}}, 'do': {'you': {0: 'q2'}}}
     """
@@ -157,7 +159,7 @@ def fastFind(text, lex, wordRe=WORDRE, toLower=False):
     >>> fastFind ("(alzheimer's disease)", lex, wordRe=re.compile(r"[\w'-()]+"))
     []
 
-    # flanking brackets are no problem
+    # but by default, flanking brackets are no problem
     >>> fastFind ("(alzheimer's disease)", lex)
     [(1, 20, 'p1')]
 
@@ -223,8 +225,10 @@ def _lexIter(fileObj, toLower=False):
         fields = line.strip("\n").split("\t")
         if len(fields)==1:
             id, nameString = fields[0], fields[0]
-        else:
+        elif len(fields)==2:
             id, nameString = fields
+        else:
+            raise Exception("line: %s - more than two tab-sep fields" % repr(fields))
         if toLower:
             nameString = nameString.lower()
         names = nameString.split("|")

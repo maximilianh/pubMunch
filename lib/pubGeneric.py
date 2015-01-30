@@ -126,6 +126,8 @@ def findFiles(dir, extensions):
                         #continue
                     relDir = relpath(dirPath, dir)
                     fullPath = os.path.join(dirPath, fileName )
+                    if os.path.getsize(fullPath)==0:
+                        continue
                     result.add( (relDir, fullPath) )
     logging.info("Found %d files" % len(result))
     return result
@@ -516,7 +518,7 @@ def recursiveSubmit(runner, parameterString):
     cmd = "%(python)s %(progFile)s %(parameterString)s" % locals()
     runner.submit(cmd)
 
-def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None):
+def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None, maxRam=None):
     " create a default runner to submit jobs to cluster system "
     scriptBase = splitext(basename(scriptName))[0]
     if algName!=None:
@@ -540,7 +542,7 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
         logging.info("Preparing cluster run, batchDir %(batchDir)s, default type %(clusterType)s, headNode %(headNode)s" % locals())
 
     runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
-        headNode=headNode, batchDir = batchDir, runNow=runNow)
+        headNode=headNode, batchDir = batchDir, runNow=runNow, maxRam=maxRam)
     return runner
 
 def lftpGet(remoteUrl, locDir, fileNames, connCount):
@@ -622,6 +624,23 @@ def resolveDatasetDesc(descs):
         dirs.append(descDir)
     return dirs
 
+def splitAnnotId(annotId):
+    """
+    split the 64bit-annotId into packs of 10/3/5 digits and return all
+    >>> splitAnnotId(200616640112350013)
+    (2006166401, 123, 50013)
+    """
+    fileDigits = pubConf.FILEDIGITS
+    annotDigits = pubConf.ANNOTDIGITS
+    articleDigits = pubConf.ARTICLEDIGITS
+
+    annotIdInt = int(annotId)
+    articleId  = annotIdInt / 10**(fileDigits+annotDigits)
+    fileAnnotId= annotIdInt % 10**(fileDigits+annotDigits)
+    fileId     = fileAnnotId / 10**(annotDigits)
+    annotId    = fileAnnotId % 10**(annotDigits)
+    return articleId, fileId, annotId
+
 def splitAnnotIdString(annotIdString):
     """ split annot as a string into three parts 
     >>> splitAnnotId("200616640112350013")
@@ -649,13 +668,14 @@ def makeTempDir(prefix, tmpDir=None):
     return dirName
 
 def makeTempFile(prefix, suffix=".psl"):
-    """ create tempfile in pubtools tempdir dir with given prefix, return object and name.
+    """ create tempfile in pubtools tempdir dir with given prefix. 
+    Return tuple (file object , name).
     Tempfile will auto-delete when file object is destructed, unless debug mode is set. 
     """
     tmpDir=pubConf.getTempDir()
     if pubConf.debug:
-        #tfname = tempfile.mktemp(dir=tmpDir, prefix=prefix+".", suffix=suffix)
-        tfname = join(tmpDir, prefix+suffix)
+        tfname = tempfile.mktemp(dir=tmpDir, prefix=prefix+".", suffix=suffix)
+        #tfname = join(tmpDir, prefix+suffix)
         tf = open(tfname, "w")
         logging.debug("Created tempfile %s, debug-mode: no auto-deletion" % tfname)
     else:
