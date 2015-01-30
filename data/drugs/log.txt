@@ -1,0 +1,4 @@
+wget 'http://www.drugbank.ca/system/downloads/current/drugbank.xml.zip' 
+unzip drugbank.xml.zip 
+parseDrugbank drugbank.xml | gzip -c > drugbank.dict.gz
+pubDictCompile drugbank.dict.gz  -l

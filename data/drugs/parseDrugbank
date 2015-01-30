@@ -1,0 +1,102 @@
+#!/usr/bin/env python
+
+# load default python packages
+import logging, optparse, sys, glob, gzip, collections, copy, gzip, os, doctest, re
+from os.path import *
+from collections import defaultdict
+import xml.etree.cElementTree as etree
+
+def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
+    """ Takes a parsed ET structure and does an in-place removal of all namespaces,
+        or removes a specific namespacem (by its URL).
+        
+        Can make node searches simpler in structures with unpredictable namespaces
+        and in content given to be non-mixed.
+
+        By default does so for node names as well as attribute names.       
+        (doesn't remove the namespace definitions, but apparently
+         ElementTree serialization omits any that are unused)
+
+        Note that for attributes that are unique only because of namespace,
+        this may attributes to be overwritten. 
+        For example: <e p:at="bar" at="quu">   would become: <e at="bar">
+
+        I don't think I've seen any XML where this matters, though.
+    """
+    if namespace==None: # all namespaces                               
+        for elem in etree.getiterator():
+            tagname = elem.tag
+            if not isinstance(elem.tag, basestring):
+                continue
+            if tagname[0]=='{':
+                elem.tag = tagname[ tagname.index('}',1)+1:]
+
+            if remove_from_attr:
+                to_delete=[]
+                to_set={}
+                for attr_name in elem.attrib:
+                    if attr_name[0]=='{':
+                        old_val = elem.attrib[attr_name]
+                        to_delete.append(attr_name)
+                        attr_name = attr_name[attr_name.index('}',1)+1:]
+                        to_set[attr_name] = old_val
+                for key in to_delete:
+                    elem.attrib.pop(key)
+                elem.attrib.update(to_set)
+
+    else: # asked to remove specific namespace.
+        ns = '{%s}' % namespace
+        nsl = len(ns)
+        for elem in etree.getiterator():
+            if elem.tag.startswith(ns):
+                elem.tag = elem.tag[nsl:]
+
+            if remove_from_attr:
+                to_delete=[]
+                to_set={}
+                for attr_name in elem.attrib:
+                    if attr_name.startswith(ns):
+                        old_val = elem.attrib[attr_name]
+                        to_delete.append(attr_name)
+                        attr_name = attr_name[nsl:]
+                        to_set[attr_name] = old_val
+                for key in to_delete:
+                    elem.attrib.pop(key)
+                elem.attrib.update(to_set)
+
+
+def parseDrugbank(inFname):
+    xmlFile = open(inFname)
+    for _, entryEl in etree.iterparse(xmlFile):
+        if entryEl.tag!="{http://www.drugbank.ca}drug":
+            continue
+        strip_namespace_inplace(entryEl) # die, die stupid namespaces!!
+        name = entryEl.find("name").text
+
+        syns = []
+        syns.append(name)
+        for synEl in entryEl.findall("synonyms/synonym"):
+            syns.append(synEl.text)
+        for brandEl in entryEl.findall("brands/brand"):
+            syns.append(brandEl.text)
+
+        name = name.replace("\t", " ")
+        syns = [s.replace("\t", " ") for s in syns]
+        syns = [s for s in syns if len(s)>4]
+        line = "%s\t%s" % (name, "|".join(syns))
+        print line.encode('utf8')
+    
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] xmlInfile - parse drugbank
+
+""")
+#parser.add_option("", "--taxon", dest="taxon", action="store", help="uniprot: only parse specified comma-sep list of taxons and add suffix .<taxonId>. to output files, default %default", default="9606")
+(options, args) = parser.parse_args()
+
+if args==[] and not options.test:
+    parser.print_help()
+    exit(1)
+
+inFname = args[0]
+parseDrugbank(inFname)
+
