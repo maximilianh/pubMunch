@@ -1,0 +1,5 @@
+wget 'https://www.pharmgkb.org/download.do?objId=diseases.zip&dlCls=common' -O diseases.zip
+unzip diseases.zip 
+rm diseases.zip 
+python importPgkbDis.py | gzip -c > diseases.dict.gz
+pubDictCompile diseases.dict.gz 
