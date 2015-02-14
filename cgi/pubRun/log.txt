@@ -1,0 +1,3 @@
+610  less /hive/data/outside/hgnc/052012/hgnc.txt | cut -f2  | grep -v withdrawn | gzip > hgnc.gz
+ #jobWorker /hive/data/inside/pubs/webRuns/jobs.sqlite /hive/data/inside/pubs/webRuns/sandbox/runs/ ./jobOutput/
+ #jobWorker /hive/data/inside/pubs/webRuns/jobs.sqlite /hive/data/inside/pubs/webRuns/sandbox/runs/ ~/public_html/mining/jobOutput/

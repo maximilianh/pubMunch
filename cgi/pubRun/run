@@ -1,0 +1,118 @@
+#!/cluster/software/bin/python2.7
+# format python stacktraces as html
+import cgitb
+cgitb.enable()
+
+# default python libs
+import cgi, os, sys, re, os.path, gzip, collections, operator, re, tempfile
+
+# my own libs
+import pubCgi, pubCgiRun
+sys.path.append("/cluster/home/max/projects/pubs/tools/lib")
+import html
+
+# ==== CONST ======
+
+# ==== FUNCTIONS ======
+
+def printTop(refresh=None):
+    h = html.htmlWriter()
+    if refresh!=None:
+        metas = [("refresh", "5")]
+    else:
+        metas = []
+    pubCgi.printHead(h, "UCSC Genocoding Python Runner", metaTags=metas)
+    pubCgi.topBar(h)
+    return h
+
+def printQueryForm():
+    h = printTop()
+    h.writeLn("""
+<script>
+ $(document).ready(function(){
+   $("#loadSample1").click(function(event){
+     $("#textarea").val("#required: description of results, table header\\nheaders=['year']\\n\\n#function that extracts information from text\\ndef annotate(article, file):\\n   return [[article.year]]");
+     event.preventDefault()
+   });
+   $("#loadSample2").click(function(event){
+     $("#textarea").val("ABL1 BCR\\nCBFB MYH11\\nMAPKAPK5 ACAD10\\nNSD1 NUP98\\nNUP98 NSD1\\nPML RARA\\nRPN1 MECOM\\nRUNX1 MECOM\\nSELPLG CORO1C\\n");
+     event.preventDefault()
+   });
+ });
+</script>
+
+<style type="text/css">
+textarea,input  {
+    font-family: Courier;
+    font-size:16px
+</style>
+
+    """)
+    h.startBody("Run your own code on article fulltext")
+    h.small("Paste a python script, define the method annotateFile(article, file) and return a list of lists")
+    h.startForm(action="run", method="post")
+    h.startTextArea("code", rows=20, cols=80, id='textarea')
+    h.endTextArea()
+    h.writeLn('<br>')
+    h.writeLn('<a href="#" id="loadSample1"><small>sample code 1</small></a><br>')
+    h.p()
+    h.formInputSubmit("Submit")
+    h.formInputReset("Clear")
+    h.endForm()
+    h.endHtml()
+
+def printHeaders(redirectUrl=None):
+    if redirectUrl:
+        print "Refresh: 0; url=%s" % redirectUrl
+    print "Content-Type: text/html; charset=utf8"     # HTML is following
+    print                               # blank line, end of headers
+
+def printJobStatus(jobId, status):
+    statusMsg, sampleLines, allResultsUrl = status
+    # don't do any page refreshes if sample is done
+    if sampleLines!=None:
+        refreshSec = None
+    else:
+        refreshSec = 5
+    h = printTop(refresh=refreshSec)
+    h.startBody("Text Processing Job Status")
+    h.writeLn('Current status: %s<p>' % statusMsg)
+    if allResultsUrl!=None:
+        h.link(allResultsUrl, "Download all results (gzipped)")
+        h.writeLn("<p>")
+    if sampleLines!=None:
+        h.h4('Sample of 100 result rows')
+        for line in sampleLines:
+            rows = line.strip("\n").split("\t")
+            newRows = []
+            for row in rows:
+                if row.startswith("http://"):
+                    newRows.append(h.linkStr(row, "link"))
+                else:
+                    newRows.append(row)
+                
+            print "\t".join(newRows)+"<br>"
+
+# ====== MAIN =======
+def main():
+    form = cgi.FieldStorage()
+    if "jobId" in form:
+        printHeaders()
+        jobId = form["jobId"].value
+        status = pubCgiRun.getStatus(jobId)
+        printJobStatus(jobId, status)
+
+    elif "code" in form:
+        # count hits per marker
+        codeStr = form["code"].value
+        #codeStr = "def annotate(art, file):\n   print art.year"
+        jobId = pubCgiRun.runCode(codeStr)
+        if jobId==None:
+            printHeaders()
+
+        printHeaders("run?jobId=%s" % str(jobId))
+    else:
+        printHeaders()
+        printQueryForm()
+
+main()

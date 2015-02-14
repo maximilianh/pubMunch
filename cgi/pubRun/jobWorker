@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+# daemon that checks out a job from a job database, executes it
+# removes it from the job database and concats its output into a central dir
+# first param is a sqlite db
+# for multicores, start several of these
+
+from jobQueue import JobQueue
+import time, sys, os, glob, gzip, random
+
+# args: jobDbFile concatOutputDir
+
+jobDb = sys.argv[1]
+batchBaseDir = sys.argv[2]
+jobOutPath = sys.argv[3]
+
+def concatOutputAndSample(batchId, batchDir, jobOutPath, sampleSize=100):
+    print "concatting"
+    ofh = gzip.open(os.path.join(jobOutPath, batchId+".tab.gz"), "w")
+    headersDone = False
+    batchOutMask = os.path.join(batchDir, "out/*.tab")
+    reservoir = []
+    lineCount = 0
+    for tabFname in glob.glob(batchOutMask):
+        for line in open(tabFname):
+            if line.startswith("#") and not headersDone:
+                ofh.write(line)
+                headersDone=True
+            else:
+                ofh.write(line)
+            # reservoir sampling, see http://gregable.com/2007/10/reservoir-sampling.html
+            # get random x lines from array of unknown size
+            if len(reservoir) < sampleSize:
+                reservoir.append(line)
+            else:
+                p = float(sampleSize)/lineCount
+                if random.random() < p:
+                    rndIdx = random.randint(0, len(reservoir)-1)
+                    reservoir[rndIdx] = line
+
+                
+            lineCount+=1
+                
+    ofh.close()
+    print "Wrote %s" % ofh.name
+
+    ofh = open(os.path.join(jobOutPath, batchId+".randomLines.tab"), "w")
+    for line in reservoir:
+        ofh.write(line)
+    ofh.close()
+    print "Wrote %s" % ofh.name
+        
+def main():
+    q = JobQueue(jobDb)
+    os.system("chmod a+rw %s" % jobDb) # apache needs to write to it to add jobs
+    while True:
+        if q.peek()!=None:
+            cmd, batchId = q.popleft()
+            batchDir = os.path.join(batchBaseDir, batchId)
+            ret = os.system(cmd)
+            if ret!=0:
+                q.batchFailed(batchId)
+                continue
+            else:
+                print "increasing job counter of batch %s" % batchId
+                q.batchIncreaseCount(batchId)
+            if q.noJobsLeft(batchId) and q.activeConcats(batchId)==0:
+                print("starting concat for batch %s" % batchId)
+                q.setConcatStarted(batchId)
+                if q.activeConcats(batchId)==1:
+                    concatOutputAndSample(batchId, batchDir, jobOutPath)
+                    q.concatFinished(batchId)
+                else:
+                    print "not concatting, race condition"
+                print("deleting batch %s" % batchId)
+                print("not deleting DEBUG")
+                #q.deleteBatch(batchId)
+        time.sleep(3)
+
+main()
