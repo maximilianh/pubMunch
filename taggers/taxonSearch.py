@@ -38,7 +38,7 @@ class Annotate:
         #print "annotate", article, file
         text = file.content
         #print "text", text
-        annots = list(fastFind.fastFind(text, self.lex))
+        annots = list(fastFind.fastFind(text, self.lex, toLower=False))
         if len(annots)>self.MAXCOUNT:
             logging.info("more than %d annotations, skipping %s" % (self.MAXCOUNT, article.externalId))
             return None

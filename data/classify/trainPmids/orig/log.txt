@@ -190,3 +190,15 @@ cat /hive/data/inside/pubs/pathways/pathwayCommons/low.tab  | cut -f5 | grep -v 
 
 # TCDB Transporter Classification Database - http://www.tcdb.org
 wget http://www.tcdb.org/public/pmid.tsv -O - | cut -f1 | sort -u > pos.tcdb.txt
+
+# GRASP gwas database - http://apps.nhlbi.nih.gov/Grasp/Overview.aspx
+wget https://s3.amazonaws.com/NHLBI_Public/GRASP/GraspFullDataset2.zip
+unzip GraspFullDataset2.zip 
+less GRASP2fullDataset | cut -f8 | uniq | grep -v PMID | grep -v Not | sort -u > pos.gwasGrasp.txt
+rm GRASP2fullDataset 
+
+# Gwas DB - http://jjwanglab.org/gwasdb/
+wget ftp://jjwanglab.org/GWASdb/gwasdb_20140908_annotation.gz
+gunzip gwasdb_20140908_annotation.gz 
+less gwasdb_20140908_annotation | cut -f6 | uniq | sort -u | grep -v Pmid > pos.gwasDb.txt
+rm gwasdb_20140908_annotation 

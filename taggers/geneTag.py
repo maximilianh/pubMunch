@@ -3,7 +3,7 @@ import re, os, logging
 import geneFinder
 
 onlyMain= True
-bestMain = True
+preferPdf = True
 
 # this variable has to be defined, otherwise the jobs will not run.
 # The framework will use this for the headers in table output file

@@ -134,7 +134,7 @@ def createFingerprints(inDir, updateIds=None):
     global noIssn
     noIssn = 0
 
-    logging.info("Indexing %s" % inDir)
+    logging.info("Fingerprinting %s" % inDir)
     count = 0
     for row in pubStore.iterArticleDataDir(inDir, type="articles", updateIds = updateIds):
         articleId = int(row.articleId)
@@ -244,7 +244,8 @@ def saveMergeFingerprints(artIds, map0, map1, map2, outDir):
     writeAsMarshal(map0, map1, map2, artIds, mapStoreFname)
 
 def createWriteFingerprints(textDir, updateIds=[]):
-    " create fingerprints for all articles in textDir with given updateIds and save to this directory "
+    """ create fingerprints for all articles in textDir with given updateIds and
+    save to this directory """
     artIds, map0, map1, map2, noIssn, noIssuePage =  \
             createFingerprints(textDir, updateIds=updateIds)
     logging.info("Processed %d articles" % len(artIds))

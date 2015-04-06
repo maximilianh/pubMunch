@@ -1,10 +1,22 @@
-from os.path import *
+from os.path import expanduser, join, isdir, isfile, normpath, dirname, abspath
+from os import makedirs
 import logging
+
+# first parse the user config file
+confName = expanduser("~/.pubConf")
+if isfile(confName):
+    dummy = {}
+    newVars = {}
+    execfile(confName, dummy, newVars)
+    for key, value in newVars.iteritems():
+        locals()[key] = value
 
 # GENERAL SETTINGS   ================================================
 # baseDir for internal data, accessible from cluster 
 # used for data created during pipeline runs
-pubsDataDir = '/hive/data/inside/pubs'
+# Preference is given to a locally defined directory
+if "pubsDataDir" not in locals():
+    pubsDataDir = '.'
 
 # static data, accessible from cluster, but part of distribution
 # these are basic files like gene lists, marker lists, journal lists
@@ -13,6 +25,9 @@ staticDataDir = normpath(join(dirname(__file__), "..", "data"))
 
 # scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
+
+# external tools
+extToolDir = normpath(join(dirname(__file__), "..", "ext"))
 
 # a directory with files that associate publishers with journals
 # one of them is the NLM Catalog, others we got from publishers or created them semi-
@@ -64,10 +79,10 @@ medlineDbPath = join(textDir, "medline", "medline.db")
 httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 
 # how long to wait for DNS queries, TCP connects, between retries and TCP reads, in seconds
-httpTimeout = 20
+httpTimeout = 5
 
 # how to long wait for the downloading of files, in seconds
-httpTransferTimeout = 30
+httpTransferTimeout = 2
 
 # if you need to use a proxy to access journals, set it here
 httpProxy = None
@@ -117,9 +132,6 @@ springerPass = ""
 
 # GENERAL PUBLICATION FILE CONFIG SETTINGS ============================
 
-# used for other defitions in here: basedir for many other dirs
-_pubsDir = "/hive/data/inside/pubs"
-
 # which dataset should be loaded by the "load" step in pubMap ?
 loadDatasets = ["elsevier", "pmc", "crawler"]
 
@@ -130,19 +142,19 @@ maxBinFileSize = 20000000 # maximum filesize of any file before conversion to AS
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
 minTxtFileSize = 60 # minimum filesize of any file after conversion to ASCII
 # 60 to allow files with just a figure legend to be processed
-mapReduceTmpDir = _pubsDir + "/mapReduceTemp" # cluster-wide directory to collect results
+mapReduceTmpDir = pubsDataDir + "/mapReduceTemp" # cluster-wide directory to collect results
 
 # parasol batches dir
-clusterBatchDir = _pubsDir + "/runs/"
+clusterBatchDir = pubsDataDir + "/runs/"
 # the base directory for text repository directories
-textBaseDir = _pubsDir + "/text/"
+textBaseDir = pubsDataDir + "/text/"
 # the central base directory for all text annotations
-annotDir = _pubsDir + "/annot/"
+annotDir = pubsDataDir + "/annot/"
 # central directory for exported fasta file
-faDir = _pubsDir + "/fastaExport/"
+faDir = pubsDataDir + "/fastaExport/"
 
 # all logfiles
-logDir = _pubsDir + "/log/"
+logDir = pubsDataDir + "/log/"
 
 # head node of cluster
 clusterHeadNode = "ku.sdsc.edu"
@@ -152,7 +164,7 @@ clusterType = "localhost"
 _sourceDir = "/cluster/home/max/projects/pubs/tools"
 
 # base directory for searcher algorithm code, like regex annotation, dna annotation, etc
-scriptDir = _sourceDir+"/scripts"
+scriptDir = _sourceDir+"/taggers"
 
 # cmdLine to start jython, used to run java annotators
 jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java -jar "+dirname(__file__)+"/jython.jar"
@@ -210,8 +222,9 @@ CONVERTERS = {
     "xls":"xls2csv $in > $out",
     "xlsx":"ssconvert $in $out",
     "ppt":"catppt $in > $out",
-    "htm":"html2text -nobs $in | tr -s ' ' > $out",
-    "html":"html2text -nobs $in | tr -s ' ' > $out",
+    "htm":"html2text -style pretty -nobs $in | tr -s ' ' > $out",
+    # 'pretty' avoids **** markup for <h3> section names
+    "html":"html2text -style pretty -nobs $in | tr -s ' ' > $out",
     #"htm":"links -dump $in -dump-charset utf8 > $out",
     #"html":"links -dump $in -dump-charset utf8 > $out",
     "csv":"COPY",
@@ -276,7 +289,7 @@ genbankMaxRefCount = 50
 
 # DNA MAPPING / GENOME BLATTING SETTINGS ============================
 
-pubMapBaseDir = "/hive/data/inside/pubs/map/"
+pubMapBaseDir = "./map/"
 
 # directory for exported cdr3 files
 cdr3Dir = pubMapBaseDir + "cdr3Export/"
@@ -318,6 +331,7 @@ speciesNames = {
 'nonUcsc_viral' : [' virus ', 'viral '],
 'nonUcsc_fungi' : ['Aspergillus'],
 'nonUcsc_dnasu' : ['plasmid', 'cloned into', 'cloning vector', 'restriction site'],
+'nonUcsc_biobricks' : ['synthetic biology', 'biobricks'],
 'nonUcsc_wolb1' : ['wolbachia']
 #'nonUcsc_dnasu' : [' plasmid ']
 }
@@ -326,7 +340,7 @@ speciesNames = {
 # this directory has to contain a geneBank.conf file
 # in UCSC format to define parameters for these
 # assemblies
-nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
+nonUcscGenomesDir = pubsDataDir+"/nonUcscGenomes"
 
 # During best-genome filtering, sometimes two genomes score equally
 # if this is the case, pick the best one, in this order.
@@ -340,7 +354,7 @@ nonUcscGenomesDir = _pubsDir+"/nonUcscGenomes"
 alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'danRer7', 'nonUcsc_wolb1', 'dm3',
 'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'felCat5', 'ci2', 'ce10', 'sacCer2',
 'nonUcsc_arabidopsisTair10', 'nonUcsc_Pfalciparum3D7', 'nonUcsc_grapevine12x',
-'nonUcsc_bacteria', 'nonUcsc_viral', 'nonUcsc_fungi', 'nonUcsc_dnasu'
+'nonUcsc_bacteria', 'nonUcsc_viral', 'nonUcsc_fungi', 'nonUcsc_dnasu', "nonUcsc_biobricks"
 ]
 
 # these genomes are used if no species name matches are found
@@ -452,10 +466,10 @@ _pubsDataDir = "/hive/data/inside/pubs/pubMapData"
 # where to store the cDNA data (refseq alignments and fasta files)
 cdnaDir = _pubsDataDir + "/cdnaDb"
 
-# where to store the loci data (regions around longest transcripts for genes, their symbols and entrez IDs)
-# a directory with <db>.bed files that associate genomic locations with the closest 
-# entrez gene and symbol
-# loci creation also requires ncbiGenesDir
+# where to store the loci data (regions around longest transcripts for genes,
+# their symbols and entrez IDs) a directory with <db>.bed files that associate
+# genomic locations with the closest entrez gene and symbol loci creation also
+# requires ncbiGenesDir
 lociDir = _pubsDataDir+"/loci"
 
 # file with impact factors for bed annotation
@@ -524,41 +538,42 @@ classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.t
 # GENE AND MUTATION RECOGNIZERS ===========================
 
 # directory with lots of data about genes
-geneDataDir = _pubsDir+"/geneData"
+geneDataDir = pubsDataDir+"/geneData"
 
 # the british national corpus is a list of 30k common words in English
 # used for symbol filtering
 bncFname = '/hive/data/outside/pubs/wordFrequency/bnc/bnc.txt'
 
+# now overwrite all variables with those defined in local 
+# config file ( see start of this file )
+for key, value in newVars.iteritems():
+    locals()[key] = value
+
+# SOLR =======
+solrUrl="http://hgwdev.soe.ucsc.edu:8983/solr"
+
 # ACCESS METHODS (convenience) ============================
 
 debug = False
 
-import sys, logging, os.path, time, random
-confName = os.path.expanduser("~/.pubConf")
-if os.path.isfile(confName):
-    dummy = {}
-    newVars = {}
-    execfile(confName, dummy, newVars)
-    for key, value in newVars.iteritems():
-        locals()[key] = value
+import sys, logging, time, random
 
 def getConverters():
     return CONVERTERS
 
 def getFastTempDir():
     " some fast local temp, possibly a ramdisk "
-    if not os.path.isdir(FASTTEMPDIR):
-        os.makedirs(FASTTEMPDIR)
+    if not isdir(FASTTEMPDIR):
+        makedirs(FASTTEMPDIR)
     return FASTTEMPDIR
 
 def getTempDir():
     " create temp dir, try to resolve race conditions "
-    if not os.path.isdir(TEMPDIR):
+    if not isdir(TEMPDIR):
         time.sleep(random.randint(1,5)) # make sure that we are not all trying to create it at the same time
-        if not os.path.isdir(TEMPDIR):
+        if not isdir(TEMPDIR):
             try:
-                os.makedirs(TEMPDIR)
+                makedirs(TEMPDIR)
             except OSError:
                 logging.info("Ignoring OSError, directory %s seems to exist already" % TEMPDIR)
     return TEMPDIR
@@ -575,17 +590,17 @@ def getMaxTxtFileSize():
 def resolveTextDir(dataDir, makeDir=False):
     " check if dataDir exists, if not: try if subdir of textDir exists and return "
     inName = dataDir
-    dataDir2 = os.path.join(textBaseDir, dataDir)
-    if not os.path.isdir(dataDir2):
+    dataDir2 = join(textBaseDir, dataDir)
+    if not isdir(dataDir2):
         logging.debug("Couldn't find %s" % dataDir2)
-        if os.path.isdir(dataDir):
+        if isdir(dataDir):
             return abspath(dataDir)
         else:
             if makeDir:
                 logging.info("Creating directory %s" % dataDir)
-                os.makedirs(dataDir)
+                makedirs(dataDir)
             else:
-                raise Exception("Neither %s not %s are directories" % (dataDir2, dataDir))
+                raise Exception("Neither %s nor %s are directories" % (dataDir2, dataDir))
     else:
         dataDir = dataDir2
     logging.debug("Resolved dataset name %s to dataset directory %s" % (inName, dataDir))

@@ -5,7 +5,7 @@ from collections import defaultdict
 
 # reports file sizes and file counts
 
-bestMain = True
+preferPdf = True
 sectioning = False
 #onlyMeta = True
 

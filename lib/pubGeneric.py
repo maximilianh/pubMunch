@@ -126,6 +126,8 @@ def findFiles(dir, extensions):
                         #continue
                     relDir = relpath(dirPath, dir)
                     fullPath = os.path.join(dirPath, fileName )
+                    if os.path.getsize(fullPath)==0:
+                        continue
                     result.add( (relDir, fullPath) )
     logging.info("Found %d files" % len(result))
     return result
@@ -319,8 +321,9 @@ def getFileExt(fileData, locFname, mimeType):
     if mimeType==None and "mimeType" in fileData and fileData["mimeType"]!=None:
         mimeType = fileData["mimeType"]
         logging.debug("mime type is %s" % mimeType)
+
     # get extensions from mime TYpe
-    elif mimeType!=None:
+    if mimeType!=None:
         fileExt = pubConf.MIMEMAP.get(mimeType, None)
         logging.debug("File extension based on mime type %s" % mimeType)
 
@@ -393,8 +396,10 @@ def toAscii(fileData, mimeType=None, \
             logging.debug("Could not convert xml to ascii, file %s" % fileData["url"])
             return None
         fileData["content"]=asciiData
+
     else:
         asciiData = runConverter(cmdLine, fileContent, fileExt, tempDir)
+
         # try to detect corrupted pdf2text output and run second converter
         if fileExt=="pdf" and \
             ((asciiData==None or len(asciiData)<minTxtFileSize) or countBadChars(asciiData)>=10):
@@ -513,7 +518,7 @@ def recursiveSubmit(runner, parameterString):
     cmd = "%(python)s %(progFile)s %(parameterString)s" % locals()
     runner.submit(cmd)
 
-def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None):
+def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None, maxRam=None):
     " create a default runner to submit jobs to cluster system "
     scriptBase = splitext(basename(scriptName))[0]
     if algName!=None:
@@ -537,7 +542,7 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
         logging.info("Preparing cluster run, batchDir %(batchDir)s, default type %(clusterType)s, headNode %(headNode)s" % locals())
 
     runner = maxRun.Runner(maxJob=maxJob, clusterType=clusterType, \
-        headNode=headNode, batchDir = batchDir, runNow=runNow)
+        headNode=headNode, batchDir = batchDir, runNow=runNow, maxRam=maxRam)
     return runner
 
 def lftpGet(remoteUrl, locDir, fileNames, connCount):
@@ -609,119 +614,6 @@ def getFtpDir(server, path):
     return dirLines
 
 
-# SECTIONING OF TEXT
-
-# examples of articles where this DOES NOT work:
-#  unzip /hive/data/outside/literature/ElsevierConsyn/2-00290-FULL-XML.ZIP 0140-6736/S0140673600X41633/S0140673686920064/S0140673686920064.xml - raw text, no linebreaks (but dots)
-
-# regular expressions more or less copied from Ruihua Fang, based on her textpresso code
-# see BMC http://www.biomedcentral.com/1471-2105/13/16/abstract
-flags = re.IGNORECASE | re.UNICODE | re.MULTILINE
-prefix = "^[\s\d.IVX]*"
-sectionRes = {
-    'abstract' :
-    re.compile(r"%s(abstract|summary)\s*($|:)" % prefix, flags),
-    'intro' :
-    re.compile(r"%s(introduction|background)\s*($|:)" % prefix, flags),
-    'methods':
-    re.compile(r"%s(materials?\s*and\s*methods|patients and methods|methods|experimental\s*procedures|experimental\s*methods)\s*($|:)" % prefix, flags),
-    'results':
-    re.compile(r"%s(results|case report|results\s*and\s*discussion|results\/discussion)\s*($|:)" % prefix, flags),
-    'discussion':
-    re.compile(r"%sdiscussion\s*($|:)" % prefix, flags),
-    'conclusions':
-    re.compile(r"%s(conclusion|conclusions|concluding\s*remarks)\s*($|:)" % prefix, flags),
-    'ack':
-    re.compile(r"%s(acknowledgment|acknowledgments|acknowledgement|acknowledgements)\s*($|:)" % prefix, flags),
-    'refs':
-    re.compile(r"%s(literature\s*cited|references|bibliography|refereces|references\s*and\s*notes)\s*($|:)" % prefix, flags)
-}
-
-def sectionRanges(text):
-    """
-    split text into  sections 'header', 'abstract', 'intro', 'results', 'discussion', 'methods', 'ack', 'refs', 'conclusions', 'footer'
-    return as ordered dictionary sectionName -> (start, end) tuple
-    >>> sectionRanges("Introduction\\nResults\\n\\nReferences\\nNothing\\nAcknowledgements")
-    OrderedDict([('header', (0, 0)), ('intro', (0, 13)), ('results', (13, 21)), ('refs', (21, 41)), ('ack', (41, 57))])
-    """
-    text = text.replace("\a", "\n")
-    # get start pos of section headers, create list ('header',0), ('discussion', 400), etc
-    sectionStarts = []
-    for section, regex in sectionRes.iteritems():
-        logging.log(5, "Looking for %s" % section)
-        for match in regex.finditer(text):
-            logging.log(5, "Found at %d" % match.start())
-            sectionStarts.append((section, match.start()))
-    sectionStarts.sort(key=operator.itemgetter(1))
-    sectionStarts.insert(0, ('header', 0))
-    sectionStarts.append((None, len(text)))
-
-    # convert to dict of starts for section
-    # create dict like {'discussion' : [200, 500, 300]}
-    sectionStartDict = orderedDict.OrderedDict()
-    for section, secStart in sectionStarts:
-        sectionStartDict.setdefault(section, [])
-        sectionStartDict[section].append( secStart )
-
-    if len(sectionStartDict)-2<2:
-        logging.log(5, "Fewer than 2 sections, found %s, aborting sectioning" % sectionStarts)
-        return None
-
-    # convert to list with section -> (best start)
-    bestSecStarts = []
-    for section, starts in sectionStartDict.iteritems():
-        if len(starts)>2:
-            logging.log(5, "Section %s appears more than twice, aborting sectioning" % section)
-            return None
-        if len(starts)>1:
-            logging.log(5, "Section %s appears more than once, using only second instance" % section)
-            startIdx = 1
-        else:
-            startIdx = 0
-        bestSecStarts.append( (section, starts[startIdx]) )
-    logging.log(5, "best sec starts %s" % bestSecStarts)
-
-    # skip sections that are not in order
-    filtSecStarts = []
-    lastStart = 0
-    for section, start in bestSecStarts:
-        if start >= lastStart:
-            filtSecStarts.append( (section, start) )
-            lastStart = start
-    logging.log(5, "filtered sec starts %s" % filtSecStarts)
-
-    # convert to dict with section -> start, end
-    secRanges = orderedDict.OrderedDict()
-    for i in range(0, len(filtSecStarts)-1):
-        section, secStart = filtSecStarts[i]
-        secEnd = filtSecStarts[i+1][1]
-        secRanges[section] = (secStart, secEnd)
-
-    # bail out if any section but [header, footer] is of unusual size
-    maxSectSize = int(0.7*len(text))
-    minSectSize = int(0.003*len(text))
-    for section, secRange in secRanges.iteritems():
-        if section=='header' or section=='footer':
-            continue
-        start, end = secRange
-        secSize = end - start
-        if secSize > maxSectSize:
-            logging.debug("Section %s too long, aborting sectioning" % section)
-            return None
-        elif secSize < minSectSize and section not in ["abstract", "ack"]:
-            logging.debug("Section %s too short, aborting sectioning" % section)
-            return None
-        else:
-            pass
-
-    logging.debug("Sectioning OK, found %s" % secRanges)
-    return secRanges
-
-def test_sectioning():
-    text = "hihihi sflkjdf\n Results and Discussion\nbla bla bla\nI. Methods\n123. Bibliography\n haha ahahah ahah test test\n"
-    sec = sectionRanges(text)
-    print sec
-
 def resolveDatasetDesc(descs):
     " resolve a comma-sep list of dataset identifiers like pmc or elsevier to a list of directories "
     dirs = []
@@ -731,6 +623,23 @@ def resolveDatasetDesc(descs):
             raise Exception("Unknown dataset: %s" % desc)
         dirs.append(descDir)
     return dirs
+
+def splitAnnotId(annotId):
+    """
+    split the 64bit-annotId into packs of 10/3/5 digits and return all
+    >>> splitAnnotId(200616640112350013)
+    (2006166401, 123, 50013)
+    """
+    fileDigits = pubConf.FILEDIGITS
+    annotDigits = pubConf.ANNOTDIGITS
+    articleDigits = pubConf.ARTICLEDIGITS
+
+    annotIdInt = int(annotId)
+    articleId  = annotIdInt / 10**(fileDigits+annotDigits)
+    fileAnnotId= annotIdInt % 10**(fileDigits+annotDigits)
+    fileId     = fileAnnotId / 10**(annotDigits)
+    annotId    = fileAnnotId % 10**(annotDigits)
+    return articleId, fileId, annotId
 
 def splitAnnotIdString(annotIdString):
     """ split annot as a string into three parts 
@@ -759,13 +668,14 @@ def makeTempDir(prefix, tmpDir=None):
     return dirName
 
 def makeTempFile(prefix, suffix=".psl"):
-    """ create tempfile in pubtools tempdir dir with given prefix, return object and name.
+    """ create tempfile in pubtools tempdir dir with given prefix. 
+    Return tuple (file object , name).
     Tempfile will auto-delete when file object is destructed, unless debug mode is set. 
     """
     tmpDir=pubConf.getTempDir()
     if pubConf.debug:
-        #tfname = tempfile.mktemp(dir=tmpDir, prefix=prefix+".", suffix=suffix)
-        tfname = join(tmpDir, prefix+suffix)
+        tfname = tempfile.mktemp(dir=tmpDir, prefix=prefix+".", suffix=suffix)
+        #tfname = join(tmpDir, prefix+suffix)
         tf = open(tfname, "w")
         logging.debug("Created tempfile %s, debug-mode: no auto-deletion" % tfname)
     else:
@@ -863,9 +773,11 @@ def removeLockFiles():
         os.remove(lockFname)
 
 def setInOutDirs(useDefault, args, pubName):
-    " get in and output dir either from args or create default values, depending on useDefault "
+    """ get in and output dir either from args or create default values,
+    depending on useDefault """
+
     if useDefault:
-        inDir, outDir = join(pubConf.extDir, "elsevier"), join(pubConf.textDir, "elsevier")
+        inDir, outDir = join(pubConf.extDir, pubName), join(pubConf.textDir, pubName)
     else:
         inDir, outDir = args[:2]
     return inDir, outDir

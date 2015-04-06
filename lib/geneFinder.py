@@ -70,7 +70,8 @@ symLeftReqWords = None
 symRightReqWords = None
 
 # words that are usually not gene names, rather used for cell lines or pathways or other stuff
-stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9', 'SMS', 'Arg', 'Ser'])
+stopWords = set(['NHS', 'SDS', 'VIP', 'NSF', 'PDF', 'CD8', 'CD4','JAK','STAT','CD','ROM','CAD','CAM','RH', 'HR','CT','MRI','ZIP','WAF','CIP','APR','OK','II','KO','CD80','H9', 'SMS', 'Arg', 'Ser', 'TSA'])
+# buffers: TSA
 
 # Some identifiers are so general that we want to restrict our search
 # to documents that contain some keyword
@@ -655,7 +656,8 @@ def findGenes(text, pmid=None, seqCache=None):
     
 def findGenesResolveByType(text, pmid=None, seqCache=None):
     """ 
-    find markers in text, resolve them to genes and return as dict geneId -> list of (start, end)
+    find markers in text, resolve them to genes and return as dict geneId ->
+    list of (start, end)
 
     Resolve ambiguous gene symbols and flip unsure symbols to sure symbols if some other
     identifier in the document supports them.
@@ -942,10 +944,10 @@ def findGeneNames(text):
     """
     assert(geneSymLex!=None)
     textLower = text.lower()
-    for start, end, geneId in fastFind.fastFind(textLower, geneNameLex):
+    for start, end, geneId in fastFind.fastFind(textLower, geneNameLex, toLower=False):
         yield (start, end, 'geneName', geneId)
 
-    flankFindIter = fastFind.fastFindFlankWords(text, geneSymLex, wordDist=2, wordRe=fastFind.SYMRE)
+    flankFindIter = fastFind.fastFindFlankWords(text, geneSymLex, wordDist=2, wordRe=fastFind.SYMRE, toLower=False)
     for start, end, geneId, leftWords, rightWords in flankFindIter:
         # if the symbol is marked as potentially ambiguous, check the flanking words
         if geneId.startswith("?"):

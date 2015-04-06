@@ -14,9 +14,9 @@ This is a early testing release, please send error messages to Maximilian Haeuss
 - pubConvPUB = convert downloaded files to my pub format (tab-separated table
              with fields defined in lib/pubStore.py)
 - pubLoadMysql and pubLoadSqlite = load pub format data into a database system 
-- pubRunAnnot = run an annotator from the scripts directory on text data in
+- pubRunAnnot = run an annotator from the taggers directory on text data in
              pub format
-- pubRunMapReduce = run a map/reduce style job from "scripts" onto fulltext.
+- pubRunMapReduce = run a map/reduce style job from "taggers" onto fulltext.
 - pubLoad = load pub format files into mysql db
 - pubMap = complex multi stage pipeline to find and map markers found in text 
            (sequences, snps, bands, genes, etc) to genomic locations 
@@ -81,7 +81,7 @@ As the files are sorted on the articleId, you can create a big table that includ
 
     join 0_00000.articles 0_00000.files > textData.tab
 
-# Annotator scripts
+# Annotator taggers
 
 While you can get quite far with the UNIX tools, you might want write your text analysis as python scripts. If your scripts comply with the format required by pubRunAnnotate or pubRunMapReduce, the scripts don't have to do any parsing of the tables themselves, their output format is standardised and they get distributed over the cluster automatically.
 
@@ -101,7 +101,7 @@ the year of the article:
             rows.append( (start, start+8, article.year, "FOXO1") )
         return rows
 
-if you paste this code into a file called foxFinder.py, then run the command
+Paste this code into a file called taggers/foxFinder.py, then run the command
 
     pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab 
 
@@ -120,18 +120,18 @@ option, once the cluster jobs are done, their results will be concatenated into
 one big table, foxFinderOut.tab. Depending on how big your cluster is, this can
 be a lot faster than running a grep.
 
-There is a collection of annotators in the directory scripts/. 
+There is a collection of taggeres in the directory taggers/. 
 
-The scripts can use Java classes. If the name of the script starts with "java", pubRunAnnot will run the script not in the normal python interpreter, but through Jython. That means that you can add .jar
+These scripts can use Java classes. If the name of the script starts with "java", pubRunAnnot will run the script not in the normal python interpreter, but through Jython. That means that you can add .jar
 files to sys.path in your script and use the Java classes as you would use python classes.
 
-The annotators can set a few additional special variables, apart from "headers":
-- "sectioning": If this is true, the document is sent in separate chunks, one per "intro", "material", "results" and "discussion" section. The sectioning is very rough at the moment.
+The taggers can set a few additional special variables, apart from "headers":
 - "onlyMain": If this is set to True, the annotator will only be run on the main files, not the supplemental data.
 - "onlyMeta": If True, annotator will only be run on the metadata, not the fulltext
-- "bestMain": If True, annotator will only be run on the XML fulltext, not any PDF fulltext versions, if both are available. If only PDF is available, it will still be used.
+- "preferXml": If True, annotator will prefer XML/HTML files, if both PDF and XML are available. If only PDF is available, this has no effect. Use this for highest quality text, e.g. grammatical parsers.
+- "preferPdf": Like preferXml, but priority on PDF files. Use this for most comprehensive text, e.g. identifier search.
 
-Apart from the annotate() function, the annotators can provide three other functions, which are loosely
+Apart from the annotateFile() function, the taggers can provide three other functions, which are loosely
 inspired by Hadoop:
 - "setup": function that is run before any files are opened, when the job comes up. The parameter is 
   paramDict, a dictionary with parameters specified on the command line in the format key=value.

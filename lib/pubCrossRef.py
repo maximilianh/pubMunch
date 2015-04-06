@@ -7,7 +7,7 @@ import maxCommon
 #    queryStr = ", ".join(queryFields)
 #    queryData = {"q" : queryStr, "pages" : "1", "rows" : 1}
 #    urlParams = urllib.urlencode(queryData)
-#    url = "http://search.labs.crossref.org/dois?" + urlParams
+#    url = "http://search.crossref.org/dois?" + urlParams
 #    # send request
 #    jsonStr = urllib2.urlopen(url).read()
 #    xrdata = json.loads(jsonStr)

@@ -250,6 +250,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         line1 = fh.readline()
         line1 = line1.rstrip("\n").strip("#").rstrip("\t")
         headers = line1.split(fieldSep)
+        headers = [h.strip() for h in headers]
         headers = [re.sub("[^a-zA-Z0-9_]","_", h) for h in headers]
         newHeaders = []
         for h in headers:

@@ -71,7 +71,7 @@ def getAuthorAcronyms(auStr):
 def annotateFile(article, file):
     " go over words of text and check if they are in dict "
     text = file.content
-    rows = fastFind(text, lex, wordRegex=r"[\w'_-]+")
+    rows = fastFind(text, lex, wordRegex=r"[\w'_-]+", toLower=True)
     autAcros = getAuthorAcronyms(article.authors)
     acros = getAcronyms(text)
 

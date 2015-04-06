@@ -208,7 +208,9 @@ def listToUtf8Escape(list):
     return utf8List
 
 def dictToUtf8Escape(dict):
-    """ convert dict of variables to utf8 string as well as possible and replace \n and \t"""
+    """ convert dict of variables to utf8 string as well as possible and
+    replace \n and \t
+    """ 
     if dict==None:
         return None
     utf8Dict={}
@@ -241,6 +243,8 @@ def removeTabNl(var):
     # RAHHH! CRAZY UNICODE LINEBREAKS
     # the following would not work because of python's interpretation of unicode
     #newDict[key] = val.replace("\t", " ").replace("\n", " ")
+    # there are more newlines than just \n and \m when one is using the 
+    # 'for line in file' construct in python
     # so we do this
     cleanString = " ".join(unicode(var).splitlines()).replace("\t", " ")
     #logging.debug("cleaned string is %s" % repr(newStr))
@@ -530,8 +534,11 @@ class PubReaderFile:
         logging.log(5, "Main-text filter: got %d files, returned %d files" % (len(files), len(newFiles)))
         return newFiles
 
-    def _keepBestMain(self, files):
-        " if there is a PDF and XML or HTML version for the main text, remove the PDF. keep all suppl files "
+    def _keepBestMain(self, files, preferType):
+        """ if there are several main text formats, keep only one of them.
+        preferType can be "pdf" or "xml" (which includes html files)
+        Keep all other files 
+        """
         mainFiles = {}
         newFiles = []
         for fileData in files:
@@ -548,30 +555,53 @@ class PubReaderFile:
             logging.error("%s" % files)
             return newFiles
 
-        # now remove the pdf if there are better files
-        if len(mainFiles)>1 and \
-                "application/pdf" in mainFiles and \
-                ("text/xml" in mainFiles or "text/html" in mainFiles):
-            logging.debug("Removing pdf")
-            del mainFiles["application/pdf"]
+        if len(mainFiles)==1:
+            newFiles.insert(0, mainFiles.values()[0])
+            return newFiles
+
+        # remove the pdf if there are better files
+        if preferType=="xml":
+            if "application/pdf" in mainFiles and \
+                    ("text/xml" in mainFiles or "text/html" in mainFiles):
+                logging.debug("Removing pdf")
+                del mainFiles["application/pdf"]
+
+        elif preferType=="pdf":
+            # remove the xml if there are PDF files
+            if "application/pdf" in mainFiles:
+                if "text/xml" in mainFiles:
+                    del mainFiles["text/xml"]
+                    logging.debug("Removing xml")
+                if "text/html" in mainFiles:
+                    del mainFiles["text/html"]
+                    logging.debug("Removing html")
+        else:
+            assert(False)
 
         # paranoia check: make sure that we still have left one file
         if not len(mainFiles)>=1:
-            logging.error("no main file anymore: input %s output %s " % (files, mainFiles))
-            assert(len(mainFiles)>=1)
+            logging.error("no main file: in %s out %s " % (files, mainFiles))
+            raise Exception("no main file left")
 
         newFiles.insert(0, mainFiles.values()[0])
         return newFiles
 
-    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False, onlyMain=False):
+    def iterArticlesFileList(self, algPrefs):
         """ iterate over articles AND files, as far as possible
 
         for input files with article and file data:
             yield a tuple (articleData, list of fileData) per article 
         for input files with no article data, yield a tuple (None, [fileData])
-        for input files with no file data, generate pseudo-file from abstract (title+abstract+authors)
-        if onlyMeta is True, do not read .files.gz and yield (articleData, pseudoFile) 
-        if onlyBestMain is True, ignore the PDF file if there are PDF and XML/Html main files
+        for input files with no file data, generate pseudo-file from abstract
+        (title+abstract+authors) 
+
+        algPrefs.onlyMeta == True: do not read .files.gz and yield
+        (articleData, pseudoFile)
+        algPrefs.onlyMain == True: skip supplemental files
+        algPrefs.preferXml == True: run on only one main text file.
+        skip the PDF file if there are PDF and XML/Html main files. 
+        algPrefs.preferPdf == True: run on only one main text file.
+        skip XML or HTML files if there are multiple file types.
         """
         fileDataList = []
         lastFileData = None
@@ -585,17 +615,24 @@ class PubReaderFile:
                 continue
             logging.log(5, "Read article meta info for %s" % str(articleData.articleId))
 
-            if self.fileRows!=None and not onlyMeta==True:
+            if self.fileRows!=None and algPrefs!=None and algPrefs.onlyMeta==False:
                 # if file data is there and we want it, read as much as we can
-                fileDataList, lastFileData = self._readFilesForArticle(articleData.articleId, fileDataList)
-                if onlyBestMain:
-                    fileDataList = self._keepBestMain(fileDataList)
-                if onlyMain:
-                    fileDataList = self._keepOnlyMain(fileDataList)
+                fileDataList, lastFileData = \
+                    self._readFilesForArticle(articleData.articleId, fileDataList)
+
+                if algPrefs!=None:
+                    if algPrefs.onlyMain:
+                        fileDataList = self._keepOnlyMain(fileDataList)
+                    if algPrefs.preferXml:
+                        fileDataList = self._keepBestMain(fileDataList, "xml")
+                    if algPrefs.preferPdf:
+                        fileDataList = self._keepBestMain(fileDataList, "pdf")
+
                 yield articleData, fileDataList
                 fileDataList = [lastFileData]
+
             else:
-                # if only abstract: create pseudo file (medline)
+                # if only abstract (e.g. medline): create pseudo file 
                 fileTuple = createPseudoFile(articleData)
                 yield articleData, [fileTuple]
 
@@ -672,7 +709,7 @@ class PubReaderTest:
         else:
             self.text = open(fname).read()
 
-    def iterArticlesFileList(self, onlyMeta=False, onlyBestMain=False, onlyMain=False):
+    def iterArticlesFileList(self, algPrefs):
         class C:
             def _replace(self, content=None):
                 return self
@@ -686,7 +723,7 @@ class PubReaderTest:
         art.pmid = "10"
         art.externalId = "extId000"
         art.printIssn = "1234-1234"
-        art.url =  "http://sgi.com"
+        art.url =  "http://www.ucsc.edu"
 
         fileObj = C()
         fileObj.fileId = "1001"
@@ -697,7 +734,7 @@ class PubReaderTest:
         
         yield art, [fileObj]
 
-def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False, onlyMain=False):
+def iterArticleDirList(textDir, algPrefs=None):
     " iterate over all files with article/fileData in textDir "
     logging.debug("Getting filenames in dir %s" % textDir)
     fileNames = glob.glob(os.path.join(textDir, "*.articles.gz"))
@@ -707,7 +744,7 @@ def iterArticleDirList(textDir, onlyMeta=False, preferPdf=False, onlyMain=False)
         reader = PubReaderFile(textFname)
         logging.debug("Reading %s, %d files left" % (textFname, len(fileNames)-textCount))
         pr = PubReaderFile(textFname)
-        artIter = pr.iterArticlesFileList(onlyBestMain=preferPdf, onlyMain=False, onlyMeta=onlyMeta)
+        artIter = pr.iterArticlesFileList(algPrefs)
         for article, fileList in artIter:
             yield article, fileList
         pm.taskCompleted()
@@ -964,8 +1001,8 @@ def addLoadedFiles(dbFname, fileNames):
     con.commit()
     
 def getUnloadedFnames(dbFname, newFnames):
-    """ given a sqlite db and a list of filenames, return those that have not been loaded yet into the db 
-    comparison looks only at basename of files 
+    """ given a sqlite db and a list of filenames, return those that have not
+    been loaded yet into the db. Looks only at basename of files.
     """
     con, cur = maxTables.openSqlite(dbFname)
     loadedFnames = []

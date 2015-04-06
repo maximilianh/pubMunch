@@ -746,23 +746,6 @@ def readKeyValFile(fname, inverse=False):
         dict[int(key)] = value
     return dict
 
-def splitAnnotId(annotId):
-    """
-    split the 64bit-annotId into packs of 10/3/5 digits and return all
-    >>> splitAnnotId(200616640112350013)
-    (2006166401, 123, 50013)
-    """
-    fileDigits = pubConf.FILEDIGITS
-    annotDigits = pubConf.ANNOTDIGITS
-    articleDigits = pubConf.ARTICLEDIGITS
-
-    annotIdInt = int(annotId)
-    articleId  = annotIdInt / 10**(fileDigits+annotDigits)
-    fileAnnotId= annotIdInt % 10**(fileDigits+annotDigits)
-    fileId     = fileAnnotId / 10**(annotDigits)
-    annotId    = fileAnnotId % 10**(annotDigits)
-    return articleId, fileId, annotId
-
 def constructArticleFileId(articleId, fileId):
     " given two integers, articleId and fileId, construct the full fileId (articleId & fileId) "
     articleFileId = (articleId*(10**(pubConf.FILEDIGITS)))+fileId
@@ -797,7 +780,7 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
 
     for fname in seqFiles:
         for annot in maxCommon.iterTsvRows(fname):
-            articleId, fileId, seqId = splitAnnotId(annot.annotId)
+            articleId, fileId, seqId = pubGeneric.splitAnnotId(annot.annotId)
             annotId = int(annot.annotId)
             dbs = articleDbs.get(articleId, None)
             if not dbs:
@@ -1567,7 +1550,7 @@ def filterSeqFile(inFname, outFname, isProt=False):
 
     logging.debug("Filtering file %s" % inFname)
     for row in maxCommon.iterTsvRows(inFname, encoding="utf8"):
-        articleId, dummy1, dummy2 = splitAnnotId(row.annotId)
+        articleId, dummy1, dummy2 = pubGeneric.splitAnnotId(row.annotId)
         alreadySeenSeq.setdefault(articleId, set())
         if row.seq in alreadySeenSeq[articleId]:
             continue

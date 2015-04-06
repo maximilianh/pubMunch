@@ -1,3 +1,7 @@
+PMID21680534
+- RAR(beta) 2: (beta) is translated to ?... happens with many PDFs. force
+  latin1 encoding? 
+
 - add a gene definition finder (e.g. "PITX2 is responsible for", "OTX2 encodes", "PITX2 is a", "TP53 regulates")
 - make pubLoadMysql updateable ("loadedFiles": dataset, updateId, fileCount, fsizeSum?)
 - make pubRunAnnot updateable (getUpdateIds()...)

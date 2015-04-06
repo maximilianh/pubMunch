@@ -68,6 +68,8 @@ def constructLex(keywordList, wordRe=WORDRE):
     """
     converts a list of textstrings and identifiers to
     nested dictionaries that allow faster matching
+    Careful: always use the same wordRe expression for constructing the lexicon
+    and when matching. 
     >>> constructLex( [("q1", ["how are you"]), ("q2", ["do you"])] )
     {'how': {'are': {'you': {0: 'q1'}}}, 'do': {'you': {0: 'q2'}}}
     """
@@ -132,7 +134,7 @@ def splitText(text, wordRe=WORDRE):
     words = [(m.start(), m.end(), m.group()) for m in wordRe.finditer(text)]
     return words
 
-def fastFind(text, lex, wordRe=WORDRE, toLower=False):
+def fastFind(text, lex, wordRe=WORDRE, toLower=True):
     """ find matches of keyword strings in text by splitting text first and then matching
         with dictionaries. For overlaps, returns only longest match.
     >>> lex = constructLex([("p1", ["how are"]), ("p2", ["you doing", "are you"]), ("p3", ["how are you"])])
@@ -143,7 +145,7 @@ def fastFind(text, lex, wordRe=WORDRE, toLower=False):
     >>> test = "I  hate    guinea pigs. I do"
     >>> fastFind (test, lex)
     [(11, 22, 'p1')]
-    >>> fastFind ("Pichia pastoris .", lex)
+    >>> fastFind ("Pichia pastoris .", lex, toLower=False)
     [(0, 15, 'p1')]
     >>> fastFind ("pichia pastoris .", lex)
     []
@@ -157,7 +159,7 @@ def fastFind(text, lex, wordRe=WORDRE, toLower=False):
     >>> fastFind ("(alzheimer's disease)", lex, wordRe=re.compile(r"[\w'-()]+"))
     []
 
-    # flanking brackets are no problem
+    # but by default, flanking brackets are no problem
     >>> fastFind ("(alzheimer's disease)", lex)
     [(1, 20, 'p1')]
 
@@ -180,7 +182,7 @@ def fastFind(text, lex, wordRe=WORDRE, toLower=False):
     return matches
 
 
-def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE, toLower=False):
+def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE, toLower=True):
     """
     do normal matching, but also add the flanking words to left and right to the annotation tuples
     >>> lex = constructLex([("p1", ["hi there"]), ("p2", ["bababa"])])
@@ -223,8 +225,10 @@ def _lexIter(fileObj, toLower=False):
         fields = line.strip("\n").split("\t")
         if len(fields)==1:
             id, nameString = fields[0], fields[0]
-        else:
+        elif len(fields)==2:
             id, nameString = fields
+        else:
+            raise Exception("line: %s - more than two tab-sep fields" % repr(fields))
         if toLower:
             nameString = nameString.lower()
         names = nameString.split("|")
@@ -233,7 +237,10 @@ def _lexIter(fileObj, toLower=False):
 
 def loadLex(fname):
     " load compiled dictionary (=gziped marshalled file) "
-    data = gzip.open(fname).read()
+    if fname.endswith(".gz"):
+        data = gzip.open(fname).read()
+    else:
+        data = open(fname).read()
     lex = marshal.loads(data)
     return lex
 
@@ -272,7 +279,10 @@ def writeLex(lex, fname):
     "  write dictionary as marshalled data to fname "
     #lex = constructLex(idTermList)
     str = marshal.dumps(lex)
-    binFile = gzip.open(fname, "wb")
+    if fname.endswith(".gz"):
+        binFile = gzip.open(fname, "wb")
+    else:
+        binFile = open(fname, "wb")
     binFile.write(str)
     logging.info("Wrote compiled dictionary to %s" % fname)
 
@@ -283,7 +293,11 @@ def compileDict(dictFname, wordRe=WORDRE, toLower=False):
     """
     lex = parseDict(dictFname, wordRe, toLower)
     dictBase = basename(dictFname).split(".")[0]
-    fname = join(dirname(dictFname), dictBase+".marshal.gz")
+    if dictFname.endswith(".gz"):
+        ext = ".marshal.gz"
+    else:
+        ext = ".marshal"
+    fname = join(dirname(dictFname), dictBase+ext)
     writeLex(lex, fname)
 
 if __name__ == "__main__":

@@ -576,8 +576,8 @@ def makeTableCreateStatement(tableName, fields, type="sqlite", intFields=[], pri
     tableSql = "CREATE TABLE IF NOT EXISTS %s (%s %s); " % (tableName, ", ".join(parts), idxStr)
     return tableSql, idxSqls
 
-def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], primKey=None, \
-        idxFields=[], dropTable=True):
+def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], \
+    primKey=None, idxFields=[], dropTable=True):
     " load tabsep file into sqlLite db table "
     # if first parameter is string, make it to a list
     if len(tsvFnames)==0:

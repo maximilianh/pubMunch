@@ -1,0 +1,5 @@
+# generated at UCSC
+# requires Pubmed and BNC which cannot be distributed
+zcat /hive/data/inside/pubs/text/medline/*.articles.gz | cut -f13 | grep -v ^authors > authors.txt
+python parseNames.py > authors.tab
+python filterNames.py > commonNames.txt

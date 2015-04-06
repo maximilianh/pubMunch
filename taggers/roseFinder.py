@@ -6,7 +6,7 @@ import re
 headers = ["protein", "keyword", "phrase"]
 
 onlyMain = True
-bestMain = True
+preferXml = True
 
 proteinIds = {}
 geneIds = {}

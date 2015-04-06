@@ -9,7 +9,7 @@ from collections import defaultdict
 headers = ["start", "end", "drugName", "snippet"]
 
 onlyMain = True
-bestMain = True
+preferPdf = True
 
 drugNames = {}
 

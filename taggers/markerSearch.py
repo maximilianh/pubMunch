@@ -43,7 +43,7 @@ class Annotate:
         # we want sections in our tables
         self.sectioning = True
         # we don't want to run on both pdf and xml
-        self.bestMain = True
+        self.preferPdf = True
 
     # this method is called ONCE on each cluster node, when the article chunk
     # is opened, it fills the kwDict variable

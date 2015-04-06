@@ -40,6 +40,7 @@ parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
 parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"])
 parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
+parser.add_option("", "--notPmid", dest="notPmid", action="store_true", help="filenames are not PMID.pdf but some other identifier. Will result in 0_articles.gz files without any meta information") 
 #parser.add_option("-e", "--encoding", dest="encoding", action="store", help="encoding to convert to, by default input is assumed to be in UTF8 and is also encoded as such") 
 (options, args) = parser.parse_args()
 
@@ -112,22 +113,25 @@ def createFileData(baseDir, fname, extId, isSupp):
         fileData = pubGeneric.toAsciiEscape(fileData)
     return fileData
 
-def createArticleData(externalId):
+def createArticleData(externalId, notPmid):
     " create article data dict "
-    #articleData = pubStore.createEmptyArticleDict()
-    articleData = pubStore.lookupArticleByPmid(["medline"], externalId)
-    if articleData==None:
-        logging.debug("No local information for %s" % externalId)
-        ncbiList = list(pubPubmed.ncbiEFetchGenerator([externalId]))
-        if len(ncbiList)==0:
-            return None
-        articleData = ncbiList[0]
+    if notPmid:
+        articleData = pubStore.createEmptyArticleDict()
+        articleData["externalId"] = externalId+".pdf"
+    else:
+        articleData = pubStore.lookupArticleByPmid(["medline"], externalId)
+        if articleData==None:
+            logging.debug("No local information for %s" % externalId)
+            ncbiList = list(pubPubmed.ncbiEFetchGenerator([externalId]))
+            if len(ncbiList)==0:
+                return None
+            articleData = ncbiList[0]
     #articleData["externalId"] = "PMID"+externalId
     #articleData["fulltextUrl"] = "www.ncbi.nlm.nih.gov/pubmed/%s" % externalId
     articleData["source"] = "pdfDir"
     return articleData
 
-def convertFiles(inDir, outDir, minId, parseFname):
+def convertFiles(inDir, outDir, minId, parseFname, notPmid):
     " index files and convert to pubtools file in outDir, first articleId is minId "
     indexFn = createIndex(inDir, outDir, minId)
 
@@ -144,7 +148,7 @@ def convertFiles(inDir, outDir, minId, parseFname):
             continue
         suppFiles = row.suppFiles.split(",")
         logging.info("Converting article data for %s, articleId %s, suppFiles %s" % (mainFile, articleId, ",".join(suppFiles)))
-        articleData = createArticleData(externalId)
+        articleData = createArticleData(externalId, notPmid)
         if articleData==None:
             failed.append("metaData:"+externalId)
             continue
@@ -189,4 +193,4 @@ pubGeneric.setupLogging(progFile, options)
 
 maxCommon.mustExistDir(outDir)
 maxCommon.mustBeEmptyDir(outDir)
-convertFiles(inDir, outDir, minId, options.parseFile)
+convertFiles(inDir, outDir, minId, options.parseFile, options.notPmid)

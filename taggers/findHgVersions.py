@@ -1,6 +1,7 @@
+# find the human genome version mention in the text
 #import re
 onlyMain = True
-bestMain = True
+preferPdf = True
 
 headers = ["pmid", "year","version"]
 #splitter = re.compile(r"[ ,;.!-()*]")

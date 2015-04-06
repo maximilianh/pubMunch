@@ -33,7 +33,7 @@ def main(args, options):
             if not isdir(outDir):
                 continue
             pmidFname = join(outDir, "pmids.txt")
-            if not isfile(pmidFname):
+            if not isfile(pmidFname) and not options.testPmid:
                 logging.info("%s does not exist, skipping dir %s" % (pmidFname, outDir))
                 continue
 

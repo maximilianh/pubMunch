@@ -1,0 +1,470 @@
+#!/cluster/software/bin/python2.7
+# format python errors as html
+import cgitb
+cgitb.enable()
+
+# default python libs
+import cgi, os, sys, re, os.path, gzip, collections, operator, re, htmlentitydefs
+# libs one needs to install
+import MySQLdb
+
+# my own libs
+sys.path.append("/cluster/home/max/projects/pubs/tools/lib")
+import html
+
+# ---- CONFIG -----
+# configuration of columns
+# format is markerType -> (description, tableId)
+# e.g. fus : [("chimer", "chimerDB")] means that table is called annotFusChimerDB
+countColumns = {
+    "fus": [
+        ("ChimerDb", "ChimerDb"),
+        ("Pubmed Abstracts", "Medline"),
+        ("Fulltext Articles", "Fulltext")
+        ],
+    "snp" : [
+        ("Medline", "Medline"),
+        ("Fulltext", "Fulltext")
+        ]
+}
+
+def fieldsToFusId(fields):
+    if len(fields)<2:
+        return
+    strPair = makeSortedTuple(fields[0], fields[1])
+    pairStr = "/".join(strPair)
+    return pairStr
+
+# functions for markerTypes that given an input line return a markerID
+convertFuncs = {
+    "fus" : fieldsToFusId
+    }
+
+HGCONF = "../cgi-bin/hg.conf"
+
+ # ==== FUNCTIONS ======
+
+def parseHgConf(fname=HGCONF, conf={}):
+    " parse HgConf and return as dict "
+    for line in open(fname):
+        line = line.strip()
+        if len(line)==0:
+            continue
+        if line.startswith("#"):
+            continue
+        if line.startswith("include "):
+            relFname = line.split()[1]
+            absFname = os.path.join(os.path.dirname(fname), relFname)
+            parseHgConf(absFname, conf)
+            continue
+        key, val = line.split("=")
+        conf[key]=val
+    return conf
+
+def sqlConnect():
+    """ parse hg.conf and connect to default host with user and pwd """
+    conf = parseHgConf()
+    host = conf["db.host"]
+    user = conf["db.user"]
+    passwd = conf["db.password"]
+    conn = MySQLdb.connect(host=host, user=user, passwd=passwd,db="publications")
+    return conn
+
+
+def topBar(h):
+    " print browser top bar "
+    h.writeLn("""
+    <!-- start top bar copied from browser -->
+    <TABLE BGCOLOR="#000000" CELLPADDING="1" CELLSPACING="1" WIDTH="100%">
+    <TR BGCOLOR="#2636D1"><TD VALIGN="middle">
+    <TABLE BORDER=0 CELLSPACING=0 CELLPADDING=0 BGCOLOR="#2636D1" class="topbar">
+    <TR><TD VALIGN="middle"><FONT COLOR="#89A1DE">
+      <A HREF="http://genome.ucsc.edu/index.html" class="topbar">Home</A>-
+      <A HREF="http://genome.ucsc.edu/cgi-bin/hgGateway" class="topbar">Genomes</A>- 
+      <A HREF="http://genome.ucsc.edu/cgi-bin/hgBlat?command=start" class="topbar">Blat</A>- 
+      <A HREF="http://genome.ucsc.edu/cgi-bin/hgTables?command=start" class="topbar">Tables</A>- 
+      <A HREF="http://genome.ucsc.edu/cgi-bin/hgNear" class="topbar">Gene Sorter</A>- 
+      <A HREF="http://genome.ucsc.edu/cgi-bin/hgPcr?command=start" class="topbar">PCR</A>- 
+      <A HREF="http://genome.ucsc.edu/cgi-bin/hgSession?hgS_doMainPage=1" class="topbar">Session</A>-
+      <A HREF="http://genome.ucsc.edu/FAQ/" class="topbar">FAQ</A>- 
+      <A HREF="http://genome.ucsc.edu/goldenPath/help/hgTracksHelp.html" class="topbar">Help</A>
+    </FONT></TD></TR>
+    </TABLE>
+    </TD></TR>
+    </TABLE>
+    <!-- end topbar -->
+    <P>
+    """)
+
+def getCount(conn, table, field, value):
+    """ 
+    get externalId count of field in table
+    """
+    #cur = conn.cursor(MySQLdb.cursors.DictCursor)
+    cur = conn.cursor()
+    #query = "SELECT COUNT(DISTINCT articleId) FROM %s WHERE %s=%%s" % (table, field)
+    query = "SELECT COUNT(DISTINCT externalId) FROM %s WHERE %s=%%s" % (table, field)
+    #print query, symPair, table
+    cur.execute(query, value)
+    count = cur.fetchone()
+    return count[0]
+
+def getArticleIds(conn, table, markerId):
+    cur = conn.cursor()
+    query = "SELECT articleId FROM %s WHERE markerId=%%s" % (table)
+    cur.execute(query, markerId)
+    rows = cur.fetchall()
+    articleIds = set()
+    for row in rows:
+        articleIds.add(row[0])
+    return articleIds
+
+def getPmids(conn, table, articleIds):
+    cur = conn.cursor()
+    pmids = set()
+    for articleId in articleIds:
+        query = "SELECT pmid FROM %s WHERE articleId=%%s" % (table)
+        cur.execute(query, articleId)
+        row = cur.fetchone()
+        pmid = row[0]
+        pmids.add(pmid)
+    return pmids
+
+def makeSortedTuple(str1, str2):
+    strList = [str1, str2]
+    strList.sort()
+    strPair = tuple(strList)
+    return strPair
+
+def printHead(h, title):
+    h.head(title, stylesheet="http://genome.ucsc.edu/style/HGStyle.css", scripts=["http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"])
+
+def guessType(lines):
+    " return input type given lines, e.g. snp or fus "
+    if lines[0].startswith("rs"):
+        return "snp"
+    else:
+        return "fus"
+
+
+def printCounts(h, conn, markerType, markerIds):
+    tableNames = []
+    for desc, dataType in countColumns[markerType]:
+        tableName = "annot%s%s" % (upFirst(markerType), upFirst(dataType))
+        tableNames.append((tableName, dataType))
+
+    for markerId in markerIds:
+        disCounts = collections.defaultdict(int)
+        h.startTr()
+        h.td(markerId)
+        for tableName, dataType in tableNames:
+            count = getCount(conn, tableName, "markerId", markerId)
+            if count==0:
+                h.td('0')
+            else:
+                h.td('<a href="search?type=%(markerType)s&data=%(dataType)s&marker=%(markerId)s">%(count)d</a>' \
+                    % locals())
+
+            if "Medline" in tableName or "Fulltext" in tableName:
+                disTable = "dis"+dataType
+                artTable = "art"+dataType
+                articleIds = getArticleIds(conn, tableName, markerId)
+                disCounts   = getDiseases(conn, disTable, articleIds, disCounts)
+        disList = disCounts.items()
+        disList.sort(key=operator.itemgetter(1), reverse=True)
+        #disStr = ", ".join(["%s (%d)" % (dis, count) for dis, count in disList[:3]])
+        disStr = ", ".join(["%s" % (dis) for dis, count in disList[:3]])
+        otherStr = ""
+        if len(disList)>3:
+            otherStr = ' <small style="color:grey">and %d others</small>' % (len(disList)-3)
+        h.td(disStr+otherStr)
+
+        h.endTr()
+
+
+#def printCount_Fusion(h, conn, fields):
+#    if len(fields)!=2:
+#        print("<td colspan=4>%s: Line does not contain two symbols</td>" % ",".join(fields))
+#        return
+#    sym1, sym2 = fields
+#    symPair = makeSortedTuple(sym1, sym2)
+#    symList = [sym1, sym2]
+#    symPairStr = "/".join(symPair)
+#
+#    if sym1 not in hgncIds:
+#        print("<td colspan=4>%s: not an official HGNC gene symbol.</td>" % sym1)
+#        return
+#    if sym2 not in hgncIds:
+#        print("<td colspan=4>%s: not an official HGNC gene symbol.</td>" % sym2)
+#        return
+#
+#    # TODO check if sym1 and sym2 are valid 
+#
+#    h.td(symPairStr)
+#
+#    for table in FUSTABLES:
+#        printCount(h, conn, table, "symPair", symPairStr)
+
+def printCountTable(queryLines, markerType):
+    h = html.htmlWriter()
+    printHead(h, "UCSC Publications counts")
+    topBar(h)
+
+    h.p()
+    h.p()
+    h.p()
+    
+    # print headers
+    tblHdrs = [upFirst(markerType)]
+    for desc, col in countColumns[markerType]:
+        tblHdrs.append(desc)
+    tblHdrs.append("Diseases")
+
+    # table headers and widths
+    hdrWidths = ["100"]
+    hdrWidths.extend(["100"]*len(countColumns[markerType]))
+    hdrWidths.append("400")
+    h.startTable(hdrWidths, tblHdrs, \
+        tblClass="stdTbl", headClass="stdTblHead")
+
+    conn = sqlConnect()
+    hgncIds = set([line.strip() for line in gzip.open('hgnc.gz')])
+    
+    markerIds = []
+    for line in queryLines:
+        line = line.strip()
+        if line=="":
+            continue
+        if line.startswith("#"):
+            continue
+        fields = line.split()
+        convFunc = convertFuncs.get(markerType, None)
+        if convFunc!=None:
+            markerId = convFunc(fields)
+        else:
+            markerId = fields[0]
+        markerIds.append(markerId)
+
+    printCounts(h, conn, markerType, markerIds)
+
+    #h.td(",".join(diseases))
+    
+    h.endTable()
+    h.p()
+    h.p()
+    h.writeLn("<small>Fulltext provided by: <br>Elsevier, Nature Publishing Group, PubmedCentral, Wiley, American Society for Biochem and Mol Biol, American Society for Microbiology, American Physiological Society, US National Academy of Sciences, American Association for Immunology, Genetics Society of America, Soc of Mol Biol and Evol, Soc for Gen Microbiol, The Genetics Society, Future Science, Portland Press, Rockefeller Univ Press, American College of Chest Physicians, ASPET, Company of Biologists</small><p>")
+    h.writeLn("<small>Fulltext does not cover: <br>Springer, Ingenta/Tyler and Francis, OUP, Wolters-Kluwer, Informa, AAAS, BMJ, Sage, J Clin Oncology, AMA, Karger, APS, Landes, Am Soc Hematology, Endocrine Soc, Cambridge Univ Press</small>")
+
+    h.endHtml()
+
+def lookupArticle(conn, table, articleId):
+    """ 
+    get count of symbol pair in table
+    """
+    cur = conn.cursor(MySQLdb.cursors.DictCursor)
+    #cur = conn.cursor()
+    query = "SELECT * FROM %s WHERE articleId=%%s" % table
+    try:
+        cur.execute(query, articleId)
+    except MySQLdb.ProgrammingError:
+        return None
+    art = cur.fetchone()
+    return art
+
+def shortenAuthors(autStr, maxLen=50):
+    " cut author string to 50 chars "
+    authors = autStr.split(";")
+    authorStrs = []
+    charCount = 0
+    for author in authors:
+        fs = author.split(", ")
+        if len(fs)==2:
+            fam, first = fs
+            firstParts = first.split(" ")
+            firstLetters = [p[0] for p in firstParts]
+            first = "".join(firstLetters)
+        else:
+            fam = author
+            first = ""
+        shortAuthorStr = first+" "+fam
+        if charCount+len(shortAuthorStr) < maxLen:
+            authorStrs.append(shortAuthorStr)
+            charCount += len(shortAuthorStr)
+        else:
+            authorStrs.append("...")
+            break
+
+    return ", ".join(authorStrs)
+
+def shortenString(str, maxLen=50):
+    " if necesary: cut string to 60 chars and add ... "
+    if len(str)>60:
+        str = str[:60]+"..."
+    return str
+
+def getExtId(row):
+    " get external if from row or fallback to articleId "
+    if "externalId" in row:
+        extId = row["externalId"]
+        return "extId", extId
+    else:
+        extId = row["articleId"]
+        return "articleId", extId
+
+def upFirst(str):
+    " uppercase first letter "
+    return str[0].upper()+str[1:]
+
+def getSnippets(conn, markerTable, markerId):
+    cur = conn.cursor(MySQLdb.cursors.DictCursor)
+    query = "SELECT * FROM %s WHERE markerId=%%s order by articleId limit 500" % markerTable
+    cur.execute(query, markerId)
+
+    snippets = collections.defaultdict(list)
+    articleIds = []
+    for row in cur.fetchall():
+        #if "externalId" in row:
+            #extId = row["externalId"]
+        #else:
+            #extId = row["articleId"]
+
+        articleIds.append(row["articleId"])
+        if "snippet" in row:
+            snippet = row["snippet"]
+            snippet = snippet.replace("<p>", "")
+            snippet = snippet.replace("</p>", "")
+            snippet = snippet.replace("<<<", '-*-') # stupid hack, but avoids slow regular expressions
+            snippet = snippet.replace(">>>", '_*_')
+            snippet = snippet.replace("<", "&lt;")
+            snippet = snippet.replace(">", "&gt;")
+            snippet = snippet.replace("-*-", '<b style="background-color:yellow">')
+            snippet = snippet.replace("_*_", "</b>")
+            snippets[row["articleId"]].append(snippet)
+        else:
+            snippets[row["articleId"]].append("No snippet imported for this database")
+    return snippets, articleIds
+
+def getDiseases(conn, tableName, articleIds, disCounts):
+    cur = conn.cursor()
+
+    for articleId in articleIds:
+        query = "SELECT disease FROM %s WHERE articleId=%%s"  % (tableName)
+        cur.execute(query, articleId)
+        for row in cur.fetchall():
+            disease = row[0]
+            disCounts[disease]+=1
+    return disCounts
+
+def getArticles(conn, artTable, articleIds):
+    articles = []
+    extIds = set()
+    for articleId in articleIds:
+        article = lookupArticle(conn, artTable, articleId)
+        if article==None:
+            return None
+        #idType, extId = getExtId(article)
+        extId = article["extId"]
+        if extId not in extIds:
+            articles.append(article)
+        extIds.add(extId)
+
+    articles.sort(key=lambda x:x['year'], reverse=True)
+    return articles
+
+def printSnippets(markerType, dataType, markerId):
+    """ 
+    """
+    h = html.htmlWriter()
+    printHead(h, "UCSC Genome publications search hits")
+    topBar(h)
+    conn = sqlConnect()
+
+    markerTable = "annot"+upFirst(markerType)+upFirst(dataType)
+    artTable = "art"+upFirst(dataType)
+
+    count = getCount(conn, markerTable, "markerId", markerId)
+    
+    snippets, articleIds = getSnippets(conn, markerTable, markerId)
+    articles = getArticles(conn, artTable, articleIds)
+
+    if articles==None:
+        h.writeLn("Database not fully imported")
+        return
+        
+
+    h.writeLn("Found %d results for %s in %s<p>" % (count, markerId, dataType))
+
+    for article in articles:
+        authors = shortenAuthors(article["authors"])
+        title = article["title"]
+        journal = shortenString(article["journal"])
+        year = article["year"]
+        url = article["fulltextUrl"]
+
+        titleLine = '<a href="%(url)s">%(title)s</a>\n' % locals()
+        print titleLine
+        authorLine = '<br><small style="color: grey">%(authors)s - %(journal)s - %(year)s</small>' % locals()
+        print authorLine
+
+        artSnips = snippets[article["articleId"]]
+        if len(artSnips)>3:
+            artSnips = artSnips[-3:]
+        print "<br>"
+        print "...".join(artSnips)
+        print "<p>"
+
+def printQueryForm():
+    h = html.htmlWriter()
+    printHead(h, "UCSC Genome literature search")
+    topBar(h)
+    h.writeLn("""
+<script>
+ $(document).ready(function(){
+   $("#loadSample1").click(function(event){
+     $("#textarea").val("rs2280089\\nrs2745650\\nrs2344484\\nrs10931468\\nrs2868145\\nrs7638423\\nrs2427399\\nrs27453360\\nrs787025\\nrs3081\\n");
+     event.preventDefault()
+   });
+   $("#loadSample2").click(function(event){
+     $("#textarea").val("ABL1 BCR\\nCBFB MYH11\\nMAPKAPK5 ACAD10\\nNSD1 NUP98\\nNUP98 NSD1\\nPML RARA\\nRPN1 MECOM\\nRUNX1 MECOM\\nSELPLG CORO1C\\n");
+     event.preventDefault()
+   });
+ });
+</script>
+    """)
+    h.startBody("Find publications")
+    h.small("Paste a list of SNPs (one rs1234-identifier per line) or a list of fusion genes (two genes per line)<br>")
+    h.startForm(action="search", method="post")
+    h.startTextArea("query", rows=30, cols=80, id='textarea')
+    h.endTextArea()
+    h.writeLn('<br>')
+    h.writeLn('<a href="#" id="loadSample1"><small>sample SNPs</small></a><br>')
+    h.writeLn('<a href="#" id="loadSample2"><small>sample fusion genes</small></a><br>')
+    h.p()
+    h.formInputSubmit("Submit")
+    h.formInputReset("Clear")
+    h.endForm()
+    h.endHtml()
+
+# ====== MAIN =======
+def main():
+    print "Content-Type: text/html; charset=utf8"     # HTML is following
+    print                               # blank line, end of headers
+
+    form = cgi.FieldStorage()
+    if "query" in form:
+        # count hits per marker
+        queryLines = form["query"].value.split("\n")
+        markerType = guessType(queryLines)
+        printCountTable(queryLines, markerType)
+    elif "marker" in form:
+        #if not table in FUSTABLES and not table in SNPTABLES:
+            #print "type parameter invalid"
+            #sys.exit(0)
+        markerType = form["type"].value
+        dataType = form["data"].value
+        markerId = form["marker"].value
+        printSnippets(markerType, dataType, markerId)
+    else:
+        printQueryForm()
+
+main()
