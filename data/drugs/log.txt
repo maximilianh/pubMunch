@@ -1,4 +1,5 @@
 wget 'http://www.drugbank.ca/system/downloads/current/drugbank.xml.zip' 
 unzip drugbank.xml.zip 
-parseDrugbank drugbank.xml | gzip -c > drugbank.dict.gz
+parseDrugbank drugbank.xml | dictRemoveGenes | gzip -c > drugbank.dict.gz
 pubDictCompile drugbank.dict.gz  -l
+parseDrugbank drugbank.xml | dictRemoveGenes | gzip -c > drugbank.dict.gz 2> removedDrugs.txt

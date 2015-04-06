@@ -944,10 +944,10 @@ def findGeneNames(text):
     """
     assert(geneSymLex!=None)
     textLower = text.lower()
-    for start, end, geneId in fastFind.fastFind(textLower, geneNameLex):
+    for start, end, geneId in fastFind.fastFind(textLower, geneNameLex, toLower=False):
         yield (start, end, 'geneName', geneId)
 
-    flankFindIter = fastFind.fastFindFlankWords(text, geneSymLex, wordDist=2, wordRe=fastFind.SYMRE)
+    flankFindIter = fastFind.fastFindFlankWords(text, geneSymLex, wordDist=2, wordRe=fastFind.SYMRE, toLower=False)
     for start, end, geneId, leftWords, rightWords in flankFindIter:
         # if the symbol is marked as potentially ambiguous, check the flanking words
         if geneId.startswith("?"):

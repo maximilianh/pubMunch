@@ -79,7 +79,7 @@ medlineDbPath = join(textDir, "medline", "medline.db")
 httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 
 # how long to wait for DNS queries, TCP connects, between retries and TCP reads, in seconds
-httpTimeout = 1
+httpTimeout = 5
 
 # how to long wait for the downloading of files, in seconds
 httpTransferTimeout = 2
@@ -331,6 +331,7 @@ speciesNames = {
 'nonUcsc_viral' : [' virus ', 'viral '],
 'nonUcsc_fungi' : ['Aspergillus'],
 'nonUcsc_dnasu' : ['plasmid', 'cloned into', 'cloning vector', 'restriction site'],
+'nonUcsc_biobricks' : ['synthetic biology', 'biobricks'],
 'nonUcsc_wolb1' : ['wolbachia']
 #'nonUcsc_dnasu' : [' plasmid ']
 }
@@ -353,7 +354,7 @@ nonUcscGenomesDir = pubsDataDir+"/nonUcscGenomes"
 alignGenomeOrder = ['hg19', 'mm10', 'rn4', 'danRer7', 'nonUcsc_wolb1', 'dm3',
 'xenTro2', 'oryLat2', 'susScr3', 'bosTau7', 'galGal4', 'felCat5', 'ci2', 'ce10', 'sacCer2',
 'nonUcsc_arabidopsisTair10', 'nonUcsc_Pfalciparum3D7', 'nonUcsc_grapevine12x',
-'nonUcsc_bacteria', 'nonUcsc_viral', 'nonUcsc_fungi', 'nonUcsc_dnasu'
+'nonUcsc_bacteria', 'nonUcsc_viral', 'nonUcsc_fungi', 'nonUcsc_dnasu', "nonUcsc_biobricks"
 ]
 
 # these genomes are used if no species name matches are found

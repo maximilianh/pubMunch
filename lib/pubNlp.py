@@ -5,7 +5,7 @@
 #>>> logger = logging.getLogger().setLevel(5)
 #>>> logger = logging.getLogger().setLevel(logging.INFO)
 
-import re, logging, gzip, array, operator, orderedDict
+import re, logging, gzip, array, operator, orderedDict, string
 from os.path import join
 import pubGeneric, pubConf, fastFind
 import unidecode
@@ -100,8 +100,8 @@ shortSections = ["abstract", "ack", "notes"]
 
 # compile the regexes
 # html2text formats headers like this: ***** ABSTRACT *****
-prefix = r"^[*\s\d.IVX]*"
-suffix = r"[\s*:]*$"
+prefix = r"^[*\s\d.IVX]{0,20}"
+suffix = r"[\s*:]{0,20}$"
 flags = re.IGNORECASE | re.UNICODE | re.MULTILINE
 sectionRes = [(name, start, end, re.compile(prefix+pat+suffix, flags)) for (name,start, end, pat) in sectionResText]
 
@@ -443,7 +443,7 @@ def trimRange(start, end, secName, refStart, refEnd):
         sections.append((start, end, secName))
     return sections
 
-def sectionSplitter(text, fileType, refMinLen=500, minDist=MINSECLEN):
+def sectionSplitter(text, fileType, minLen=4000, refMinLen=500, minDist=MINSECLEN):
     """ 
     split file into sections. yields tuples with (start, end, section) 
     Based on keywords that have to appear at the beginning of lines
@@ -460,6 +460,10 @@ def sectionSplitter(text, fileType, refMinLen=500, minDist=MINSECLEN):
     'abstract','intro','methods','results','discussion','conclusions','ack','refs', 'notes'
     or 'unknown' or 'supplement'
     """
+    if len(text) < minLen:
+        logging.debug("too short, no sectioning")
+        return [(0, len(text), "probablyAbstract")]
+
     logging.debug("section splitting")
     # find sections based on keywords on lines
     if fileType=="supp":
@@ -512,6 +516,79 @@ def isCommonWord(w):
 
 # - cleaning of sentences -
 
+# FUNCTIONS TO WORK WITH RANGES -----
+
+def rangeIntersection(start1, end1, start2, end2):
+    """ return amount that two ranges intersect, <0 if no intersection 
+    >>> rangeIntersection(1,10, 9, 20)
+    1
+    """
+    s = max(start1,start2);
+    e = min(end1,end2);
+    return e-s;
+
+def rangeAnyOverlap(start, end, coords):
+    """ returns true if start,end overlaps any item in coords. Coords is a list of
+    (start, end, ...) tuples.
+    >>> rangeAnyOverlap(1, 10, [(20,30), (9, 13)])
+    True
+    >>> rangeAnyOverlap(1, 10, [(20,30)])
+    False
+    """
+    for el in coords:
+        start1, end1 = el[:2]
+        if rangeIntersection(start, end, start1, end1) > 0:
+            return True
+    return False
+
+def rangeRemoveOverlaps(list1, list2):
+    """ given tuples that have (start, end) as their (0,1) elements, 
+    remove from list1 all that overlap any in list2 and return a new filtered 
+    list1. Does not assume sorted lists.  Careful: Stupid brute-force. quadratic runtime.
+    >>> rangeRemoveOverlaps( [(1,10), (10,20)], [])
+    [(1, 10), (10, 20)]
+    >>> rangeRemoveOverlaps( [(1,10), (10,20)], [(15,16)])
+    [(1, 10)]
+    """
+    if len(list2)==0:
+        return list1
+
+    newList2 = []
+    for el1 in list1:
+        start1, end1 = el1[:2]
+        if not rangeAnyOverlap(start1, end1, list2):
+            newList2.append(el1)
+    return newList2
+            
+def rangeTexts(text, rangeList):
+    """ given a list of (start, end, ...) tuples, return a list of text substrings
+    >>> rangeTexts("Hallo World!", [(0,5), (6,13)])
+    ['Hallo', 'World!']
+    """
+    textList = []
+    for el in rangeList:
+        start, end = el[:2]
+        snip = text[start:end]
+        textList.append(snip)
+    return textList
+            
+def rangeToPosSet(rows):
+    """ given rows with fields(0,1) as (start, end), return a set of all positions from start to end.
+    (zero-based, half-open). The set can be used to make fast lookups if a position is overlapped
+    by something else.
+    """
+    s = set()
+    for row in rows:
+        start, end = row[:2]
+        for i in range(start, end):
+            s.add(i)
+    return s
+
+# ----- FUNCTIONS TO SECTION TEXT -----
+
+# translation table to remove some spec characters for desc string
+descTbl = string.maketrans('-|:', '   ')
+
 def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
         minWords=5, maxLines=10, minSpaces=4, mustHaveVerb=True, skipSections=["refs","ack"]):
     """
@@ -535,7 +612,7 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
             logging.info("Skipping section %s %d-%d" % (section, secStart, secEnd))
             continue
 
-        # skip the section title ("Results") line
+        # skip the section title (e.g. "Results") line
         secStart = skipForwMax(text, secStart, 60)
 
         secText = text[secStart:secEnd]
@@ -565,7 +642,13 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
                 logging.debug("Sentence has too few spaces: %s" % sentence)
                 continue
 
+            if "********************" in sentence:
+                # UC library login part on Highwire pages
+                logging.debug("Too many stars")
+                continue
+                
             sentence = sentence.replace("\n", " ")
+            # replace all special chars with long forms (e.g. alpha, beta etc)
             sentence = unidecode.unidecode(sentence)
             yield [section, secStart+sentStart, secStart+sentEnd, sentence]
 
@@ -588,9 +671,11 @@ def findDiseases(text):
 # drug dictionary 
 drugLex = None
 
+drugBlacklist = set(["Nitric Oxide"])
+
 def findDrugs(text):
     """ find drugs in string and return as (start, end, drugbankName) 
-    >>> list(findDrugs("Acetaminophen, Penicillin V and Herceptin"))
+    >>> list(findDrugs("Acetaminophen, Penicillin V and Herceptin."))
     [(0, 13, 'Acetaminophen'), (15, 27, 'Penicillin V'), (32, 41, 'Trastuzumab')]
     """
     global drugLex
@@ -599,6 +684,8 @@ def findDrugs(text):
         drugLex = fastFind.loadLex(drugPath)
 
     for (start, end, name) in fastFind.fastFind(text, drugLex, toLower=True):
+        if name.lower() in drugBlacklist:
+            continue
         yield start, end, name
         
 

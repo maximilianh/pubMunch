@@ -6,6 +6,7 @@ from os.path import *
 from collections import defaultdict
 import xml.etree.cElementTree as etree
 
+
 def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
     """ Takes a parsed ET structure and does an in-place removal of all namespaces,
         or removes a specific namespacem (by its URL).
@@ -66,7 +67,9 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
 
 
 def parseDrugbank(inFname):
+
     xmlFile = open(inFname)
+    skipNames = []
     for _, entryEl in etree.iterparse(xmlFile):
         if entryEl.tag!="{http://www.drugbank.ca}drug":
             continue

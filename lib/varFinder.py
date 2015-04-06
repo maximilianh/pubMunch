@@ -81,7 +81,7 @@ doShuffle = False
 geneData = None
 
 # these look like mutations but are definitely not mutations
-blackList = [
+blackList = set([
     ("D", 11, "S"), # satellites
     ("D", 12, "S"),
     ("D", 13, "S"),
@@ -111,7 +111,7 @@ blackList = [
     # these are from cellosaurus:
     # "pubPrepGeneDir cells" to re-generate this list
     ('F', 442, 'A'), ('A', 101, 'D'), ('A', 2, 'H'), ('A', 375, 'M'), ('A', 375, 'P'), ('A', 529, 'L'), ('A', 6, 'L'), ('B', 10, 'R'), ('B', 10, 'S'), ('B', 1203, 'L'), ('C', 2, 'M'), ('C', 2, 'W'), ('B', 16, 'V'), ('B', 35, 'M'), ('B', 3, 'D'), ('B', 46, 'M'), ('C', 33, 'A'), ('C', 4, 'I'), ('C', 127, 'I'), ('C', 463, 'A'), ('C', 611, 'B'), ('C', 831, 'L'), ('D', 18, 'T'), ('D', 1, 'B'), ('D', 2, 'N'), ('D', 422, 'T'), ('D', 8, 'G'), ('F', 36, 'E'), ('F', 36, 'P'), ('F', 11, 'G'), ('F', 1, 'B'), ('F', 4, 'N'), ('G', 14, 'D'), ('G', 1, 'B'), ('G', 1, 'E'), ('H', 2, 'M'), ('H', 2, 'P'), ('H', 48, 'N'), ('H', 4, 'M'), ('H', 4, 'S'), ('H', 69, 'V'), ('C', 3, 'A'), ('C', 1, 'R'), ('H', 766, 'T'), ('I', 51, 'T'), ('K', 562, 'R'), ('L', 5178, 'Y'), ('L', 2, 'C'), ('L', 929, 'S'), ('M', 59, 'K'), ('M', 10, 'K'), ('M', 10, 'T'), ('M', 14, 'K'), ('M', 22, 'K'), ('M', 24, 'K'), ('M', 25, 'K'), ('M', 28, 'K'), ('M', 33, 'K'), ('M', 38, 'K'), ('M', 9, 'A'), ('M', 9, 'K'), ('H', 1755, 'A'), ('H', 295, 'A'), ('H', 295, 'R'), ('H', 322, 'M'), ('H', 460, 'M'), ('H', 510, 'A'), ('H', 676, 'B'), ('P', 3, 'D'), ('R', 201, 'C'), ('R', 2, 'C'), ('S', 16, 'Y'), ('S', 594, 'S'), ('N', 303, 'L'), ('N', 1003, 'L'), ('N', 2307, 'L'), ('N', 1108, 'L'), ('T', 47, 'D'), ('T', 27, 'A'), ('T', 88, 'M'), ('T', 98, 'G'), ('H', 5, 'D'), ('C', 1, 'A'), ('C', 1, 'D'), ('C', 2, 'D'), ('C', 2, 'G'), ('C', 2, 'H'), ('C', 2, 'N'), ('V', 79, 'B'), ('V', 9, 'P'), ('V', 10, 'M'), ('V', 9, 'M'), ('X', 16, 'C')
-]
+])
 
 # ===== FUNCTIONS TO INIT THE GLOBALS =================
 
@@ -291,6 +291,7 @@ class SeqData(object):
 
     def entrezToOtherDb(self, entrezGene, db):
         " return accessions (list) in otherDb for entrezGene "
+        entrezGene = int(entrezGene)
         if db=="refseq":
             protIds = self.entrezToRefseqProts(entrezGene)
         elif db=="oldRefseq":
@@ -304,6 +305,10 @@ class SeqData(object):
         return protIds
 
     def entrezToSym(self, entrezGene):
+        if "/" in entrezGene:
+            logging.debug("Got multiple entrez genes %s. Using only first to get symbol." % entrezGene)
+        entrezGene = entrezGene.split("/")[0]
+
         entrezGene = int(entrezGene)
         if entrezGene in self.entrez2sym:
             geneSym = self.entrez2sym[entrezGene]
@@ -315,7 +320,7 @@ class SeqData(object):
     def entrezToRefseqProts(self, entrezGene):
         " map entrez gene to refseq prots like NP_xxx "
         if entrezGene not in self.entrez2refprots:
-            logging.debug("gene %d is not valid or not in selected species" % entrezGene)
+            logging.debug("gene %s is not valid or not in selected species" % str(entrezGene))
             return []
         protIds = self.entrez2refprots[entrezGene]
         logging.debug("Entrez gene %s is mapped to proteins %s" % \
@@ -378,18 +383,26 @@ class SeqData(object):
 
     # end of class seqData
 
-class MappedVariant(object):
-    """ A mapped variant is a type-range-sequence combination from a text,
-        located on one or multiple sequences
-        It has a name, which is a unified textual ID.
+class VariantDescription(object):
+    """ A variant description fully describes a variant
+        It has at least a type (sub, del, etc), a start-end position on a
+        (potentially unknown) sequence a tuple (origSeq, mutSeq) that describes
+        the mutation e.g. ("R", "S"). The class can generate a descriptive name
+        for the mutation like "p.R123S"
+
+        It can optionally include a sequence ID, when the sequence ID was part of the 
+        mutation description in the text, e.g. the HGVS "NM_000925:p.R123S"
+
+    >>> VariantDescription("sub", "prot", 0, 10, "R", "S")
+    VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'0',end=u'10',origSeq=u'R',mutSeq=u'S')
     """
     __slots__=VariantFields
 
-    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None):
+    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None, geneId=""):
         self.mutType = mutType # sub, del or ins or dbSnp
         self.seqType = seqType # cds, rna or prot
         self.seqId = seqId
-        self.geneId = ""
+        self.geneId = geneId
         self.start = int(start)
         self.end = int(end)
         self.origSeq = origSeq
@@ -412,14 +425,12 @@ class MappedVariant(object):
             row.append(unicode(getattr(self, i)))
         return row
         
-    def copyNoLocs(self):
-        #" return copy of myself without any seqIdLocs "
-        #newObj = MappedVariant(self.mutType, self.seqType, self.start, self.end, self.origSeq, self.mutSeq)
-        #return newObj
-        pass
-
     def __repr__(self):
-        return ",".join(self.asRow())
+        #return ",".join(self.asRow())
+        parts = []
+        for field in self.__slots__:
+            parts.append(field+"="+repr(unicode(getattr(self, field))))
+        return "VariantDescription(%s)" % ",".join(parts)
     
 class SeqVariantData(object):
     """ the full information about variant located on a sequence, with mentions from the text that support it
@@ -489,7 +500,11 @@ class SeqVariantData(object):
         return row
         
     def __repr__(self):
-        return ",".join(self.asRow())
+        #return ",".join(self.asRow())
+        parts = []
+        for field in self.__slots__:
+            parts.append(field+"="+repr(unicode(getattr(self, field))))
+        return "SeqVariantData(%s)" % ",".join(parts)
         
 # ===== FUNCTIONS =================
 # helper methods for SeqData
@@ -582,7 +597,7 @@ def parseMatchRsId(match, patName):
     chrom, start, end = geneData.rsIdToGenome(rsId)
     if chrom==None:
         return None
-    var = MappedVariant("dbSnp", "dbSnp", start, end, chrom, "rs"+rsId)
+    var = VariantDescription("dbSnp", "dbSnp", start, end, chrom, "rs"+rsId)
     return var
 
 def isBlacklisted(let1, pos, let2):
@@ -640,7 +655,7 @@ def parseMatchSub(match, patName):
         protStart = pos-1
         protEnd = pos
 
-    var = MappedVariant("sub", seqType, protStart, protEnd, origSeq, mutSeq)
+    var = VariantDescription("sub", seqType, protStart, protEnd, origSeq, mutSeq)
     return var
 
 def isOverlapping(match, exclPos):
@@ -650,10 +665,14 @@ def isOverlapping(match, exclPos):
         return True
     return False
 
-def findVariantMentions(text, exclPos=set()):
+def findVariantDescriptions(text, exclPos=set()):
     """ put mutation mentions from document together into dicts indexed by normal form 
-        return dict of "prot"|"dna"|"dbSnp" -> list of (MappedVariant, list of Mention)
+        return dict of "prot"|"dna"|"dbSnp" -> list of (VariantDescription, list of Mention)
         uses global variable "regexes", see loadDb()
+
+    >>> loadDb()
+    >>> findVariantDescriptions("The R71G BRCA1 mutation is really a p.R71G mutation")
+    {'prot': [(VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'70',end=u'71',origSeq=u'R',mutSeq=u'G'), [Mention(patName=u'{sep}p\\\\.\\\\(?{origAaShort}{pos}{mutAaShort}{fs}', start=35, end=42), Mention(patName=u'{sep}{origAaShort}{pos}{mutAaShort}', start=3, end=8)])]}
     """
     exclPos = set(exclPos)
     varMentions = defaultdict(list)
@@ -683,6 +702,7 @@ def findVariantMentions(text, exclPos=set()):
     for varName, mentions in varMentions.iteritems():
         variant = varDescObj[varName]
         variants[variant.seqType].append((variant, mentions))
+    variants = dict(variants)
     return variants
     
 def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq):
@@ -832,12 +852,12 @@ def mapToCodingAndRna(protVars):
         for relPos, oldNucl, newNucl in possChanges:
             cdStart = 3 * protVar.start + relPos
             cdEnd   = cdStart+len(origDnaSeq)
-            codVar = MappedVariant(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId)
+            codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId)
             codVars.append(codVar)
 
             cdnaNuclStart = cdnaStart + relPos
             cdnaNuclEnd   = cdnaNuclStart + len(newNucl)
-            rnaVar = MappedVariant(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
+            rnaVar = VariantDescription(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
                 oldNucl, newNucl, transId)
             rnaVars.append(rnaVar)
             #hgvsStr = makeHgvsStr("c", transId, oldNucl, nuclPos, newNucl)
@@ -931,24 +951,26 @@ def hasSeqAtPos(protIds, variant):
             foundProtIds.append(protId)
     return foundProtIds
 
-def tryProteinDbs(variant, entrezGene):
-    " try various protein databases if they have matches for the wildtype aa at the right position "
-    logging.debug("Trying entrez gene %s" % entrezGene)
-    #for db in ["refseq", "oldRefseq", "uniprot"]:
-    #for db in ["refseq", "uniprot", "genbank"]:
-    #for db in ["refseq", "oldRefseq", "uniprot", "genbank"]:
-    #for db in ["uniprot"]:
-    for db in ["refseq"]:
-        protIds = geneData.entrezToOtherDb(entrezGene, db)
-        if len(protIds)==0:
-            continue
-        foundProtIds = hasSeqAtPos(protIds, variant)
-        if len(foundProtIds)!=0:
-            return db, foundProtIds
+def checkAminAcidAgainstSequence(variant, entrezGene, protDbs=["refseq"]):
+    """ given a variant and a gene ID, 
+    try to resolve gene to transcript sequence via  various protein databases 
+    and check if they have matches for the wildtype aa at the right position 
+    protDbs can be any of "refseq", "oldRefseq", "uniprot", "genbank"
+    """
+    for entrezGene in entrezGene.split("/"):
+        entrezGene = int(entrezGene)
+        logging.debug("Trying to ground %s to entrez gene %s" % (str(variant), entrezGene))
+        for db in ["refseq"]:
+            protIds = geneData.entrezToOtherDb(entrezGene, db)
+            if len(protIds)==0:
+                continue
+            foundProtIds = hasSeqAtPos(protIds, variant)
+            if len(foundProtIds)!=0:
+                return db, foundProtIds
     return None, []
 
 def rewriteToRefProt(variant, protIds):
-    " create new MappedVariants, one for each protein Id "
+    " create new VariantDescriptions, one for each protein Id "
     varList = []
     for protId in protIds:
         varNew = copy.copy(variant)
@@ -1048,28 +1070,39 @@ def getSnpMentions(mappedRsIds, varList):
             res[rsId].extend(mentions)
     return res
 
-def groundVariant(docId, text, variant, mentions, snpMentions, genes):
-    """ ground mutations onto genes and return results """
+def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
+    """ 
+    ground mutations onto genes and return a tuple of:
+    (list of grounded SeqVariantData objects, list of ungrounded SeqVariantData, 
+    list of genome coordinate tuples in BED format)
+
+    >>> text = "The R71G BRCA1 mutation"
+    >>> vDesc = VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'70',end=u'71',origSeq=u'R',mutSeq=u'G')
+    >>> mentions = [Mention(patName=u'{sep}{origAaShort}{pos}{mutAaShort}', start=3, end=8)]
+    >>> groundVariant("0", text, vDesc, mentions, [], ['672'])
+    ([SeqVariantData(chrom=u'',start=u'',end=u'',varId=u'0',inDb=u'',patType=u'sub',hgvsProt=u'NP_009230.2:p.Arg71Gly|NP_009225.1:p.Arg71Gly|NP_009229.2:p.Arg71Gly|NP_009231.2:p.Arg71Gly',hgvsCoding=u'NM_007299.3:c.211A>G|NM_007294.3:c.211A>G|NM_007298.3:c.211A>G|NM_007300.3:c.211A>G',hgvsRna=u'NM_007299.3:r.405A>G|NM_007294.3:r.443A>G|NM_007298.3:r.230A>G|NM_007300.3:r.443A>G',comment=u'',rsIds=u'rs80357382|rs80357382|rs80357382|rs80357382',protId=u'',texts=u'R71G',rsIdsMentioned=u'',dbSnpStarts=u'',dbSnpEnds=u'',geneSymbol=u'BRCA1',geneType=u'entrez',entrezId=u'672',geneStarts=u'',geneEnds=u'',seqType=u'prot',mutPatNames=u'{sep}{origAaShort}{pos}{mutAaShort}',mutStarts=u'3',mutEnds=u'8',mutSnippets=u'The<<< R71G>>> BRCA1 mutation',geneSnippets=u'',dbSnpSnippets=u'')], None, [['chr17', '41258473', '41258474', '0', '1', '-', '41258473', '41258474', '0', '1', '1', '0', u'NM_007299.3:r.405A>G', 'NP_009230.2:p.Arg71Gly,NP_009225.1:p.Arg71Gly,NP_009229.2:p.Arg71Gly,NP_009231.2:p.Arg71Gly'], ['chr17', '41258473', '41258474', '0', '1', '-', '41258473', '41258474', '0', '1', '1', '0', u'NM_007294.3:r.443A>G', 'NP_009230.2:p.Arg71Gly,NP_009225.1:p.Arg71Gly,NP_009229.2:p.Arg71Gly,NP_009231.2:p.Arg71Gly'], ['chr17', '41258473', '41258474', '0', '1', '-', '41258473', '41258474', '0', '1', '1', '0', u'NM_007298.3:r.230A>G', 'NP_009230.2:p.Arg71Gly,NP_009225.1:p.Arg71Gly,NP_009229.2:p.Arg71Gly,NP_009231.2:p.Arg71Gly'], ['chr17', '41258473', '41258474', '0', '1', '-', '41258473', '41258474', '0', '1', '1', '0', u'NM_007300.3:r.443A>G', 'NP_009230.2:p.Arg71Gly,NP_009225.1:p.Arg71Gly,NP_009229.2:p.Arg71Gly,NP_009231.2:p.Arg71Gly']])
+    """
     groundedMuts = []
     ungroundedMuts = []
     mappedRsIds = []
 
     allBeds = []
-    logging.debug("Grounding mutation %s onto genes %s" % (variant, genes))
+    logging.debug("Grounding mutation %s onto genes %s" % (variant, entrezGenes))
     groundSuccess=False
     # try all entrez genes in article
-    for entrezGene in genes:
+    for entrezGene in entrezGenes:
         geneSym = geneData.entrezToSym(entrezGene)
         if not geneSym:
             logging.warn("No symbol for entrez gene %s. Skipping gene." % str(entrezGene))
             continue
-        db, protIds = tryProteinDbs(variant, entrezGene)
+        db, protIds = checkAminAcidAgainstSequence(variant, entrezGene)
+
         if len(protIds)!=0:
             # we found a sequence hit
             if db=="refseq":
                 protVars = rewriteToRefProt(variant, protIds)
                 comment  = ""
-            # if needed, map to refseq from uniprot or genbank
+            # if needed, map to current refseq from uniprot or genbank or oldRefseq
             else:
                 protVars = mapToRefProt(db, variant, protIds)
                 comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
@@ -1109,3 +1142,6 @@ def groundVariant(docId, text, variant, mentions, snpMentions, genes):
     #ungroundVarData.extend(unmappedRsVars)
     return groundedMuts, ungroundVar, allBeds
 
+if __name__=="__main__":
+    import doctest
+    doctest.testmod()

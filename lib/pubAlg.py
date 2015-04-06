@@ -367,14 +367,13 @@ def extendAnnotatorRow(annotId, articleData, headers, row, addFields, text):
     except TypeError:
         raise Exception("annotator has to return an iterable (set/list/...)")
 
-    # if the first two fields are start and end, add a snippet field
-    if headers[:2]==("start","end"):
+    # if the first two fields are start and end, and we don't have a snippet field already,
+    # add a snippet field
+    if headers[0]=="start" and headers[1]=="end" and headers[-1]!="snippet":
         start, end = row[0:2]
         snippet = getSnippet(text, start, end)
-
-        # last field is snippet
-        if snippet!=None:
-            fields.append(snippet)
+        fields.append(snippet)
+            
     return fields
             
 def iterAnnotRows(alg, articleData, fileData, annotId, addFields):
@@ -1108,6 +1107,9 @@ if __name__ == '__main__':
         import doctest
         doctest.testmod()
         sys.exit(0)
+
+    if options.debug:
+        pubConf.debugMode = True
 
     pubGeneric.setupLogging(__file__, options)
 

@@ -49,7 +49,11 @@ def parseMsrOut(tempFnameOut):
 def writeMsrIn(sentRows):
     """
     """
-    ofh, tempFnameIn = pubGeneric.makeTempFile("msrNlpIn", ".txt")
+    if pubAlg.debugMode:
+        tempFnameIn = "msrNlpIn.tmp.txt"
+        ofh = open(tempFnameIn, "w")
+    else:
+        ofh, tempFnameIn = pubGeneric.makeTempFile("msrNlpIn", ".txt")
     #tempFnameIn = "crash5.xml"
     #ofh = open(tempFnameIn, "w")
     # write sentences to temp file

@@ -18,7 +18,7 @@ parser = optparse.OptionParser("""usage: %prog [options] gzTabFile - precompile 
 """)
 #parser.add_option("-p", "--prefer", dest="prefer", action="store", help="prefer a certain type of system, e.g. server (redis) or disk (sqlite)")
 #parser.add_option("-n", "--newDb", dest="newDb", action="store_true", help="delete the old db before writing data to it")
-parser.add_option("-l", "--lower", dest="lower", action="store_true", help="convert all text to lowercase. Make sure the matching text is also lowercased.")
+parser.add_option("", "--case", dest="keepCase", action="store_true", help="keep case of keywords. Default is to lowercase the dictionary.")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -33,4 +33,4 @@ if args==[]:
     parser.print_help()
     exit(1)
 
-fastFind.compileDict(fname, toLower=options.lower)
+fastFind.compileDict(fname, toLower=(not options.keepCase))
