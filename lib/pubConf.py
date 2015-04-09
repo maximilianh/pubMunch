@@ -4,9 +4,9 @@ import logging
 
 # first parse the user config file
 confName = expanduser("~/.pubConf")
+newVars = {}
 if isfile(confName):
     dummy = {}
-    newVars = {}
     execfile(confName, dummy, newVars)
     for key, value in newVars.iteritems():
         locals()[key] = value
@@ -82,7 +82,7 @@ httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 httpTimeout = 5
 
 # how to long wait for the downloading of files, in seconds
-httpTransferTimeout = 2
+httpTransferTimeout = 30
 
 # if you need to use a proxy to access journals, set it here
 httpProxy = None
@@ -587,24 +587,29 @@ def getMaxBinFileSize():
 def getMaxTxtFileSize():
     return maxTxtFileSize
 
-def resolveTextDir(dataDir, makeDir=False):
-    " check if dataDir exists, if not: try if subdir of textDir exists and return "
+def mayResolveTextDir(dataDir):
+    """ check if dataDir is a subdirectory of textBaseDir. If not, check if it's a valid path. "
+    Return the absolute path or None if neither case is true.
+    """
     inName = dataDir
     dataDir2 = join(textBaseDir, dataDir)
-    if not isdir(dataDir2):
-        logging.debug("Couldn't find %s" % dataDir2)
-        if isdir(dataDir):
-            return abspath(dataDir)
-        else:
-            if makeDir:
-                logging.info("Creating directory %s" % dataDir)
-                makedirs(dataDir)
-            else:
-                raise Exception("Neither %s nor %s are directories" % (dataDir2, dataDir))
-    else:
-        dataDir = dataDir2
-    logging.debug("Resolved dataset name %s to dataset directory %s" % (inName, dataDir))
-    return abspath(dataDir)
+    if isdir(dataDir2):
+        logging.debug("Resolved dataset name %s to global dataset directory %s" % (inName, dataDir))
+        return abspath(dataDir2)
+
+    if isdir(dataDir):
+        logging.debug("Resolved dataset name %s to directory %s" % (inName, dataDir))
+        return abspath(dataDir)
+
+    return None
+
+def resolveTextDir(dataDir):
+    " check if dataDir exists, if not: try subdir with this name of textDir. abort if not found "
+    fullPath = mayResolveTextDir(dataDir)
+    if fullPath == None:
+        raise Exception("Could not resolve dataset %s to a directory" % dataDir)
+    logging.debug("Resolved dataset name %s to dataset directory %s" % (dataDir, fullPath))
+    return dataDir
 
 def resolveTextDirs(dataString):
     " like resolveTextDir but accepts comma-sep strings and yields many "
@@ -612,7 +617,7 @@ def resolveTextDirs(dataString):
     for dataSpec in dataString.split(","):
         dirs.append( resolveTextDir(dataSpec) )
     return dirs
-        
+
 def getStaticDataDir():
     """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
     """

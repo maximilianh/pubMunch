@@ -98,7 +98,7 @@ def rechunk(inDir, outDir):
         store.close()
 
 def filterCmd(inSpec, searchSpec, outSpec, options):
-    outDir = pubConf.resolveTextDir(outSpec, makeDir=True)
+    outDir = pubConf.resolveTextDir(outSpec)
     assert(outDir!=None)
     maxCommon.mustBeEmptyDir(outDir)
     return submitJobs(inSpec, searchSpec, outDir)

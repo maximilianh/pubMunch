@@ -1,0 +1,90 @@
+#!/usr/bin/env python
+
+# load default python packages
+import logging, optparse, sys, os, traceback
+from os.path import *
+
+# add <scriptDir>/lib/ to package search path
+sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+
+import pubGeneric, pubConf
+import pubCrawlLib as scrapeLib
+
+def main(args, options):
+    pubGeneric.setupLogging("", options)
+    outDir = args[0]
+    if options.report:
+        scrapeLib.writeReport(outDir, options.report)
+        sys.exit(0)
+
+    if options.waitTime!=None:
+        logging.info("Http delay is set to %d secs from command line." % options.waitTime)
+        scrapeLib.globalForceDelay = options.waitTime
+
+    if options.pause:
+        scrapeLib.DO_PAUSE = True
+
+    if options.tryHarder:
+        scrapeLib.ERRWAIT = 0
+        scrapeLib.MAXCONSECERR = 500
+
+    scrapeLib.userAgent = pubConf.httpUserAgent
+    if options.fakeUseragent:
+        logging.debug("Setting useragent to Mozilla")
+        scrapeLib.userAgent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20130406 Firefox/23.0'
+
+    if options.testDoc:
+        docId = outDir
+        artMeta = scrapeLib.getArticleMeta(docId)
+        paperData = scrapeLib.crawlOneDoc(artMeta, None)
+        scrapeLib.printPaperData(paperData)
+        sys.exit(0)
+
+    pubGeneric.setupLogging("", options, logFileName=join(outDir, "crawler.log"), fileMode="a")
+
+    scrapeLib.checkCreateLock(outDir)
+
+    docIds, skipDocs, skipIssns = scrapeLib.parseDirectories(outDir)
+    scrapeLib.crawlDocuments(docIds, skipDocs, skipIssns)
+
+    scrapeLib.removeLocks()
+
+# === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
+parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of publishers. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 
+
+- progress is written to outDir/crawler.log
+- the sourceDir is the directory where the docIds.txt file was found
+- if it contains a file crawler.txt, only the crawler with this name
+  is used
+- the status of each pmid is written to sourceDir/pmidStatus.log
+  It is used to avoid crawling the same article twice and to keep status codes.
+- the status of whole journals is written to sourceDir/issnStatus.log
+  It is used to blacklist an ISSN if too many of its articles fail.
+- output goes into a subdirectory "files" of each sourceDir
+
+A source is a list of ISSNs and a crawler name to get their content.
+A crawler is a class that retrieves fulltext and supplements, is has a name
+(e.g. highwire or pmc).
+E.g. a source of three specific journals with the highwire crawler.
+
+E.g. a source of 1000 random PMIDs in unrestricted mode
+
+""")
+
+parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
+parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, overrides all other default delay settings")
+parser.add_option("", "--test", dest="testDoc", action="store_true", help="test mode, outDir is a PMID")
+parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
+parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")
+parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_true", help="by default, the crawler accounces itself to the publisher's webserver as 'genomeBot/0.1'. This parameter changes the behaviour and the crawler will present itself as Firefox. Use this with caution and only if the publisher/hoster accepts it.")
+parser.add_option("", "--preferPmc", dest="preferPmc", action="store_true", help="prefer PMC, if fulltext is available from two sources")
+parser.add_option("", "--tryHarder", dest="tryHarder", action="store_true", help="increase max error count to 500 and do not wait between errors")
+parser.add_option("", "--report", dest="report", action="store", help="Do not crawl. given the base crawl directory, write a status report in html format to the specified first output filename and quit. ")
+(options, args) = parser.parse_args()
+
+if args==[]:
+    parser.print_help()
+    exit(1)
+
+main(args, options)
