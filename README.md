@@ -182,6 +182,12 @@ The re2 library will make it at least 10 times faster. It is a regular expressio
 "make;make install" (by default to /usr/local), then install the python wrapper
 with "pip install re2". (If you don't have write access to /usr/local, install the re2 library with "make install prefix=<dir>", then hack setup.py in the python re2 install package, by replacing "/usr" with your <dir>)
 
+# Windows
+
+To run the tools on Windows, you need to have Cygwin installed, and at least the packages python and curl.
+
+Only these tools have been tested on Windows: pubCrawl, pubChange
+
 # BUGS to fix:
 
 fixme: illegal DOI landing page
