@@ -61,18 +61,16 @@ DOWNLOADER = None
 # GLOBALS 
 
 # global crawler delay config, values in seconds
-# these overwrite the default set with the command line switch to pubCrawl
 crawlDelays = {
-    "www.nature.com"              : 5,
     "onlinelibrary.wiley.com" : 1,
     "dx.doi.org"              : 1,
     "ucelinks.cdlib.org"      : 20,
     "eutils.ncbi.nlm.nih.gov"      : 3,
-    "www.ncbi.nlm.nih.gov"      : 10,
+    "www.ncbi.nlm.nih.gov"      : 10, # fulltext crawled from PMC
     "journals.lww.com" : 0.2, # wolters kluwer
     "pdfs.journals.lww.com" : 0.2, # wolters kluwer
     "content.wkhealth.com" : 0.2, # also wolters kluwer
-    "links.lww.com" : 0.2, # again wolters kluwer
+    "links.lww.com" : 0.2, # another incarnation of wolters kluwer
     "sciencedirect.com"      : 10 # elsevier
 }
 
@@ -84,14 +82,7 @@ globalForceDelay = None
 # filenames of lockfiles
 lockFnames = []
 
-# list of highwire sites, for some reason ip resolution fails too often
-highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", "aspetjournals.org", "fasebj.org", "jleukbio.org"] # too many DNS queries fail, so we hardcode some of the work
-
-# if any of these is found in a landing page Url, wait for 15 minutes and retry
-# has to be independent of pubsCrawlCfg, NPG at least redirects to a separate server
-errorPageUrls = ["http://status.nature.com"]
-
-# wget page cache, to avoid duplicate downloads
+# http page cache, to avoid duplicate downloads
 webCache = {}
 
 addHeaders = [ # additional headers for fulltext download metaData
@@ -273,22 +264,19 @@ def getDelaySecs(host, forceDelaySecs):
     or set by-host or some global default if everything fails
     returns number of secs
     """
-    if forceDelaySecs!=None:
-        return forceDelaySecs
     if globalForceDelay!=None:
         return globalForceDelay
+    if forceDelaySecs!=None:
+        return forceDelaySecs
 
     logging.debug("Looking up delay time for host %s" % host)
 
     if host in crawlDelays:
         delaySecs = crawlDelays.get(host, defaultDelay)
-        logging.info("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
+        logging.info("Delay time for host %s hard-coded as %d seconds" % (host, delaySecs))
         return delaySecs
 
-    if isHighwire(host):
-        return highwireDelay(host)
-
-    logging.debug("Delay time for host %s not configured in pubConf and it's not highwire" % (host))
+    logging.debug("Delay time for host %s not known" % (host))
     return defaultDelay
 
 def httpGetDelay(url, forceDelaySecs=None):
@@ -304,6 +292,7 @@ def httpGetDelay(url, forceDelaySecs=None):
         logging.log(5, "Using cached http results")
         return webCache[url]
 
+    logging.info("Downloading %s" % url)
     host = urlparse.urlsplit(url)[1]
     delaySecs = getDelaySecs(host, forceDelaySecs)
     wait(delaySecs, host)
@@ -625,7 +614,7 @@ def wait(delaySec, host="default"):
     #logging.debug("sinceLastCall %f" % float(sinceLastCallSec))
     if sinceLastCallSec > 0.1 and sinceLastCallSec < delaySec :
         waitSec = delaySec - sinceLastCallSec
-        logging.debug("Waiting for %f seconds" % waitSec)
+        logging.info("Waiting for %f seconds before downloading from host" % (waitSec, host))
         time.sleep(waitSec)
 
     lastCallSec[host] = time.time()
@@ -1006,7 +995,7 @@ def isErrorPage(landingPage, crawlConfig):
 
     
 def crawlForFulltext(landingPage, crawlConfig):
-    """ 
+    """
     given a landingPage-dict (with url, data, mimeType), return a dict with the
     keys main.html, main.pdf and S<X>.<ext> that contains all (url, data,
     mimeType) pages for an article 
@@ -1252,59 +1241,6 @@ def findSuppListUrl(landingPage, fulltextPage, crawlConfig):
         logging.debug("No link to list of supplemental files found")
     return suppListUrl
 
-def checkForOngoingMaintenanceUrl(url):
-    if url in errorPageUrls:
-        logging.debug("page %s looks like error page, waiting for 15 minutes" % url)
-        time.sleep(60*15)
-        raise pubGetError("Landing page is error page", "errorPage", url)
-
-hostCache = {}
-
-def isHighwire(hostname):
-    "return true if a hostname is hosted by highwire at stanford "
-    global hostCache
-    for hostEnd in highwireHosts:
-        if hostname.endswith(hostEnd):
-            return True
-    if hostname in hostCache:
-        ipAddr = hostCache[hostname]
-    else:
-        logging.debug("Looking up IP for %s" % hostname)
-        try:
-            ipAddr = socket.gethostbyname(hostname)
-            hostCache[hostname] = ipAddr
-        except socket.gaierror:
-            raise pubGetError("Illegal hostname %s in link" % hostname, "invalidHostname", hostname)
-
-    ipParts = ipAddr.split(".")
-    ipParts = [int(x) for x in ipParts]
-    result = (ipParts[0] == 171 and ipParts[1] in range(64, 67))
-    if result==True:
-        logging.log(5, "hostname %s is highwire host" % hostname)
-    return result
-
-def highwireDelay(host):
-    """ return current delay for highwire, get current time at east coast
-        can be overriden in pubConf per host-keyword
-    """
-    for hostKey, delaySec in pubConf.highwireDelayOverride.iteritems():
-        if hostKey in host:
-            logging.debug("Overriding normal Highwire delay with %d secs as specified in conf" % delaySec)
-            return delaySec
-        
-    os.environ['TZ'] = 'US/Eastern'
-    time.tzset()
-    tm = time.localtime()
-    if tm.tm_wday in [5,6]:
-        delay=5
-    else:
-        if tm.tm_hour >= 9 and tm.tm_hour <= 17:
-            delay = 60
-        else:
-            delay = 10
-    logging.log(5, "current highwire delay time is %d" % (delay))
-    return delay
-
 def ignoreCtrlc(signum, frame):
     logging.info('Signal handler called with signal %s' % str (signum))
 
@@ -1486,17 +1422,22 @@ def writeReport(baseDir, htmlFname):
     h.h4("Overall PMIDs downloaded successfully: %d" % totalOkCount)
     h.endHtml()
 
+def getIssn(artMeta):
+    " get the eIssn or the pIssn, prefer eIssn "
+    issn = artMeta["eIssn"]
+    if issn=="":
+        issn = artMeta["printIssn"]
+    return issn
+
 def getIssnYear(artMeta):
     " return a tuple (issn, year). fallback to journal name if we have no ISSN. "
     if artMeta==None:
         return None
-    issn = artMeta["eIssn"]
-    if issn=="":
-        issn = artMeta["printIssn"]
+    issn = getIssn(artMeta)
     if issn=="":
         issn=artMeta["journal"]
     if issn=="":
-        return
+        return "noJournal", artMeta["year"]
 
     issnYear = (issn, artMeta["year"])
     return issnYear
@@ -1642,16 +1583,41 @@ def findLinksWithUrlPart(page, searchText):
     logging.debug("Found links: %s" % (urls))
     return urls
 
-def downloadSuppFiles(urls, paperData):
+def downloadSuppFiles(urls, paperData, delayTime):
     suppIdx = 1
     for url in urls:
-        suppFile = httpGetDelay(url)
+        suppFile = httpGetDelay(url, delayTime)
         fileExt = detFileExt(suppFile)
         paperData["S"+str(suppIdx)+"."+fileExt] = suppFile
         suppIdx += 1
         if suppIdx > SUPPFILEMAX:
             raise pubGetError("max suppl count reached", "tooManySupplFiles", str(len(urls)))
     return paperData
+
+def stripOutsideOfTags(htmlStr, startTag, endTag):
+    """ retain only part between two lines that include keywords, include the marker lines themselves
+    Only look at the first matches of the tags. Bail out if multiple matches found.
+    Require at least 10 lines in between start and end
+    """
+    lines = htmlStr.splitlines()
+    start, end = 0,0
+    for i, line in enumerate(lines):
+        if startTag in line:
+            if start != 0:
+                logging.debug("could not strip extra html, double start tag")
+                return htmlStr
+            start = i
+        if endTag in line and end!=0:
+            if end != 0:
+                logging.debug("could not strip extra html, double end tag")
+                return htmlStr
+            end = i
+    if start!=0 and end!=0 and end > start and end-start > 10 and end < len(lines):
+        logging.log(5, "stripping some extra html based on tags")
+        return "".join(lines[start:end+1])
+    else:
+        logging.log(5, "could not strip extra html based on tags")
+        return htmlStr
 
 class PmcCrawler(Crawler):
     """
@@ -1707,7 +1673,7 @@ class NpgCrawler(Crawler):
     """
     a scraper for NPG journals
     """
-    priority = 5
+    priority = 50
     name = "npg"
 
     # obtained the list of ISSNs by saving the NPG Catalog PDF to text with Acrobat 
@@ -1759,9 +1725,9 @@ class NpgCrawler(Crawler):
                 start = i
             if "</article>" in line and end!=0:
                 end = i
-        if start!=0 and end!=0 and end > start and end-start > 10:
+        if start!=0 and end!=0 and end > start and end-start > 10 and end < len(lines):
             logging.log("stripping some extra html")
-            return "".join(lines[start:end])
+            return "".join(lines[start:end+1])
         else:
             return htmlStr
 
@@ -1773,7 +1739,8 @@ class NpgCrawler(Crawler):
 
         paperData = OrderedDict()
 
-        htmlPage = httpGetDelay(url)
+        delayTime = 5
+        htmlPage = httpGetDelay(url, delayTime)
 
         # try to strip the navigation elements from more recent article html
         html = htmlPage["data"]
@@ -1781,14 +1748,166 @@ class NpgCrawler(Crawler):
         paperData["main.html"] = htmlPage
 
         pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
-        pdfPage = httpGetDelay(pdfUrl)
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
         suppUrls = findLinksWithUrlPart(htmlPage, "/extref/")
-        paperData = downloadSuppFiles(suppUrls, paperData)
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
         return paperData
 
-allCrawlers = [PmcCrawler(), NpgCrawler()]
+class HighwireCrawler(Crawler):
+    priority = 50
+    name = "highwire"
+
+    # little hard coded list of top highwire sites, to avoid some DNS lookups
+    highwireHosts = ["asm.org", "rupress.org", "jcb.org", "cshlp.org", \
+        "aspetjournals.org", "fasebj.org", "jleukbio.org"]
+    # cache of IP lookups, to avoid some DNS lookups which tend to fail in python
+    hostCache = {}
+
+    # table with ISSN -> url, obtained from our big journal list
+    highwireIssns = None
+    # set of highwire hosts
+    highwireHosts = set()
+
+    def _highwireDelay(self, url):
+        """ return current delay for highwire, depending on current time at east coast
+            can be overriden in pubConf per host-keyword
+        """
+        hostname = urlparse.urlsplit(url)[1]
+        for hostKey, delaySec in pubConf.highwireDelayOverride.iteritems():
+            if hostKey in host:
+                logging.debug("Overriding normal Highwire delay with %d secs as specified in conf" % delaySec)
+                return delaySec
+
+        os.environ['TZ'] = 'US/Eastern'
+        time.tzset()
+        tm = time.localtime()
+        # highwire delay is 5seconds on the weekend
+        # or 60sec/10secs depending on if they work on the East Coast
+        # As instructed by Highwire by email
+        if tm.tm_wday in [5,6]:
+            delay=5
+        else:
+            if tm.tm_hour >= 9 and tm.tm_hour <= 17:
+                delay = 60
+            else:
+                delay = 10
+        logging.log(5, "current highwire delay time is %d" % (delay))
+        return delay
+
+    def canDo_article(self, artMeta):
+        " return true if ISSN is know to be hosted by highwire "
+        if self.highwireIssns is None:
+            journalFname = pubConf.journalTable
+            if not isfile(journalFname):
+                logging.warn("Could not find file %s, Highwire is recognized from IP" % journalFname)
+                return False
+            self.highwireIssns = {}
+            logging.log(5, "Parsing %s to get highwire ISSNs" % journalFname)
+            for row in maxCommon.iterTsvRows(journalFname):
+                if row.source=="HIGHWIRE":
+                    self.highwireIssns[row.pIssn.strip()] = row.urls.strip()
+                    self.highwireIssns[row.eIssn.strip()] = row.urls.strip()
+                    self.highwireHosts.add(row.urls.strip())
+
+        if artMeta["printIssn"] in self.highwireIssns:
+            return True
+        if artMeta["eIssn"] in self.highwireIssns:
+            return True
+
+        return False
+
+    def canDo_url(self, url):
+        "return true if a hostname is hosted by highwire at stanford "
+        hostname = urlparse.urlsplit(url)[1]
+        for hostEnd in self.highwireHosts:
+            if hostname.endswith(hostEnd):
+                return True
+        if hostname in self.hostCache:
+            ipAddr = self.hostCache[hostname]
+        else:
+            logging.debug("Looking up IP for %s" % hostname)
+            try:
+                ipAddr = socket.gethostbyname(hostname)
+                self.hostCache[hostname] = ipAddr
+            except socket.gaierror:
+                raise pubGetError("Illegal hostname %s in link" % hostname, "invalidHostname", hostname)
+
+        ipParts = ipAddr.split(".")
+        ipParts = [int(x) for x in ipParts]
+        result = (ipParts[0] == 171 and ipParts[1] in range(64, 67))
+        if result==True:
+            logging.log(5, "hostname %s is highwire host" % hostname)
+        return result
+
+    def makeLandingUrl(self, artMeta):
+        " given the article meta, construct a landing URL and check that it's valid "
+        issn = getIssn(artMeta)
+        if issn in self.highwireIssns:
+            baseUrl = self.highwireIssns[issn]
+            delayTime = self._highwireDelay(baseUrl)
+
+            # try the vol/issue/page, is a lot faster
+            vol = artMeta.get("vol", "")
+            issue = artMeta.get("issue", "")
+            page = artMeta.get("page", "").split("-")[0]
+            if (vol, issue, page) != ("", "", ""):
+                url = "%s/content/%s/%s/%s.long" % (baseUrl, vol, issue, page)
+                page = httpGetDelay(url, delayTime)
+                if page != None:
+                    return url
+
+            if "pmid" in artMeta:
+                url = "%s/cgi/pmidlookup?view=long&pmid=%s" % (baseUrl, artMeta["pmid"])
+                page = httpGetDelay(url, delayTime)
+                if page != None:
+                    return url
+
+        return None
+
+    def crawl(self, url):
+        " get main html, pdf and supplements for highwire "
+        paperData = OrderedDict()
+
+        if url.endswith(".short"):
+            # make sure we don't try to crawl the abstract page
+            url = url.replace(".short", ".long")
+
+        delayTime = self._highwireDelay(url)
+        htmlPage = httpGetDelay(url, delayTime)
+
+        # try to strip the navigation elements from more recent article html
+        html = htmlPage["data"].replace('xmlns="http://www.w3.org/1999/xhtml"', '')
+        try:
+            root = etree.fromstring(html)
+            mainContElList = root.findall(".//div[@id='content-block']")
+            if len(mainContElList)==1:
+                logging.debug("Stripped extra html from Highwire")
+                htmlPage["data"] = etree.tostring(mainContElList[0])
+            else:
+                logging.warn("Could not strip extra html")
+        except:
+            logging.warn("Could not parse Highwire HTML, not stripping navigation")
+
+        # try to strip them via two known tags
+        htmlPage["data"] = stripOutsideOfTags(htmlPage["data"], "highwire-journal-article-marker-start", \
+            "highwire-journal-article-marker-end")
+
+        paperData["main.html"] = htmlPage
+
+        pdfUrl = url.replace(".long", ".full.pdf")
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        paperData["main.pdf"] = pdfPage
+
+        suppListUrl = url.replace(".long", "/suppl/DC1")
+        suppListPage = httpGetDelay(suppListUrl, delayTime)
+        suppUrls = findLinksWithUrlPart(suppListPage, "/content/suppl/")
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+        return paperData
+
+    
+allCrawlers = [PmcCrawler(), NpgCrawler(), HighwireCrawler()]
 
 def selectCrawlers(artMeta, srcDir):
     """
@@ -1811,7 +1930,7 @@ def selectCrawlers(artMeta, srcDir):
     if len(okCrawlers)==0:
         # get the landing URL from a search engine like pubmed or crossref
         # and ask the crawlers again
-        logging.debug("Could not find a crawler based on meta data, getting landing page")
+        logging.debug("No crawler accepted paper based on meta data, need a landing URL")
         landingUrl = getLandingUrlSearchEngine(artMeta)
         okCrawlers = findCrawlers_url(landingUrl)
 
@@ -1832,6 +1951,7 @@ def crawlOneDoc(artMeta, srcDir):
     crawlers, landingUrl = selectCrawlers(artMeta, srcDir)
 
     for crawler in crawlers:
+        logging.info("Trying crawler %s" % crawler.name)
         # first try if the crawler can generate the landing url from the metaData
         url = crawler.makeLandingUrl(artMeta)
         if url==None:
@@ -1839,6 +1959,7 @@ def crawlOneDoc(artMeta, srcDir):
                 url = landingUrl
             else:
                 url = getLandingUrlSearchEngine(artMeta)
+        logging.info("Crawling base URL %s" % url)
         paperData = crawler.crawl(url)
         if paperData!=None:
             return paperData
@@ -1878,7 +1999,10 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
         try:
             checkIssnErrorCounts(artMeta, skipIssns, srcDir)
             paperData = crawlOneDoc(artMeta, srcDir)
+            writePaperData(docId, artMeta, paperData, srcDir)
             consecErrorCount = 0
+            totalCount += 1
+            dirCount += 1
 
         except pubGetError, e:
             # track document failure
@@ -1908,11 +2032,6 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
                 raw_input("Press Enter to process next paper...")
         except:
             raise
-
-        if paperData!=None:
-            writePaperData(docId, artMeta, paperData, srcDir)
-            totalCount += 1
-            dirCount += 1
 
         logging.info("directory %s: Downloaded %d articles" % (srcDir, dirCount))
 

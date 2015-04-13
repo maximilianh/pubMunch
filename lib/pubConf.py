@@ -82,7 +82,7 @@ httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 httpTimeout = 5
 
 # how to long wait for the downloading of files, in seconds
-httpTransferTimeout = 30
+httpTransferTimeout = 60
 
 # if you need to use a proxy to access journals, set it here
 httpProxy = None
