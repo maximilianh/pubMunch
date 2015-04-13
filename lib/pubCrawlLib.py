@@ -189,7 +189,7 @@ def getLandingUrlSearchEngine(articleData):
     #>>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084", "printIssn" : "1234", "page":"8"})
     'http://jcb.rupress.org/content/160/1/53'
     """
-    logging.log(5, "Looking for landing page")
+    #logging.log(5, "Looking for landing page")
 
     landingUrl = None
     # try medline's DOI
@@ -1738,6 +1738,7 @@ class NpgCrawler(Crawler):
     ]
 
     def canDo_article(self, artMeta):
+        # 1038 is the NPG doi prefix
         if "10.1038" in artMeta["doi"]:
             return True
         if artMeta["printIssn"] in self.issnList:
@@ -1810,6 +1811,7 @@ def selectCrawlers(artMeta, srcDir):
     if len(okCrawlers)==0:
         # get the landing URL from a search engine like pubmed or crossref
         # and ask the crawlers again
+        logging.debug("Could not find a crawler based on meta data, getting landing page")
         landingUrl = getLandingUrlSearchEngine(artMeta)
         okCrawlers = findCrawlers_url(landingUrl)
 
