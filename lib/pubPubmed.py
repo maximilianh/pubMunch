@@ -391,7 +391,7 @@ def stripTag(line):
     return line
 
 def getOutlinks(pmid, preferPmc=False):
-    """ use NCBI eutils to get outlinks for a pmid as a list """
+    """ use NCBI eutils to get outlinks for a pmid as a dict provider -> url  """
     logging.debug("%s: Getting outlink from pubmed" % (pmid))
     url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id=%s&retmode=llinks&cmd=llinks" % pmid
     #logging.debug("getting %s" % url)

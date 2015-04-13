@@ -2,7 +2,7 @@
 
 # load our own libraries
 import pubConf, pubGeneric, pubStore, maxCommon, pubPubmed, maxTables, \
-    pubCrossRef, html, maxCommon, pubCrawlConf
+    pubCrossRef, html, maxCommon
 import chardet # library for guessing encodings
 import unidecode
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
@@ -25,8 +25,8 @@ issnYearErrorCounts = defaultdict(int)
 # (python's http implementation is extremely buggy and tends to hang for minutes)
 WGETOPTIONS = " --no-check-certificate --tries=3 --random-wait --waitretry=%d --connect-timeout=%d --dns-timeout=%d --read-timeout=%d --ignore-length " % (pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout)
 
-# options for curl
-CURLOPTIONS = " --insecure --ignore-content-length"
+# fixed options for curl
+CURLOPTIONS = ' --insecure --ignore-content-length --silent --show-error --location --header "Connection: close"'
 
 # global variable, http userAgent for all requests
 userAgent = None
@@ -59,6 +59,22 @@ DO_PAUSE = False
 DOWNLOADER = None
 
 # GLOBALS 
+
+# global crawler delay config, values in seconds
+# these overwrite the default set with the command line switch to pubCrawl
+crawlDelays = {
+    "www.nature.com"              : 5,
+    "onlinelibrary.wiley.com" : 1,
+    "dx.doi.org"              : 1,
+    "ucelinks.cdlib.org"      : 20,
+    "eutils.ncbi.nlm.nih.gov"      : 3,
+    "www.ncbi.nlm.nih.gov"      : 10,
+    "journals.lww.com" : 0.2, # wolters kluwer
+    "pdfs.journals.lww.com" : 0.2, # wolters kluwer
+    "content.wkhealth.com" : 0.2, # also wolters kluwer
+    "links.lww.com" : 0.2, # again wolters kluwer
+    "sciencedirect.com"      : 10 # elsevier
+}
 
 # default delay secs if nothing else is found
 defaultDelay = 20
@@ -165,7 +181,7 @@ def resolveWithSfx(sfxServer, xmlQuery):
     return url
 
 def getLandingUrlSearchEngine(articleData):
-    """ try to find landing URL via a search engine:
+    """ given article meta data, try to find landing URL via a search engine:
     - medlina's DOI
     - a Crossref search with medline data
     - Pubmed Outlink
@@ -253,8 +269,8 @@ def parseWgetLog(logFile, origUrl):
 
 
 def getDelaySecs(host, forceDelaySecs):
-    """ return the number of seconds to pause. Either globally forced from command line, 
-    or set by-host or some global default if everything fails 
+    """ return the number of seconds to pause. Either globally forced from command line,
+    or set by-host or some global default if everything fails
     returns number of secs
     """
     if forceDelaySecs!=None:
@@ -264,9 +280,9 @@ def getDelaySecs(host, forceDelaySecs):
 
     logging.debug("Looking up delay time for host %s" % host)
 
-    if host in pubCrawlConf.crawlDelays:
-        delaySecs = pubCrawlConf.crawlDelays.get(host, defaultDelay)
-        logging.debug("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
+    if host in crawlDelays:
+        delaySecs = crawlDelays.get(host, defaultDelay)
+        logging.info("Delay time for host %s configured in pubConf as %d seconds" % (host, delaySecs))
         return delaySecs
 
     if isHighwire(host):
@@ -276,10 +292,12 @@ def getDelaySecs(host, forceDelaySecs):
     return defaultDelay
 
 def httpGetDelay(url, forceDelaySecs=None):
-    """ download with wget and make sure that delaySecs (global var) secs have passed between two calls
-    special cases for highwire hosts and some hosts configured in config file.
+    """ download with curl or wget and make sure that delaySecs (global var)
+    secs have passed between two calls special cases for highwire hosts and
+    some hosts configured in config file.
 
-    returns dict with keys url, mimeType, charset, data
+    returns dict with these keys: url, mimeType, charset, data
+    Follows redirects, "url" is really the final URL.
     """
     global webCache
     if url in webCache:
@@ -289,16 +307,17 @@ def httpGetDelay(url, forceDelaySecs=None):
     host = urlparse.urlsplit(url)[1]
     delaySecs = getDelaySecs(host, forceDelaySecs)
     wait(delaySecs, host)
+
+    global DOWNLOADER
     if DOWNLOADER is None:
-        global DOWNLOADER
-        wgetPath = find_executable("wget")
         curlPath = find_executable("curl")
-        if wgetPath!=None:
-            logging.debug("wget found at %s" % wgetPath)
-            DOWNLOADER = "wget"
-        elif curlPath!=None:
+        wgetPath = find_executable("wget")
+        if curlPath!=None:
             logging.debug("curl found at %s" % curlPath)
             DOWNLOADER = "curl"
+        elif wgetPath!=None:
+            logging.debug("wget found at %s" % wgetPath)
+            DOWNLOADER = "wget"
         else:
             raise Exception("cannot find wget nor curl")
 
@@ -319,6 +338,8 @@ def httpGetDelay(url, forceDelaySecs=None):
 
     return page
 
+curlCookieFile = None
+
 def runCurl(url, userAgent):
     """ download url with wget. Return dict with keys, url, mimeType, charset, data """
     if pubConf.httpProxy!=None:
@@ -327,14 +348,19 @@ def runCurl(url, userAgent):
     else:
         env = {}
 
+    global curlCookieFile
+    if curlCookieFile==None:
+        curlCookieFile = tempfile.NamedTemporaryFile(dir = pubConf.getTempDir(), \
+                prefix="pub_curlScraper_cookies", suffix=".txt")
+
     logging.debug("Downloading %s with curl" % url)
 
     tmpFile = tempfile.NamedTemporaryFile(dir = pubConf.getTempDir(), \
         prefix="pub_curlScraper", suffix=".data")
 
     timeout = pubConf.httpTransferTimeout
-    cmd = '''curl %s -A "%s" -o %s -L --max-time %d -w '%%{url_effective} %%{content_type}' -s %s''' % \
-        (url, userAgent, tmpFile.name, timeout, CURLOPTIONS)
+    cmd = '''curl %s -A "%s" --cookie-jar %s -o %s --max-time %d -w '%%{url_effective} %%{content_type}' %s''' % \
+        (url, userAgent, curlCookieFile.name, tmpFile.name, timeout, CURLOPTIONS)
 
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env)
     if ret!=0:
@@ -566,9 +592,10 @@ def parseDocIdStatus(outDir):
     logging.info("Parsing %s" % statusFname)
     if isfile(statusFname):
         for l in open(statusFname):
-            pmid = l.strip().split("\t")[0]
-            pmid = int(pmid)
-            donePmids.add(pmid)
+            docId = l.strip().split("#")[0].split("\t")[0]
+            if docId=="":
+                continue
+            donePmids.add(docId)
         logging.info("Found %d PMIDs that have some status" % len(donePmids))
 
     return donePmids
@@ -1152,7 +1179,7 @@ def parseDocIds(outDir):
     for line in open(pmidFname):
         if line.startswith("#"):
             continue
-        pmid = line.strip().split("#")[0]
+        pmid = line.strip().split("#")[0].strip()
         if pmid=="":
             continue
         if pmid in seen:
@@ -1230,23 +1257,6 @@ def checkForOngoingMaintenanceUrl(url):
         logging.debug("page %s looks like error page, waiting for 15 minutes" % url)
         time.sleep(60*15)
         raise pubGetError("Landing page is error page", "errorPage", url)
-
-def getConfig(url):
-    """ based on the url or IP of the landing page, return a crawl configuration dict 
-    """
-    hostname = urlparse.urlparse(url).netloc
-    hostname = hostname.replace("www.","")
-    thisConfig = None
-    logging.debug("Looking for config for url %s, hostname %s" % (url, hostname))
-    hostToPubId = pubCrawlConf.hostToPubId
-    for cfgHost, pubId in hostToPubId.iteritems():
-        #logging.debug("Cmp %s with %s" % (repr(hostname), repr(cfgHost)))
-        if hostname.endswith(cfgHost.replace("www.", "")):
-            logging.debug("Found config for host %s: %s, %s" % (hostname, cfgHost, pubId))
-            thisConfig = pubCrawlConf.confDict[pubId]
-            return thisConfig
-
-    raise pubGetError("No config for hostname %s" % hostname, "noConfig", hostname)
 
 hostCache = {}
 
@@ -1384,6 +1394,41 @@ def parseIdStatus(fname):
         res[status].append(pmid)
     return res
 
+
+# temporarily pulling this in from pubCrawlConf
+
+crawlPubIds = {
+# got a journal list from Wolter Kluwer by email
+"LWW lww" : "lww",
+# all ISSNs that wiley gave us go into the subdir wiley
+"WILEY Wiley" : "wiley",
+# we don't have ISSNs for NPG directly, so we use grouped data from NLM
+"NLM Nature Publishing Group" : "npg",
+"NLM American College of Chest Physicians" : "chest",
+"NLM American Association for Cancer Research" : "aacr",
+"NLM Mary Ann Liebert" : "mal",
+"NLM Oxford University Press" : "oup",
+"NLM Future Science" : "futureScience",
+"NLM National Academy of Sciences" : "pnas",
+"NLM American Association of Immunologists" : "aai",
+"NLM Karger" : "karger",
+# we got a special list of Highwire ISSNs from their website
+# it needed some manual processing
+# see the README.txt file in the journalList directory
+"HIGHWIRE Rockefeller University Press" : "rupress",
+"HIGHWIRE American Society for Microbiology" : "asm",
+"HIGHWIRE Cold Spring Harbor Laboratory" : "cshlp",
+"HIGHWIRE The American Society for Pharmacology and Experimental Therapeutics" : "aspet",
+"HIGHWIRE American Society for Biochemistry and Molecular Biology" : "asbmb",
+"HIGHWIRE Federation of American Societies for Experimental Biology" : "faseb",
+"HIGHWIRE Society for Leukocyte Biology" : "slb",
+"HIGHWIRE The Company of Biologists" : "cob",
+"HIGHWIRE Genetics Society of America" : "genetics",
+"HIGHWIRE Society for General Microbiology" : "sgm",
+"NLM Informa Healthcare" : "informa"
+#"Society for Molecular Biology and Evolution" : "smbe"
+}
+
 def writeReport(baseDir, htmlFname):
     " parse pmids.txt and pmidStatus.tab and write a html report to htmlFname "
     h = html.htmlWriter(htmlFname)
@@ -1391,7 +1436,7 @@ def writeReport(baseDir, htmlFname):
     h.startBody("Crawler status as of %s" % time.asctime())
 
     publDesc = {}
-    for key, value in pubCrawlConf.crawlPubIds.iteritems():
+    for key, value in crawlPubIds.iteritems():
         publDesc[value] = key
 
     totalPmidCount = 0
@@ -1496,10 +1541,11 @@ def resolveDoi(doi):
     """
     logging.debug("Resolving DOI %s" % doi)
     doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
-    resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
-    if resp==None:
-        return None
-    trgUrl = resp.geturl()
+    #resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
+    #if resp==None:
+        #return None
+    page = httpGetDelay(doiUrl)
+    trgUrl = page["url"]
     logging.debug("DOI %s redirects to %s" % (doi, trgUrl))
     return trgUrl
 
@@ -1536,6 +1582,7 @@ def findCrawlers_article(artMeta):
     crawlers = []
     for c in allCrawlers:
         if c.canDo_article(artMeta):
+            logging.log(5, "Crawler %s is OK to crawl article %s" % (c.name, artMeta["title"]))
             crawlers.append(c)
     return crawlers
 
@@ -1546,6 +1593,7 @@ def findCrawlers_url(landingUrl):
     crawlers = []
     for c in allCrawlers:
         if c.canDo_url(landingUrl):
+            logging.log(5, "Crawler %s is OK to crawl url %s" % (c.name, landingUrl))
             crawlers.append(c)
     return crawlers
 
@@ -1570,11 +1618,25 @@ def findLinksByText(page, searchText):
     " parse html page and return URLs in links with given text "
     urls = []
     page = parseHtml(page)
-    #links = page["links"]
     for linkUrl, linkText in page["links"].iteritems():
-        dbgStr = "Checking linkText %s (url %s) against %s" % (unidecode.unidecode(linkText), linkUrl, searchText)
+        dbgStr = "Checking linkText %s (url %s) against %s" % \
+            (unidecode.unidecode(linkText), linkUrl, searchText)
         logging.log(5, dbgStr)
         if linkText==searchText:
+            urls.append(linkUrl)
+            logging.debug("Found link: %s -> %s" % (linkText, linkUrl))
+    logging.debug("Found links: %s" % (urls))
+    return urls
+
+def findLinksWithUrlPart(page, searchText):
+    " parse html page and return URLs in links that contain some text "
+    urls = []
+    page = parseHtml(page)
+    for linkUrl, linkText in page["links"].iteritems():
+        dbgStr = "Checking linkText %s (url %s) against %s" % \
+            (unidecode.unidecode(linkText), linkUrl, searchText)
+        logging.log(5, dbgStr)
+        if searchText in linkUrl:
             urls.append(linkUrl)
             logging.debug("Found link: %s -> %s" % (linkText, linkUrl))
     logging.debug("Found links: %s" % (urls))
@@ -1599,7 +1661,18 @@ class PmcCrawler(Crawler):
     name = "pmc"
 
     def canDo_article(self, artMeta):
-        return ("pmcId" in artMeta and artMeta["pmcId"]!="")
+        if ("pmcId" in artMeta and artMeta["pmcId"]!=""):
+            url = "http://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
+            page = httpGetDelay(url)
+            waitText = "This article has a delayed release (embargo) and will be available in PMC on" 
+            if waitText in page["data"]:
+                logging.log(5, "PMC embargo note found")
+                return False
+            else:
+                logging.log(5, "no PMC embargo note found")
+                return False
+        else:
+            return False
 
     def canDo_url(self, url):
         return ("http://www.ncbi.nlm.nih.gov/pmc/" in url)
@@ -1630,12 +1703,97 @@ class PmcCrawler(Crawler):
         paperData = downloadSuppFiles(suppUrls, paperData)
         return paperData
 
-allCrawlers = [PmcCrawler()]
+class NpgCrawler(Crawler):
+    """
+    a scraper for NPG journals
+    """
+    priority = 5
+    name = "npg"
+
+    # obtained the list of ISSNs by saving the NPG Catalog PDF to text with Acrobat 
+    # downloaded from http://www.nature.com/catalog/
+    # then ran this command:
+    # cat 2015_NPG_Catalog_WEB.txt | tr '\r' '\n' | egrep -o '[0-9]{4}-[0-9]{4}ISSN' | sed -e "s/ISSN/',/" | sed -e "s/^/'/" | tr -d '\n'
+    # No need to update this list, the DOI prefix should be enough for newer journals
+    issnList = [
+    '0028-0836', '0036-8733', '1087-0156', '1465-7392', '1552-4450',
+    '1755-4330', '2041-1723', '1061-4036', '1752-0894', '1529-2908',
+    '1476-1122', '1078-8956', '1548-7091', '1748-3387', '1097-6256',
+    '1749-4885', '1745-2473', '2055-0278', '1754-2189', '1545-9993',
+    '1759-5002', '1759-4774', '1474-1776', '1759-5029', '1759-5045',
+    '1471-0056', '1474-1733', '1740-1526', '1471-0072', '1759-5061',
+    '1759-4758', '1759-4790', '1759-4812', '2056-3973', '2055-5008',
+    '2055-1010', '0002-9270', '1671-4083', '0007-0610', '2054-7617',
+    '0007-0920', '2044-5385', '2047-6396', '0268-3369', '2095-6231',
+    '0929-1903', '1350-9047', '2041-4889', '1748-7838', '1672-7681',
+    '2050-0068', '1462-0049', '1672-7681', '0954-3007', '1018-4813',
+    '2092-6413', '0969-7128', '1466-4879', '1098-3600', '2052-7276',
+    '0916-9636', '0818-9641', '0955-9930', '0307-0565', '1674-2818',
+    '1751-7362', '0021-8820', '1559-0631', '1434-5161', '0950-9240',
+    '0743-8346', '0085-2538', '0023-6837', '0887-6924', '2047-7538',
+    '2055-7434', '0893-3952', '1359-4184', '1525-0016', '2329-0501',
+    '2162-2531', '2372-7705', '1933-0219', '1884-4057', '2044-4052',
+    '0950-9232', '2157-9024', '0031-3998', '0032-3896', '1365-7852',
+    '2052-4463', '2045-2322', '1362-4393', '2158-3188'
+    ]
+
+    def canDo_article(self, artMeta):
+        if "10.1038" in artMeta["doi"]:
+            return True
+        if artMeta["printIssn"] in self.issnList:
+            return True
+        return False
+
+    def canDo_url(self, url):
+        if "nature.com" in url:
+            return True
+        return False
+
+    def _npgStripExtra(self, htmlStr):
+        " retain only part between first line with <article> and </article> "
+        lines = htmlStr.splitlines()
+        start, end = 0,0
+        for i, line in enumerate(lines):
+            if "<article>" in line and start!=0:
+                start = i
+            if "</article>" in line and end!=0:
+                end = i
+        if start!=0 and end!=0 and end > start and end-start > 10:
+            logging.log("stripping some extra html")
+            return "".join(lines[start:end])
+        else:
+            return htmlStr
+
+    def crawl(self, url):
+        if "status.nature.com" in url:
+            logging.warn("Server outage at NPG, waiting for 5 minutes")
+            time.sleep(300)
+            pubGetError("NPG Server error page, waited 5 minutes", "errorPage", url)
+
+        paperData = OrderedDict()
+
+        htmlPage = httpGetDelay(url)
+
+        # try to strip the navigation elements from more recent article html
+        html = htmlPage["data"]
+        htmlPage["data"] = self._npgStripExtra(html)
+        paperData["main.html"] = htmlPage
+
+        pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+        pdfPage = httpGetDelay(pdfUrl)
+        paperData["main.pdf"] = pdfPage
+
+        suppUrls = findLinksWithUrlPart(htmlPage, "/extref/")
+        paperData = downloadSuppFiles(suppUrls, paperData)
+        return paperData
+
+allCrawlers = [PmcCrawler(), NpgCrawler()]
 
 def selectCrawlers(artMeta, srcDir):
     """
-    returns the crawlers to use for an article, based on either article meta
-    data like ISSN or pmcId or - if that fails - on the landing page.
+    returns the crawlers to use for an article, by first asking all crawlers
+    if they want to handle this paper, based on either article meta
+    data like ISSN or pmcId, or - if that fails - on the landing page.
     """
     # if a crawler is specified via a text file, just use it
     if srcDir!=None:
@@ -1684,7 +1842,7 @@ def crawlOneDoc(artMeta, srcDir):
             return paperData
 
 def getArticleMeta(docId):
-    " get pubmed article info from local db or ncbi webservice "
+    " get pubmed article info from local db or ncbi webservice. return as dict. "
     artMeta = None
 
     haveMedline = pubConf.mayResolveTextDir("medline")
@@ -1701,15 +1859,19 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
     run crawler on a list of (paperId, sourceDir) tuples
     """
     totalCount = 0
+    consecErrorCount = 0
     for docId, srcDir in docIds:
         dirCount = 0
         if docId in skipDocIds:
             logging.debug("Skipping docId %s" % docId)
             continue
+        logging.info("Crawling document with ID %s" % docId)
+
         global webCache
         webCache.clear()
 
         artMeta = getArticleMeta(docId)
+        logging.info("Got Metadata: %s, %s, %s" % (artMeta["journal"], artMeta["year"], artMeta["title"]))
 
         try:
             checkIssnErrorCounts(artMeta, skipIssns, srcDir)
@@ -1726,7 +1888,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
             # track journal failure counts
             issnYear = getIssnYear(artMeta)
             global issnYearErrorCounts
-            issnYearErrorCounts[e.issnYear] += 1
+            issnYearErrorCounts[issnYear] += 1
 
             # some errors require longer waiting times
             if e.logMsg not in ["noOutlinkOrDoi", "unknownHost", "noLicense"]:
