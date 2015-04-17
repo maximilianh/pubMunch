@@ -90,8 +90,12 @@ def runCommandTimeout(command, timeout=30, bufSize=128000, env=None):
     returns stdout, stderr, ret
     """
     logging.log(5, "running command %s" % command)
+    if os.name=="nt":
+        closeFds = False
+    else:
+        closeFds = True
     proc = subprocess.Popen(command, bufsize=bufSize, stdout=subprocess.PIPE, \
-        stderr=subprocess.PIPE, shell=True, close_fds=True, env=env)
+        stderr=subprocess.PIPE, shell=True, close_fds=closeFds, env=env)
     poll_seconds = .250
     deadline = time.time()+timeout
     while time.time() < deadline and proc.poll() == None:

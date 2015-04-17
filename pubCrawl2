@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 # load default python packages
-import logging, optparse, sys, os, traceback
+import logging, optparse, sys, os
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
-sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
+#sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
 import pubGeneric, pubConf
 import pubCrawlLib as scrapeLib
@@ -107,6 +107,6 @@ parser.add_option("", "--report", dest="report", action="store", help="Do not cr
 
 if args==[]:
     parser.print_help()
-    exit(1)
+    sys.exit(1)
 
 main(args, options)

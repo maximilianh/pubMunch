@@ -1648,7 +1648,7 @@ def getHosterIssns(publisherName):
         journalFname = pubConf.journalTable
         if not isfile(journalFname):
             logging.warn("%s does not exist, cannot use ISSNs to assign crawler" % journalFname)
-            return False
+            return {}, []
 
         # create two dicts: hoster -> issn -> url
         # and hoster -> urls
