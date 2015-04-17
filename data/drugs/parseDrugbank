@@ -67,7 +67,6 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
 
 
 def parseDrugbank(inFname):
-
     xmlFile = open(inFname)
     skipNames = []
     for _, entryEl in etree.iterparse(xmlFile):
@@ -83,11 +82,28 @@ def parseDrugbank(inFname):
         for brandEl in entryEl.findall("brands/brand"):
             syns.append(brandEl.text)
 
-        name = name.replace("\t", " ")
-        syns = [s.replace("\t", " ") for s in syns]
-        syns = [s for s in syns if len(s)>4]
-        line = "%s\t%s" % (name, "|".join(syns))
-        print line.encode('utf8')
+        descs = []
+        for descEl in entryEl.findall("indication"):
+            descs.append(descEl.text)
+        for descEl in entryEl.findall("mechanism-of-action"):
+            descs.append(descEl.text)
+        for descEl in entryEl.findall("pharmacodynamics"):
+            descs.append(descEl.text)
+
+        descStr = "".join([x for x in descs if x!=None])
+        descStr = descStr.lower()
+        disFound = False
+        for cancerSyn in ["cancer", "neoplasm", "lymphoma", "leukemia"]:
+            if cancerSyn in descStr:
+                disFound = True
+                break
+
+        if disFound:
+            name = name.replace("\t", " ")
+            syns = [s.replace("\t", " ") for s in syns]
+            syns = [s for s in syns if len(s)>4]
+            line = "%s\t%s" % (name, "|".join(syns))
+            print line.encode('utf8')
     
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] xmlInfile - parse drugbank

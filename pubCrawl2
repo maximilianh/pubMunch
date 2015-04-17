@@ -24,6 +24,9 @@ def main(args, options):
     if options.pause:
         scrapeLib.DO_PAUSE = True
 
+    if options.outputHash:
+        scrapeLib.TEST_OUTPUT = True
+
     if options.tryHarder:
         scrapeLib.ERRWAIT = 0
         scrapeLib.MAXCONSECERR = 500
@@ -34,6 +37,8 @@ def main(args, options):
         scrapeLib.userAgent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20130406 Firefox/23.0'
 
     if options.testDoc:
+        # testing a single document, do not write to disk
+        scrapeLib.globalForceDelay = 0
         docId = outDir
         artMeta = scrapeLib.getArticleMeta(docId)
         paperData = scrapeLib.crawlOneDoc(artMeta, None)
@@ -50,7 +55,7 @@ def main(args, options):
     scrapeLib.removeLocks()
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of publishers. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 
+parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of hosters. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 
 
 - progress is written to outDir/crawler.log
 - the sourceDir is the directory where the docIds.txt file was found
@@ -62,25 +67,42 @@ parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles
   It is used to blacklist an ISSN if too many of its articles fail.
 - output goes into a subdirectory "files" of each sourceDir
 
-A source is a list of ISSNs and a crawler name to get their content.
-A crawler is a class that retrieves fulltext and supplements, is has a name
-(e.g. highwire or pmc).
-E.g. a source of three specific journals with the highwire crawler.
+A crawler is a class that retrieves fulltext and supplements, is has the name
+of the hoster (e.g. highwire or pmc).
 
-E.g. a source of 1000 random PMIDs in unrestricted mode
+Examples:
+- a source can be three specific journals with the highwire crawler.
+- a source can be 1000 random PMIDs
 
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
-parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
-parser.add_option("-t", "--waitTime", dest="waitTime", action="store", type="int", help="number of seconds to wait between http requests, overrides all other default delay settings")
-parser.add_option("", "--test", dest="testDoc", action="store_true", help="test mode, outDir is a PMID")
+
+parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
+    help="show more debug messages") 
+
+parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
+    type="int", help="number of seconds to wait between http requests, overrides"
+    "all other default delay settings")
+
+parser.add_option("", "--test", dest="testDoc", action="store_true", \
+    help="test mode, outDir is not a directory but a PMID."
+    "Output is just summary information of files downloaded, not written to disk.")
+
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
+
+parser.add_option("", "--hash", dest="outputHash", action="store_true", help="don't write files to disk, just output their SHA1 values. Used for automated testing.")
+
 parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")
-parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_true", help="by default, the crawler accounces itself to the publisher's webserver as 'genomeBot/0.1'. This parameter changes the behaviour and the crawler will present itself as Firefox. Use this with caution and only if the publisher/hoster accepts it.")
-parser.add_option("", "--preferPmc", dest="preferPmc", action="store_true", help="prefer PMC, if fulltext is available from two sources")
+
+parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_true", help="by default, the crawler accounces itself to the hoster's webserver as 'genomeBot/0.1'. This parameter changes the behaviour and the crawler will present itself as Firefox. Use this with caution and only if the publisher/hoster accepts it.")
+
+#parser.add_option("", "--preferPmc", dest="preferPmc", action="store_true", help="prefer PMC, if fulltext is available from two sources")
+
 parser.add_option("", "--tryHarder", dest="tryHarder", action="store_true", help="increase max error count to 500 and do not wait between errors")
-parser.add_option("", "--report", dest="report", action="store", help="Do not crawl. given the base crawl directory, write a status report in html format to the specified first output filename and quit. ")
+
+parser.add_option("", "--report", dest="report", action="store", help="Do not crawl but given the base crawl directory, write a status report in html format to the specified first output filename and quit. ")
+
 (options, args) = parser.parse_args()
 
 if args==[]:

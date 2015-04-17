@@ -401,6 +401,8 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
     suppFnames = []
     suppUrls = []
     for suffix, pageDict in fulltextData.iteritems():
+        if pageDict==None or len(pageDict)==0:
+            continue
         if suffix=="status":
             continue
         if suffix=="landingPage":
@@ -413,6 +415,9 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
             metaData["mainHtmlFile"] = filename
             metaData["mainHtmlUrl"] = pageDict["url"]
         elif suffix=="main.pdf":
+            if pageDict["mime"]!="application/pdf":
+                raise pubGetError("invalidPdf", "invalid mimetype of PDF. dir %s, docId %s, title %s" % \
+                    (outDir, pmid, metaData["title"]), pageDict["url"])
             metaData["mainPdfFile"] = filename
             metaData["mainPdfUrl"] = pageDict["url"]
         elif suffix.startswith("S"):

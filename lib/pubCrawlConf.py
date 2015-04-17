@@ -291,7 +291,6 @@ def defineConfDict():
     "npg" :
     # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
     # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
-    # 
     # unusual: PMID 10854325 has a useless splash page
     {
         "hostnames" : ["www.nature.com"],

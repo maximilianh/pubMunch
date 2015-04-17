@@ -1,20 +1,27 @@
-# library to crawl pdf and supplemental file from publisher websites using pubmed
-
-# load our own libraries
-import pubConf, pubGeneric, pubStore, maxCommon, pubPubmed, maxTables, \
-    pubCrossRef, html, maxCommon
-import chardet # library for guessing encodings
-import unidecode
-from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
-# some crawlers need this
-import xml.etree.ElementTree as etree
+# library to crawl pdf and supplemental files from publisher websites using pubmed
 
 import logging, os, shutil, tempfile, codecs, re, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib 
+    sqlite3, doctest, urllib, hashlib
 from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
+
+# load our own libraries
+import pubConf, pubGeneric, pubStore, pubCrossRef, pubPubmed
+import maxTables, html, maxCommon
+
+import chardet # guessing encoding, ported from firefox
+import unidecode # library for converting to ASCII, ported from perl
+
+# the old version of BeautifulSoup is very slow, but was the only parser that
+# did not choke on invalid HTML a single time. Lxml was by far not as tolerant.
+from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
+
+# sometimes using etree, as it's faster
+import xml.etree.ElementTree as etree
+
+
 
 # ===== GLOBALS ======
 
@@ -54,25 +61,35 @@ ERRWAIT = 5
 # wait for key after each doc?
 DO_PAUSE = False
 
+# do not output files to disk, instead only write their document ID
+# and the SHA1 of the contents
+TEST_OUTPUT = False
+
 # which downloader shall we use?
-# can be "wget" or "curl", None = not know yet
+# can be "wget" or "curl", None = not known yet
 DOWNLOADER = None
 
 # GLOBALS 
 
 # global crawler delay config, values in seconds
+# key is either a domain name or a crawler name
 crawlDelays = {
     "onlinelibrary.wiley.com" : 1,
     "dx.doi.org"              : 1,
     "ucelinks.cdlib.org"      : 20,
     "eutils.ncbi.nlm.nih.gov"      : 3,
     "www.ncbi.nlm.nih.gov"      : 10, # fulltext crawled from PMC
-    "journals.lww.com" : 0.2, # wolters kluwer
-    "pdfs.journals.lww.com" : 0.2, # wolters kluwer
-    "content.wkhealth.com" : 0.2, # also wolters kluwer
-    "links.lww.com" : 0.2, # another incarnation of wolters kluwer
-    "sciencedirect.com"      : 10 # elsevier
+    "lww" : 10,
+    "npg" : 10,
+    "nejm" : 10,
+    "elsevier" : 10,
+    "wiley" : 10,
+    "springer" : 10,
+    "silverchair" : 10
 }
+
+# the config file can contain site-specific delays, e.g. for testing
+crawlDelays.update(pubConf.crawlDelays)
 
 # default delay secs if nothing else is found
 defaultDelay = 20
@@ -265,15 +282,17 @@ def getDelaySecs(host, forceDelaySecs):
     returns number of secs
     """
     if globalForceDelay!=None:
+        logging.log(5, "delay time is set globally to %d seconds" % globalForceDelay)
         return globalForceDelay
     if forceDelaySecs!=None:
+        logging.log(5, "delay time is set for this download to %d seconds" % forceDelaySecs)
         return forceDelaySecs
 
     logging.debug("Looking up delay time for host %s" % host)
 
     if host in crawlDelays:
         delaySecs = crawlDelays.get(host, defaultDelay)
-        logging.info("Delay time for host %s hard-coded as %d seconds" % (host, delaySecs))
+        logging.info("Delay time for host %s set to %d seconds" % (host, delaySecs))
         return delaySecs
 
     logging.debug("Delay time for host %s not known" % (host))
@@ -302,10 +321,10 @@ def httpGetDelay(url, forceDelaySecs=None):
         curlPath = find_executable("curl")
         wgetPath = find_executable("wget")
         if curlPath!=None:
-            logging.debug("curl found at %s" % curlPath)
+            logging.verbose("curl found at %s" % curlPath)
             DOWNLOADER = "curl"
         elif wgetPath!=None:
-            logging.debug("wget found at %s" % wgetPath)
+            logging.verbose("wget found at %s" % wgetPath)
             DOWNLOADER = "wget"
         else:
             raise Exception("cannot find wget nor curl")
@@ -348,7 +367,9 @@ def runCurl(url, userAgent):
         prefix="pub_curlScraper", suffix=".data")
 
     timeout = pubConf.httpTransferTimeout
-    cmd = '''curl %s -A "%s" --cookie-jar %s -o %s --max-time %d -w '%%{url_effective} %%{content_type}' %s''' % \
+    url = url.replace("'","")
+
+    cmd = '''curl '%s' -A "%s" --cookie-jar %s -o %s --max-time %d -w '%%{url_effective} %%{content_type}' %s''' % \
         (url, userAgent, curlCookieFile.name, tmpFile.name, timeout, CURLOPTIONS)
 
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env)
@@ -461,8 +482,48 @@ def anyMatch(regexList, queryStr):
             return True
     return False
 
-def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
-    """ find all A-like links and meta-tag-info from a html string and add 
+def htmlParsePage(page):
+    " parse the html page with beautifulsoup 3 "
+    if "parsedHtml" not in page:
+        logging.debug("Parsing HTML")
+        html = page["data"]
+        html = html.replace(' xmlns="http://www.w3.org/1999/xhtml"', '')
+        page["parsedHtml"] = BeautifulSoup(html)
+
+def htmlExtractPart(page, tag, attrs):
+    """
+    return a part of an html page as a string given a tag and the required attribute values
+    If not found, return the full html text string. Parsing result is cached in the page.
+    """
+    htmlParsePage(page)
+    bs = page["parsedHtml"]
+    el = bs.find(tag, attrs=attrs)
+    if el!=None:
+        return str(el)
+    else:
+        logging.debug("Could not strip html")
+        return page["data"]
+
+def htmlFindLinkUrls(page, attrs={}):
+    """ parses the whole page and finds links with certain attributes, returns the href URLs 
+    This is really slow.
+    """
+    htmlParsePage(page)
+    bs = page["parsedHtml"]
+    elList = bs.findAll("a", attrs=attrs)
+    urls = []
+    for el in elList:
+        if not el.has_key("href"):
+            continue
+        url = el["href"]
+        url = urlparse.urljoin(page["url"], url)
+        urls.append(url)
+    return urls
+
+
+def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
+    """ 
+    find all A-like links and meta-tag-info from a html string and add 
     to page dictionary as keys "links", "metas" and "iframes"
     """
 
@@ -471,6 +532,7 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
         #logging.debug("Using cached parsing results")
         return page
 
+    logging.debug("Parsing HTML links")
     htmlString = page["data"]
     baseUrl = page["url"]
     urlParts = urlparse.urlsplit(baseUrl)
@@ -614,7 +676,7 @@ def wait(delaySec, host="default"):
     #logging.debug("sinceLastCall %f" % float(sinceLastCallSec))
     if sinceLastCallSec > 0.1 and sinceLastCallSec < delaySec :
         waitSec = delaySec - sinceLastCallSec
-        logging.info("Waiting for %f seconds before downloading from host" % (waitSec, host))
+        logging.info("Waiting for %f seconds before downloading from host %s" % (waitSec, host))
         time.sleep(waitSec)
 
     lastCallSec[host] = time.time()
@@ -833,7 +895,7 @@ def getSuppData(fulltextData, suppListPage, crawlConfig, suppExts):
 
     suppFilesAreOffsite = crawlConfig.get("suppFilesAreOffsite", False)
     landingPage_ignoreUrlREs = crawlConfig.get("landingPage_ignoreUrlREs", [])
-    suppListPage = parseHtml(suppListPage, suppFilesAreOffsite, \
+    suppListPage = parseHtmlLinks(suppListPage, suppFilesAreOffsite, \
         landingPage_ignoreUrlREs=landingPage_ignoreUrlREs)
     suppLinks = suppListPage["links"]
     htmlMetas = suppListPage["metas"]
@@ -913,7 +975,7 @@ def findFulltextHtmlUrl(landingPage, crawlConfig):
         return ftUrl
 
     canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
-    landingPage = parseHtml(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
+    landingPage = parseHtmlLinks(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
 
     fulltextUrl = None
     mainLinkNameREs = crawlConfig.get("landingPage_fulltextLinkTextREs", [])
@@ -935,7 +997,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
     if "links" not in landingPage:
         ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
         canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
-        landingPage = parseHtml(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
+        landingPage = parseHtmlLinks(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
 
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
@@ -994,99 +1056,6 @@ def isErrorPage(landingPage, crawlConfig):
         return False
 
     
-def crawlForFulltext(landingPage, crawlConfig):
-    """
-    given a landingPage-dict (with url, data, mimeType), return a dict with the
-    keys main.html, main.pdf and S<X>.<ext> that contains all (url, data,
-    mimeType) pages for an article 
-    """
-    
-    if noLicensePage(landingPage, crawlConfig):
-        raise pubGetError("no license for this article", "noLicense", landingPage["url"])
-    if isErrorPage(landingPage, crawlConfig):
-        raise pubGetError("hit error page", "errorPage", landingPage["url"])
-
-    landUrl = landingPage["url"]
-    logging.debug("Final landing page after redirects is %s" % landingPage["url"])
-
-    fulltextData = {}
-
-    fulltextData["landingPage"] = landingPage # in case we need the landing url later
-
-    # some landing pages ARE the article PDF
-    if landingPage["mimeType"] == "application/pdf":
-        logging.debug("Landing page is the PDF, no suppl file downloading possible")
-        fulltextData["main.pdf"] = landingPage
-        fulltextData["status"] = "LandingOnPdf_NoSuppl"
-        return fulltextData
-
-    # search for html fulltext on landing page (can be same as landing page)
-    fulltextPage = None
-    fulltextHtmlUrl = findFulltextHtmlUrl(landingPage, crawlConfig)
-    if fulltextHtmlUrl==None :
-        logging.debug("Could not find article html fulltext")
-    else:
-        fulltextPage = httpGetDelay(fulltextHtmlUrl)
-        fulltextData["main.html"] = fulltextPage
-
-    # search for PDF on landing page
-    pdfUrl = findPdfFileUrl(landingPage, crawlConfig)
-    if pdfUrl==None :
-        if not crawlConfig.get("landingPage_acceptNoPdf", False):
-            logging.debug("Could not find PDF on landing page")
-            raise pubGetError("Could not find main PDF on landing page", \
-                "notFoundMainPdf", landingPage["url"])
-        else:
-            logging.debug("No PDF found, but we accept this case for this publisher")
-    else:
-        pdfPage = httpGetDelay(pdfUrl)
-        if noLicensePage(pdfPage, crawlConfig):
-            raise pubGetError("no license for this article", "noLicense")
-        if pdfPage["mimeType"] == "application/pdf":
-            logging.debug("PDF has correct right MIME type")
-        else:
-            pdfPage = parseHtml(pdfPage)
-            if "pdfDocument" in pdfPage["iframes"]:
-                logging.debug("found framed PDF, requesting inline pdf")
-                pdfPage2  = httpGetDelay(pdfPage["iframes"]["pdfDocument"])
-                if pdfPage2!=None and pdfPage2["mimeType"]=="application/pdf":
-                    pdfPage = pdfPage2
-                else:
-                    raise pubGetError("inline pdf is invalid", "invalidInlinePdf")
-            else:
-                if not crawlConfig.get("landingPage_acceptNoPdf", False):
-                    raise pubGetError("putative PDF link has not PDF mimetype", \
-                        "MainPdfWrongMime_InlineNotFound")
-                else:
-                    logging.debug("PDF is wrong mime type, but we accept this case for this publisher")
-                    pdfPage = None
-
-        if pdfPage==None:
-            raise pubGetError("pdfPage came back with error", "mainPdfError", pdfUrl)
-
-        if noLicensePage(pdfPage, crawlConfig):
-            raise pubGetError("putative PDF page indicates no license", "MainPdfNoLicense", pdfUrl)
-
-        fulltextData["main.pdf"] = pdfPage
-
-    # find suppl list and then get suppl files of specified types
-    suppListUrl  = findSuppListUrl(landingPage, fulltextPage, crawlConfig)
-    if suppListUrl!=None:
-        suppListPage = httpGetDelay(suppListUrl)
-        suppExts = pubConf.crawlSuppExts
-        suppExts.update(crawlConfig.get("suppListPage_addSuppFileTypes", []))
-        if crawlConfig.get("suppListPage_acceptAllFileTypes", False):
-            suppExts = None
-        if suppListPage["mimeType"]!="text/html":
-            logging.debug("supplemental list is not a html file, so treating as supplemental file S1")
-            fileExt = detFileExt(suppListPage)
-            fulltextData["S1."+fileExt] = suppListPage
-            return fulltextData
-
-        fulltextData = getSuppData(fulltextData, suppListPage, crawlConfig, suppExts)
-
-    return fulltextData
-
 def noLicensePage(landingPage, crawlConfig):
     " return True if page looks like a 'purchase this article now' page "
     for stopPhrase in crawlConfig.get("landingPage_stopPhrases", []):
@@ -1114,17 +1083,15 @@ def blacklistIssnYear(outDir, issnYear, journal):
         outFh.write("%s\t%s\n" % (issn, year))
     outFh.close()
 
-def writeDocIdStatus(outDir, pmid, msg, detail=None):
+def writeDocIdStatus(outDir, pmid, msg, detail=""):
     " append a line to doc status file in outDir "
     fname = join(outDir, PMIDSTATNAME)
     if isfile(fname):
         outFh = codecs.open(fname, "a", encoding="utf8")
     else:
         outFh = codecs.open(fname, "w", encoding="utf8")
-    if detail==None:
-        outFh.write("%s\t%s\n" % (str(pmid), msg))
-    else:
-        outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, repr(detail)))
+
+    outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, repr(detail)))
 
 def removeLocks():
     " remove all lock files "
@@ -1134,6 +1101,10 @@ def removeLocks():
             logging.debug("Removing lockfile %s" % lockFname)
             os.remove(lockFname)
     lockFnames = []
+
+def containsLockFile(outDir):
+    lockFname = join(outDir, "_pubCrawl.lock")
+    return isfile(lockFname)
 
 def checkCreateLock(outDir):
     " creates lockfile, squeaks if exists, register exit handler to delete "
@@ -1209,7 +1180,7 @@ def findSuppListUrl(landingPage, fulltextPage, crawlConfig):
         return landingPage["url"]
 
     ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
-    landingPage = parseHtml(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
+    landingPage = parseHtmlLinks(landingPage, landingPage_ignoreUrlREs=ignoreUrls)
 
     links = landingPage["links"]
     htmlMetas = landingPage["metas"]
@@ -1250,22 +1221,25 @@ def printPaperData(paperData):
         logging.info("No data received from crawler")
         return
 
-    for suffix, pageDict in paperData.iteritems():
-        logging.info("Got file: Suffix %s, url %s, mime %s, content %s" % \
-            (suffix, pageDict["url"], pageDict["mimeType"], repr(pageDict["data"][:10])))
+    printFileHash(paperData)
+    #for suffix, pageDict in paperData.iteritems():
+        #logging.info("Got file: Suffix %s, url %s, mime %s, content %s" % \
+            #(suffix, pageDict["url"], pageDict["mimeType"], repr(pageDict["data"][:10])))
 
 def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
     """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
     to directory <outDir>/files
     """
+    warnMsgs = []
     fileDir = join(outDir, "files")
     if not isdir(fileDir):
         os.makedirs(fileDir)
 
     suppFnames = []
     suppUrls = []
+    pdfFound = False
     for suffix, pageDict in fulltextData.iteritems():
-        if suffix=="status":
+        if suffix in ["status", "crawlerName"]:
             continue
         if suffix=="landingPage":
             metaData["landingUrl"] = pageDict["url"]
@@ -1273,12 +1247,31 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
 
         filename = pmid+"."+suffix
 
+        warnMinSize = 5000
+        if len(pageDict["data"]) < warnMinSize:
+            warnMsgs.append("%s is smaller than %d bytes" % (suffix, warnMinSize))
+
         if suffix=="main.html":
+            if "<html" in pageDict["data"]:
+                warnMsgs.append("main.html contains html tag")
             metaData["mainHtmlFile"] = filename
             metaData["mainHtmlUrl"] = pageDict["url"]
+
         elif suffix=="main.pdf":
+            pdfFound = True
+
+            # check mime type
+            if pageDict["mimeType"]!="application/pdf":
+                raise pubGetError("invalidPdf", "invalid mimetype of PDF. dir %s, docId %s, title %s" % \
+                    (outDir, pmid, metaData["title"]), pageDict["url"])
+            # check for PDF header
+            if not "PDF-" in pageDict["data"][:15]:
+                raise pubGetError("invalidPdf", "main PDF is not a PDF. dir %s, docId %s, title %s" % \
+                    (outDir, pmid, metaData["title"]), pageDict["url"])
+
             metaData["mainPdfFile"] = filename
             metaData["mainPdfUrl"] = pageDict["url"]
+
         elif suffix.startswith("S"):
             suppFnames.append(filename)
             suppUrls.append(pageDict["url"])
@@ -1291,25 +1284,48 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
         fh.write(fileData)
         fh.close()
 
+    if not pdfFound:
+        warnMsgs.append("No PDF file")
+
     # "," in urls? this happened 2 times in 1 million files
     suppFnames = [s.replace(",", "") for s in suppFnames]
+    suppFnames = [s.replace("\t", "") for s in suppFnames]
     suppUrls = [s.replace(",", "") for s in suppUrls]
+    suppUrls = [s.replace("\t", "") for s in suppUrls]
 
     metaData["suppFiles"] = ",".join(suppFnames)
     metaData["suppUrls"] = ",".join(suppUrls)
-    return metaData
+
+    return metaData, warnMsgs
+
+def printFileHash(fulltextData):
+    " output a table with file extension and SHA1 of all files "
+    crawlerName = fulltextData["crawlerName"]
+    for ext, page in fulltextData.iteritems():
+        sha1 = hashlib.sha1(page["data"]).hexdigest() # pylint: disable=E1101
+        row = [crawlerName, ext, page["url"], str(len(page["data"])), sha1]
+        print "\t".join(row)
 
 def writePaperData(docId, pubmedMeta, fulltextData, outDir):
     " write all paper data to status and fulltext output files in outDir "
-    oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c
-    pubmedMeta = storeFilesNoZip(docId, pubmedMeta, fulltextData, outDir)
+    if TEST_OUTPUT:
+        printFileHash(fulltextData)
+        return
+
+    pubmedMeta, warnMsgs = storeFilesNoZip(docId, pubmedMeta, fulltextData, outDir)
+
+    oldHandler = signal.signal(signal.SIGINT, ignoreCtrlc) # deact ctrl-c during write
+
     writeMeta(outDir, pubmedMeta, fulltextData)
     addStatus = ""
     if "status" in fulltextData:
         addStatus = fulltextData["status"]
-    docIdStatus = "OK\t%s %s, %d files\t%s" % \
-        (pubmedMeta["journal"], pubmedMeta["year"], len(fulltextData), addStatus)
-    writeDocIdStatus(outDir, docId, docIdStatus)
+    crawlerName = fulltextData["crawlerName"]
+
+    docIdStatus = "OK\t%s\t%s %s, %d files\t%s" % \
+        (crawlerName, pubmedMeta["journal"], pubmedMeta["year"], len(fulltextData), addStatus)
+    writeDocIdStatus(outDir, docId, docIdStatus, ";".join(warnMsgs))
+
     signal.signal(signal.SIGINT, oldHandler) # react ctrl c handler
 
 def parseIdStatus(fname):
@@ -1329,7 +1345,6 @@ def parseIdStatus(fname):
         pmid = int(pmid)
         res[status].append(pmid)
     return res
-
 
 # temporarily pulling this in from pubCrawlConf
 
@@ -1542,7 +1557,6 @@ class Crawler():
     """
     a scraper for article webpages.
     """
-    priority = 0
     name = "empty"
     def canDo_article(self, artMeta):
         return False
@@ -1555,24 +1569,26 @@ class Crawler():
     def crawl(self, url):
         return None
 
-def findLinksByText(page, searchText):
-    " parse html page and return URLs in links with given text "
+def findLinksByText(page, searchRe):
+    " parse html page and return URLs in links with matches to given compiled re pattern"
     urls = []
-    page = parseHtml(page)
+    page = parseHtmlLinks(page)
     for linkUrl, linkText in page["links"].iteritems():
         dbgStr = "Checking linkText %s (url %s) against %s" % \
-            (unidecode.unidecode(linkText), linkUrl, searchText)
+            (unidecode.unidecode(linkText), linkUrl, searchRe.pattern)
         logging.log(5, dbgStr)
-        if linkText==searchText:
+        if searchRe.match(linkText):
             urls.append(linkUrl)
             logging.debug("Found link: %s -> %s" % (linkText, linkUrl))
-    logging.debug("Found links: %s" % (urls))
+    logging.debug("Found links with %s in label: %s" % (repr(searchRe.pattern), urls))
     return urls
 
-def findLinksWithUrlPart(page, searchText):
-    " parse html page and return URLs in links that contain some text "
+def findLinksWithUrlPart(page, searchText, canBeOffsite=False):
+    " parse html page and return URLs in links that contain some text in the href attribute"
+    if page==None:
+        return []
     urls = []
-    page = parseHtml(page)
+    page = parseHtmlLinks(page, canBeOffsite=canBeOffsite)
     for linkUrl, linkText in page["links"].iteritems():
         dbgStr = "Checking linkText %s (url %s) against %s" % \
             (unidecode.unidecode(linkText), linkUrl, searchText)
@@ -1580,7 +1596,7 @@ def findLinksWithUrlPart(page, searchText):
         if searchText in linkUrl:
             urls.append(linkUrl)
             logging.debug("Found link: %s -> %s" % (linkText, linkUrl))
-    logging.debug("Found links: %s" % (urls))
+    logging.debug("Found links with %s in URL: %s" % (repr(searchText), urls))
     return urls
 
 def downloadSuppFiles(urls, paperData, delayTime):
@@ -1619,24 +1635,75 @@ def stripOutsideOfTags(htmlStr, startTag, endTag):
         logging.log(5, "could not strip extra html based on tags")
         return htmlStr
 
+# cache of journal data for getHosterIssns
+publisherIssns = None
+publisherUrls = None
+
+def getHosterIssns(publisherName):
+    """
+    get the ISSNs of a hoster from our global journal table
+    """
+    global publisherIssns, publisherUrls
+    if publisherIssns is None:
+        journalFname = pubConf.journalTable
+        if not isfile(journalFname):
+            logging.warn("%s does not exist, cannot use ISSNs to assign crawler" % journalFname)
+            return False
+
+        # create two dicts: hoster -> issn -> url
+        # and hoster -> urls
+        publisherIssns = defaultdict(dict)
+        publisherUrls = defaultdict(set)
+        logging.log(5, "Parsing %s to get highwire ISSNs" % journalFname)
+
+        for row in maxCommon.iterTsvRows(journalFname):
+            if row.source in ["HIGHWIRE", "WILEY"]:
+                hoster = row.source
+                journalUrl = row.urls.strip()
+                issn = row.pIssn.strip()
+                eIssn = row.eIssn.strip()
+                publisherIssns[hoster][issn] = journalUrl
+                publisherIssns[hoster][eIssn] = journalUrl
+
+                if journalUrl!="":
+                    publisherUrls[hoster].add(journalUrl)
+
+    return publisherIssns[publisherName], publisherUrls[publisherName]
+
+def pageContains(page, strList):
+    " check if page contains one of a list of strings "
+    for text in strList:
+        if text in page["data"]:
+            logging.log(5, "Found string %s" % text)
+            return True
+    return False
+
+def getMetaPdfUrl(page):
+    " given a downloaded web page, return the citation_pdf_url meta tag value "
+    if "metas" not in page:
+        parseHtmlLinks(page)
+    htmlMetas = page["metas"]
+    if "citation_pdf_url" in htmlMetas:
+        pdfUrl = htmlMetas["citation_pdf_url"]
+        logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
+        if not pdfUrl.startswith("http://"):
+            pdfUrl = urlparse.urljoin(page["url"], pdfUrl)
+        return pdfUrl
+    return None
+
+def findLinksByAttr(fullPage, attrs):
+    " parse html page and look for links with a set of attributes specified as a dict "
+
+
 class PmcCrawler(Crawler):
     """
     a scraper for PMC
     """
-    priority = 10
     name = "pmc"
 
     def canDo_article(self, artMeta):
         if ("pmcId" in artMeta and artMeta["pmcId"]!=""):
-            url = "http://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
-            page = httpGetDelay(url)
-            waitText = "This article has a delayed release (embargo) and will be available in PMC on" 
-            if waitText in page["data"]:
-                logging.log(5, "PMC embargo note found")
-                return False
-            else:
-                logging.log(5, "no PMC embargo note found")
-                return False
+            return True
         else:
             return False
 
@@ -1647,13 +1714,18 @@ class PmcCrawler(Crawler):
         return "http://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
 
     def crawl(self, url):
+        url = url.rstrip("/")
+        delayTime = 5
+        htmlPage = httpGetDelay(url, delayTime)
+        waitText = "This article has a delayed release (embargo) and will be available in PMC on" 
+        if waitText in htmlPage["data"]:
+            logging.warn("PMC embargo note found")
+            return None
+
         paperData = OrderedDict()
 
-        url = url.rstrip("/")
-        htmlPage = httpGetDelay(url)
-
         # strip the navigation elements from the html
-        html = htmlPage["data"].replace('xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"', '')
+        html = htmlPage["data"].replace('xmlns="http://www.w3.org/1999/xhtml"', '')
         root = etree.fromstring(html)
         mainContElList = root.findall(".//div[@id='maincontent']")
         if len(mainContElList)==1:
@@ -1662,18 +1734,17 @@ class PmcCrawler(Crawler):
         paperData["main.html"] = htmlPage
 
         pdfUrl = url+"/pdf"
-        pdfPage = httpGetDelay(pdfUrl)
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
-        suppUrls = findLinksByText(htmlPage, "Click here for additional data file.")
-        paperData = downloadSuppFiles(suppUrls, paperData)
+        suppUrls = findLinksByText(htmlPage, re.compile("Click here for additional data file.*"))
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
         return paperData
 
 class NpgCrawler(Crawler):
     """
-    a scraper for NPG journals
+    a crawler for all Nature Publishing Group journals
     """
-    priority = 50
     name = "npg"
 
     # obtained the list of ISSNs by saving the NPG Catalog PDF to text with Acrobat 
@@ -1726,12 +1797,15 @@ class NpgCrawler(Crawler):
             if "</article>" in line and end!=0:
                 end = i
         if start!=0 and end!=0 and end > start and end-start > 10 and end < len(lines):
-            logging.log("stripping some extra html")
+            logging.log(5, "stripping some extra html")
             return "".join(lines[start:end+1])
         else:
             return htmlStr
 
     def crawl(self, url):
+        # http://www.nature.com/nature/journal/v463/n7279/suppinfo/nature08696.html
+        # http://www.nature.com/pr/journal/v42/n4/abs/pr19972520a.html - has no pdf
+        # unusual: PMID 10854325 has a useless splash page
         if "status.nature.com" in url:
             logging.warn("Server outage at NPG, waiting for 5 minutes")
             time.sleep(300)
@@ -1739,8 +1813,12 @@ class NpgCrawler(Crawler):
 
         paperData = OrderedDict()
 
+        # make sure get the main text page, not the abstract
+        url = url.replace("/abs/", "/full/")
         delayTime = 5
         htmlPage = httpGetDelay(url, delayTime)
+        if pageContains(htmlPage, ["make a payment", "purchase this article"]):
+            return None
 
         # try to strip the navigation elements from more recent article html
         html = htmlPage["data"]
@@ -1755,8 +1833,78 @@ class NpgCrawler(Crawler):
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
         return paperData
 
+class ElsevierCrawler(Crawler):
+    " sciencedirect.com is Elsevier's hosting platform "
+    name = "elsevier"
+
+    def canDo_url(self, url):
+        if "sciencedirect.com" in url:
+            return True
+        else:
+            return False
+
+    def crawl(self, url):
+        paperData = OrderedDict()
+        delayTime = crawlDelays["elsevier"]
+
+        url = url+"?np=y" # get around javascript requirement
+        htmlPage = httpGetDelay(url, delayTime)
+
+        if "make a payment" in htmlPage["data"] or "purchase this article" in htmlPage["data"]:
+            return None
+
+        # strip the navigation elements from the html
+        html = htmlPage["data"]
+        bs = BeautifulSoup(html)
+        mainCont = bs.find("div", id='centerInner')
+        if mainCont!=None:
+            htmlPage["data"] = str(mainCont)
+        htmlPage["url"] = htmlPage["url"].replace("?np=y", "")
+        paperData["main.html"] = htmlPage
+
+        # main PDF
+        pdfEl = bs.find("a", id="pdfLink")
+        if pdfEl!=None:
+            pdfUrl = pdfEl["href"]
+            pdfPage = httpGetDelay(pdfUrl, delayTime)
+            paperData["main.pdf"] = pdfPage
+            # the PDF link becomes invalid after 10 minutes, so direct users
+            # to html instead when they select a PDF
+            paperData["main.pdf"]["url"] = htmlPage["url"]
+        
+        # supp files
+        suppEls = bs.findAll("a", attrs={'class':'MMCvLINK'})
+        if len(suppEls)!=0:
+            suppUrls = [s["href"] for s in suppEls]
+            paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
+        return paperData
+            
+        # this choked on invalid HTML, so not using LXML anymore
+        #root = etree.fromstring(html)
+        #mainContElList = root.findall(".//div[@id='centerInner']")
+        #if len(mainContElList)==1:
+            #logging.debug("Stripping extra html from sciencedirect page")
+            #htmlPage["data"] = etree.tostring(mainContElList[0])
+        #linkEl = root.findall(".//div[@title='Download PDF']")
+        #if linkEl==None:
+            #logging.error("sciencedirect PDF link not found")
+        #else:
+            #pdfUrl = linkEl.attrib.get("pdfurl")
+            #if pdfUrl is None:
+                #logging.error("sciencedirect PDF link href/pdfurl not found")
+            #else:
+                #pdfPage = httpGetDelay(pdfUrl, delayTime)
+                #paperData["main.pdf"] = pdfPage
+
 class HighwireCrawler(Crawler):
-    priority = 50
+    " crawler for old-style highwire files. cannot get suppl files out of the new-style pages  "
+    # new style files are actually drupal, so 
+    # is a redirect to http://www.bloodjournal.org/node/870328, the number is in a meta tag 
+    # "shortlink"
+    # The suppl data is in http://www.bloodjournal.org/panels_ajax_tab/jnl_bloodjournal_tab_data/node:870328/1?panels_ajax_tab_trigger=figures-only
+    # Some new suppl material we can get, e.g. http://emboj.embopress.org/content/34/7/955#DC1
+    # because it's linked from the main page
     name = "highwire"
 
     # little hard coded list of top highwire sites, to avoid some DNS lookups
@@ -1776,7 +1924,7 @@ class HighwireCrawler(Crawler):
         """
         hostname = urlparse.urlsplit(url)[1]
         for hostKey, delaySec in pubConf.highwireDelayOverride.iteritems():
-            if hostKey in host:
+            if hostKey in hostname:
                 logging.debug("Overriding normal Highwire delay with %d secs as specified in conf" % delaySec)
                 return delaySec
 
@@ -1799,17 +1947,7 @@ class HighwireCrawler(Crawler):
     def canDo_article(self, artMeta):
         " return true if ISSN is know to be hosted by highwire "
         if self.highwireIssns is None:
-            journalFname = pubConf.journalTable
-            if not isfile(journalFname):
-                logging.warn("Could not find file %s, Highwire is recognized from IP" % journalFname)
-                return False
-            self.highwireIssns = {}
-            logging.log(5, "Parsing %s to get highwire ISSNs" % journalFname)
-            for row in maxCommon.iterTsvRows(journalFname):
-                if row.source=="HIGHWIRE":
-                    self.highwireIssns[row.pIssn.strip()] = row.urls.strip()
-                    self.highwireIssns[row.eIssn.strip()] = row.urls.strip()
-                    self.highwireHosts.add(row.urls.strip())
+            self.highwireIssns, self.highwireHosts = getHosterIssns("HIGHWIRE")
 
         if artMeta["printIssn"] in self.highwireIssns:
             return True
@@ -1836,7 +1974,7 @@ class HighwireCrawler(Crawler):
 
         ipParts = ipAddr.split(".")
         ipParts = [int(x) for x in ipParts]
-        result = (ipParts[0] == 171 and ipParts[1] in range(64, 67))
+        result = (ipParts[0] == 171 and ipParts[1] in range(64, 68)) # stanford IP range
         if result==True:
             logging.log(5, "hostname %s is highwire host" % hostname)
         return result
@@ -1851,7 +1989,7 @@ class HighwireCrawler(Crawler):
             # try the vol/issue/page, is a lot faster
             vol = artMeta.get("vol", "")
             issue = artMeta.get("issue", "")
-            page = artMeta.get("page", "").split("-")[0]
+            page = artMeta.get("page", "")
             if (vol, issue, page) != ("", "", ""):
                 url = "%s/content/%s/%s/%s.long" % (baseUrl, vol, issue, page)
                 page = httpGetDelay(url, delayTime)
@@ -1873,24 +2011,41 @@ class HighwireCrawler(Crawler):
         if url.endswith(".short"):
             # make sure we don't try to crawl the abstract page
             url = url.replace(".short", ".long")
+        if not url.endswith(".long") and not "pmidlookup" in url:
+            url = url+".long"
 
         delayTime = self._highwireDelay(url)
         htmlPage = httpGetDelay(url, delayTime)
 
-        # try to strip the navigation elements from more recent article html
-        html = htmlPage["data"].replace('xmlns="http://www.w3.org/1999/xhtml"', '')
-        try:
-            root = etree.fromstring(html)
-            mainContElList = root.findall(".//div[@id='content-block']")
-            if len(mainContElList)==1:
-                logging.debug("Stripped extra html from Highwire")
-                htmlPage["data"] = etree.tostring(mainContElList[0])
-            else:
-                logging.warn("Could not strip extra html")
-        except:
-            logging.warn("Could not parse Highwire HTML, not stripping navigation")
+        aaasStr = "The content you requested is not included in your institutional subscription"
+        aacrStr = "Purchase Short-Term Access"
+        stopWords = [aaasStr, aacrStr]
+        if pageContains(htmlPage, stopWords):
+            raise pubGetError("noLicense", "no license for this article")
 
-        # try to strip them via two known tags
+        if pageContains(htmlPage, ["We are currently doing routine maintenance"]):
+            time.sleep(600)
+            raise pubGetError("siteMaintenance", "site is down, waited for 10 minutes")
+
+        # check if we have a review process file, EMBO journals
+        # e.g. http://emboj.embopress.org/content/early/2015/03/31/embj.201490819
+        if "Transparent Process" in htmlPage["data"]:
+            reviewUrl = url.replace(".long","")+".reviewer-comments.pdf"
+            logging.debug("Downloading review process file")
+            reviewPage = httpGetDelay(reviewUrl, delayTime)
+            paperData["review.pdf"] = reviewPage
+
+        # try to strip the navigation elements from more recent article html
+        # highwire has at least two generators: a new one based on drupal and their older
+        # in-house one
+        if "drupal.org" in htmlPage["data"]:
+            logging.debug("Drupal-Highwire detected")
+            # trailing space!
+            htmlPage["data"] = htmlExtractPart(htmlPage, "div", {"class":"article fulltext-view "})
+        else:
+            htmlPage["data"] = htmlExtractPart(htmlPage, "div", {"id":"content-block"})
+
+        # also try to strip them via two known tags highwire is leaving for us
         htmlPage["data"] = stripOutsideOfTags(htmlPage["data"], "highwire-journal-article-marker-start", \
             "highwire-journal-article-marker-end")
 
@@ -1903,11 +2058,326 @@ class HighwireCrawler(Crawler):
         suppListUrl = url.replace(".long", "/suppl/DC1")
         suppListPage = httpGetDelay(suppListUrl, delayTime)
         suppUrls = findLinksWithUrlPart(suppListPage, "/content/suppl/")
+        if len(suppUrls)==0:
+            suppUrls = findLinksWithUrlPart(suppListPage, "supplementary-material.")
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
         return paperData
 
+class NejmCrawler(Crawler):
+    " the new england journal of medicine seems to have its own hosting platform "
+
+    name = "nejm"
+
+    def canDo_article(self, artMeta):
+        if artMeta["printIssn"]=="0028-4793" or artMeta["eIssn"]=="1533-4406":
+            return True
+        if artMeta["doi"].startswith("10.1056"):
+            return True
+        return False
+
+    def canDo_url(self, url):
+        if "nejm.org" in url:
+            return True
+        else:
+            return False
+
+    def crawl(self, url):
+        paperData = OrderedDict()
+        delayTime = crawlDelays["nejm"]
+
+        htmlPage = httpGetDelay(url)
+
+        # suppl files first, as we modify the html afterwards
+        suppListUrls = findLinksWithUrlPart(htmlPage, "/showSupplements?")
+        if len(suppListUrls)==1:
+            suppListPage = httpGetDelay(suppListUrls[0])
+            suppUrls = findLinksWithUrlPart(suppListPage, "/suppl_file/")
+            paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
+        # strip the navigation elements from the html
+        html = htmlPage["data"]
+        bs = BeautifulSoup(html)
+        mainCont = bs.find("div", id='content')
+        if mainCont!=None:
+            htmlPage["data"] = str(mainCont)
+        htmlPage["url"] = htmlPage["url"].replace("?np=y", "")
+        paperData["main.html"] = htmlPage
+
+        # PDF 
+        pdfUrl = url.replace("/full/", "/pdf/")
+        assert(pdfUrl != url)
+
+        return paperData
     
-allCrawlers = [PmcCrawler(), NpgCrawler(), HighwireCrawler()]
+class WileyCrawler(Crawler):
+    """
+    for wileyonline.com, Wiley's hosting platform
+    """
+    name = "wiley"
+
+    issnList = None
+    urlList = None
+
+    def canDo_article(self, artMeta):
+        if self.issnList==None:
+            self.issnList, self.urlList = getHosterIssns("WILEY")
+        if artMeta["printIssn"] in self.issnList or  \
+            artMeta["eIssn"] in self.issnList:
+            return True
+        # DOI prefixes for wiley and the old blackwell prefix
+        if artMeta["doi"].startswith("10.1002") or artMeta["doi"].startswith("10.1111"):
+            return True
+        return False
+
+    def canDo_url(self, url):
+        if "onlinelibrary.wiley.com" in url:
+            return True
+        else:
+            return False
+
+    def makeLandingUrl(self, artMeta):
+        ""
+        url = "http://onlinelibrary.wiley.com/resolve/openurl?genre=article&sid=genomeBot&issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
+        return url
+        
+    def crawl(self, url):
+        delayTime = crawlDelays["wiley"]
+        paperData = OrderedDict()
+        # landing URLs looks like this:
+        # http://onlinelibrary.wiley.com/doi/10.1002/ijc.28737/abstract;jsessionid=17141D5DEE13E4C5A32C45C29AFADED8.f04t01
+        # the url goes in most cases to the abstract, but it may well be an openurl
+        # so we first have to resolve it to the final url before we can continue
+        absPage = httpGetDelay(url, delayTime)
+        absUrl = absPage["url"]
+
+        # try to get the fulltext html
+        mainUrl = absUrl.replace("/abstract", "/full")
+        mainPage = httpGetDelay(mainUrl, delayTime)
+        if "You can purchase online access" in mainPage["data"] or \
+           "Registered Users please login" in mainPage["data"]:
+            return None
+
+        # strip the navigation elements from the html
+        absHtml = htmlExtractPart(mainPage, "div", {"id":"articleDesc"})
+        artHtml = htmlExtractPart(mainPage, "div", {"id":"fulltext"})
+        if absHtml!=None and artHtml!=None:
+            logging.debug("Stripped extra wiley html")
+            mainHtml = absHtml + artHtml
+            mainPage["data"] = mainHtml
+        paperData["main.html"] = mainPage
+
+        # pdf
+        #pdfUrl = getMetaPdfUrl(mainPage)
+        pdfUrl = absUrl.replace("/abstract", "/pdf")
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        parseHtmlLinks(pdfPage)
+        if "pdfDocument" in pdfPage["iframes"]:
+            logging.debug("found framed PDF, requesting inline pdf")
+            pdfPage  = httpGetDelay(pdfPage["iframes"]["pdfDocument"], delayTime)
+        paperData["main.pdf"] = pdfPage
+
+        # supplements
+        # example suppinfo links 20967753 - major type of suppl
+        # spurious suppinfo link 8536951 -- doesn't seem to be true in 2015 anymore
+        suppListUrl = findLinksWithUrlPart(mainPage, "/suppinfo/")
+        if len(suppListUrl)!=1:
+            logging.debug("No list to suppl file list page found")
+            return paperData
+
+        suppListPage = httpGetDelay(suppListUrl, delayTime)
+        suppUrls = findLinksWithUrlPart(suppListPage, "/asset/supinfo/")
+        if len(suppUrls)==0:
+            # legacy supp info links?
+            suppUrls = findLinksWithUrlPart(suppListPage, "_s.pdf")
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+        return paperData
+
+class SpringerCrawler(Crawler):
+    " crawler for springerlink "
+
+    name = "springer"
+
+    def canDo_article(self, artMeta):
+        if artMeta["doi"].startswith("10.1007"):
+            return True
+        return False
+
+    def canDo_url(self, url):
+        if "link.springer.com" in url:
+            return True
+        else:
+            return False
+
+    def crawl(self, url):
+        paperData = OrderedDict()
+        delayTime = crawlDelays["springer"]
+
+        absPage = httpGetDelay(url, delayTime)
+        if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
+            return None
+
+        # landing page has only abstract
+        fullUrl = url+"/fulltext.html"
+        fullPage = httpGetDelay(fullUrl, delayTime)
+        fullPage["data"] = htmlExtractPart(fullPage, "div", {"class":"FulltextWrapper"})
+        paperData["main.html"] = fullPage
+
+        # PDF 
+        pdfUrl = url.replace("/article/", "/content/pdf/")+".pdf"
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        paperData["main.pdf"] = pdfPage
+
+        # suppl files 
+        suppUrls = findLinksWithUrlPart(absPage, "/MediaObjects/")
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
+        return paperData
+    
+class LwwCrawler(Crawler):
+    """ 
+    Lippincott-Williams is Wolters-Kluwer's journal branch.
+    crawler for the various wolters/kluwer related hosting websites.
+    There seem to be two completely different systems.
+    """
+
+    name = "lww"
+
+    issnList = None
+
+    def canDo_article(self, artMeta):
+        if self.issnList==None:
+            self.issnList, _ = getHosterIssns("LWW")
+
+        if artMeta["printIssn"] in self.issnList or artMeta["eIssn"] in self.issnList:
+            return True
+        if artMeta["doi"].startswith("10.1097"):
+            return True
+        return False
+
+    def canDo_url(self, url):
+        if "wkhealth.com" in url or "lww.com" in url:
+            return True
+        else:
+            return False
+
+    def makeLandingUrl(self, artMeta):
+        url =  "http://content.wkhealth.com/linkback/openurl?issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
+        return url
+
+    def crawl(self, url):
+        paperData = OrderedDict()
+        delayTime = crawlDelays["lww"]
+
+        if "landingpage.htm" in url and "?" in url:
+            # get around the ovid/lww splash page
+            logging.debug("Routing around ovid splash page")
+            params = url.split("&")[1:]
+            # remove type=abstract from params
+            # the .js code seems to do this
+            params = [s for s in params if s!="type"]
+            url = "http://content.wkhealth.com/linkback/openurl?" + "&".join(params)
+
+        #if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
+            #return None
+        fullPage = httpGetDelay(url, delayTime)
+        if fullPage==None:
+            return None
+        if "type=abstract" in fullPage["url"]:
+            url = fullPage["url"].replace("type=abstract", "type=fulltext")
+            logging.debug("Regetting page for fulltext with %s" % url)
+            fullPage = httpGetDelay(url, delayTime)
+
+        fullPage["data"] = htmlExtractPart(fullPage, "div", {"id":"ej-article-view"})
+        paperData["main.html"] = fullPage
+
+        # PDF 
+        # lww PDFs are not on the same server => offsite
+        pdfUrls = findLinksWithUrlPart(fullPage, "pdfs.journals.lww.com", canBeOffsite=True)
+        if len(pdfUrls)==1:
+            pdfPage = httpGetDelay(pdfUrls[0], delayTime)
+            paperData["main.pdf"] = pdfPage
+
+        # suppl files , also on different server
+        suppUrls = findLinksWithUrlPart(fullPage, "links.lww.com", canBeOffsite=True)
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
+        return paperData
+    
+class SilverchairCrawler(Crawler):
+    " Silverchair is an increasingly popular hoster "
+    name = "silverchair"
+
+    def canDo_url(self, url):
+        # pretty stupid check, have no better idea
+        if "article.aspx" in url or "/cgi/doi/" in url:
+            return True
+        else:
+            return False
+
+    #def makeLandingUrl(self, artMeta):
+        # did not work for old
+        # pages like http://journal.publications.chestnet.org/article.aspx?articleid=1065945
+        #if artMeta["doi"]!="":
+            #url =  "http://journal.publications.chestnet.org/article.aspx?doi=%(doi)s" % artMeta
+            #return url
+        #else:
+            #return None
+
+    def crawl(self, url):
+        paperData = OrderedDict()
+        delayTime = crawlDelays["silverchair"]
+
+        fullPage = httpGetDelay(url, delayTime)
+        if pageContains(fullPage, ["Purchase a Subscription"]):
+            logging.debug("No license")
+            return None
+        if fullPage==None:
+            logging.debug("Got no page")
+            return None
+
+        # pages like http://journal.publications.chestnet.org/article.aspx?articleid=1065945
+        # have no html view
+        if "First Page Preview" in fullPage["data"]:
+            logging.debug("No html view")
+        elif "The resource you are looking for might have been removed" in fullPage["data"]:
+            raise pubGetError("errorPage", "landing page is error page")
+        else:
+            fullPage["data"] = htmlExtractPart(fullPage, "div", {"class":"left contentColumn eqColumn"})
+            paperData["main.html"] = fullPage
+
+        # PDF 
+        pdfUrls = htmlFindLinkUrls(fullPage, {"class" : "linkPDF"})
+        if len(pdfUrls)==1:
+            pdfPage = httpGetDelay(pdfUrls[0], delayTime)
+            paperData["main.pdf"] = pdfPage
+
+        # suppl files 
+        suppUrls = htmlFindLinkUrls(fullPage, {"class" : "supplementLink"})
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
+        return paperData
+
+# the list of all crawlers
+# order is important: the most specific crawlers come first
+allCrawlers = [
+    ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
+    WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), PmcCrawler()
+    ]
+allCrawlerNames = [c.name for c in allCrawlers]
+
+def sortCrawlers(crawlers):
+    """
+    re-order crawlers in the same order that they have in the allCrawlers list
+    """
+    cByName = {}
+    for c in crawlers:
+        cByName[c.name] = c
+    
+    sortedCrawlers = []
+    for cName in allCrawlerNames:
+        if cName in cByName:
+            sortedCrawlers.append(cByName[cName])
+    return sortedCrawlers
 
 def selectCrawlers(artMeta, srcDir):
     """
@@ -1920,27 +2390,30 @@ def selectCrawlers(artMeta, srcDir):
         crawlerSpecFname = join(srcDir, "crawler.txt")
         if isfile(crawlerSpecFname):
             crawlerName = open(crawlerSpecFname).read().strip()
-            crawler = allCrawlers[crawlerName]
-            return [crawler]
+            crawlers = [c for c in allCrawlers if c.name==crawlerName]
+            return crawlers
 
     # find crawlers that agree to crawl, based on the article meta
     okCrawlers = findCrawlers_article(artMeta)
     landingUrl = None
+    crawlerNames = [c.name for c in okCrawlers]
 
-    if len(okCrawlers)==0:
+    if len(okCrawlers)==0 or crawlerNames==["pmc"]:
         # get the landing URL from a search engine like pubmed or crossref
         # and ask the crawlers again
-        logging.debug("No crawler accepted paper based on meta data, need a landing URL")
+        logging.debug("No crawler or only PMC accepted paper based on meta data, getting landing URL")
         landingUrl = getLandingUrlSearchEngine(artMeta)
-        okCrawlers = findCrawlers_url(landingUrl)
+        okCrawlers.extend(findCrawlers_url(landingUrl))
 
     if len(okCrawlers)==0:
-        logging.info("No crawler found on either article metadata or URL. Using generic crawler")
-        return [genericCrawler]
+        #logging.info("No crawler found on either article metadata or URL. Using generic crawler")
+        #return [genericCrawler]
+        logging.info("No crawler found on either article metadata or URL.")
+        return [], landingUrl
 
-    # sort crawlers by priority
-    okCrawlers.sort(key=lambda o: o.priority, reverse=True)
-    logging.debug("List of crawlers for this document, high priority first: %s" % [c.name for c in okCrawlers])
+    okCrawlers = sortCrawlers(okCrawlers)
+
+    logging.debug("List of crawlers for this document, by priority: %s" % [c.name for c in okCrawlers])
     return okCrawlers, landingUrl
 
 def crawlOneDoc(artMeta, srcDir):
@@ -1949,6 +2422,11 @@ def crawlOneDoc(artMeta, srcDir):
     """
     # determine the crawlers to use, this possibly produces a landing url as a side-effect
     crawlers, landingUrl = selectCrawlers(artMeta, srcDir)
+    if len(crawlers)==0:
+        errMsg = "no crawler for article %s at %s" % (artMeta["title"], landingUrl)
+        raise pubGetError(errMsg, "noCrawler", landingUrl)
+
+    artMeta["page"] = artMeta["page"].split("-")[0] # need only first page
 
     for crawler in crawlers:
         logging.info("Trying crawler %s" % crawler.name)
@@ -1961,6 +2439,7 @@ def crawlOneDoc(artMeta, srcDir):
                 url = getLandingUrlSearchEngine(artMeta)
         logging.info("Crawling base URL %s" % url)
         paperData = crawler.crawl(url)
+        paperData["crawlerName"] = crawler.name
         if paperData!=None:
             return paperData
 
@@ -1984,16 +2463,20 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
     totalCount = 0
     consecErrorCount = 0
     for docId, srcDir in docIds:
-        dirCount = 0
         if docId in skipDocIds:
-            logging.debug("Skipping docId %s" % docId)
+            logging.verbose("Skipping docId %s" % docId)
             continue
         logging.info("Crawling document with ID %s" % docId)
 
         global webCache
         webCache.clear()
 
-        artMeta = getArticleMeta(docId)
+        try:
+            artMeta = getArticleMeta(docId)
+        except pubGetError:
+            writeDocIdStatus(srcDir, docId, "no meta", "")
+            continue
+
         logging.info("Got Metadata: %s, %s, %s" % (artMeta["journal"], artMeta["year"], artMeta["title"]))
 
         try:
@@ -2002,7 +2485,6 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
             writePaperData(docId, artMeta, paperData, srcDir)
             consecErrorCount = 0
             totalCount += 1
-            dirCount += 1
 
         except pubGetError, e:
             # track document failure
@@ -2033,7 +2515,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
         except:
             raise
 
-        logging.info("directory %s: Downloaded %d articles" % (srcDir, dirCount))
+    logging.info("Downloaded %d articles" % (totalCount))
 
 
 if __name__=="__main__":

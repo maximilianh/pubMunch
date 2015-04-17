@@ -201,6 +201,7 @@ def compileREs(addOptional=False):
         wormbaseRe = re.compile(r'%s(?P<id>(WBGene[0-9]{8}|WP:CE[0-9]{5}))' % (startSepDash))
         sgdRe = re.compile(r'%s(?P<id>Y[A-Z]{2}[0-9]{3}[CW](-[AB])?|S[0-9]{9})' % (startSepDash))
         zfinRe = re.compile(r'%s(?P<id>ZDB-GENE-[0-9]{6,8}-[0-9]{2,4})' % (startSepDash))
+        clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8}' % startSepDash)
 
         # a more or less random selection, not sure if this is really necessary
         global reqWordDict
@@ -244,7 +245,9 @@ def compileREs(addOptional=False):
             "flybase2"     : flybase2Re,
             "wormbase"     : wormbaseRe,
             "sgd"          : sgdRe,
-            "zfin"         : zfinRe
+            "zfin"         : zfinRe,
+            # https://clinicaltrials.gov/show/NCT01204177
+            "clinTrials"   : clinTrialsRe
             })
 
     return reDict

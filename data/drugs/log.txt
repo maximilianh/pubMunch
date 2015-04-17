@@ -3,3 +3,4 @@ unzip drugbank.xml.zip
 parseDrugbank drugbank.xml | dictRemoveGenes | gzip -c > drugbank.dict.gz
 pubDictCompile drugbank.dict.gz  -l
 parseDrugbank drugbank.xml | dictRemoveGenes | gzip -c > drugbank.dict.gz 2> removedDrugs.txt
+pubDictCompile drugbank.dict.gz 

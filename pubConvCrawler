@@ -16,17 +16,18 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed, pubCrawl, maxTables
+import maxCommon, maxTables, maxRun
+import pubGeneric, pubStore, pubConf, pubXml, pubPubmed, pubCrawlLib
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert the output from crawler runs to pubTools format.
+parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - "
+    "convert the output from crawler runs to pubTools format.
 
 articleIds are simply minId (defined in pubConf) + PMID
 
 example:
 pubConvCrawler /hive/data/outside/pubs/crawler /hive/data/inside/pubs/text/crawler/
-
 """)
 
 parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export meta data to sqlite db 'articles.db' in outDir")
@@ -45,18 +46,8 @@ def unicodeList(list):
             newL.append(e)
     return newL
             
-#def unicodeDict(dict):
-    #" convert ints to unicode in dict and return new dict "
-    #newD = {}
-    #for key, e in dict.iteritems():
-        #if type(e)!=types.UnicodeType:
-            #newD[key]=unicode(e)
-        #else:
-            #newD[key]=e
-    #return newD
-            
 def iterArticleSubdirRows(inDir):
-    " search all subdirs of inDir for articles.db files and yield their rows "
+    " search all subdirs of inDir for articleMeta.tab files and yield their rows "
     if isfile(join(inDir, "articles.db")):
         subDirs = [inDir]
     else:
@@ -64,12 +55,15 @@ def iterArticleSubdirRows(inDir):
 
     procCount = 0
     for subPath in subDirs:
-        #fname = join(subPath, "articles.db")
+        # not using the sqlite files anymore, slurping them was too slow
         fname = join(subPath, "articleMeta.tab")
         if not isfile(fname):
             continue
+        if pubCrawlLib.containsLockFile(subPath):
+            logging.info("%s contains a lock file, crawling is ongoing, skipping dir" % subPath)
+            continue
+            
         logging.info("Found %s" % fname)
-        #for row in maxTables.iterSqliteRows(fname, "articles"):
         for row in maxCommon.iterTsvRows(fname):
             procCount += 1
             yield subPath, row
@@ -125,8 +119,8 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
             chunkNames.append(chunkId)
 
         # write data to files
-        assert(len(row)==len(pubStore.articleFields)+len(pubCrawl.addHeaders) or \
-         len(row)+1==len(pubStore.articleFields)+len(pubCrawl.addHeaders)) # publisher field is new
+        assert(len(row)==len(pubStore.articleFields)+len(pubCrawlLib.addHeaders) or \
+         len(row)+1==len(pubStore.articleFields)+len(pubCrawlLib.addHeaders)) # publisher field is new
         row = unicodeList(row)
         fileDir = join(os.path.abspath(subPath), "files")
         artFh.write(u"\t".join(row)+"\t%s\n" % fileDir)

@@ -82,6 +82,7 @@ httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 httpTimeout = 5
 
 # how to long wait for the downloading of files, in seconds
+# after this the download will be canceled and the paper marked as unsuccessful
 httpTransferTimeout = 60
 
 # if you need to use a proxy to access journals, set it here
@@ -94,6 +95,10 @@ httpProxy = None
 # but please use your own SFX server at your university
 # google for it or ask your library for the URL
 crawlSfxServer = None
+
+# you can set special delay times here. E.g. to make all npg journals
+# get crawled slowly at 30secs, set "npg" to 30
+crawlDelays = {}
 
 # in some cases, the automatic publisher<->ISSN assignment has errors
 # this is either because the journal has switched publishers or
