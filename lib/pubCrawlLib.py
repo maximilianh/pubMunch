@@ -14,14 +14,19 @@ import maxTables, html, maxCommon
 import chardet # guessing encoding, ported from firefox
 import unidecode # library for converting to ASCII, ported from perl
 
+# try to load the http requests module, but it's not necessary
+try:
+    import requests
+    requestsLoaded = True
+except:
+    requestsLoaded = False
+
 # the old version of BeautifulSoup is very slow, but was the only parser that
 # did not choke on invalid HTML a single time. Lxml was by far not as tolerant.
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
 # sometimes using etree, as it's faster
 import xml.etree.ElementTree as etree
-
-
 
 # ===== GLOBALS ======
 
@@ -65,8 +70,8 @@ DO_PAUSE = False
 # and the SHA1 of the contents
 TEST_OUTPUT = False
 
-# which downloader shall we use?
-# can be "wget" or "curl", None = not known yet
+# full Path to the program to download files
+# None = not known yet
 DOWNLOADER = None
 
 # GLOBALS 
@@ -156,7 +161,7 @@ class pubGetError(Exception):
         self.logMsg = logMsg
         self.detailMsg = detailMsg
     def __str__(self):
-        return repr(self.longMsg+"/"+self.logMsg)
+        return unidecode.unidecode(self.longMsg+"/"+self.logMsg+"/"+self.detailMsg)
 
 # ===== FUNCTIONS =======
 
@@ -298,6 +303,29 @@ def getDelaySecs(host, forceDelaySecs):
     logging.debug("Delay time for host %s not known" % (host))
     return defaultDelay
 
+def findDownloader():
+    " find either curl or wget on this system and return the path "
+    #appDir = maxCommon.getAppDir()
+    #winPath = join(appDir, "curl.exe")
+    #if isfile(winPath):
+        #return winPath
+    if os.name=="nt" or os.name=="posix":
+        if requestsLoaded:
+            return ""
+        else:
+            logging.warn("The requests module is not loaded")
+         
+    binPath = None
+    downloaders = ["curl", "curl.exe", "wget", "wget.exe"]
+    for binName in downloaders:
+        binPath = find_executable(binName)
+        if binPath!=None:
+            logging.log(5,"cwd is %s" % os.getcwd())
+            logging.log(5, "%s found at %s" % (binName, binPath))
+            return binPath
+        
+    raise Exception("cannot find wget nor curl")
+
 def httpGetDelay(url, forceDelaySecs=None):
     """ download with curl or wget and make sure that delaySecs (global var)
     secs have passed between two calls special cases for highwire hosts and
@@ -318,16 +346,7 @@ def httpGetDelay(url, forceDelaySecs=None):
 
     global DOWNLOADER
     if DOWNLOADER is None:
-        curlPath = find_executable("curl")
-        wgetPath = find_executable("wget")
-        if curlPath!=None:
-            logging.verbose("curl found at %s" % curlPath)
-            DOWNLOADER = "curl"
-        elif wgetPath!=None:
-            logging.verbose("wget found at %s" % wgetPath)
-            DOWNLOADER = "wget"
-        else:
-            raise Exception("cannot find wget nor curl")
+        DOWNLOADER = findDownloader()
 
     url = url.replace("'", "")
 
@@ -337,16 +356,38 @@ def httpGetDelay(url, forceDelaySecs=None):
         userAgent = pubConf.httpUserAgent
     userAgent = userAgent.replace("'", "")
 
-    if DOWNLOADER=="wget":
+    if "wget" in DOWNLOADER:
         page = runWget(url, userAgent)
-    elif DOWNLOADER=="curl":
+    elif "curl" in DOWNLOADER:
         page = runCurl(url, userAgent)
+    elif requestsLoaded:
+        page = downloadBuiltIn(url, userAgent)
     else:
         raise Exception("illegal value of DOWNLOADER")
+        
 
     return page
 
 curlCookieFile = None
+
+def downloadBuiltIn(url, userAgent):
+    """
+    download a url with the requests module, return a dict with the keys
+    url, mimeType, charset and data
+    """
+    headers = {"user-agent" : userAgent}
+    r = requests.get(url, headers=headers)
+    page = {}
+    page["url"] = r.url
+    page["data"] = r.content
+    page["mimeType"] = r.headers["content-type"].split(";")[0]
+    page["encoding"] = r.encoding
+
+    webCache[r.url] = page
+    webCache[url] = page
+
+    return page
+
 
 def runCurl(url, userAgent):
     """ download url with wget. Return dict with keys, url, mimeType, charset, data """
@@ -369,12 +410,15 @@ def runCurl(url, userAgent):
     timeout = pubConf.httpTransferTimeout
     url = url.replace("'","")
 
-    cmd = '''curl '%s' -A "%s" --cookie-jar %s -o %s --max-time %d -w '%%{url_effective} %%{content_type}' %s''' % \
-        (url, userAgent, curlCookieFile.name, tmpFile.name, timeout, CURLOPTIONS)
+    os.system("free -g")
+    cmd = [DOWNLOADER, url, "-A", userAgent, "--cookie-jar",
+        curlCookieFile.name, "-o", tmpFile.name, "--max-time", str(timeout),
+        "-w", '%{url_effective} %{content_type}', CURLOPTIONS] 
+    #cmd = [DOWNLOADER, "--help"]
 
-    stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env)
+    stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env, shell=False)
     if ret!=0:
-        raise pubGetError("non-null return code from curl", "curlRetNotNull", url.decode("utf8"))
+        raise pubGetError("non-null return code from curl: stdout: "+stdout+", stderr:"+stderr, "curlRetNotNull", " ".join(cmd))
 
     data = tmpFile.read()
     logging.log(5, "Download OK, size %d bytes" % len(data))
@@ -1302,6 +1346,8 @@ def printFileHash(fulltextData):
     " output a table with file extension and SHA1 of all files "
     crawlerName = fulltextData["crawlerName"]
     for ext, page in fulltextData.iteritems():
+        if ext in ["crawlerName", "status"]:
+            continue
         sha1 = hashlib.sha1(page["data"]).hexdigest() # pylint: disable=E1101
         row = [crawlerName, ext, page["url"], str(len(page["data"])), sha1]
         print "\t".join(row)
@@ -1850,8 +1896,10 @@ class ElsevierCrawler(Crawler):
         url = url+"?np=y" # get around javascript requirement
         htmlPage = httpGetDelay(url, delayTime)
 
-        if "make a payment" in htmlPage["data"] or "purchase this article" in htmlPage["data"]:
-            return None
+        if pageContains(htmlPage, ["Choose an option to locate/access this article:", "purchase this article", "Purchase PDF"]):
+            raise pubGetError("noLicense", "no license")
+        if pageContains(htmlPage, ["Sorry, the requested document is unavailable."]):
+            raise pubGetError("documentUnavail", "document is not available")
 
         # strip the navigation elements from the html
         html = htmlPage["data"]
@@ -1866,6 +1914,7 @@ class ElsevierCrawler(Crawler):
         pdfEl = bs.find("a", id="pdfLink")
         if pdfEl!=None:
             pdfUrl = pdfEl["href"]
+            pdfUrl = urlparse.urljoin(htmlPage["url"], url)
             pdfPage = httpGetDelay(pdfUrl, delayTime)
             paperData["main.pdf"] = pdfPage
             # the PDF link becomes invalid after 10 minutes, so direct users
@@ -1929,7 +1978,8 @@ class HighwireCrawler(Crawler):
                 return delaySec
 
         os.environ['TZ'] = 'US/Eastern'
-        time.tzset()
+        if hasattr(time, "tzset"):
+            time.tzset()
         tm = time.localtime()
         # highwire delay is 5seconds on the weekend
         # or 60sec/10secs depending on if they work on the East Coast
@@ -2437,11 +2487,15 @@ def crawlOneDoc(artMeta, srcDir):
                 url = landingUrl
             else:
                 url = getLandingUrlSearchEngine(artMeta)
+
         logging.info("Crawling base URL %s" % url)
         paperData = crawler.crawl(url)
-        paperData["crawlerName"] = crawler.name
+
         if paperData!=None:
+            paperData["crawlerName"] = crawler.name
             return paperData
+        else:
+            return None
 
 def getArticleMeta(docId):
     " get pubmed article info from local db or ncbi webservice. return as dict. "
@@ -2464,7 +2518,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
     consecErrorCount = 0
     for docId, srcDir in docIds:
         if docId in skipDocIds:
-            logging.verbose("Skipping docId %s" % docId)
+            logging.log(5, "Skipping docId %s" % docId)
             continue
         logging.info("Crawling document with ID %s" % docId)
 

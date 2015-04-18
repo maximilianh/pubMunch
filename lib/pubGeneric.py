@@ -81,11 +81,11 @@ def getFromCache(fname):
     shutil.move(locTmpName, locPath)
     return locPath
 
-def runCommandTimeout(command, timeout=30, bufSize=128000, env=None):
+def runCommandTimeout(command, timeout=30, bufSize=128000, env=None, shell=True):
     """
     runs command, returns after timeout, kills subprocess if it takes longer than timeout seconds
-    print run(["ls", "-l"])
-    print run(["find", "/"], timeout=3) #should timeout
+    print runCommandTimeout(["ls", "-l"])
+    print runCommandTimeout(["find", "/"], timeout=3) #should timeout
 
     returns stdout, stderr, ret
     """
@@ -95,14 +95,13 @@ def runCommandTimeout(command, timeout=30, bufSize=128000, env=None):
     else:
         closeFds = True
     proc = subprocess.Popen(command, bufsize=bufSize, stdout=subprocess.PIPE, \
-        stderr=subprocess.PIPE, shell=True, close_fds=closeFds, env=env)
-    poll_seconds = .250
+        stderr=subprocess.PIPE, shell=shell, close_fds=closeFds, env=env)
+    poll_seconds = 1
     deadline = time.time()+timeout
     while time.time() < deadline and proc.poll() == None:
         time.sleep(poll_seconds)
 
     if proc.poll() == None:
-        #if float(sys.version[:3]) >= 2.6:
         proc.terminate()
         time.sleep(1)
         proc.kill()

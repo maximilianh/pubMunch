@@ -1,7 +1,7 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
     os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil, atexit
 from types import *
-from os.path import isfile, isdir, getsize
+from os.path import isfile, isdir, getsize, abspath, join, realpath, dirname
 from collections import defaultdict
 
 # global flag to suppress all removal of temporary files, only useful for debugging
@@ -540,6 +540,20 @@ def sendEmail(address, subject, text):
     cmd = "echo '%s' | mail -s '%s' %s" % (text, subject, address)
     logging.info("Email command %s" % cmd)
     os.system(cmd)
+
+def getAppDir():
+    """ get base directory of the package, usually the dir where the scripts
+    are. A frozen package is a binary file that includes python and the source code
+    into an executable.
+    """
+    logging.debug("getAppDir: executable is %s" % sys.executable)
+    if getattr(sys, 'frozen', False):
+        # frozen
+        appDir = dirname(sys.executable)
+    else:
+        # unfrozen
+        appDir = abspath(dirname(dirname(realpath(__file__))))
+    return appDir
 
 if __name__=="__main__":
     #test()
