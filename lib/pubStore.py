@@ -702,14 +702,24 @@ class PubReaderFile:
 #        yield art, [fileObj]
 
 class PubReaderTest:
-    """ reads only a single text file """
+    """ reads a single text file or a directory of text files"""
     def __init__(self, fname, text=None):
-        if text:
+        if fname!=None:
+            self.text = None
+            if isdir(fname):
+                self.fnames = glob.glob(join(fname, "*.txt"))
+            elif isfile(fname):
+                self.fnames = [fname]
+            else:
+                raise Exception("Could not open %s" % fname)
+        elif text!=None:
             self.text=text
         else:
-            self.text = open(fname).read()
+            assert(False)
+        self.artId = 1000000000
 
-    def iterArticlesFileList(self, algPrefs):
+
+    def _makeArtFile(self, text, fname):
         class C:
             def _replace(self, content=None):
                 return self
@@ -717,22 +727,33 @@ class PubReaderTest:
             def _asdict(self):
                 return {"pmid":10, "externalId":"extId000", "articleId":100000000}
 
-
         art = C()
-        art.articleId = "1000000000"
-        art.pmid = "10"
-        art.externalId = "extId000"
+        art.articleId = str(self.artId)
+        self.artId += 1
+        fnameBase = basename(fname.replace("PMID","").replace("PMC","")).split(".")[0]
+        if fnameBase.isdigit():
+            art.pmid = fnameBase
+        else:
+            art.pmid = "000000"
+        art.externalId = fname
         art.printIssn = "1234-1234"
-        art.url =  "http://www.ucsc.edu"
+        art.url =  "http://www.pubmed.com"
 
         fileObj = C()
-        fileObj.fileId = "1001"
-        fileObj.content = self.text
+        fileObj.fileId = "1000"
+        fileObj.content = text
         fileObj.fileType = "main"
         fileObj.externalId = "file0000"
         fileObj.desc="desc"
-        
-        yield art, [fileObj]
+        return art, [fileObj]
+
+    def iterArticlesFileList(self, algPrefs):
+        if self.text != None:
+            yield self._makeArtFile(self.text, "1000")
+
+        for fname in self.fnames:
+            text = open(fname).read() 
+            yield self._makeArtFile(text, fname)
 
 def iterArticleDirList(textDir, algPrefs=None):
     " iterate over all files with article/fileData in textDir "

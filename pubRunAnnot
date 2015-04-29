@@ -92,7 +92,7 @@ def testMode():
 # ----------- MAIN --------------
 if len(args)<3:
     parser.print_help()
-    exit(1)
+    sys.exit(1)
 
 pubGeneric.setupLogging(progFile, options)
 

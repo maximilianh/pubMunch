@@ -33,7 +33,7 @@
 # 'searchType' (comma-sep), e.g. searchType="snp,genbank"
 
 # standard python libraries for regex
-import sys, logging, os.path, gzip, glob, doctest, marshal, gdbm, types, operator 
+import sys, logging, os.path, gzip, glob, doctest, marshal, types, operator 
 from collections import defaultdict, Counter
 import fastFind, pubConf, maxbio, pubDnaFind, seqMapLocal, pubGeneric, pubKeyVal
 from os.path import *
@@ -326,11 +326,14 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
         markerRe = reDict[markerType]
         kwDictList.append((markerType, markerRe))
         if markerType in requiresFilter:
-            #filterFname = os.path.join(DICTDIR, markerType+"b.gz")
             filterFname = os.path.join(DICTDIR, markerType+"Accs.txt.gz")
             #filterFname = pubGeneric.getFromCache(filterFname)
             logging.info("Opening %s" % filterFname)
-            #filterSet = set(gzip.open(filterFname).read().splitlines())
+            if not isfile(filterFname):
+                logging.warn("Cannot filter %s accessions, %s not found" % \
+                    (markerType, filterFname))
+                filterDict[markerType] = None
+                continue
             filterSet = pubKeyVal.openDb(filterFname)
             filterDict[markerType] = filterSet
 
@@ -347,7 +350,11 @@ def pmidDbLookup(pmid):
     global pmidToEntrez
     if pmidToEntrez==None:
         fname = join(GENEDATADIR, "pmid2entrez.gdbm")
+        if not isfile(fname):
+            logging.warn("Could not find %s, NCBI genes not used" % fname)
+            return []
         logging.info("Opening NCBI genes PMID -> article mapping from %s" % fname)
+        import gdbm # gdbm does not exist on windows
         pmidToEntrez = gdbm.open(fname, "r")
     pmid = str(pmid)
     data = {}
@@ -773,6 +780,7 @@ upToEntrez = None
 upToSym = None
 entrezToUp = None
 symToEntrez = None
+entrezToSym = None
 
 # these are the annotations that are already entrez IDs and don't need to be 
 # resolved
@@ -782,6 +790,8 @@ blatClient = None
 
 def entrezSymbol(entrezId):
     " resolve entrez Id to gene symbol "
+    if entrezToSym==None:
+        loadMappings()
     entrezId = int(entrezId)
     return entrezToSym.get(entrezId, "invalidEntrezId")
 
@@ -789,7 +799,7 @@ def loadMappings():
     global accToUps, upToEntrez, upToSym, entrezToUp, pmidToEntrez, entrezToSym, symToEntrez
     fname = join(GENEDATADIR, "uniprot.tab.marshal")
     logging.info("Loading %s" % fname)
-    data = marshal.load(open(fname))[9606]
+    data = marshal.load(open(fname, "rb"))[9606]
     accToUps = data["accToUps"]
     upToEntrez = data["upToEntrez"]
     upToSym = data["upToSym"]
@@ -797,7 +807,7 @@ def loadMappings():
 
     fname = join(GENEDATADIR, "entrez.9606.tab.marshal")
     logging.info("Loading %s" % fname)
-    data = marshal.load(open(fname))
+    data = marshal.load(open(fname, "rb"))
     entrezToSym = data["entrez2sym"]
     symToEntrez = dict([(y,x) for (x,y) in entrezToSym.iteritems()])
 
