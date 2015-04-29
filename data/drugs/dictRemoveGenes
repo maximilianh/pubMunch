@@ -1,0 +1,39 @@
+#!/usr/bin/env python
+# remove gene names from fastFinder dict file
+# skips the whole line if match in identifier field
+# skips all synonyms with matches
+import sys
+sys.path.append("../../lib/")
+
+import geneFinder
+
+skipNames = []
+skipSyns = []
+
+geneFinder.initData(exclMarkerTypes=["dnaSeq"])
+for line in sys.stdin:
+    line = line.decode("utf8")
+    ident, synStr = line.rstrip("\n").split("\t")
+
+    if len(list(geneFinder.findGeneNames(ident)))!=0:
+        skipNames.append(ident)
+        continue
+
+    filtSyns = []
+    for s in synStr.split("|"):
+        if len(list(geneFinder.findGeneNames(s)))!=0:
+            skipSyns.append(s)
+        else:
+            filtSyns.append(s)
+    synStr = "|".join(filtSyns)
+    #print "synstr", type(synStr)
+
+    line = "%s\t%s" % (ident, synStr)
+    #print "line", type(line)
+    #print sys.stdout.encoding
+    #sys.stdout.write(line.encode("utf8"))
+    sys.stdout.write(line)
+    sys.stdout.write("\n")
+
+sys.stderr.write("skipped names: %s\n" % skipNames)
+sys.stderr.write("skipped synonyms: %s\n" % skipSyns)

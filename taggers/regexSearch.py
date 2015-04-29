@@ -4,13 +4,17 @@
 # options:
 # "re" : regular expression string
 
+# make sure you have the keyword itself within ()
+# example regex: [ ,;.-](NCT[0-9]{8})[ ,;.-]
+# note the separators will get stripped off, thanks to the ( ) grouping
+
 # standard python libraries for regex
 import re, sys, logging
 
 # == CODE COMMON FOR ANNOTATOR AND MAP TASK 
 def findRe(text, reObj):
     for match in reObj.finditer(text):
-        logging.debug("MATCH"+match.group())
+        logging.debug("MATCH"+match.group(0))
         word = match.group()
         result = [ match.start(), match.end(), word ]
         yield result
@@ -21,7 +25,7 @@ class Annotate:
         # this variable has to be defined, otherwise the jobs will not run.
         # The framework will use this for the headers in table output file
         # I never write tables without headers, if I can avoid it
-        self.headers = ["start", "end"]
+        self.headers = ["start", "end", "reMatch"]
 
         # holds the regex
         self.reObj = {}
