@@ -541,6 +541,18 @@ def sendEmail(address, subject, text):
     logging.info("Email command %s" % cmd)
     os.system(cmd)
 
+def scriptDir(filename):
+    " return the directory of the currently running script or .exe/.app file if running as a binary "
+    if getattr(sys, 'frozen', False):
+        # The application is frozen
+        datadir = os.path.dirname(sys.executable)
+    else:
+        # The application is not frozen
+        # Change this bit to match where you store your data files:
+        datadir = os.path.dirname(__file__)
+
+    return dataDir
+
 if __name__=="__main__":
     #test()
     import doctest

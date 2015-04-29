@@ -2,7 +2,7 @@
 
 import logging, os, shutil, tempfile, codecs, re, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, hashlib
+    sqlite3, doctest, urllib, hashlib, string
 from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
@@ -384,7 +384,7 @@ def runCurl(url, userAgent):
 
     logging.debug("status from curl: %s" % stdout)
     # http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3183000/ text/html; charset=UTF-8
-    outParts = stdout.split()
+    outParts = string.split(stdout, " ", 1)
     finalUrl, mimeType = outParts[:2]
     mimeType = mimeType.strip(";")
     if len(outParts)==3:
@@ -768,7 +768,10 @@ def writeMeta(outDir, metaData, fulltextData):
     # overwrite fields with identifers and URLs
     minId = pubConf.identifierStart["crawler"]
     metaData["articleId"] = str(minId+int(metaData["pmid"]))
-    metaData["fulltextUrl"] = metaData["landingUrl"]
+    if "main.html" in metaData:
+        metaData["fulltextUrl"] = metaData["main.html"]
+    else:
+        metaData["fulltextUrl"] = metaData["landingUrl"]
 
     # save all URLs to metadata object, nice for debugging
     #metaData["mainHtmlUrl"] = fulltextData.get("main.html",{}).get("url", "")
@@ -1465,10 +1468,10 @@ def checkIssnErrorCounts(pubmedMeta, ignoreIssns, outDir):
     if issnYearErrorCounts[issnYear] > MAXISSNERRORCOUNT:
         blacklistIssnYear(outDir, issnYear, pubmedMeta["journal"])
         raise pubGetError("during this run, too many errors for ISSN %s and year %s" % issnYear,
-                "issnYearErrorExceed\t%s %s" % issnYear, errorData=issnYear)
+                "issnYearErrorExceed\t%s %s" % issnYear)
     if issnYear in ignoreIssns:
         raise pubGetError("a previous run disabled this issn+year", "issnErrorExceed", \
-            "%s %s" % issnYear, errorData=issnYear)
+            "%s %s" % issnYear)
 
 def noMatches(landingUrl, hostnames):
     " check if landing url contains none of the hostnames "
@@ -2427,6 +2430,7 @@ def crawlOneDoc(artMeta, srcDir):
         raise pubGetError(errMsg, "noCrawler", landingUrl)
 
     artMeta["page"] = artMeta["page"].split("-")[0] # need only first page
+    artMeta["landingUrl"] = landingUrl
 
     for crawler in crawlers:
         logging.info("Trying crawler %s" % crawler.name)
@@ -2439,9 +2443,12 @@ def crawlOneDoc(artMeta, srcDir):
                 url = getLandingUrlSearchEngine(artMeta)
         logging.info("Crawling base URL %s" % url)
         paperData = crawler.crawl(url)
-        paperData["crawlerName"] = crawler.name
         if paperData!=None:
+            paperData["crawlerName"] = crawler.name
             return paperData
+
+    logging.warn("No crawler was able to handle paper, giving up")
+    raise pubGetError("noCrawlerSuccess", "No crawler was able to handle the paper")
 
 def getArticleMeta(docId):
     " get pubmed article info from local db or ncbi webservice. return as dict. "
