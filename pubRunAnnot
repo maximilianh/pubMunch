@@ -44,7 +44,7 @@ a ":", like "dnaSearch.py:Annotate"
 
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout") 
 #parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
-parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test and <in> is just a single text file")
+parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test, no cluster support and output to stdout. In addition, <in> can be a single text file or a directory with .txt files")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. doi or title. Option can be used several times", default=[])
 parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs on the cluster")
 parser.add_option("-r", "--ram", dest="ram", action="store", type="int", help="request x GB of ram for the jobs on the cluster")
