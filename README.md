@@ -4,7 +4,6 @@ These are the tools that I wrote for the UCSC Genocoding project, see
 http://text.soe.ucsc.edu. They allow you to download fulltext research
 articles from the internet, convert them to text and run text mining algorithms
 on them.  All tools start with the prefix "pub". 
-This is a early testing release, please send error messages to Maximilian Haeussler, max@soe.ucsc.edu.
 
 # The tools
 
