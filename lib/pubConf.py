@@ -1,6 +1,7 @@
 from os.path import expanduser, join, isdir, isfile, normpath, dirname, abspath
 from os import makedirs
 import logging
+from maxCommon import getAppDir
 
 # first parse the user config file
 confName = expanduser("~/.pubConf")
@@ -16,12 +17,12 @@ if isfile(confName):
 # used for data created during pipeline runs
 # Preference is given to a locally defined directory
 if "pubsDataDir" not in locals():
-    pubsDataDir = '.'
+    pubsDataDir = "."
 
 # static data, accessible from cluster, but part of distribution
 # these are basic files like gene lists, marker lists, journal lists
 # Some of it can be updated with pubPrepXXX commands
-staticDataDir = normpath(join(dirname(__file__), "..", "data"))
+staticDataDir = join(getAppDir(), "data")
 
 # scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
@@ -32,7 +33,7 @@ extToolDir = normpath(join(dirname(__file__), "..", "ext"))
 # a directory with files that associate publishers with journals
 # one of them is the NLM Catalog, others we got from publishers or created them semi-
 # manually
-journalListDir = join(pubsDataDir, "journalLists")
+journalListDir = join(staticDataDir, "journalLists")
 
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
 # it contains the ISSNs and server names for each publisher
@@ -166,10 +167,11 @@ clusterHeadNode = "ku.sdsc.edu"
 # type of cluster, either parasol or sge or localhost
 clusterType = "localhost"
 
-_sourceDir = "/cluster/home/max/projects/pubs/tools"
+# _sourceDir = "/cluster/home/max/projects/pubs/tools"
+_sourceDir = getAppDir()
 
 # base directory for searcher algorithm code, like regex annotation, dna annotation, etc
-scriptDir = _sourceDir+"/taggers"
+scriptDir = join(_sourceDir,"taggers")
 
 # cmdLine to start jython, used to run java annotators
 jythonCmd= "/cluster/home/max/software/jre1.7.0/bin/java -jar "+dirname(__file__)+"/jython.jar"
@@ -543,7 +545,7 @@ classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.t
 # GENE AND MUTATION RECOGNIZERS ===========================
 
 # directory with lots of data about genes
-geneDataDir = pubsDataDir+"/geneData"
+geneDataDir = join(staticDataDir, "genes")
 
 # the british national corpus is a list of 30k common words in English
 # used for symbol filtering

@@ -193,7 +193,10 @@ class SqliteKvDb(object):
             maxCommon.delOnExit(self.dbName)
             self.con = sqlite3.connect(self.dbName, isolation_level=isolLevel)
         else:
-            self.con = sqlite3.connect(self.dbName)
+            try:
+                self.con = sqlite3.connect(self.dbName)
+            except sqlite3.OperationalError:
+                logging.warn("Could not open %s" % self.dbName)
 
         self.con.execute("create table IF NOT EXISTS data (key PRIMARY KEY,value)")
         self.cur = self.con

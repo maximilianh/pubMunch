@@ -1,5 +1,5 @@
 import pubNlp, geneFinder, unidecode
-import string, re
+import string, re, logging
 
 headers = ["start", "end", "section", "drugs", "diseases", "genes", "variants", "sentence"]
 
@@ -84,15 +84,21 @@ def rangeRemoveOverlaps(list1, list2):
             newList2.append(el1)
     return newList2
             
-def rangeTexts(text, rangeList):
+def rangeTexts(text, rangeList, useSym=False):
     """ given a list of (start, end, ...) tuples, return a list of text substrings
+    Optionally resolves entrez IDs to symbols
     >>> rangeTexts("Hallo World!", [(0,5), (6,13)])
     ['Hallo', 'World!']
     """
     textList = []
     for el in rangeList:
         start, end = el[:2]
-        snip = text[start:end]
+        if useSym:
+            entrezId = el[-1]
+            sym = geneFinder.entrezSymbol(entrezId)
+            snip = sym
+        else:
+            snip = text[start:end]
         textList.append(snip)
     return textList
             
@@ -129,12 +135,12 @@ def findDisGeneVariant(text):
         conds = list(pubNlp.findDiseases(sentence))
         drugs = list(pubNlp.findDrugs(sentence))
         genes = list(geneFinder.findGeneNames(sentence))
-        print conds, drugs, genes, section, sentence
+        #print conds, drugs, genes, section, sentence
         # remove drugs and conds that are also genes
         drugs = rangeRemoveOverlaps(drugs, genes)
         conds = rangeRemoveOverlaps(conds, genes)
 
-        geneSnips = rangeTexts(sentence, genes)
+        geneSnips = rangeTexts(sentence, genes, useSym=True)
         condSnips = rangeTexts(sentence, conds)
         drugSnips = rangeTexts(sentence, drugs)
 
@@ -142,14 +148,26 @@ def findDisGeneVariant(text):
         mutDescs = [m.group() for m in mutMatches]
         mutDescSet = set(mutDescs)
         blackListMuts = mutDescSet.intersection(blackListStr)
-        if len(mutMatches)!=0 and len(blackListMuts)==0 and len(drugs)!=0 and len(genes)!=0:
-            mutDesc = "|".join(mutDescs)
-            drugDesc = rangeDescs(sentence, drugs)
-            condDesc = rangeDescs(sentence, conds)
-            geneDesc = rangeDescs(sentence, genes)
+        if len(mutMatches)==0:
+            logging.debug("No mutation found, skipping")
+            continue
+        if len(blackListMuts)!=0:
+            logging.debug("At least one blacklisted mutation found, skipping")
+            continue
+        if len(drugs)==0:
+            logging.debug("No drugs found, skipping")
+            continue
+        if len(genes)==0:
+            logging.debug("No genes found, skipping")
+            continue
+    
+        mutDesc = "|".join(mutDescs)
+        drugDesc = rangeDescs(sentence, drugs)
+        condDesc = rangeDescs(sentence, conds)
+        geneDesc = rangeDescs(sentence, genes)
 
-            ret = (start, end, section, drugDesc, condDesc, geneDesc, mutDesc, sentence)
-            yield ret
+        ret = (start, end, section, drugDesc, condDesc, geneDesc, mutDesc, sentence)
+        yield ret
 
 def annotateFile(article, file):
     if file.fileType == "supp":

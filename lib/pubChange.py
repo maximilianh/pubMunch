@@ -53,7 +53,7 @@ def submitJobs(inSpec, filterSpec, outDir):
         for inFname in inFnames:
             outFname = join(outDir, basename(dirname(inFname))+"-"+basename(inFname))
             outFnames.append(outFname)
-            outFnames.append(outFname.replace('.articles.gz','.files.gz')
+            outFnames.append(outFname.replace('.articles.gz','.files.gz'))
             #command = "%s %s filterJob {check in exists %s} %s %s" % \
                 #(sys.executable, __file__, inFname, pmidFname, outFname)
             runner.submitPythonFunc(__file__, "filterOneChunk", [inFname, filterSpec, outFname])
