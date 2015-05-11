@@ -554,7 +554,6 @@ def getAppDir():
         # unfrozen
         appDir = abspath(dirname(dirname(realpath(__file__))))
     return appDir
->>>>>>> 7617387f0e186095ca96b0e8980b3a95413d1185
 
 if __name__=="__main__":
     #test()
