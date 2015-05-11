@@ -614,7 +614,7 @@ def resolveTextDir(dataDir):
     if fullPath == None:
         raise Exception("Could not resolve dataset %s to a directory" % dataDir)
     logging.debug("Resolved dataset name %s to dataset directory %s" % (dataDir, fullPath))
-    return dataDir
+    return fullPath
 
 def resolveTextDirs(dataString):
     " like resolveTextDir but accepts comma-sep strings and yields many "
