@@ -1,0 +1,775 @@
+seqType	mutType	patName	pat
+dna	del		{sep}c\.{fromPos}_{toPos}del{origDna}+
+dna	ins		{sep}c\.{fromPos}_{toPos}ins{origDna}+
+prot	del		{sep}p\.{fromPos}_{toPos}del{origAaShort}+
+prot	ins		{sep}p\.{fromPos}_{toPos}ins{dna}+
+prot	sub		{sep}p\.\(?{origAaShort}{pos}{mutAaShort}{fs}
+prot	sub		{sep}{origAaShort}{pos}{mutAaShort}
+prot	sub		{sep}{origAaLong}{pos}{mutAaLong}
+prot	sub		{sep}p\.\(?{origAaLong}{pos}{mutAaLong}{fs}
+prot	sub	11005141	{origAaLong}\u2192{mutAaLong}
+dna	sub		substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}
+dna	del	10083731	deletion of nt{pos}{origDna}
+dna	sub	c.123T>A	{sep}c\.{pos}{origDna}>{mutDna}
+dna	sub	c.123TrA (r is ->, ocr error)	{sep}c\.{pos}{origDna}r{mutDna}
+dna	sub	c.123T(RIGHT ARROW)2192A	{sep}c\.{pos}{origDna}\u2192{mutDna}
+#dna	sub	10090526	codon {pos} {origCodon}-{mutCodon}
+#dna	sub	11005141	{origCodon}\u2192{mutCodon}
+prot	sub	MF_WRESPPOS-->MRES	{sep}{origAaLong}{pos}-->{mutAaLong}
+prot	sub	MF_WRESPPOS to MRES	{sep}{origAaLong}{pos} to {mutAaLong}
+prot	sub	MF_WRES-PPOS to MRES	{sep}{origAaLong}-{pos} to {mutAaLong}
+prot	sub	MF_WRES PPOS to MRES	{sep}{origAaLong} {pos} to {mutAaLong}
+prot	sub	MF_WRES-PPOS-->MRES	{sep}{origAaLong}-{pos}-->{mutAaLong}
+prot	sub	MF_WRESPPOS----MRES	{sep}{origAaLong}{pos}----{mutAaLong}
+prot	sub	MF_WRES-PPOS-MRES	{sep}{origAaLong}-{pos}-{mutAaLong}
+prot	sub	MF_WRESPPOS-MRES	{sep}{origAaLong}{pos}-{mutAaLong}
+prot	sub	MF_WRES for MRES at position PPOS	{sep}{origAaLong} for {mutAaLong} at position {pos}
+prot	sub	MF_WRESPPOS by MRES	{sep}{origAaLong}{pos} by {mutAaLong}
+prot	sub	MF_WRESPPOS --> MRES	{sep}{origAaLong}{pos} --> {mutAaLong}
+prot	sub	MF_PPOS WRES-->MRES	{sep}{pos} {origAaLong}-->{mutAaLong}
+prot	sub	MF_WRES-PPOS by MRES	{sep}{origAaLong}-{pos} by {mutAaLong}
+prot	sub	MF_WRESPPOS with MRES	{sep}{origAaLong}{pos} with {mutAaLong}
+prot	sub	MF_WRES PPOS MRES	{sep}{origAaLong} {pos} {mutAaLong}
+prot	sub	MF_WRES(PPOS)MRES	{sep}{origAaLong}\({pos}\){mutAaLong}
+prot	sub	MF_WRES-PPOS----MRES	{sep}{origAaLong}-{pos}----{mutAaLong}
+prot	sub	MF_PPOS WRES----MRES	{sep}{pos} {origAaLong}----{mutAaLong}
+prot	sub	MF_WRES-PPOS with MRES	{sep}{origAaLong}-{pos} with {mutAaLong}
+prot	sub	MF_PPOSWRES-->MRES	{sep}{pos}{origAaLong}-->{mutAaLong}
+prot	sub	MF_WRES to MRES at position PPOS	{sep}{origAaLong} to {mutAaLong} at position {pos}
+prot	sub	MF_WRES PPOS with MRES	{sep}{origAaLong} {pos} with {mutAaLong}
+prot	sub	MF_WRES PPOS by MRES	{sep}{origAaLong} {pos} by {mutAaLong}
+prot	sub	MF_MRES for WRES-PPOS	{sep}{mutAaLong} for {origAaLong}-{pos}
+prot	sub	MF_WRES-PPOS --> MRES	{sep}{origAaLong}-{pos} --> {mutAaLong}
+prot	sub	MF_MRES for WRESPPOS	{sep}{mutAaLong} for {origAaLong}{pos}
+prot	sub	MF_WRES PPOS-->MRES	{sep}{origAaLong} {pos}-->{mutAaLong}
+prot	sub	MF_WRESPPOS MRES	{sep}{origAaLong}{pos} {mutAaLong}
+prot	sub	MF_WRES(PPOS)-->MRES	{sep}{origAaLong}\({pos}\)-->{mutAaLong}
+prot	sub	MF_WRES-PPOSMRES	{sep}{origAaLong}-{pos}{mutAaLong}
+prot	sub	MF_MRES for WRES PPOS	{sep}{mutAaLong} for {origAaLong} {pos}
+prot	sub	MF_PPOS WRES replaced by MRES	{sep}{pos} {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_WRES(PPOS) to MRES	{sep}{origAaLong}\({pos}\) to {mutAaLong}
+prot	sub	MF_PPOS from WRES to MRES	{sep}{pos} from {origAaLong} to {mutAaLong}
+prot	sub	MF_PPOS (WRES to MRES	{sep}{pos} \({origAaLong} to {mutAaLong}
+prot	sub	MF_WRESPPOS-to-MRES	{sep}{origAaLong}{pos}-to-{mutAaLong}
+prot	sub	MF_MRES to WRES substitution at position PPOS	{sep}{mutAaLong} to {origAaLong} substitution at position {pos}
+prot	sub	MF_PPOS WRES to MRES	{sep}{pos} {origAaLong} to {mutAaLong}
+prot	sub	MF_WRES PPOS----MRES	{sep}{origAaLong} {pos}----{mutAaLong}
+prot	sub	MF_WRES by MRES at position PPOS	{sep}{origAaLong} by {mutAaLong} at position {pos}
+prot	sub	MF_WRESPPOS]-MRES	{sep}{origAaLong}{pos}\]-{mutAaLong}
+prot	sub	MF_WRES for MRES at residue PPOS	{sep}{origAaLong} for {mutAaLong} at residue {pos}
+prot	sub	MF_PPOS (WRES-->MRES	{sep}{pos} \({origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(bPOS)WRES-->MRES	{sep}{pos}\(b([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(hPOS)WRES-->MRES	{sep}{pos}\(h([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(gPOS)WRES-->MRES	{sep}{pos}\(g([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_WRES-PPOS was replaced by MRES	{sep}{origAaLong}-{pos} was replaced by {mutAaLong}
+prot	sub	MF_WRES(PPOS) --> MRES	{sep}{origAaLong}\({pos}\) --> {mutAaLong}
+prot	sub	MF_PPOS WRES --> MRES	{sep}{pos} {origAaLong} --> {mutAaLong}
+prot	sub	MF_WRES to MRES at codon PPOS	{sep}{origAaLong} to {mutAaLong} at codon {pos}
+prot	sub	MF_WRESPPOS]MRES	{sep}{origAaLong}{pos}\]{mutAaLong}
+prot	sub	MF_MRES for WRES at codon PPOS	{sep}{mutAaLong} for {origAaLong} at codon {pos}
+prot	sub	MF_PPOS(aPOS)WRES-->MRES	{sep}{pos}\(a([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_WRES-to-MRES substitution at position PPOS	{sep}{origAaLong}-to-{mutAaLong} substitution at position {pos}
+prot	sub	MF_WRES at position PPOS to MRES	{sep}{origAaLong} at position {pos} to {mutAaLong}
+prot	sub	MF_PPOSWRES----MRES	{sep}{pos}{origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(ePOS)WRES-->MRES	{sep}{pos}\(e([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_WRES-PPOS-to-MRES	{sep}{origAaLong}-{pos}-to-{mutAaLong}
+prot	sub	MF_WRES at position PPOS by MRES	{sep}{origAaLong} at position {pos} by {mutAaLong}
+prot	sub	MF_MRES for WRES substitution at position PPOS	{sep}{mutAaLong} for {origAaLong} substitution at position {pos}
+prot	sub	MF_MRES for WRES at amino acid PPOS	{sep}{mutAaLong} for {origAaLong} at amino acid {pos}
+prot	sub	MF_PPOS (WRES----MRES	{sep}{pos} \({origAaLong}----{mutAaLong}
+prot	sub	MF_WRES to MRES substitution at residue PPOS	{sep}{origAaLong} to {mutAaLong} substitution at residue {pos}
+prot	sub	MF_WRESPPOS with RES or MRES	{sep}{origAaLong}{pos} with {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced by MRES	{sep}{origAaLong}{pos} was replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS with MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS to MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) to {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES or MRES	{sep}{origAaLong}-{pos} with {skipAa} or {mutAaLong}
+prot	sub	MF_PPOS(bPOS)WRES----MRES	{sep}{pos}\(b([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_WRES-PPOS with a MRES	{sep}{origAaLong}-{pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES or MRES	{sep}{origAaLong}-{pos} to {skipAa} or {mutAaLong}
+prot	sub	MF_WRES(PPOS) with MRES	{sep}{origAaLong}\({pos}\) with {mutAaLong}
+prot	sub	MF_PPOSWRES --> MRES	{sep}{pos}{origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS(ePOS)WRES----MRES	{sep}{pos}\(e([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_WRESPPOS is replaced by MRES	{sep}{origAaLong}{pos} is replaced by {mutAaLong}
+prot	sub	MF_WRES to MRES substitution at codon PPOS	{sep}{origAaLong} to {mutAaLong} substitution at codon {pos}
+prot	sub	MF_WRES to MRES mutation at position PPOS	{sep}{origAaLong} to {mutAaLong} mutation at position {pos}
+prot	sub	MF_WRES to MRES at residue PPOS	{sep}{origAaLong} to {mutAaLong} at residue {pos}
+prot	sub	MF_PPOS(ghPOS)WRES-->MRES	{sep}{pos}\(gh([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_WRES with MRES at position PPOS	{sep}{origAaLong} with {mutAaLong} at position {pos}
+prot	sub	MF_WRES PPOS --> MRES	{sep}{origAaLong} {pos} --> {mutAaLong}
+prot	sub	MF_PPOSWRES to MRES	{sep}{pos}{origAaLong} to {mutAaLong}
+prot	sub	MF_PPOS(hPOS)WRES----MRES	{sep}{pos}\(h([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (bPOS) WRES replaced by MRES	{sep}{pos} \(b([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS into MRES	{sep}{origAaLong}{pos} into {mutAaLong}
+prot	sub	MF_WRES-for-MRES substitution at position PPOS	{sep}{origAaLong}-for-{mutAaLong} substitution at position {pos}
+prot	sub	MF_WRES-PPOS and RES-POS to MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) to {mutAaLong}
+prot	sub	MF_WRES to MRES substitution at amino acid PPOS	{sep}{origAaLong} to {mutAaLong} substitution at amino acid {pos}
+prot	sub	MF_WRES at position PPOS with MRES	{sep}{origAaLong} at position {pos} with {mutAaLong}
+prot	sub	MF_WRES PPOS for MRES	{sep}{origAaLong} {pos} for {mutAaLong}
+prot	sub	MF_PPOS(fPOS)WRES-->MRES	{sep}{pos}\(f([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_WRESPPOS to RES or MRES	{sep}{origAaLong}{pos} to {skipAa} or {mutAaLong}
+prot	sub	MF_WRES PPOS to a MRES	{sep}{origAaLong} {pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS was mutated to MRES	{sep}{origAaLong}{pos} was mutated to {mutAaLong}
+prot	sub	MF_WRESPPOS by a MRES	{sep}{origAaLong}{pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS by RES or MRES	{sep}{origAaLong}-{pos} by {skipAa} or {mutAaLong}
+prot	sub	MF_WRES-->MRES at position PPOS	{sep}{origAaLong}-->{mutAaLong} at position {pos}
+prot	sub	MF_WRES(PPOS) by MRES	{sep}{origAaLong}\({pos}\) by {mutAaLong}
+prot	sub	MF_MRES instead of WRES at position PPOS	{sep}{mutAaLong} instead of {origAaLong} at position {pos}
+prot	sub	MF_WRES PPOS is replaced by MRES	{sep}{origAaLong} {pos} is replaced by {mutAaLong}
+prot	sub	MF_PPOS WRES--MRES	{sep}{pos} {origAaLong}--{mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with MRES	{sep}{origAaLong}{pos} was replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS or RESPOS with MRES	{sep}{origAaLong}{pos} or {skipAa}([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRESPPOS by RES or MRES	{sep}{origAaLong}{pos} by {skipAa} or {mutAaLong}
+prot	sub	MF_WRES-to-MRES substitution at codon PPOS	{sep}{origAaLong}-to-{mutAaLong} substitution at codon {pos}
+prot	sub	MF_WRES-PPOS for MRES	{sep}{origAaLong}-{pos} for {mutAaLong}
+prot	sub	MF_WRES PPOSMRES	{sep}{origAaLong} {pos}{mutAaLong}
+prot	sub	MF_WRES PPOS-to-MRES	{sep}{origAaLong} {pos}-to-{mutAaLong}
+prot	sub	MF_WRESPPOS--> MRES	{sep}{origAaLong}{pos}--> {mutAaLong}
+prot	sub	MF_WRESPPOS)-MRES	{sep}{origAaLong}{pos}\)-{mutAaLong}
+prot	sub	MF_WRES-PPOS with either MRES or RES	{sep}{origAaLong}-{pos} with either {mutAaLong} or {skipAa}
+prot	sub	MF_WRES-PPOS with either RES or MRES	{sep}{origAaLong}-{pos} with either {skipAa} or {mutAaLong}
+prot	sub	MF_WRES in place of MRESPPOS	{sep}{origAaLong} in place of {mutAaLong}{pos}
+prot	sub	MF_WRES for MRES(PPOS	{sep}{origAaLong} for {mutAaLong}\({pos}
+prot	sub	MF_WRES for MRES at amino acid position PPOS	{sep}{origAaLong} for {mutAaLong} at amino acid position {pos}
+prot	sub	MF_WRES PPOS with a MRES	{sep}{origAaLong} {pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS by a MRES	{sep}{origAaLong} {pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_PPOS (hPOS) WRES replaced by MRES	{sep}{pos} \(h([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS for MRES	{sep}{origAaLong}{pos} for {mutAaLong}
+prot	sub	MF_WRES-xPPOS-MRES	{sep}{origAaLong}-x{pos}-{mutAaLong}
+prot	sub	MF_WRES-to-MRES substitution at amino acid PPOS	{sep}{origAaLong}-to-{mutAaLong} substitution at amino acid {pos}
+prot	sub	MF_WRES-to-MRES change at position PPOS	{sep}{origAaLong}-to-{mutAaLong} change at position {pos}
+prot	sub	MF_WRES-PPOS was replaced with MRES	{sep}{origAaLong}-{pos} was replaced with {mutAaLong}
+prot	sub	MF_WRES-PPOS to a MRES	{sep}{origAaLong}-{pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS or RES-POS with MRES	{sep}{origAaLong}-{pos} or {skipAa}-([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRES-->MRES substitution at position PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at position {pos}
+prot	sub	MF_WRES----MRES substitution at position PPOS	{sep}{origAaLong}----{mutAaLong} substitution at position {pos}
+prot	sub	MF_WRES----MRES at position PPOS	{sep}{origAaLong}----{mutAaLong} at position {pos}
+prot	sub	MF_WRES)PPOSMRES	{sep}{origAaLong}\){pos}{mutAaLong}
+prot	sub	MF_WRES)PPOS-MRES	{sep}{origAaLong}\){pos}-{mutAaLong}
+prot	sub	MF_WRES with MRES at residue PPOS	{sep}{origAaLong} with {mutAaLong} at residue {pos}
+prot	sub	MF_WRES to MRES substitution at amino acid position PPOS	{sep}{origAaLong} to {mutAaLong} substitution at amino acid position {pos}
+prot	sub	MF_MRES substitution for WRESPPOS	{sep}{mutAaLong} substitution for {origAaLong}{pos}
+prot	sub	MF_WRES PPOS was replaced by MRES	{sep}{origAaLong} {pos} was replaced by {mutAaLong}
+prot	sub	MF_WRES PPOS was mutated to MRES	{sep}{origAaLong} {pos} was mutated to {mutAaLong}
+prot	sub	MF_WRES PPOS was changed to MRES	{sep}{origAaLong} {pos} was changed to {mutAaLong}
+prot	sub	MF_WRES PPOS into MRES	{sep}{origAaLong} {pos} into {mutAaLong}
+prot	sub	MF_WRES PPOS by RES or MRES	{sep}{origAaLong} {pos} by {skipAa} or {mutAaLong}
+prot	sub	MF_PPOS(gPOS)WRES----MRES	{sep}{pos}\(g([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (ePOS) WRES replaced by MRES	{sep}{pos} \(e([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (WRES --> MRES	{sep}{pos} \({origAaLong} --> {mutAaLong}
+prot	sub	MF_WRESPPOS with a MRES	{sep}{origAaLong}{pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS or RESPOS to MRES	{sep}{origAaLong}{pos} or {skipAa}([1-9][0-9]*) to {mutAaLong}
+prot	sub	MF_WRESPPOS > MRES	{sep}{origAaLong}{pos} > {mutAaLong}
+prot	sub	MF_WRES-PPOS has been replaced by MRES	{sep}{origAaLong}-{pos} has been replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS MRES	{sep}{origAaLong}-{pos} {mutAaLong}
+prot	sub	MF_WRES(PPOS)-MRES	{sep}{origAaLong}\({pos}\)-{mutAaLong}
+prot	sub	MF_WRES(PPOS)----MRES	{sep}{origAaLong}\({pos}\)----{mutAaLong}
+prot	sub	MF_WRES to MRES at amino acid position PPOS	{sep}{origAaLong} to {mutAaLong} at amino acid position {pos}
+prot	sub	MF_MRES for a WRES at position PPOS	{sep}{mutAaLong} for (a|an){{0,1}} {origAaLong} at position {pos}
+prot	sub	MF_MRES for WRES at position PPOS	{sep}{mutAaLong} for {origAaLong} at position {pos}
+prot	sub	MF_WRES by MRES at codon PPOS	{sep}{origAaLong} by {mutAaLong} at codon {pos}
+prot	sub	MF_WRES PPOS was replaced with MRES	{sep}{origAaLong} {pos} was replaced with {mutAaLong}
+prot	sub	MF_PPOS(cePOS)WRES-->MRES	{sep}{pos}\(ce([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(aPOS)WRES----MRES	{sep}{pos}\(a([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS WRES by MRES	{sep}{pos} {origAaLong} by {mutAaLong}
+prot	sub	MF_PPOS (hPOS) WRES----MRES	{sep}{pos} \(h([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (gPOS) WRES replaced by MRES	{sep}{pos} \(g([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS, with MRES	{sep}{origAaLong}{pos}, with {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced by RES or MRES	{sep}{origAaLong}{pos} was replaced by {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS replaced by MRES	{sep}{origAaLong}{pos} replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS were replaced by MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) were replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS were replaced by MRES	{sep}{origAaLong}{pos} were replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS by MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) by {mutAaLong}
+prot	sub	MF_WRES-PPOS/MRES	{sep}{origAaLong}-{pos}/{mutAaLong}
+prot	sub	MF_WRES-PPOS was mutated to MRES	{sep}{origAaLong}-{pos} was mutated to {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES and MRES	{sep}{origAaLong}-{pos} to {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-PPOS is replaced by MRES	{sep}{origAaLong}-{pos} is replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS into MRES	{sep}{origAaLong}-{pos} into {mutAaLong}
+prot	sub	MF_WRES-PPOS by a MRES	{sep}{origAaLong}-{pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS with MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRES-->MRESPPOS	{sep}{origAaLong}-->{mutAaLong}{pos}
+prot	sub	MF_WRES----MRESPPOS	{sep}{origAaLong}----{mutAaLong}{pos}
+prot	sub	MF_WRES----MRES PPOS	{sep}{origAaLong}----{mutAaLong} {pos}
+prot	sub	MF_WRES(PPOS) and RES(POS) to MRES	{sep}{origAaLong}\({pos}\) and {skipAa}\(([1-9][0-9]*)\) to {mutAaLong}
+prot	sub	MF_WRES to MRES change at position PPOS	{sep}{origAaLong} to {mutAaLong} change at position {pos}
+prot	sub	MF_WRES to MRES change at amino acid PPOS	{sep}{origAaLong} to {mutAaLong} change at amino acid {pos}
+prot	sub	MF_WRES to MRES at the PPOS	{sep}{origAaLong} to {mutAaLong} at the {pos}
+prot	sub	MF_WRES to MRES at amino acid PPOS	{sep}{origAaLong} to {mutAaLong} at amino acid {pos}
+prot	sub	MF_WRES to MRES at PPOS	{sep}{origAaLong} to {mutAaLong} at {pos}
+prot	sub	MF_MRES substitution for WRES PPOS	{sep}{mutAaLong} substitution for {origAaLong} {pos}
+prot	sub	MF_MRES in place of WRES at position PPOS	{sep}{mutAaLong} in place of {origAaLong} at position {pos}
+prot	sub	MF_MRES for WRES in position PPOS	{sep}{mutAaLong} for {origAaLong} in position {pos}
+prot	sub	MF_MRES for WRES at amino acid residue PPOS	{sep}{mutAaLong} for {origAaLong} at amino acid residue {pos}
+prot	sub	MF_WRES by MRES in position PPOS	{sep}{origAaLong} by {mutAaLong} in position {pos}
+prot	sub	MF_WRES PPOS-MRES	{sep}{origAaLong} {pos}-{mutAaLong}
+prot	sub	MF_PPOSWRES replaced by MRES	{sep}{pos}{origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS(ghPOS)WRES----MRES	{sep}{pos}\(gh([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(ePOS)WRES --> MRES	{sep}{pos}\(e([1-9][0-9]*)\){origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS(cdPOS)WRES----MRES	{sep}{pos}\(cd([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(cPOS)WRES-->MRES	{sep}{pos}\(c([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(cPOS)WRES----MRES	{sep}{pos}\(c([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(bPOS) WRES----MRES	{sep}{pos}\(b([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS WRES with MRES	{sep}{pos} {origAaLong} with {mutAaLong}
+prot	sub	MF_PPOS (fPOS) WRES-->MRES	{sep}{pos} \(f([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (ePOS) WRES----MRES	{sep}{pos} \(e([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_WRESPPOS/MRES	{sep}{origAaLong}{pos}/{mutAaLong}
+prot	sub	MF_WRESPPOS, to MRES	{sep}{origAaLong}{pos}, to {mutAaLong}
+prot	sub	MF_WRESPPOS with an MRES	{sep}{origAaLong}{pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS was substituted with MRES	{sep}{origAaLong}{pos} was substituted with {mutAaLong}
+prot	sub	MF_WRESPPOS to a MRES	{sep}{origAaLong}{pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS by an MRES	{sep}{origAaLong}{pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-to-MRES substitution at residue PPOS	{sep}{origAaLong}-to-{mutAaLong} substitution at residue {pos}
+prot	sub	MF_WRES-to-MRES mutation at position PPOS	{sep}{origAaLong}-to-{mutAaLong} mutation at position {pos}
+prot	sub	MF_WRES-PPOS with an MRES	{sep}{origAaLong}-{pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS to an MRES	{sep}{origAaLong}-{pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS by an MRES	{sep}{origAaLong}-{pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES----MRES substitution at residue PPOS	{sep}{origAaLong}----{mutAaLong} substitution at residue {pos}
+prot	sub	MF_WRES with MRES at codon PPOS	{sep}{origAaLong} with {mutAaLong} at codon {pos}
+prot	sub	MF_WRES to a MRES at position PPOS	{sep}{origAaLong} to (a|an){{0,1}} {mutAaLong} at position {pos}
+prot	sub	MF_WRES to MRES mutation at residue PPOS	{sep}{origAaLong} to {mutAaLong} mutation at residue {pos}
+prot	sub	MF_WRES to MRES change at codon PPOS	{sep}{origAaLong} to {mutAaLong} change at codon {pos}
+prot	sub	MF_MRES substitution of WRESPPOS	{sep}{mutAaLong} substitution of {origAaLong}{pos}
+prot	sub	MF_MRES substitution of WRES-PPOS	{sep}{mutAaLong} substitution of {origAaLong}-{pos}
+prot	sub	MF_MRES substitution for WRES-alphaPPOS-POS	{sep}{mutAaLong} substitution for {origAaLong}-alpha{pos}-([1-9][0-9]*)
+prot	sub	MF_MRES substitution for WRES-alphaPOS-PPOS	{sep}{mutAaLong} substitution for {origAaLong}-alpha([1-9][0-9]*)-{pos}
+prot	sub	MF_MRES substitution for WRES-PPOS	{sep}{mutAaLong} substitution for {origAaLong}-{pos}
+prot	sub	MF_MRES substitution at WRES-PPOS	{sep}{mutAaLong} substitution at {origAaLong}-{pos}
+prot	sub	MF_MRES substituted for WRES-PPOS	{sep}{mutAaLong} substituted for {origAaLong}-{pos}
+prot	sub	MF_WRES mPPOS to MRES	{sep}{origAaLong} m{pos} to {mutAaLong}
+prot	sub	MF_WRES at position PPOS with a MRES	{sep}{origAaLong} at position {pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_MRES at position PPOS instead of WRES	{sep}{mutAaLong} at position {pos} instead of {origAaLong}
+prot	sub	MF_PPOS: WRES----MRES	{sep}{pos}: {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(hPOS) WRES-->MRES	{sep}{pos}\(h([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(fgPOS)WRES-->MRES	{sep}{pos}\(fg([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (hPOS) WRES-->MRES	{sep}{pos} \(h([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (gPOS) WRES----MRES	{sep}{pos} \(g([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (cdPOS) WRES replaced by MRES	{sep}{pos} \(cd([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (aPOS) WRES replaced by MRES	{sep}{pos} \(a([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS-->RES or MRES	{sep}{origAaLong}{pos}-->{skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS- > MRES	{sep}{origAaLong}{pos}- > {mutAaLong}
+prot	sub	MF_WRESPPOS)MRES	{sep}{origAaLong}{pos}\){mutAaLong}
+prot	sub	MF_WRESPPOS with either MRES or RES	{sep}{origAaLong}{pos} with either {mutAaLong} or {skipAa}
+prot	sub	MF_WRESPPOS with either RES or MRES	{sep}{origAaLong}{pos} with either {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced by RES, MRES	{sep}{origAaLong}{pos} was replaced by {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced by RES, RES, or MRES	{sep}{origAaLong}{pos} was replaced by {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, MRES	{sep}{origAaLong}{pos} to {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, RES, MRES	{sep}{origAaLong}{pos} to {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, RES, RES, and MRES	{sep}{origAaLong}{pos} to {skipAa}, {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRESPPOS has been replaced by MRES	{sep}{origAaLong}{pos} has been replaced by {mutAaLong}
+prot	sub	MF_WRESPPOS by RES and MRES	{sep}{origAaLong}{pos} by {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, MRES	{sep}{origAaLong}-{pos} with {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, RES, or MRES	{sep}{origAaLong}-{pos} with {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES-PPOS was changed to MRES	{sep}{origAaLong}-{pos} was changed to {mutAaLong}
+prot	sub	MF_WRES-PPOS to be replaced by MRES	{sep}{origAaLong}-{pos} to be replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES, MRES	{sep}{origAaLong}-{pos} to {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES, RES, and MRES	{sep}{origAaLong}-{pos} to {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES-PPOS replaced by MRES	{sep}{origAaLong}-{pos} replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS by either MRES	{sep}{origAaLong}-{pos} by either {mutAaLong}
+prot	sub	MF_WRES-PPOS by either RES or MRES	{sep}{origAaLong}-{pos} by either {skipAa} or {mutAaLong}
+prot	sub	MF_WRES----MRES-PPOS	{sep}{origAaLong}----{mutAaLong}-{pos}
+prot	sub	MF_WRES(PPOS) to RES or MRES	{sep}{origAaLong}\({pos}\) to {skipAa} or {mutAaLong}
+prot	sub	MF_MRES was substituted for WRESPPOS	{sep}{mutAaLong} was substituted for {origAaLong}{pos}
+prot	sub	MF_WRES to MRES-PPOS	{sep}{origAaLong} to {mutAaLong}-{pos}
+prot	sub	MF_WRES to MRES) at position PPOS	{sep}{origAaLong} to {mutAaLong}\) at position {pos}
+prot	sub	MF_WRES to MRES substitution at amino acid residue PPOS	{sep}{origAaLong} to {mutAaLong} substitution at amino acid residue {pos}
+prot	sub	MF_WRES to MRES mutation in codon PPOS	{sep}{origAaLong} to {mutAaLong} mutation in codon {pos}
+prot	sub	MF_WRES to MRES mutation at codon PPOS	{sep}{origAaLong} to {mutAaLong} mutation at codon {pos}
+prot	sub	MF_WRES to MRES mutation at amino acid PPOS	{sep}{origAaLong} to {mutAaLong} mutation at amino acid {pos}
+prot	sub	MF_WRES to MRES in position PPOS	{sep}{origAaLong} to {mutAaLong} in position {pos}
+prot	sub	MF_WRES to MRES in codon PPOS	{sep}{origAaLong} to {mutAaLong} in codon {pos}
+prot	sub	MF_WRES to MRES change at residue PPOS	{sep}{origAaLong} to {mutAaLong} change at residue {pos}
+prot	sub	MF_WRES to MRES amino acid substitution at position PPOS	{sep}{origAaLong} to {mutAaLong} amino acid substitution at position {pos}
+prot	sub	MF_MRES substituted for WRES at position PPOS	{sep}{mutAaLong} substituted for {origAaLong} at position {pos}
+prot	sub	MF_WRES residue at position PPOS to MRES	{sep}{origAaLong} residue at position {pos} to {mutAaLong}
+prot	sub	MF_WRESPPOS) to MRES	{sep}{origAaLong}{pos}\) to {mutAaLong}
+prot	sub	MF_MRES mutant of WRESPPOS	{sep}{mutAaLong} mutant of {origAaLong}{pos}
+prot	sub	MF_MRES is substituted for WRESPPOS	{sep}{mutAaLong} is substituted for {origAaLong}{pos}
+prot	sub	MF_WRES in position PPOS by MRES	{sep}{origAaLong} in position {pos} by {mutAaLong}
+prot	sub	MF_MRES in place of WRES-PPOS	{sep}{mutAaLong} in place of {origAaLong}-{pos}
+prot	sub	MF_MRES in place of WRES PPOS	{sep}{mutAaLong} in place of {origAaLong} {pos}
+prot	sub	MF_MRES for WRES at position -PPOS	{sep}{mutAaLong} for {origAaLong} at position -{pos}
+prot	sub	MF_MRES for WRES at beta PPOS	{sep}{mutAaLong} for {origAaLong} at beta {pos}
+prot	sub	MF_WRES by MRES at residue PPOS	{sep}{origAaLong} by {mutAaLong} at residue {pos}
+prot	sub	MF_WRES at residue PPOS to MRES	{sep}{origAaLong} at residue {pos} to {mutAaLong}
+prot	sub	MF_WRES at position PPOS with an MRES	{sep}{origAaLong} at position {pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS was replaced by MRES	{sep}{origAaLong} at position {pos} was replaced by {mutAaLong}
+prot	sub	MF_WRES PPOS with RES or MRES	{sep}{origAaLong} {pos} with {skipAa} or {mutAaLong}
+prot	sub	MF_WRES PPOS to RES and MRES	{sep}{origAaLong} {pos} to {skipAa} and {mutAaLong}
+prot	sub	MF_WRES PPOS replaced by MRES	{sep}{origAaLong} {pos} replaced by {mutAaLong}
+prot	sub	MF_WRES PPOS replaced by RES or MRES	{sep}{origAaLong} {pos} replaced by {skipAa} or {mutAaLong}
+prot	sub	MF_WRES PPOS or RES POS with MRES	{sep}{origAaLong} {pos} or {skipAa} ([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRES PPOS or RES POS to MRES	{sep}{origAaLong} {pos} or {skipAa} ([1-9][0-9]*) to {mutAaLong}
+prot	sub	MF_WRES (r) at position PPOS with a MRES	{sep}{origAaLong} \(r\) at position {pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_PPOS, replacing WRES with MRES	{sep}{pos}, replacing {origAaLong} with {mutAaLong}
+prot	sub	MF_PPOS, WRES-->MRES	{sep}{pos}, {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(i) WRES to MRES	{sep}{pos}\(i\) {origAaLong} to {mutAaLong}
+prot	sub	MF_PPOS(hcPOS)WRES-->MRES	{sep}{pos}\(hc([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(hPOS)WRES --> MRES	{sep}{pos}\(h([1-9][0-9]*)\){origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS(cePOS)WRES----MRES	{sep}{pos}\(ce([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(aPOS)WRES --> MRES	{sep}{pos}\(a([1-9][0-9]*)\){origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS (ghPOS) WRES----MRES	{sep}{pos} \(gh([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (gPOS) WRES-->MRES	{sep}{pos} \(g([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (efPOS) WRES----MRES	{sep}{pos} \(ef([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (bPOS)WRES----MRES	{sep}{pos} \(b([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (bPOS) WRES-->MRES	{sep}{pos} \(b([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (bPOS) WRES----MRES	{sep}{pos} \(b([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_WRESPPOS>MRES	{sep}{origAaLong}{pos}>{mutAaLong}
+prot	sub	MF_WRESPPOS(beta)-->MRES	{sep}{origAaLong}{pos}\(beta\)-->{mutAaLong}
+prot	sub	MF_WRESPPOS(MRES	{sep}{origAaLong}{pos}\({mutAaLong}
+prot	sub	MF_MRESPPOS was substituted for WRES	{sep}{mutAaLong}{pos} was substituted for {origAaLong}
+prot	sub	MF_WRESPPOS was substituted by MRES	{sep}{origAaLong}{pos} was substituted by {mutAaLong}
+prot	sub	MF_WRESPPOS was substituted by RES or MRES	{sep}{origAaLong}{pos} was substituted by {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced by a MRES	{sep}{origAaLong}{pos} was replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS was converted to MRES	{sep}{origAaLong}{pos} was converted to {mutAaLong}
+prot	sub	MF_WRESPPOS to either MRES or RES	{sep}{origAaLong}{pos} to either {mutAaLong} or {skipAa}
+prot	sub	MF_WRESPPOS to either RES or MRES	{sep}{origAaLong}{pos} to either {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS to an MRES	{sep}{origAaLong}{pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, RES, and MRES	{sep}{origAaLong}{pos} to {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, RES or MRES	{sep}{origAaLong}{pos} to {skipAa}, {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS to RES and MRES	{sep}{origAaLong}{pos} to {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS residue with MRES	{sep}{origAaLong}{pos} residue with {mutAaLong}
+prot	sub	MF_WRESPPOS residue by MRES	{sep}{origAaLong}{pos} residue by {mutAaLong}
+prot	sub	MF_WRESPPOS mutated to MRES	{sep}{origAaLong}{pos} mutated to {mutAaLong}
+prot	sub	MF_WRESPPOS is replaced with MRES	{sep}{origAaLong}{pos} is replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS is changed to MRES	{sep}{origAaLong}{pos} is changed to {mutAaLong}
+prot	sub	MF_WRESPPOS into a MRES	{sep}{origAaLong}{pos} into (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS changed to MRES	{sep}{origAaLong}{pos} changed to {mutAaLong}
+prot	sub	MF_WRESPPOS by either MRES	{sep}{origAaLong}{pos} by either {mutAaLong}
+prot	sub	MF_WRESPPOS by either RES or MRES	{sep}{origAaLong}{pos} by either {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS -->MRES	{sep}{origAaLong}{pos} -->{mutAaLong}
+prot	sub	MF_WRESPPOS --> RES or MRES	{sep}{origAaLong}{pos} --> {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS (ePOS)beta----MRES	{sep}{origAaLong}{pos} \(e([1-9][0-9]*)\)beta----{mutAaLong}
+prot	sub	MF_WRES-to-MRES replacement at position PPOS	{sep}{origAaLong}-to-{mutAaLong} replacement at position {pos}
+prot	sub	MF_WRES-to-MRES mutation at codon PPOS	{sep}{origAaLong}-to-{mutAaLong} mutation at codon {pos}
+prot	sub	MF_WRES-to-MRES change at amino acid PPOS	{sep}{origAaLong}-to-{mutAaLong} change at amino acid {pos}
+prot	sub	MF_WRES-PPOS-->RES or MRES	{sep}{origAaLong}-{pos}-->{skipAa} or {mutAaLong}
+prot	sub	MF_WRES-PPOS, RES-POS or RES-POS by MRES	{sep}{origAaLong}-{pos}, {skipAa}-([1-9][0-9]*) or {skipAa}-([1-9][0-9]*) by {mutAaLong}
+prot	sub	MF_WRES-PPOS or RES-POS by MRES	{sep}{origAaLong}-{pos} or {skipAa}-([1-9][0-9]*) by {mutAaLong}
+prot	sub	MF_WRES-PPOS(bPOS)-MRES	{sep}{origAaLong}-{pos}\(b([1-9][0-9]*)\)-{mutAaLong}
+prot	sub	MF_WRES-PPOS with RES and MRES	{sep}{origAaLong}-{pos} with {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-PPOS was substituted by MRES	{sep}{origAaLong}-{pos} was substituted by {mutAaLong}
+prot	sub	MF_WRES-PPOS to either MRES	{sep}{origAaLong}-{pos} to either {mutAaLong}
+prot	sub	MF_WRES-PPOS to either RES or MRES	{sep}{origAaLong}-{pos} to either {skipAa} or {mutAaLong}
+prot	sub	MF_WRES-PPOS is replaced with MRES	{sep}{origAaLong}-{pos} is replaced with {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS were replaced with MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) were replaced with {mutAaLong}
+prot	sub	MF_WRES-PPOS were replaced with MRES	{sep}{origAaLong}-{pos} were replaced with {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS were replaced by MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) were replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS were replaced by MRES	{sep}{origAaLong}-{pos} were replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS by MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) by {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS by RES and MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) by {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-PPOS by RES and MRES	{sep}{origAaLong}-{pos} by {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-->MRES) mutation at codon PPOS	{sep}{origAaLong}-->{mutAaLong}\) mutation at codon {pos}
+prot	sub	MF_WRES-->MRES) at position PPOS	{sep}{origAaLong}-->{mutAaLong}\) at position {pos}
+prot	sub	MF_WRES-->MRES) at codon PPOS	{sep}{origAaLong}-->{mutAaLong}\) at codon {pos}
+prot	sub	MF_WRES-->MRES(PPOS	{sep}{origAaLong}-->{mutAaLong}\({pos}
+prot	sub	MF_WRES-->MRES substitution in codon PPOS	{sep}{origAaLong}-->{mutAaLong} substitution in codon {pos}
+prot	sub	MF_WRES-->MRES substitution at residue PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at residue {pos}
+prot	sub	MF_WRES-->MRES substitution at amino acid PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at amino acid {pos}
+prot	sub	MF_WRES-->MRES mutation at position PPOS	{sep}{origAaLong}-->{mutAaLong} mutation at position {pos}
+prot	sub	MF_WRES-->MRES mutation at codon PPOS	{sep}{origAaLong}-->{mutAaLong} mutation at codon {pos}
+prot	sub	MF_WRES----MRES) at codon PPOS	{sep}{origAaLong}----{mutAaLong}\) at codon {pos}
+prot	sub	MF_WRES----MRES substitution at position beta PPOS	{sep}{origAaLong}----{mutAaLong} substitution at position beta {pos}
+prot	sub	MF_WRES----MRES substitution at codon PPOS	{sep}{origAaLong}----{mutAaLong} substitution at codon {pos}
+prot	sub	MF_WRES----MRES change at position PPOS	{sep}{origAaLong}----{mutAaLong} change at position {pos}
+prot	sub	MF_WRES----MRES at codon PPOS	{sep}{origAaLong}----{mutAaLong} at codon {pos}
+prot	sub	MF_MRES, RES or RES for WRESPPOS	{sep}{mutAaLong}, {skipAa} or {skipAa} for {origAaLong}{pos}
+prot	sub	MF_MRES or RES for WRESPPOS	{sep}{mutAaLong} or {skipAa} for {origAaLong}{pos}
+prot	sub	MF_WRES(PPOS) was mutated to MRES	{sep}{origAaLong}\({pos}\) was mutated to {mutAaLong}
+prot	sub	MF_WRES(PPOS) to RES and MRES	{sep}{origAaLong}\({pos}\) to {skipAa} and {mutAaLong}
+prot	sub	MF_WRES(PPOS) into MRES	{sep}{origAaLong}\({pos}\) into {mutAaLong}
+prot	sub	MF_MRES(PPOS) for WRES	{sep}{mutAaLong}\({pos}\) for {origAaLong}
+prot	sub	MF_WRES(PPOS) and RES(POS) with MRES	{sep}{origAaLong}\({pos}\) and {skipAa}\(([1-9][0-9]*)\) with {mutAaLong}
+prot	sub	MF_WRES to a MRES residue at position PPOS	{sep}{origAaLong} to (a|an){{0,1}} {mutAaLong} residue at position {pos}
+prot	sub	MF_WRES to MRES, at position PPOS	{sep}{origAaLong} to {mutAaLong}, at position {pos}
+prot	sub	MF_WRES to MRES) at codon PPOS	{sep}{origAaLong} to {mutAaLong}\) at codon {pos}
+prot	sub	MF_WRES to MRES substitution in residue PPOS	{sep}{origAaLong} to {mutAaLong} substitution in residue {pos}
+prot	sub	MF_WRES to MRES replacement at position PPOS	{sep}{origAaLong} to {mutAaLong} replacement at position {pos}
+prot	sub	MF_WRES to MRES polymorphism at codon PPOS	{sep}{origAaLong} to {mutAaLong} polymorphism at codon {pos}
+prot	sub	MF_WRES to MRES change at amino acid position PPOS	{sep}{origAaLong} to {mutAaLong} change at amino acid position {pos}
+prot	sub	MF_WRES to MRES at amino acid residue PPOS	{sep}{origAaLong} to {mutAaLong} at amino acid residue {pos}
+prot	sub	MF_WRES to MRES (sPPOS	{sep}{origAaLong} to {mutAaLong} \(s{pos}
+prot	sub	MF_WRES to MRES (rPPOS	{sep}{origAaLong} to {mutAaLong} \(r{pos}
+prot	sub	MF_WRES to MRES (pPPOS	{sep}{origAaLong} to {mutAaLong} \(p{pos}
+prot	sub	MF_WRES to MRES (codon PPOS	{sep}{origAaLong} to {mutAaLong} \(codon {pos}
+prot	sub	MF_MRES substitution of WRES PPOS	{sep}{mutAaLong} substitution of {origAaLong} {pos}
+prot	sub	MF_MRES substitution at WRESPPOS	{sep}{mutAaLong} substitution at {origAaLong}{pos}
+prot	sub	MF_MRES substitution at WRES PPOS	{sep}{mutAaLong} substitution at {origAaLong} {pos}
+prot	sub	MF_MRES substituted for WRES at residue PPOS	{sep}{mutAaLong} substituted for {origAaLong} at residue {pos}
+prot	sub	MF_WRES residue at position PPOS with MRES	{sep}{origAaLong} residue at position {pos} with {mutAaLong}
+prot	sub	MF_WRES residue at position PPOS was replaced by MRES	{sep}{origAaLong} residue at position {pos} was replaced by {mutAaLong}
+prot	sub	MF_WRES residue at position PPOS by MRES	{sep}{origAaLong} residue at position {pos} by {mutAaLong}
+prot	sub	MF_WRES residue PPOS by MRES	{sep}{origAaLong} residue {pos} by {mutAaLong}
+prot	sub	MF_MRES replaces WRES-PPOS	{sep}{mutAaLong} replaces {origAaLong}-{pos}
+prot	sub	MF_MRES rather than a WRES at position PPOS	{sep}{mutAaLong} rather than (a|an){{0,1}} {origAaLong} at position {pos}
+prot	sub	MF_MRES or RES for WRES-PPOS	{sep}{mutAaLong} or {skipAa} for {origAaLong}-{pos}
+prot	sub	MF_MRES or RES for WRES at position PPOS	{sep}{mutAaLong} or {skipAa} for {origAaLong} at position {pos}
+prot	sub	MF_WRES mPPOS-->MRES	{sep}{origAaLong} m{pos}-->{mutAaLong}
+prot	sub	MF_MRES instead of a WRES at position PPOS	{sep}{mutAaLong} instead of (a|an){{0,1}} {origAaLong} at position {pos}
+prot	sub	MF_MRES for an WRES at position PPOS	{sep}{mutAaLong} for (a|an){{0,1}} {origAaLong} at position {pos}
+prot	sub	MF_MRES for a WRES at residue PPOS	{sep}{mutAaLong} for (a|an){{0,1}} {origAaLong} at residue {pos}
+prot	sub	MF_MRES for a WRES at amino acid position PPOS	{sep}{mutAaLong} for (a|an){{0,1}} {origAaLong} at amino acid position {pos}
+prot	sub	MF_MRES for RES-POS or WRES-PPOS	{sep}{mutAaLong} for {skipAa}-([1-9][0-9]*) or {origAaLong}-{pos}
+prot	sub	MF_MRES for WRES, at position PPOS	{sep}{mutAaLong} for {origAaLong}, at position {pos}
+prot	sub	MF_MRES for WRES substitution at amino acid PPOS	{sep}{mutAaLong} for {origAaLong} substitution at amino acid {pos}
+prot	sub	MF_MRES for WRES in the PPOS	{sep}{mutAaLong} for {origAaLong} in the {pos}
+prot	sub	MF_MRES for WRES in codon PPOS	{sep}{mutAaLong} for {origAaLong} in codon {pos}
+prot	sub	MF_MRES for WRES at the beta PPOS	{sep}{mutAaLong} for {origAaLong} at the beta {pos}
+prot	sub	MF_MRES for WRES at residue PPOS	{sep}{mutAaLong} for {origAaLong} at residue {pos}
+prot	sub	MF_MRES for WRES at PPOS	{sep}{mutAaLong} for {origAaLong} at {pos}
+prot	sub	MF_WRES by MRES at the position PPOS	{sep}{origAaLong} by {mutAaLong} at the position {pos}
+prot	sub	MF_WRES at position PPOS to a MRES	{sep}{origAaLong} at position {pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS to RES or MRES	{sep}{origAaLong} at position {pos} to {skipAa} or {mutAaLong}
+prot	sub	MF_WRES at position PPOS rather than MRES	{sep}{origAaLong} at position {pos} rather than {mutAaLong}
+prot	sub	MF_WRES at position PPOS is replaced by MRES	{sep}{origAaLong} at position {pos} is replaced by {mutAaLong}
+prot	sub	MF_MRES at position PPOS for WRES	{sep}{mutAaLong} at position {pos} for {origAaLong}
+prot	sub	MF_WRES at position PPOS by a MRES	{sep}{origAaLong} at position {pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at codon PPOS with MRES	{sep}{origAaLong} at codon {pos} with {mutAaLong}
+prot	sub	MF_MRES at WRES-PPOS	{sep}{mutAaLong} at {origAaLong}-{pos}
+prot	sub	MF_WRES PPOS was replaced by a MRES	{sep}{origAaLong} {pos} was replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS to an MRES	{sep}{origAaLong} {pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS to RES, MRES	{sep}{origAaLong} {pos} to {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS to RES, RES, or MRES	{sep}{origAaLong} {pos} to {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES PPOS to RES or MRES	{sep}{origAaLong} {pos} to {skipAa} or {mutAaLong}
+prot	sub	MF_WRES PPOS changed to MRES	{sep}{origAaLong} {pos} changed to {mutAaLong}
+prot	sub	MF_WRES PPOS and POS with MRES	{sep}{origAaLong} {pos} and ([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRES POS and PPOS with MRES	{sep}{origAaLong} ([1-9][0-9]*) and {pos} with {mutAaLong}
+prot	sub	MF_WRES PPOS (MRES	{sep}{origAaLong} {pos} \({mutAaLong}
+prot	sub	MF_WRES --> MRES substitution at position PPOS	{sep}{origAaLong} --> {mutAaLong} substitution at position {pos}
+prot	sub	MF_PPOS-WRES----MRES	{sep}{pos}-{origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS, substituting WRES for MRES	{sep}{pos}, substituting {origAaLong} for {mutAaLong}
+prot	sub	MF_PPOS, from WRES to MRES	{sep}{pos}, from {origAaLong} to {mutAaLong}
+prot	sub	MF_WRES for MRES at codon PPOS	{sep}{origAaLong} for {mutAaLong} at codon {pos}
+prot	sub	MF_PPOS(hcPOS)WRES----MRES	{sep}{pos}\(hc([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(fgPOS) WRES replaced by MRES	{sep}{pos}\(fg([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS(fPOS)WRES----MRES	{sep}{pos}\(f([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(fPOS) WRES----MRES	{sep}{pos}\(f([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(ePOS)WRES->MRES	{sep}{pos}\(e([1-9][0-9]*)\){origAaLong}->{mutAaLong}
+prot	sub	MF_PPOS(WRES-->MRES	{sep}{pos}\({origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS is WRES rather than MRES	{sep}{pos} is {origAaLong} rather than {mutAaLong}
+prot	sub	MF_PPOS WRES is replaced by MRES	{sep}{pos} {origAaLong} is replaced by {mutAaLong}
+prot	sub	MF_PPOS (fg POS) WRES replaced by MRES	{sep}{pos} \(fg ([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (fPOS) WRES replaced by MRES	{sep}{pos} \(f([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (efPOS) WRES replaced by MRES	{sep}{pos} \(ef([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (aPOS) WRES----MRES	{sep}{pos} \(a([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (WRES-to-MRES	{sep}{pos} \({origAaLong}-to-{mutAaLong}
+prot	sub	MF_WRES]PPOS-MRES	{sep}{origAaLong}\]{pos}-{mutAaLong}
+prot	sub	MF_WRESPPOS->MRES	{sep}{origAaLong}{pos}->{mutAaLong}
+prot	sub	MF_WRESPPOS, was mutated to MRES	{sep}{origAaLong}{pos}, was mutated to {mutAaLong}
+prot	sub	MF_WRESPPOS, to RES or MRES	{sep}{origAaLong}{pos}, to {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS, RESPOS or both were replaced with MRES	{sep}{origAaLong}{pos}, {skipAa}([1-9][0-9]*) or both were replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS or both were replaced with MRES	{sep}{origAaLong}{pos} or both were replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS(ePOS)-->MRES	{sep}{origAaLong}{pos}\(e([1-9][0-9]*)\)-->{mutAaLong}
+prot	sub	MF_WRESPPOS with an RES or MRES	{sep}{origAaLong}{pos} with (a|an){{0,1}} {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with RES, MRES	{sep}{origAaLong}{pos} was replaced with {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with RES, RES, MRES	{sep}{origAaLong}{pos} was replaced with {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with RES, RES, RES, MRES	{sep}{origAaLong}{pos} was replaced with {skipAa}, {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with RES, RES, RES, RES and MRES	{sep}{origAaLong}{pos} was replaced with {skipAa}, {skipAa}, {skipAa}, {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with RES or MRES	{sep}{origAaLong}{pos} was replaced with {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced with RES and MRES	{sep}{origAaLong}{pos} was replaced with {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS was replaced by RES and MRES	{sep}{origAaLong}{pos} was replaced by {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS was mutated to RES, MRES	{sep}{origAaLong}{pos} was mutated to {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was mutated to RES, RES, MRES	{sep}{origAaLong}{pos} was mutated to {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was mutated to RES, RES, RES, and MRES	{sep}{origAaLong}{pos} was mutated to {skipAa}, {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRESPPOS was exchanged for a MRES	{sep}{origAaLong}{pos} was exchanged for (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS was changed to MRES	{sep}{origAaLong}{pos} was changed to {mutAaLong}
+prot	sub	MF_WRESPPOS was changed to RES, MRES	{sep}{origAaLong}{pos} was changed to {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS was changed to RES, RES or MRES	{sep}{origAaLong}{pos} was changed to {skipAa}, {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS was changed to RES and MRES	{sep}{origAaLong}{pos} was changed to {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, RES, RES, or MRES	{sep}{origAaLong}{pos} to {skipAa}, {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRESPPOS to RES, RES, RES and MRES	{sep}{origAaLong}{pos} to {skipAa}, {skipAa}, {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS to RES and to MRES	{sep}{origAaLong}{pos} to {skipAa} and to {mutAaLong}
+prot	sub	MF_WRESPPOS substituted by MRES	{sep}{origAaLong}{pos} substituted by {mutAaLong}
+prot	sub	MF_WRESPPOS residue with RES or MRES	{sep}{origAaLong}{pos} residue with {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS residue to MRES	{sep}{origAaLong}{pos} residue to {mutAaLong}
+prot	sub	MF_WRESPPOS replacement by MRES	{sep}{origAaLong}{pos} replacement by {mutAaLong}
+prot	sub	MF_WRESPPOS or its substitution by MRES	{sep}{origAaLong}{pos} or its substitution by {mutAaLong}
+prot	sub	MF_WRESPPOS or RESPOS to either MRES	{sep}{origAaLong}{pos} or {skipAa}([1-9][0-9]*) to either {mutAaLong}
+prot	sub	MF_WRESPPOS or RESPOS to either RES or MRES	{sep}{origAaLong}{pos} or {skipAa}([1-9][0-9]*) to either {skipAa} or {mutAaLong}
+prot	sub	MF_WRESPPOS to either MRES	{sep}{origAaLong}{pos} to either {mutAaLong}
+prot	sub	MF_WRESPPOS is converted to a MRES	{sep}{origAaLong}{pos} is converted to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRESPPOS into RES and MRES	{sep}{origAaLong}{pos} into {skipAa} and {mutAaLong}
+prot	sub	MF_WRESPPOS can be replaced with MRES	{sep}{origAaLong}{pos} can be replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS by RES, MRES	{sep}{origAaLong}{pos} by {skipAa}, {mutAaLong}
+prot	sub	MF_WRESPPOS by RES, RES, and MRES	{sep}{origAaLong}{pos} by {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS were substituted by MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) were substituted by {mutAaLong}
+prot	sub	MF_WRESPPOS were substituted by MRES	{sep}{origAaLong}{pos} were substituted by {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS were replaced with MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) were replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS were replaced with MRES	{sep}{origAaLong}{pos} were replaced with {mutAaLong}
+prot	sub	MF_WRESPPOS and RESPOS were both changed to MRES	{sep}{origAaLong}{pos} and {skipAa}([1-9][0-9]*) were both changed to {mutAaLong}
+prot	sub	MF_WRESPPOS were both changed to MRES	{sep}{origAaLong}{pos} were both changed to {mutAaLong}
+prot	sub	MF_WRESPPOS -> MRES	{sep}{origAaLong}{pos} -> {mutAaLong}
+prot	sub	MF_WRESPPOS - MRES	{sep}{origAaLong}{pos} - {mutAaLong}
+prot	sub	MF_WRES-to-MRES substitution at amino acid residue PPOS	{sep}{origAaLong}-to-{mutAaLong} substitution at amino acid residue {pos}
+prot	sub	MF_WRES-to-MRES mutation at the PPOS	{sep}{origAaLong}-to-{mutAaLong} mutation at the {pos}
+prot	sub	MF_WRES-to-MRES change at residue PPOS	{sep}{origAaLong}-to-{mutAaLong} change at residue {pos}
+prot	sub	MF_WRES-to-MRES at residue PPOS	{sep}{origAaLong}-to-{mutAaLong} at residue {pos}
+prot	sub	MF_WRES-for-MRES at position PPOS	{sep}{origAaLong}-for-{mutAaLong} at position {pos}
+prot	sub	MF_WRES-ePPOS by MRES	{sep}{origAaLong}-e{pos} by {mutAaLong}
+prot	sub	MF_WRES-PPOS--->MRES	{sep}{origAaLong}-{pos}--->{mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, RES, and MRES	{sep}{origAaLong}-{pos} with {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, RES, MRES	{sep}{origAaLong}-{pos} with {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, RES, RES, MRES	{sep}{origAaLong}-{pos} with {skipAa}, {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, RES, RES, RES, and MRES	{sep}{origAaLong}-{pos} with {skipAa}, {skipAa}, {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES-PPOS with RES, RES or MRES	{sep}{origAaLong}-{pos} with {skipAa}, {skipAa} or {mutAaLong}
+prot	sub	MF_WRES-PPOS was replaced by a MRES	{sep}{origAaLong}-{pos} was replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS was replaced by RES and MRES	{sep}{origAaLong}-{pos} was replaced by {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-PPOS was mutated to either a MRES	{sep}{origAaLong}-{pos} was mutated to either (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS was mutated to either a RES or an MRES	{sep}{origAaLong}-{pos} was mutated to either (a|an){{0,1}} {skipAa} or (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS to a codon for MRES	{sep}{origAaLong}-{pos} to (a|an){{0,1}} codon for {mutAaLong}
+prot	sub	MF_WRES-PPOS to a RES or MRES	{sep}{origAaLong}-{pos} to (a|an){{0,1}} {skipAa} or {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES, RES, or MRES	{sep}{origAaLong}-{pos} to {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES, RES, MRES	{sep}{origAaLong}-{pos} to {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES, RES, RES, MRES	{sep}{origAaLong}-{pos} to {skipAa}, {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS to RES, RES, RES, RES, or MRES	{sep}{origAaLong}-{pos} to {skipAa}, {skipAa}, {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES-PPOS residue with MRES	{sep}{origAaLong}-{pos} residue with {mutAaLong}
+prot	sub	MF_WRES-PPOS or RES-POS to MRES	{sep}{origAaLong}-{pos} or {skipAa}-([1-9][0-9]*) to {mutAaLong}
+prot	sub	MF_WRES-PPOS or RES-POS is replaced by MRES	{sep}{origAaLong}-{pos} or {skipAa}-([1-9][0-9]*) is replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS is replaced by a MRES	{sep}{origAaLong}-{pos} is replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS is mutated to MRES	{sep}{origAaLong}-{pos} is mutated to {mutAaLong}
+prot	sub	MF_WRES-PPOS is mutated to RES or MRES	{sep}{origAaLong}-{pos} is mutated to {skipAa} or {mutAaLong}
+prot	sub	MF_WRES-PPOS has been changed to MRES	{sep}{origAaLong}-{pos} has been changed to {mutAaLong}
+prot	sub	MF_WRES-PPOS had been replaced by MRES	{sep}{origAaLong}-{pos} had been replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS for a MRES	{sep}{origAaLong}-{pos} for (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES-PPOS changed to MRES	{sep}{origAaLong}-{pos} changed to {mutAaLong}
+prot	sub	MF_WRES-PPOS by either RES, MRES	{sep}{origAaLong}-{pos} by either {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS by either RES, RES, or MRES	{sep}{origAaLong}-{pos} by either {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES-PPOS by RES, MRES	{sep}{origAaLong}-{pos} by {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS by RES, RES, and MRES	{sep}{origAaLong}-{pos} by {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES-PPOS by RES, RES, MRES	{sep}{origAaLong}-{pos} by {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES-PPOS by RES, RES, RES, and MRES	{sep}{origAaLong}-{pos} by {skipAa}, {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS to RES and MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) to {skipAa} and {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS residues to MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) residues to {mutAaLong}
+prot	sub	MF_WRES-PPOS residues to MRES	{sep}{origAaLong}-{pos} residues to {mutAaLong}
+prot	sub	MF_WRES-PPOS and RES-POS are replaced by MRES	{sep}{origAaLong}-{pos} and {skipAa}-([1-9][0-9]*) are replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS are replaced by MRES	{sep}{origAaLong}-{pos} are replaced by {mutAaLong}
+prot	sub	MF_WRES-PPOS alpha----MRES	{sep}{origAaLong}-{pos} alpha----{mutAaLong}
+prot	sub	MF_WRES-->MRES) in codon PPOS	{sep}{origAaLong}-->{mutAaLong}\) in codon {pos}
+prot	sub	MF_WRES-->MRES substitution in position PPOS	{sep}{origAaLong}-->{mutAaLong} substitution in position {pos}
+prot	sub	MF_WRES-->MRES substitution at sites PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at sites {pos}
+prot	sub	MF_WRES-->MRES substitution at sites POS and PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at sites ([1-9][0-9]*) and {pos}
+prot	sub	MF_WRES-->MRES substitution at codon PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at codon {pos}
+prot	sub	MF_WRES-->MRES substitution at amino acid position PPOS	{sep}{origAaLong}-->{mutAaLong} substitution at amino acid position {pos}
+prot	sub	MF_WRES-->MRES replacement at position PPOS	{sep}{origAaLong}-->{mutAaLong} replacement at position {pos}
+prot	sub	MF_WRES-->MRES mutation at residue PPOS	{sep}{origAaLong}-->{mutAaLong} mutation at residue {pos}
+prot	sub	MF_WRES-->MRES change at position PPOS	{sep}{origAaLong}-->{mutAaLong} change at position {pos}
+prot	sub	MF_WRES-->MRES at residue PPOS	{sep}{origAaLong}-->{mutAaLong} at residue {pos}
+prot	sub	MF_WRES-->MRES at betaPPOS	{sep}{origAaLong}-->{mutAaLong} at beta{pos}
+prot	sub	MF_WRES-->MRES amino acid substitution in the sPPOS	{sep}{origAaLong}-->{mutAaLong} amino acid substitution in the s{pos}
+prot	sub	MF_WRES-->MRES PPOS	{sep}{origAaLong}-->{mutAaLong} {pos}
+prot	sub	MF_WRES----MRES substitution at the PPOS	{sep}{origAaLong}----{mutAaLong} substitution at the {pos}
+prot	sub	MF_WRES----MRES replacement at position gamma PPOS	{sep}{origAaLong}----{mutAaLong} replacement at position gamma {pos}
+prot	sub	MF_WRES----MRES replacement at position PPOS	{sep}{origAaLong}----{mutAaLong} replacement at position {pos}
+prot	sub	MF_WRES----MRES exchange at position PPOS	{sep}{origAaLong}----{mutAaLong} exchange at position {pos}
+prot	sub	MF_MRES, RES, or RES for WRES-PPOS	{sep}{mutAaLong}, {skipAa}, or {skipAa} for {origAaLong}-{pos}
+prot	sub	MF_MRES, or RES for WRES-PPOS	{sep}{mutAaLong}, or {skipAa} for {origAaLong}-{pos}
+prot	sub	MF_WRES)PPOS(MRES	{sep}{origAaLong}\){pos}\({mutAaLong}
+prot	sub	MF_WRES)PPOS MRES	{sep}{origAaLong}\){pos} {mutAaLong}
+prot	sub	MF_WRES(PPOS)]MRES	{sep}{origAaLong}\({pos}\)\]{mutAaLong}
+prot	sub	MF_WRES(PPOS)]-MRES	{sep}{origAaLong}\({pos}\)\]-{mutAaLong}
+prot	sub	MF_WRES(PPOS) to a MRES	{sep}{origAaLong}\({pos}\) to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES(PPOS) to RES, MRES	{sep}{origAaLong}\({pos}\) to {skipAa}, {mutAaLong}
+prot	sub	MF_WRES(PPOS) to RES, RES, MRES	{sep}{origAaLong}\({pos}\) to {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES(PPOS) to RES, RES, RES, and MRES	{sep}{origAaLong}\({pos}\) to {skipAa}, {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES(PPOS) or RES(POS) by MRES	{sep}{origAaLong}\({pos}\) or {skipAa}\(([1-9][0-9]*)\) by {mutAaLong}
+prot	sub	MF_WRES(PPOS) is replaced by MRES	{sep}{origAaLong}\({pos}\) is replaced by {mutAaLong}
+prot	sub	MF_WRES(PPOS) by a MRES	{sep}{origAaLong}\({pos}\) by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES(PPOS) and RES(POS)) to MRES	{sep}{origAaLong}\({pos}\) and {skipAa}\(([1-9][0-9]*)\)\) to {mutAaLong}
+prot	sub	MF_WRES(PPOS)) to MRES	{sep}{origAaLong}\({pos}\)\) to {mutAaLong}
+prot	sub	MF_WRES(PPOS) MRES	{sep}{origAaLong}\({pos}\) {mutAaLong}
+prot	sub	MF_WRES with a MRES at position PPOS	{sep}{origAaLong} with (a|an){{0,1}} {mutAaLong} at position {pos}
+prot	sub	MF_WRES with MRES at position POS or PPOS	{sep}{origAaLong} with {mutAaLong} at position ([1-9][0-9]*) or {pos}
+prot	sub	MF_MRES was substituted for WRES at position PPOS	{sep}{mutAaLong} was substituted for {origAaLong} at position {pos}
+prot	sub	MF_WRES was replaced by MRES at position PPOS	{sep}{origAaLong} was replaced by {mutAaLong} at position {pos}
+prot	sub	MF_MRES to replace WRESPPOS	{sep}{mutAaLong} to replace {origAaLong}{pos}
+prot	sub	MF_WRES to an MRES at position PPOS	{sep}{origAaLong} to (a|an){{0,1}} {mutAaLong} at position {pos}
+prot	sub	MF_WRES to MRES) residue PPOS	{sep}{origAaLong} to {mutAaLong}\) residue {pos}
+prot	sub	MF_WRES to MRES) at residue PPOS	{sep}{origAaLong} to {mutAaLong}\) at residue {pos}
+prot	sub	MF_WRES to MRES substitution in position PPOS	{sep}{origAaLong} to {mutAaLong} substitution in position {pos}
+prot	sub	MF_WRES to MRES substitution in aaPPOS	{sep}{origAaLong} to {mutAaLong} substitution in aa{pos}
+prot	sub	MF_WRES to MRES substitution at positions PPOS	{sep}{origAaLong} to {mutAaLong} substitution at positions {pos}
+prot	sub	MF_WRES to MRES substitution at positions POS and PPOS	{sep}{origAaLong} to {mutAaLong} substitution at positions ([1-9][0-9]*) and {pos}
+prot	sub	MF_WRES to MRES substitution (rPPOS	{sep}{origAaLong} to {mutAaLong} substitution \(r{pos}
+prot	sub	MF_WRES to MRES missense mutation at position PPOS	{sep}{origAaLong} to {mutAaLong} missense mutation at position {pos}
+prot	sub	MF_WRES to MRES exchange at position PPOS	{sep}{origAaLong} to {mutAaLong} exchange at position {pos}
+prot	sub	MF_WRES to MRES at aa PPOS	{sep}{origAaLong} to {mutAaLong} at aa {pos}
+prot	sub	MF_WRES to MRES (tPPOS	{sep}{origAaLong} to {mutAaLong} \(t{pos}
+prot	sub	MF_WRES to MRES (mPPOS	{sep}{origAaLong} to {mutAaLong} \(m{pos}
+prot	sub	MF_WRES to MRES (lPPOS	{sep}{origAaLong} to {mutAaLong} \(l{pos}
+prot	sub	MF_WRES to MRES (gPPOS	{sep}{origAaLong} to {mutAaLong} \(g{pos}
+prot	sub	MF_MRES substitutions of WRES PPOS	{sep}{mutAaLong} substitutions of {origAaLong} {pos}
+prot	sub	MF_MRES substitutions of RES POS, WRES PPOS	{sep}{mutAaLong} substitutions of {skipAa} ([1-9][0-9]*), {origAaLong} {pos}
+prot	sub	MF_MRES substitutions of RES POS, RES POS, and WRES PPOS	{sep}{mutAaLong} substitutions of {skipAa} ([1-9][0-9]*), {skipAa} ([1-9][0-9]*), and {origAaLong} {pos}
+prot	sub	MF_MRES substitutions for WRESPPOS	{sep}{mutAaLong} substitutions for {origAaLong}{pos}
+prot	sub	MF_MRES substitutions for RESPOS and WRESPPOS	{sep}{mutAaLong} substitutions for {skipAa}([1-9][0-9]*) and {origAaLong}{pos}
+prot	sub	MF_MRES substitutions at WRESPPOS	{sep}{mutAaLong} substitutions at {origAaLong}{pos}
+prot	sub	MF_MRES substitutions at RESPOS, WRESPPOS	{sep}{mutAaLong} substitutions at {skipAa}([1-9][0-9]*), {origAaLong}{pos}
+prot	sub	MF_MRES substitutions at RESPOS, RESPOS, WRESPPOS	{sep}{mutAaLong} substitutions at {skipAa}([1-9][0-9]*), {skipAa}([1-9][0-9]*), {origAaLong}{pos}
+prot	sub	MF_MRES substitutions at RESPOS, RESPOS, RESPOS, and WRESPPOS	{sep}{mutAaLong} substitutions at {skipAa}([1-9][0-9]*), {skipAa}([1-9][0-9]*), {skipAa}([1-9][0-9]*), and {origAaLong}{pos}
+prot	sub	MF_MRES substitutions at WRES-PPOS	{sep}{mutAaLong} substitutions at {origAaLong}-{pos}
+prot	sub	MF_MRES substitutions at RES-POS and WRES-PPOS	{sep}{mutAaLong} substitutions at {skipAa}-([1-9][0-9]*) and {origAaLong}-{pos}
+prot	sub	MF_MRES substitutions at WRES residues PPOS	{sep}{mutAaLong} substitutions at {origAaLong} residues {pos}
+prot	sub	MF_MRES substitutions at WRES residues POS and PPOS	{sep}{mutAaLong} substitutions at {origAaLong} residues ([1-9][0-9]*) and {pos}
+prot	sub	MF_MRES substitution for WRES at residue PPOS	{sep}{mutAaLong} substitution for {origAaLong} at residue {pos}
+prot	sub	MF_MRES substitution for WRES at position PPOS	{sep}{mutAaLong} substitution for {origAaLong} at position {pos}
+prot	sub	MF_MRES substitution at RES-POS or WRES-PPOS	{sep}{mutAaLong} substitution at {skipAa}-([1-9][0-9]*) or {origAaLong}-{pos}
+prot	sub	MF_MRES substituted for WRESPPOS	{sep}{mutAaLong} substituted for {origAaLong}{pos}
+prot	sub	MF_MRES substituted for WRES(PPOS	{sep}{mutAaLong} substituted for {origAaLong}\({pos}
+prot	sub	MF_MRES substituted for WRES in position PPOS	{sep}{mutAaLong} substituted for {origAaLong} in position {pos}
+prot	sub	MF_WRES residue with MRES at position PPOS	{sep}{origAaLong} residue with {mutAaLong} at position {pos}
+prot	sub	MF_WRES residue with MRES (RESPPOS	{sep}{origAaLong} residue with {mutAaLong} \({skipAa}{pos}
+prot	sub	MF_MRES residue instead of WRES at position PPOS	{sep}{mutAaLong} residue instead of {origAaLong} at position {pos}
+prot	sub	MF_MRES residue in place of WRES PPOS	{sep}{mutAaLong} residue in place of {origAaLong} {pos}
+prot	sub	MF_MRES residue for WRESPPOS	{sep}{mutAaLong} residue for {origAaLong}{pos}
+prot	sub	MF_MRES residue for WRES-PPOS	{sep}{mutAaLong} residue for {origAaLong}-{pos}
+prot	sub	MF_MRES residue for WRES at position PPOS	{sep}{mutAaLong} residue for {origAaLong} at position {pos}
+prot	sub	MF_MRES residue for WRES PPOS	{sep}{mutAaLong} residue for {origAaLong} {pos}
+prot	sub	MF_WRES residue at position PPOS to a MRES	{sep}{origAaLong} residue at position {pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_MRES residue at position PPOS rather than WRES	{sep}{mutAaLong} residue at position {pos} rather than {origAaLong}
+prot	sub	MF_WRES residue at position PPOS has been replaced by MRES	{sep}{origAaLong} residue at position {pos} has been replaced by {mutAaLong}
+prot	sub	MF_WRES residue at position PPOS by a MRES	{sep}{origAaLong} residue at position {pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES residue PPOS with MRES	{sep}{origAaLong} residue {pos} with {mutAaLong}
+prot	sub	MF_WRES residue PPOS to MRES	{sep}{origAaLong} residue {pos} to {mutAaLong}
+prot	sub	MF_MRES replacing WRESPPOS	{sep}{mutAaLong} replacing {origAaLong}{pos}
+prot	sub	MF_MRES replacing WRES-PPOS	{sep}{mutAaLong} replacing {origAaLong}-{pos}
+prot	sub	MF_MRES replacing WRES at position PPOS	{sep}{mutAaLong} replacing {origAaLong} at position {pos}
+prot	sub	MF_MRES replacing WRES as residue PPOS	{sep}{mutAaLong} replacing {origAaLong} as residue {pos}
+prot	sub	MF_MRES replaces WRES at position PPOS	{sep}{mutAaLong} replaces {origAaLong} at position {pos}
+prot	sub	MF_MRES replacements of WRESPPOS and RESPOS	{sep}{mutAaLong} replacements of {origAaLong}{pos} and {skipAa}([1-9][0-9]*)
+prot	sub	MF_MRES replacements of RESPOS and WRESPPOS	{sep}{mutAaLong} replacements of {skipAa}([1-9][0-9]*) and {origAaLong}{pos}
+prot	sub	MF_MRES replacement of WRESPPOS	{sep}{mutAaLong} replacement of {origAaLong}{pos}
+prot	sub	MF_MRES rather than the normal WRES at amino acid position PPOS	{sep}{mutAaLong} rather than the normal {origAaLong} at amino acid position {pos}
+prot	sub	MF_MRES rather than WRES in position PPOS	{sep}{mutAaLong} rather than {origAaLong} in position {pos}
+prot	sub	MF_MRES or RES for WRES at amino acid PPOS	{sep}{mutAaLong} or {skipAa} for {origAaLong} at amino acid {pos}
+prot	sub	MF_MRES or RES for WRES PPOS	{sep}{mutAaLong} or {skipAa} for {origAaLong} {pos}
+prot	sub	MF_MRES mutants of WRESPPOS	{sep}{mutAaLong} mutants of {origAaLong}{pos}
+prot	sub	MF_MRES mutants of RESPOS and WRESPPOS	{sep}{mutAaLong} mutants of {skipAa}([1-9][0-9]*) and {origAaLong}{pos}
+prot	sub	MF_MRES is substituted for a WRES residue at position PPOS	{sep}{mutAaLong} is substituted for (a|an){{0,1}} {origAaLong} residue at position {pos}
+prot	sub	MF_MRES is substituted for WRES at position PPOS	{sep}{mutAaLong} is substituted for {origAaLong} at position {pos}
+prot	sub	MF_MRES instead of WRESPPOS	{sep}{mutAaLong} instead of {origAaLong}{pos}
+prot	sub	MF_MRES instead of WRES in position PPOS	{sep}{mutAaLong} instead of {origAaLong} in position {pos}
+prot	sub	MF_MRES instead of WRES at residue PPOS	{sep}{mutAaLong} instead of {origAaLong} at residue {pos}
+prot	sub	MF_MRES instead of WRES at amino acid position PPOS	{sep}{mutAaLong} instead of {origAaLong} at amino acid position {pos}
+prot	sub	MF_WRES in the normal enzyme to MRES in the variant enzyme at the PPOS	{sep}{origAaLong} in the normal enzyme to {mutAaLong} in the variant enzyme at the {pos}
+prot	sub	MF_WRES in position PPOS with MRES	{sep}{origAaLong} in position {pos} with {mutAaLong}
+prot	sub	MF_WRES in position PPOS was replaced by MRES	{sep}{origAaLong} in position {pos} was replaced by {mutAaLong}
+prot	sub	MF_MRES in place of the WRES residue RESPPOS	{sep}{mutAaLong} in place of the {origAaLong} residue {skipAa}{pos}
+prot	sub	MF_MRES in place of WRES in position PPOS	{sep}{mutAaLong} in place of {origAaLong} in position {pos}
+prot	sub	MF_MRES in place of WRES at amino acid PPOS	{sep}{mutAaLong} in place of {origAaLong} at amino acid {pos}
+prot	sub	MF_MRES for the WRES residue at position PPOS	{sep}{mutAaLong} for the {origAaLong} residue at position {pos}
+prot	sub	MF_MRES for the WRES at position PPOS	{sep}{mutAaLong} for the {origAaLong} at position {pos}
+prot	sub	MF_MRES for a WRES residue at position PPOS	{sep}{mutAaLong} for (a|an){{0,1}} {origAaLong} residue at position {pos}
+prot	sub	MF_MRES for a WRES at codon PPOS	{sep}{mutAaLong} for (a|an){{0,1}} {origAaLong} at codon {pos}
+prot	sub	MF_MRES for RES-POS, WRES-PPOS	{sep}{mutAaLong} for {skipAa}-([1-9][0-9]*), {origAaLong}-{pos}
+prot	sub	MF_MRES for RES-POS, RES-POS, and WRES-PPOS	{sep}{mutAaLong} for {skipAa}-([1-9][0-9]*), {skipAa}-([1-9][0-9]*), and {origAaLong}-{pos}
+prot	sub	MF_MRES for WRES substitution in position PPOS	{sep}{mutAaLong} for {origAaLong} substitution in position {pos}
+prot	sub	MF_MRES for WRES substitution at residue PPOS	{sep}{mutAaLong} for {origAaLong} substitution at residue {pos}
+prot	sub	MF_MRES for WRES substitution at position POS or PPOS	{sep}{mutAaLong} for {origAaLong} substitution at position ([1-9][0-9]*) or {pos}
+prot	sub	MF_MRES for WRES replacement at residue PPOS	{sep}{mutAaLong} for {origAaLong} replacement at residue {pos}
+prot	sub	MF_MRES for WRES mutation at position PPOS	{sep}{mutAaLong} for {origAaLong} mutation at position {pos}
+prot	sub	MF_MRES for WRES exchange at position PPOS	{sep}{mutAaLong} for {origAaLong} exchange at position {pos}
+prot	sub	MF_MRES for WRES change at residue PPOS	{sep}{mutAaLong} for {origAaLong} change at residue {pos}
+prot	sub	MF_MRES for WRES at the PPOS	{sep}{mutAaLong} for {origAaLong} at the {pos}
+prot	sub	MF_MRES for WRES at position aPPOS	{sep}{mutAaLong} for {origAaLong} at position a{pos}
+prot	sub	MF_MRES for WRES at pPPOS	{sep}{mutAaLong} for {origAaLong} at p{pos}
+prot	sub	MF_MRES for WRES at bPPOS	{sep}{mutAaLong} for {origAaLong} at b{pos}
+prot	sub	MF_MRES for WRES at alphaPOS-PPOS	{sep}{mutAaLong} for {origAaLong} at alpha([1-9][0-9]*)-{pos}
+prot	sub	MF_MRES for WRES at -PPOS	{sep}{mutAaLong} for {origAaLong} at -{pos}
+prot	sub	MF_MRES for WRES alpha POS(i) PPOS	{sep}{mutAaLong} for {origAaLong} alpha ([1-9][0-9]*)\(i\) {pos}
+prot	sub	MF_WRES by an MRES at position PPOS	{sep}{origAaLong} by (a|an){{0,1}} {mutAaLong} at position {pos}
+prot	sub	MF_WRES by MRES-PPOS	{sep}{origAaLong} by {mutAaLong}-{pos}
+prot	sub	MF_WRES by MRES at the PPOS	{sep}{origAaLong} by {mutAaLong} at the {pos}
+prot	sub	MF_WRES by MRES at position -PPOS	{sep}{origAaLong} by {mutAaLong} at position -{pos}
+prot	sub	MF_WRES by MRES at amino acid residue PPOS	{sep}{origAaLong} by {mutAaLong} at amino acid residue {pos}
+prot	sub	MF_WRES by MRES PPOS	{sep}{origAaLong} by {mutAaLong} {pos}
+prot	sub	MF_WRES by PPOSoh-MRES	{sep}{origAaLong} by {pos}oh-{mutAaLong}
+prot	sub	MF_WRES at residue PPOS by a MRES	{sep}{origAaLong} at residue {pos} by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS was replaced by a MRES	{sep}{origAaLong} at position {pos} was replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS was changed to an MRES	{sep}{origAaLong} at position {pos} was changed to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS was changed to MRES	{sep}{origAaLong} at position {pos} was changed to {mutAaLong}
+prot	sub	MF_WRES at position PPOS substituted by MRES	{sep}{origAaLong} at position {pos} substituted by {mutAaLong}
+prot	sub	MF_WRES at position PPOS is replaced by a MRES	{sep}{origAaLong} at position {pos} is replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS instead of a MRES	{sep}{origAaLong} at position {pos} instead of (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES at position PPOS changed to MRES	{sep}{origAaLong} at position {pos} changed to {mutAaLong}
+prot	sub	MF_WRES at codon PPOS to a MRES	{sep}{origAaLong} at codon {pos} to (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_MRES and RES mutants of WRESPPOS	{sep}{mutAaLong} and {skipAa} mutants of {origAaLong}{pos}
+prot	sub	MF_WRES PPOS, to MRES	{sep}{origAaLong} {pos}, to {mutAaLong}
+prot	sub	MF_WRES PPOS, a MRES	{sep}{origAaLong} {pos}, (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS, RES POS, and RES POS with MRES	{sep}{origAaLong} {pos}, {skipAa} ([1-9][0-9]*), and {skipAa} ([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRES PPOS, and RES POS with MRES	{sep}{origAaLong} {pos}, and {skipAa} ([1-9][0-9]*) with {mutAaLong}
+prot	sub	MF_WRES PPOS with an MRES	{sep}{origAaLong} {pos} with (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS with RES, MRES	{sep}{origAaLong} {pos} with {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS with RES, RES, or MRES	{sep}{origAaLong} {pos} with {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES PPOS with RES, RES, and MRES	{sep}{origAaLong} {pos} with {skipAa}, {skipAa}, and {mutAaLong}
+prot	sub	MF_WRES PPOS was substituted with MRES	{sep}{origAaLong} {pos} was substituted with {mutAaLong}
+prot	sub	MF_WRES PPOS was replaced by an MRES	{sep}{origAaLong} {pos} was replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS was replaced by RES or MRES	{sep}{origAaLong} {pos} was replaced by {skipAa} or {mutAaLong}
+prot	sub	MF_WRES PPOS was converted to MRES	{sep}{origAaLong} {pos} was converted to {mutAaLong}
+prot	sub	MF_WRES PPOS is substituted with MRES	{sep}{origAaLong} {pos} is substituted with {mutAaLong}
+prot	sub	MF_WRES PPOS is replaced with MRES	{sep}{origAaLong} {pos} is replaced with {mutAaLong}
+prot	sub	MF_WRES PPOS is replaced by an MRES	{sep}{origAaLong} {pos} is replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_WRES PPOS is mutated to MRES	{sep}{origAaLong} {pos} is mutated to {mutAaLong}
+prot	sub	MF_WRES PPOS into RES and MRES	{sep}{origAaLong} {pos} into {skipAa} and {mutAaLong}
+prot	sub	MF_WRES PPOS has been changed to MRES	{sep}{origAaLong} {pos} has been changed to {mutAaLong}
+prot	sub	MF_WRES PPOS by RES, MRES	{sep}{origAaLong} {pos} by {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS by RES, RES, MRES	{sep}{origAaLong} {pos} by {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS by RES, RES, RES, MRES	{sep}{origAaLong} {pos} by {skipAa}, {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS by RES, RES, RES, RES, MRES	{sep}{origAaLong} {pos} by {skipAa}, {skipAa}, {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS by RES, RES, RES, RES, RES, MRES	{sep}{origAaLong} {pos} by {skipAa}, {skipAa}, {skipAa}, {skipAa}, {skipAa}, {mutAaLong}
+prot	sub	MF_WRES PPOS by RES, RES, RES, RES, RES, RES, or MRES	{sep}{origAaLong} {pos} by {skipAa}, {skipAa}, {skipAa}, {skipAa}, {skipAa}, {skipAa}, or {mutAaLong}
+prot	sub	MF_WRES PPOS -->MRES	{sep}{origAaLong} {pos} -->{mutAaLong}
+prot	sub	MF_WRES --> MRES at position PPOS	{sep}{origAaLong} --> {mutAaLong} at position {pos}
+prot	sub	MF_PPOSWRES-(MRES	{sep}{pos}{origAaLong}-\({mutAaLong}
+prot	sub	MF_PPOSWRES with MRES	{sep}{pos}{origAaLong} with {mutAaLong}
+prot	sub	MF_PPOS-WRES by MRES	{sep}{pos}-{origAaLong} by {mutAaLong}
+prot	sub	MF_MRES for WRES at amino acid position PPOS	{sep}{mutAaLong} for {origAaLong} at amino acid position {pos}
+prot	sub	MF_PPOS, where an MRES was substituted for WRES	{sep}{pos}, where (a|an){{0,1}} {mutAaLong} was substituted for {origAaLong}
+prot	sub	MF_PPOS, substituting MRES (RES) for WRES	{sep}{pos}, substituting {mutAaLong} \({skipAa}\) for {origAaLong}
+prot	sub	MF_WRES in position PPOS was replaced by a MRES	{sep}{origAaLong} in position {pos} was replaced by (a|an){{0,1}} {mutAaLong}
+prot	sub	MF_PPOS) WRES is replaced by MRES	{sep}{pos}\) {origAaLong} is replaced by {mutAaLong}
+prot	sub	MF_PPOS(hcPOS)WRES replaced by MRES	{sep}{pos}\(hc([1-9][0-9]*)\){origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS(hPOS) WRES----MRES	{sep}{pos}\(h([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(hPOS) WRES > MRES	{sep}{pos}\(h([1-9][0-9]*)\) {origAaLong} > {mutAaLong}
+prot	sub	MF_PPOS(gPOS)WRES --> MRES	{sep}{pos}\(g([1-9][0-9]*)\){origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS(gPOS) WRES----MRES	{sep}{pos}\(g([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(gPOS) WRES replaced by MRES	{sep}{pos}\(g([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS(fPOS) WRES-->MRES	{sep}{pos}\(f([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(efPOS)WRES----MRES	{sep}{pos}\(ef([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(cePOS) WRES----MRES	{sep}{pos}\(ce([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS(cdPOS)WRES-->MRES	{sep}{pos}\(cd([1-9][0-9]*)\){origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(cdPOS)WRES replaced by MRES	{sep}{pos}\(cd([1-9][0-9]*)\){origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS(cdPOS) WRES --> MRES	{sep}{pos}\(cd([1-9][0-9]*)\) {origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS(cPOS) WRES-->MRES	{sep}{pos}\(c([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS(bPOS)WRES --> MRES	{sep}{pos}\(b([1-9][0-9]*)\){origAaLong} --> {mutAaLong}
+prot	sub	MF_PPOS(aPOS) WRES----MRES	{sep}{pos}\(a([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS where WRES is replaced by MRES	{sep}{pos} where {origAaLong} is replaced by {mutAaLong}
+prot	sub	MF_WRES PPOS substituted by MRES	{sep}{origAaLong} {pos} substituted by {mutAaLong}
+prot	sub	MF_PPOS mutation (MRES for WRES	{sep}{pos} mutation \({mutAaLong} for {origAaLong}
+prot	sub	MF_PPOS changing WRES to MRES	{sep}{pos} changing {origAaLong} to {mutAaLong}
+prot	sub	MF_PPOS WRES---MRES	{sep}{pos} {origAaLong}---{mutAaLong}
+prot	sub	MF_PPOS WRES residues were changed to MRES	{sep}{pos} {origAaLong} residues were changed to {mutAaLong}
+prot	sub	MF_PPOS WRES residues to MRES	{sep}{pos} {origAaLong} residues to {mutAaLong}
+prot	sub	MF_PPOS WRES residue by MRES	{sep}{pos} {origAaLong} residue by {mutAaLong}
+prot	sub	MF_PPOS MRES for WRES	{sep}{pos} {mutAaLong} for {origAaLong}
+prot	sub	MF_PPOS WRES -- MRES	{sep}{pos} {origAaLong} -- {mutAaLong}
+prot	sub	MF_PPOS(fPOS)WRES replaced by MRES	{sep}{pos}\(f([1-9][0-9]*)\){origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (hcPOS) WRES replaced by MRES	{sep}{pos} \(hc([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (cePOS) WRES----MRES	{sep}{pos} \(ce([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (hcPOS) WRES-->MRES	{sep}{pos} \(hc([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (h POS) WRES----MRES	{sep}{pos} \(h ([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (h POS) WRES replaced by MRES	{sep}{pos} \(h ([1-9][0-9]*)\) {origAaLong} replaced by {mutAaLong}
+prot	sub	MF_PPOS (ghPOS) WRES-->MRES	{sep}{pos} \(gh([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (gPOS) WRES--MRES	{sep}{pos} \(g([1-9][0-9]*)\) {origAaLong}--{mutAaLong}
+prot	sub	MF_PPOS (g POS) WRES----MRES	{sep}{pos} \(g ([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (fgPOS) WRES----MRES	{sep}{pos} \(fg([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (efPOS)WRES----MRES	{sep}{pos} \(ef([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (ePOS) WRES-->MRES	{sep}{pos} \(e([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (cPOS) WRES----MRES	{sep}{pos} \(c([1-9][0-9]*)\) {origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (bPOS) WRES substituting for MRES	{sep}{pos} \(b([1-9][0-9]*)\) {origAaLong} substituting for {mutAaLong}
+prot	sub	MF_PPOS (aPOS)WRES----MRES	{sep}{pos} \(a([1-9][0-9]*)\){origAaLong}----{mutAaLong}
+prot	sub	MF_PPOS (aPOS) WRES-->MRES	{sep}{pos} \(a([1-9][0-9]*)\) {origAaLong}-->{mutAaLong}
+prot	sub	MF_PPOS (WRES-->RES, MRES)	{sep}{pos} \({origAaLong}-->{skipAa}, {mutAaLong}\)
+prot	sub	MF_PPOS (MRES for WRES)	{sep}{pos} \({mutAaLong} for {origAaLong}\)
+prot	sub	MF_PPOS (WRES > MRES	{sep}{pos} \({origAaLong} > {mutAaLong}
+prot	sub	MF_WRESPPOS, and RESPOS, to MRES	{sep}{origAaLong}{pos}, and {skipAa}([1-9][0-9]*), to {mutAaLong}
+prot	sub	MF_WRESPPOS, RESPOS, and RESPOS, to MRES	{sep}{origAaLong}{pos}, {skipAa}([1-9][0-9]*), and {skipAa}([1-9][0-9]*), to {mutAaLong}
+prot	sub	MF_WRESPPOS, RESPOS, RESPOS, and RESPOS, to MRES	{sep}{origAaLong}{pos}, {skipAa}([1-9][0-9]*), {skipAa}([1-9][0-9]*), and {skipAa}([1-9][0-9]*), to {mutAaLong}
+dbSnp	dbSnp	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})

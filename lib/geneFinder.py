@@ -788,6 +788,18 @@ alreadyEntrez = set(["entrez", "geneName", "symbol", "symbolMaybe", "entrezDb", 
 
 blatClient = None
 
+def entrezToDispSymbol(entrezId):
+    """ resolve entrez Id to gene symbol for display purposes. 
+    Can return a /-separated list, if resolution entrez -> HGNC symbol is not unique.
+    """
+    if entrezToSym==None:
+        loadMappings()
+    syms = []
+    for entrezStr in entrezId.split("/"):
+        entrezId = int(entrezStr)
+        syms.append(entrezToSym.get(entrezId, "invalidEntrezId"))
+    return "/".join(syms)
+
 def entrezSymbol(entrezId):
     " resolve entrez Id to gene symbol "
     if entrezToSym==None:

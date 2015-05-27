@@ -1,10 +1,13 @@
 import pubNlp, geneFinder, unidecode
 import string, re, logging
 
+# a special pubtools library
+import varFinder
+
 headers = ["start", "end", "section", "drugs", "diseases", "genes", "variants", "sentence"]
 
 aaList =  '[CISQMNPKDTFAGHLRWVEYX]'
-mutRe = re.compile("(^|[ .,;(])[CISQMNPKDTFAGHLRWVEYX][0-9]+[CISQMNPKDTFAGHLRWVEYX]([ ;,.)]|$)")
+mutRe = re.compile("(^|[ .,;(-])([CISQMNPKDTFAGHLRWVEYX])([0-9]+)([CISQMNPKDTFAGHLRWVEYX])([ ;,.)-]|$)")
 
 # these look like mutations but are definitely not mutations
 blackList = [
@@ -95,7 +98,7 @@ def rangeTexts(text, rangeList, useSym=False):
         start, end = el[:2]
         if useSym:
             entrezId = el[-1]
-            sym = geneFinder.entrezSymbol(entrezId)
+            sym = geneFinder.entrezToDispSymbol(entrezId)
             snip = sym
         else:
             snip = text[start:end]
@@ -105,14 +108,14 @@ def rangeTexts(text, rangeList, useSym=False):
 # translation table to remove some spec characters for desc string
 descTbl = string.maketrans('-|:', '   ')
 
-def rangeDescs(text, rangeList):
+def rangeDescs(text, rangeList, useSym=False):
     """
     given a list of (start, end, identifier) tuples, return a string "start-end:text=identifier|..."
     >>> rangeDescs("Hallo World!", [(0,5, "word1"), (6,13, "word2")])
     '0-5:Hallo=word1|6-13:World!=word2'
     """
     descs = []
-    snips = rangeTexts(text, rangeList)
+    snips = rangeTexts(text, rangeList, useSym=useSym)
     for snip, rangeTuple in zip(snips, rangeList):
         start, end, ident = rangeTuple[:3]
         snip = unidecode.unidecode(snip)
@@ -122,14 +125,16 @@ def rangeDescs(text, rangeList):
 
 def startup(paramDict):
     geneFinder.initData(exclMarkerTypes=["dnaSeq", "band"])
+    varFinder.loadDb(loadSequences=False)
     
 def findDisGeneVariant(text):
     """
     >>> geneFinder.initData(exclMarkerTypes=["dnaSeq", "band"])
+    >>> varFinder.loadDb(loadSequences=False)
     >>> list(findDisGeneVariant("Diabetes is caused by a PITX2 mutation, V234T and influenced by Herceptin."))
-    [(0, 74, 'unknown', '64-73:Herceptin=Trastuzumab', '0-8:Diabetes=Diabetes Mellitus', '24-29:PITX2=symbol', ' V234T ', 'Diabetes is caused by a PITX2 mutation, V234T and influenced by Herceptin.')]
-    >>> list(findDisGeneVariant("We undertook a quantitative review of the literature to estimate the effectiveness of desferrioxamine and deferiprone in decreasing hepatic iron concentrations (HIC) in thalassemia major."))
-    []
+    [(0, 74, 'probablyAbstract', '64-73:Herceptin=Trastuzumab', '0-8:Diabetes=Diabetes Mellitus', '24-29:PITX2=symbol', 'V233T', 'Diabetes is caused by a PITX2 mutation, V234T and influenced by Herceptin.')]
+    >>> #list(findDisGeneVariant("We undertook a quantitative review of the literature to estimate the effectiveness of desferrioxamine and deferiprone in decreasing hepatic iron concentrations (HIC) in thalassemia major."))
+    >>> list(findDisGeneVariant("his mutation, we cotransfected C3H10T cells with expression vectors encoding SMO-WT or SMO-D473H "))
     """
     for section, start, end, sentence in pubNlp.sectionSentences(text):
         conds = list(pubNlp.findDiseases(sentence))
@@ -140,31 +145,40 @@ def findDisGeneVariant(text):
         drugs = rangeRemoveOverlaps(drugs, genes)
         conds = rangeRemoveOverlaps(conds, genes)
 
-        geneSnips = rangeTexts(sentence, genes, useSym=True)
-        condSnips = rangeTexts(sentence, conds)
-        drugSnips = rangeTexts(sentence, drugs)
-
-        mutMatches =  list(mutRe.finditer(sentence))
-        mutDescs = [m.group() for m in mutMatches]
-        mutDescSet = set(mutDescs)
-        blackListMuts = mutDescSet.intersection(blackListStr)
-        if len(mutMatches)==0:
-            logging.debug("No mutation found, skipping")
-            continue
-        if len(blackListMuts)!=0:
-            logging.debug("At least one blacklisted mutation found, skipping")
-            continue
-        if len(drugs)==0:
-            logging.debug("No drugs found, skipping")
-            continue
-        if len(genes)==0:
-            logging.debug("No genes found, skipping")
-            continue
+        #geneSnips = rangeTexts(sentence, genes, useSym=True)
+        #condSnips = rangeTexts(sentence, conds)
+        #drugSnips = rangeTexts(sentence, drugs)
+#
+        mutDescs = []
+        mutDict = varFinder.findVariantDescriptions(sentence)
+        if "prot" in mutDict:
+            for mut in mutDict["prot"]:
+                varDesc, mentions = mut
+                if varDesc.mutType!="sub":
+                    continue
+                mutDescs.append(varDesc.origSeq+str(varDesc.start+1)+varDesc.mutSeq) # 0-based!!
+            
+        #mutMatches =  list(mutRe.finditer(sentence))
+        #mutDescs = [(m.group(1),m.group(2), m.group(3)) for m in mutMatches]
+        #mutDescSet = set(mutDescs)
+        #blackListMuts = mutDescSet.intersection(blackListStr)
+        #if len(mutMatches)==0:
+            #logging.debug("No mutation found, skipping")
+            #continue
+        #if len(blackListMuts)!=0:
+            #logging.debug("At least one blacklisted mutation found, skipping")
+            #continue
+        #if len(drugs)==0:
+            #logging.debug("No drugs found, skipping")
+            #continue
+        #if len(genes)==0:
+            #logging.debug("No genes found, skipping")
+            #continue
     
         mutDesc = "|".join(mutDescs)
         drugDesc = rangeDescs(sentence, drugs)
         condDesc = rangeDescs(sentence, conds)
-        geneDesc = rangeDescs(sentence, genes)
+        geneDesc = rangeDescs(sentence, genes, useSym=True)
 
         ret = (start, end, section, drugDesc, condDesc, geneDesc, mutDesc, sentence)
         yield ret

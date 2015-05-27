@@ -14,6 +14,7 @@ from pubSeqTables import threeToOneLower, threeToOne, oneToThree, aaToDna, dnaTo
 from pycbio.hgdata.Psl import Psl
 import pslMapBed, pubAlg, maxbio, pubConf, maxCommon
 
+regexes = None
 # ===== DATA TYPES ========
 Mention = namedtuple("Mention", "patName,start,end")
 
@@ -82,6 +83,7 @@ geneData = None
 
 # these look like mutations but are definitely not mutations
 blackList = set([
+    ("E", 2, "F"), # genes
     ("D", 11, "S"), # satellites
     ("D", 12, "S"),
     ("D", 13, "S"),
@@ -115,11 +117,12 @@ blackList = set([
 
 # ===== FUNCTIONS TO INIT THE GLOBALS =================
 
-def loadDb():
-    global geneData
-    geneData = SeqData(pubConf.geneDataDir, 9606)
+def loadDb(loadSequences=True):
+    if loadSequences:
+        global geneData
+        geneData = SeqData(pubConf.geneDataDir, 9606)
     global regexes
-    regexes = parseRegex(pubConf.geneDataDir)
+    regexes = parseRegex(join(pubConf.staticDataDir, "variants"))
     logging.info("Blacklist has %d entries" % len(blackList))
 
 # ===== CLASSES =================
@@ -393,8 +396,8 @@ class VariantDescription(object):
         It can optionally include a sequence ID, when the sequence ID was part of the 
         mutation description in the text, e.g. the HGVS "NM_000925:p.R123S"
 
-    >>> VariantDescription("sub", "prot", 0, 10, "R", "S")
-    VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'0',end=u'10',origSeq=u'R',mutSeq=u'S')
+    >>> VariantDescription("sub", "prot", 10, 11, "R", "S")
+    VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'10',end=u'11',origSeq=u'R',mutSeq=u'S')
     """
     __slots__=VariantFields
 
@@ -594,7 +597,11 @@ def parseMatchRsId(match, patName):
     groups = match.groupdict()
     mutType = "dbSnp"
     rsId = groups["rsId"]
-    chrom, start, end = geneData.rsIdToGenome(rsId)
+    if geneData!=None:
+        chrom, start, end = geneData.rsIdToGenome(rsId)
+    else:
+        chrom, start, end = "dbSnpNotLoaded", 0, 0
+
     if chrom==None:
         return None
     var = VariantDescription("dbSnp", "dbSnp", start, end, chrom, "rs"+rsId)
@@ -674,6 +681,9 @@ def findVariantDescriptions(text, exclPos=set()):
     >>> findVariantDescriptions("The R71G BRCA1 mutation is really a p.R71G mutation")
     {'prot': [(VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'70',end=u'71',origSeq=u'R',mutSeq=u'G'), [Mention(patName=u'{sep}p\\\\.\\\\(?{origAaShort}{pos}{mutAaShort}{fs}', start=35, end=42), Mention(patName=u'{sep}{origAaShort}{pos}{mutAaShort}', start=3, end=8)])]}
     """
+    if regexes==None:
+        loadDb()
+
     exclPos = set(exclPos)
     varMentions = defaultdict(list)
     varDescObj = {}
