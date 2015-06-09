@@ -1,0 +1,17 @@
+21980353 # PMC test article from Plos ONE, haeussler bergman, 7 supplements, stripped
+25274305 # Modern Nature article with 4 supplements, stripped
+25294897 # clin cancer research '14, highwire, 2 supplements, CONSORT eps and pdf, stripped
+16278407 # clin cancer res 2005, free full text, 2 supplements
+20967753 # Wiley, new style, 2 supplements, stripped html
+8536951  # Wiley, no html, stripped?
+25496030 # wiley '14, 2 suppl files, stripped
+25853659 # NEJM 2015, two suppl files, html is stripped
+25691244 # New Highwire: EMBO, missing review process, one suppl file, which is inline, stripped
+25828096 # New highwire, EMBO journal '15, with suppl zip files and a review process PDF, stripped html
+22955920 # New Highwire: Blood 2012, cannot get any supplements, stripped?
+20439987 # old Highwire, JBC 2010, stripped
+20439987 # elsevier, cancer cell 2010, 3 supplemental files, stripped
+21617504 # wolters kluwer 2011, suppl file
+8636223  # old Highwire Rupress with direct link to PDF, no html fulltext
+8428542  # silverchair Chest with no html
+25321320 # silverchair Chest with one supp, stripped
