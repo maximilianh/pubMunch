@@ -201,7 +201,7 @@ def compileREs(addOptional=False):
         wormbaseRe = re.compile(r'%s(?P<id>(WBGene[0-9]{8}|WP:CE[0-9]{5}))' % (startSepDash))
         sgdRe = re.compile(r'%s(?P<id>Y[A-Z]{2}[0-9]{3}[CW](-[AB])?|S[0-9]{9})' % (startSepDash))
         zfinRe = re.compile(r'%s(?P<id>ZDB-GENE-[0-9]{6,8}-[0-9]{2,4})' % (startSepDash))
-        clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8}' % startSepDash)
+        clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8})' % startSepDash)
 
         # a more or less random selection, not sure if this is really necessary
         global reqWordDict
@@ -265,6 +265,15 @@ def readBestWords(fname, count):
             break
     return set(vals)
 
+def parseKeyValList(fname):
+    " parse a text file in the format key<tab>val1|val2|... and return as dict of key -> list of values "
+    data = dict()
+    for line in open(fname):
+        key, valStr = line.rstrip("\n").split("\t")[:2]
+        vals = valStr.split("|")
+        data[key] = vals
+    return data
+
 def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
     """ compile regexes and read filter files.
     
@@ -307,9 +316,11 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
         # special case for bands
         if markerType=="band":
             global bandToEntrezSyms
-            fname = join(GENEDATADIR, "bandToEntrez.marshal.gz")
+            #fname = join(GENEDATADIR, "bandToEntrez.marshal.gz")
+            fname = join(GENEDATADIR, "bandGenes.tab")
             logging.info("Loading %s" % fname)
-            bandToEntrezSyms = marshal.loads(gzip.open(fname).read())
+            #bandToEntrezSyms = marshal.loads(gzip.open(fname).read())
+            bandToEntrezSyms = parseKeyValList(fname)
 
         # special case for gene symbols
         if markerType=="symbol" or markerType=="symbolMaybe":
@@ -376,7 +387,7 @@ def pmidDbLookup(pmid):
 def splitGenbankAcc(acc):
     """ split a string like AY1234 into letter-number tuple, e.g. (AY, 1234)
     >>> splitGenbankAcc("AY1234")
-    ('AY', 1234, 4)
+    ('AY', '1234', 4)
     """
     matches = list(re.finditer(r"([A-Z]+)([0-9]+)", acc))
     # re2 has trouble with the .match function
@@ -384,7 +395,7 @@ def splitGenbankAcc(acc):
         return None
     match = matches[0]
     letters, numbers = match.groups()
-    return (letters, int(numbers), len(numbers))
+    return (letters, numbers, len(numbers))
 
 def iterGenbankRows(markerRe, markerType, text):
     """ generate match rows for a list like <id1>-<id2> 
@@ -402,6 +413,8 @@ def iterGenbankRows(markerRe, markerType, text):
 
         let1, num1, digits1 = splitGenbankAcc(id1)
         let2, num2, digits2 = splitGenbankAcc(id2)
+        num1 = int(num1)
+        num2 = int(num2)
         if let1!=let2 or digits1!=digits2:
             continue
         if (num2-num1) > MAXGBLISTCOUNT:

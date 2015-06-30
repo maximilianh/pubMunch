@@ -42,23 +42,25 @@ def annotateFile(article, file):
     if len(text)>100000:
         return
 
-    for section, sentStart, sentEnd, sent in pubNlp.sectionSentences(text, file.fileType, mustHaveVerb=False):
-        if len(sent)<20:
-            logging.debug("Sentence too short: %d characters" % len(text))
-            continue
-        if len(sent)>2000:
-            logging.debug("Sentence too long: %d characters" % len(text))
-            continue
+    if reqStrings!=None:
+        found = False
+        #sentLower = sent.lower()
+        textLower = text.lower()
+        for rs in reqStrings:
+            if text.find(rs)!=-1:
+            #if sentLower.find(rs)!=-1:
+                found = True
+                break
+        if not found:
+            return
 
-        if reqStrings!=None:
-            found = False
-            sentLower = sent.lower()
-            for rs in reqStrings:
-                if sentLower.find(rs)!=-1:
-                    found = True
-                    break
-            if not found:
-                continue
+    for section, sentStart, sentEnd, sent in pubNlp.sectionSentences(text, file.fileType, mustHaveVerb=False):
+        #if len(sent)<20:
+            #logging.debug("Sentence too short: %d characters" % len(text))
+            #continue
+        #if len(sent)>2000:
+            #logging.debug("Sentence too long: %d characters" % len(text))
+            #continue
 
         found = True
         posList = []

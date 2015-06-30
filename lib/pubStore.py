@@ -10,7 +10,7 @@
 # xxxx.files, xxxx.articles
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
-import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator
+import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator, types
 import zipfile, gzip, re, random, tempfile, copy
 try:
     import sqlite3
@@ -246,7 +246,9 @@ def removeTabNl(var):
     # there are more newlines than just \n and \m when one is using the 
     # 'for line in file' construct in python
     # so we do this
-    cleanString = " ".join(unicode(var).splitlines()).replace("\t", " ")
+    if type(var)==types.IntType:
+        return str(var)
+    cleanString = " ".join(var.splitlines()).replace("\t", " ")
     #logging.debug("cleaned string is %s" % repr(newStr))
     return cleanString
 

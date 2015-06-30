@@ -1550,31 +1550,34 @@ def indexAccsGenbank():
 
 def indexAccsUniprot():
     " read uniprot ID file and write accessions to sqlite database "
-    idUrl = "/hive/data/outside/uniProtCurrent/idmapping_selected.tab.gz"
-    idFname = join(pubConf.getTempDir(), "uniprotIdMap.tab.gz")
-    downloadToTmp(idUrl, idFname)
+    # cannot use this file, it doesn't include old accessions, only the current ones
+    #idUrl = "/hive/data/outside/uniProtCurrent/idmapping_selected.tab.gz"
+    #idFname = join(pubConf.getTempDir(), "uniprotIdMap.tab.gz")
+    #downloadToTmp(idUrl, idFname)
 
-    #idFname = "test.tab.gz"
-    logging.info("Reading %s" % idFname)
-    dbFname = join(pubConf.accDataDir, "uniprot")
+    dbFname = join(pubConf.accDataDir, "uniprotNew")
 
-    db = pubKeyVal.SqliteKvDb(dbFname, singleProcess=True, newDb=True, onlyKey=True, tmpDir=pubConf.getFastTempDir())
+    db = pubKeyVal.SqliteKvDb(dbFname, singleProcess=True, newDb=True, tmpDir=pubConf.getFastTempDir())
     logging.info("writing to %s, a tempfile on ram disk" % db.dbName)
     lastAcc = None
     i = 0
-    accs = []
-    for line in gzip.open(idFname):
-        acc = string.split(line, "\t", maxsplit=1)[0]
-        if acc==lastAcc:
-            continue
-        accs.append(acc)
-        if i%100000==0:
-            db.add(accs)
-            print "Wrote %d accessions" % i
-            accs = []
-        lastAcc = acc
-        i+=1
-    db.add(accs)
+    newTuples = []
+    fnames = ["uniprot.tab", "uniprotTrembl.tab"]
+    #fnames = ["uniprot.9606.tab"]
+    for fname in fnames:
+        path = join(pubConf.dbRefDir, fname)
+        logging.info("Reading %s" % path)
+        for row in maxCommon.iterTsvRows(path):
+            accs = row.accList.split("|")
+            refs = row.refSeq
+            for acc in accs:
+                newTuples.append((acc, refs))
+                i+=1
+            if len(newTuples)>100000:
+                db.update(newTuples)
+                print "Wrote %d accessions" % i
+                newTuples = []
+    db.update(newTuples)
 
     db.close()
     logging.info("wrote %d accessions to %s.sqlite" % (i, dbFname))

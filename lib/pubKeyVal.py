@@ -1,5 +1,5 @@
 from os.path import join, dirname, basename, isdir, isfile, abspath
-import logging, random, socket, atexit, sqlite3, os, time, shutil
+import logging, random, socket, atexit, sqlite3, os, time, shutil, types
 
 import maxCommon, maxTables
 
@@ -171,11 +171,12 @@ class RedisDb(object):
         #self.redis.shutdown()
 
 class SqliteKvDb(object):
-    """ wrapper around sqlite to create an on-disk key/value database
+    """ wrapper around sqlite to create an on-disk key/value database (or just keys)
         On ramdisk, this can write 40k pairs / sec, tested on 40M uniprot pairs  
     """
-    def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None):
+    def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None, onlyKey=False):
         self.finalDbName = None
+        self.onlyKey = onlyKey
         self.dbName = "%s.sqlite" % fname
         if newDb and isfile(self.dbName):
             os.remove(self.dbName)
@@ -188,9 +189,10 @@ class SqliteKvDb(object):
             self.finalDbName = self.dbName
             #self.dbName = join(pubConf.getFastTempDir(), basename(self.dbName))
             self.dbName = join(tmpDir, basename(self.dbName))
+            logging.debug("Creating new temp db on ramdisk %s" % self.dbName)
             if isfile(self.dbName):
                 os.remove(self.dbName)
-            maxCommon.delOnExit(self.dbName)
+            maxCommon.delOnExit(self.dbName) # make sure this is deleted on exit
             self.con = sqlite3.connect(self.dbName, isolation_level=isolLevel)
         else:
             try:
@@ -198,14 +200,20 @@ class SqliteKvDb(object):
             except sqlite3.OperationalError:
                 logging.warn("Could not open %s" % self.dbName)
 
-        self.con.execute("create table IF NOT EXISTS data (key PRIMARY KEY,value)")
+        logging.debug("Opening sqlite DB %s" % self.dbName)
+
+        if onlyKey:
+            self.con.execute("Create table IF NOT EXISTS data (key PRIMARY KEY)")
+        else:
+            self.con.execute("Create table IF NOT EXISTS data (key PRIMARY KEY,value)")
+
         self.cur = self.con
         if singleProcess:
             self.cur.execute("PRAGMA synchronous=OFF") # recommended by
             self.cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
-            self.cur.execute("PRAGMA cache_size=800000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+            self.cur.execute("PRAGMA cache_size=20000000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
             self.cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
-            self.cur.execute("PRAGMA temp_store=memory") 
+            self.cur.execute("PRAGMA temp_store=memory")
             self.con.commit()
     
     def get(self, key, default=None):
@@ -229,7 +237,8 @@ class SqliteKvDb(object):
         if self.con.execute("select key from data where key=?",(key,)).fetchone():
             self.con.execute("update data set value=? where key=?",(item,key))
         else:
-            self.con.execute("INSERT OR REPLACE INTO data (key,value) VALUES (?,?)",(key, item))
+            #self.con.execute("INSERT OR REPLACE INTO data (key,value) VALUES (?,?)",(key, item))
+            self.con.execute("INSERT INTO data (key,value) VALUES (?,?)",(key, item))
 
         self.con.commit()
                
@@ -240,15 +249,28 @@ class SqliteKvDb(object):
         else:
              raise KeyError
              
+    def add(self, keys):
+        " can only be used if db has been opened with onlyKey=True "
+        assert(self.onlyKey==True) # you can only use this on onlyKey-databases
+        assert(type(keys)==types.ListType) # only lists please
+        if len(keys)==0:
+            return
+        sql = "INSERT INTO data (key) VALUES (?)"
+        keys = [(k,) for k in keys]
+        self.cur.executemany(sql, keys)
+        self.cur.commit()
+        
     def update(self, keyValPairs):
         sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
         self.cur.executemany(sql, keyValPairs)
-        self.con.commit()
+        self.cur.commit()
         
     def keys(self):
         return [row[0] for row in self.con.execute("select key from data").fetchall()]
 
     def close(self):
+        self.con.commit()
+        self.con.close()
         if self.finalDbName!=None:
             logging.info("Copying %s to %s" % (self.dbName, self.finalDbName))
             shutil.copy(self.dbName, self.finalDbName)

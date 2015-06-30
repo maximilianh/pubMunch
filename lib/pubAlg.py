@@ -601,7 +601,7 @@ def runAnnotate(reader, alg, paramDict, outName):
             outFh, tmpFnames = newTempOutFile(tmpFnames, outName, alg, addFields)
             continue
             
-        row = [pubStore.removeTabNl(unicode(x)) for x in row]
+        row = [pubStore.removeTabNl(x) for x in row]
         line = "\t".join(row)
         outFh.write(line)
         outFh.write("\n")

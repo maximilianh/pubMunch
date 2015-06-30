@@ -544,6 +544,9 @@ classFname = join(pubsDataDir, "classify", "crawler-elsevier-pmc", "docClasses.t
 
 # GENE AND MUTATION RECOGNIZERS ===========================
 
+# directory with lists of accessions
+accDataDir = join(staticDataDir, "accessions")
+
 # directory with lots of data about genes
 geneDataDir = join(staticDataDir, "genes")
 
