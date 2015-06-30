@@ -6,12 +6,13 @@
 
 # load default python packages
 import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, gdbm, re, zlib, cPickle
-import types
+import types, string
 import struct, itertools, dumbdbm
 import urllib, urllib2
 import xml.etree.ElementTree as et
 from os.path import *
 from collections import defaultdict
+from datetime import date
 
 import bedLoci
 import unidecode
@@ -23,7 +24,8 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubConf, pubGeneric, util, maxbio, maxCommon, pslMapBed, pubEutils
+import pubConf, pubGeneric, util, maxbio, maxCommon, pslMapBed, pubEutils, geneFinder
+import pubKeyVal
 from maxCommon import runCommand, makeOrCleanDir
 from os.path import *
 from pycbio.hgdata import Psl
@@ -39,7 +41,8 @@ allSteps = ["genePmids", "entrez", "refseq", "seqs",
     "omim",
     "geneNames", "geneDict", 
     "lociNames", "bandLoci",
-    "cells"
+    "cells", 
+    "accsGenbank", "accsUniprot", "accsPdb"
     ]
 
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
@@ -50,6 +53,14 @@ Output goes to directory {}.
 
 Possible steps are:
 {}
+
+For accession finding:
+- geneNames: do the raw parsing of the entrez/hugo/uniprot databases
+- lociNames: split hg19 into separate loci around exons and assign them to gene symbols
+- bandLoci: get cytogenetic bands from hg19 and using lociNames, assign them to genes in them
+- accsGenbank: parse genbank accession format
+- accsUniprot: index uniprot accessions into sqlite db
+- accsPdb: index pdb accessions into text file
 
 For the gene dictionary:
 - geneNames: do the raw parsing of the entrez/hugo/uniprot databases
@@ -1023,7 +1034,7 @@ def cleanupNames(descToAccs):
             continue
         newName = " ".join(name.split()[:-1])
         if newName.lower() in bncWords:
-            commonWords.append(newName)
+            commonWords.add(newName)
             continue
         noNumbers[newName].update(accs)
         numCount +=1
@@ -1389,10 +1400,10 @@ def makeBandLoci():
 
     logging.info("band-gene mapping written as table to %s" % bandLociTab)
 
-    ascData = marshal.dumps(bandToEntrezList)
-    outFname = join(pubConf.geneDataDir, "bandToEntrez.marshal.gz")
-    gzip.open(outFname, "w").write(ascData)
-    logging.info("band->entrez mapping written as binary to %s" % outFname)
+    #ascData = marshal.dumps(bandToEntrezList)
+    #outFname = join(pubConf.geneDataDir, "bandToEntrez.marshal.gz")
+    #gzip.open(outFname, "w").write(ascData)
+    #logging.info("band->entrez mapping written as binary to %s" % outFname)
 
 def makeGeneDict():
     """ create fastFind dict for genes: 
@@ -1454,13 +1465,18 @@ def mapRefseqOldToNewLoad(seqType, taxId):
     mapOldRefseqToNewRefseqIndex(seqType, faFname, taxId, pslDbmFname)
     loadFaSeqs(faFname)
 
-def makeCellNames():
-    " parse cellosaurus to get cell line names "
-    url = "ftp://ftp.nextprot.org/pub/current_release/controlled_vocabularies/cellosaurus.txt"
-    tmpFname = join(pubConf.getTempDir(), "cellosaurus.txt")
+def downloadToTmp(url, tmpFname):
     if not isfile(tmpFname):
+        logging.info("Downloading %s to %s" % (url, tmpFname))
         cmd = "wget %s -O %s" % (url, tmpFname)
         maxCommon.runCommand(cmd)
+        maxCommon.delOnExit(tmpFname)
+
+def makeCellNames():
+    " parse cellosaurus to get cell line names, need to copy/paste into source file "
+    url = "ftp://ftp.nextprot.org/pub/current_release/controlled_vocabularies/cellosaurus.txt"
+    tmpFname = join(pubConf.getTempDir(), "cellosaurus.txt")
+    downloadToTmp(url, tmpFname)
 
     names = []
     for line in open(tmpFname):
@@ -1483,6 +1499,107 @@ def makeCellNames():
             likeMuts.append( (let1, num, let2) )
     print likeMuts
 
+# ========= IMPORTING ACCESSIONS =======
+
+def getLivelistUrl():
+    """
+    return most current genbank livelist url
+    >>> u = livelistUrl()
+    >>> # check if url is valid
+    >>> urllib2.urlopen(u).url[-1]
+    'z'
+    """
+    d = date.today().toordinal()
+    last = d - 6
+    sunday = last - (last % 7)
+    #saturday = sunday + 6
+    sunday = date.fromordinal(sunday)
+    url = "http://ftp.ncbi.nih.gov/genbank/livelists/GbAccList.%02d%02d.%d.gz" % (sunday.month, sunday.day, sunday.year)
+    return url
+
+def indexAccsGenbank():
+    " parse the current genbank livelist and write a file with the number of digits for each prefix "
+    #liveListFname = "/hive/data/outside/genbank.133/GbAccList.0621.2015.gz"
+    liveListUrl = getLivelistUrl()
+    tmpFname = join(pubConf.getTempDir(), "GbAccList.gz")
+    logging.info("Downloading %s to %s and parse, takes a few hours" % liveListUrl, tmpFname)
+    downloadToTmp(liveListUrl, tmpFname)
+
+    # parse input file
+    accLens = defaultdict(set)
+    accs = []
+    i = 0
+    for line in gzip.open(tmpFname):
+        i +=1 
+        if i%100000==0:
+            print "Read %d accessions" % i
+            accs = []
+        acc = line.split(",")[0]
+        accChars, accDigits, _ = geneFinder.splitGenbankAcc(acc)
+        accLens[accChars].add(len(accDigits))
+            
+    # now write to text file
+    dbInfoFname = join(pubConf.accDataDir, "genbankFormat.txt")
+    ofh = open(dbInfoFname, "w")
+    for prefix, digits in accLens.iteritems():
+        row = [prefix, "|".join([str(x) for x in digits])]
+        ofh.write("\t".join(row))
+        ofh.write("\n")
+    ofh.close()
+    logging.info("Wrote genbank format for %d accessions to %s" % (i, dbInfoFname))
+
+def indexAccsUniprot():
+    " read uniprot ID file and write accessions to sqlite database "
+    idUrl = "/hive/data/outside/uniProtCurrent/idmapping_selected.tab.gz"
+    idFname = join(pubConf.getTempDir(), "uniprotIdMap.tab.gz")
+    downloadToTmp(idUrl, idFname)
+
+    #idFname = "test.tab.gz"
+    logging.info("Reading %s" % idFname)
+    dbFname = join(pubConf.accDataDir, "uniprot")
+
+    db = pubKeyVal.SqliteKvDb(dbFname, singleProcess=True, newDb=True, onlyKey=True, tmpDir=pubConf.getFastTempDir())
+    logging.info("writing to %s, a tempfile on ram disk" % db.dbName)
+    lastAcc = None
+    i = 0
+    accs = []
+    for line in gzip.open(idFname):
+        acc = string.split(line, "\t", maxsplit=1)[0]
+        if acc==lastAcc:
+            continue
+        accs.append(acc)
+        if i%100000==0:
+            db.add(accs)
+            print "Wrote %d accessions" % i
+            accs = []
+        lastAcc = acc
+        i+=1
+    db.add(accs)
+
+    db.close()
+    logging.info("wrote %d accessions to %s.sqlite" % (i, dbFname))
+
+def indexAccsPdb():
+    " download list of PDB accessions into a key-val tab file, adding obsolete accessions, format oldAcc->newAcc "
+    outFname = join(pubConf.accDataDir, "pdb.txt")
+    ofh = open(outFname, "w")
+    url = "http://ftp.wwpdb.org/pub/pdb/derived_data/pdb_entry_type.txt"
+    i = 0
+    for line in urllib2.urlopen(url):
+        acc = line.split()[0]
+        ofh.write("%s\t%s\n" % (acc, acc))
+        i+=1
+
+    url = "ftp://ftp.wwpdb.org/pub/pdb/data/status/obsolete.dat"
+    for line in urllib2.urlopen(url):
+        if "LIST OF" in line:
+            continue
+        oldAcc, newAcc = line.split()[-2:]
+        ofh.write("%s\t%s\n" % (oldAcc.lower(), newAcc.lower()))
+        i+=1
+
+    ofh.close()
+    logging.info("wrote %d accessions to %s" % (i, outFname))
 
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
@@ -1620,6 +1737,16 @@ def main(args, options):
 
     if step=="cells":
         makeCellNames()
+
+    if step=="accsGenbank":
+        indexAccsGenbank()
+
+    if step=="accsUniprot":
+        indexAccsUniprot()
+
+    if step=="accsPdb":
+        indexAccsPdb()
+
     #if step=="ncbi" or step=="all":
         #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz") 
         #logging.info("Parsing gene<->refseq ids out of %s" % entrezTabFname)
