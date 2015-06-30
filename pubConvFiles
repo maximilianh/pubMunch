@@ -38,9 +38,9 @@ Example:
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
-parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number times one hundred million to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pdfDir"])
+parser.add_option("", "--minId", dest="minId", action="store", type="int", help="numerical IDs written to the pubStore start at this number prevent overlaps of numerical IDs, default %default", default=pubConf.identifierStart["pdfDir"])
 parser.add_option("-p", "--parse", dest="parseFile", action="store", help="only parse a single file (for debugging)") 
-parser.add_option("", "--notPmid", dest="notPmid", action="store_true", help="filenames are not PMID.pdf but some other identifier. Will result in 0_articles.gz files without any meta information") 
+parser.add_option("", "--notPmid", dest="notPmid", action="store_true", help="filenames are not <PMID>.pdf but some other identifier. Will result in 0_articles.gz files without any meta information") 
 #parser.add_option("-e", "--encoding", dest="encoding", action="store", help="encoding to convert to, by default input is assumed to be in UTF8 and is also encoded as such") 
 (options, args) = parser.parse_args()
 
