@@ -90,6 +90,8 @@ def compileREs(addOptional=True):
     ecRe = re.compile(r'EC ? ?(?P<id>[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?)')
     # UniSTS Marker names
     stsRe = re.compile(r'(UniSTS|UNISTS|uniSTS) ?([aA]ccession|[Aa]ccession number|#|ID|[nN]o|[Nn]umber|[Nn]o.)?(:)? ?(?P<id>[0-9]{3,10})')
+    # MEROPS http://merops.sanger.ac.uk/cgi-bin/aaseq?mernum=MER000485
+    meropsRe = re.compile(r'(?P<id>MER[0-9]{6})')
 
     reDict = {"genbank": genbankRe,
               "genbankList": genbankListRe,
@@ -108,7 +110,8 @@ def compileREs(addOptional=True):
               "omim" : omimRe,
               "ec" : ecRe,
               "entrez" : entrezRe,
-              "sts" : stsRe
+              "sts" : stsRe,
+              "merops" : meropsRe
               }
 
     if addOptional:
