@@ -28,3 +28,10 @@ packWin:
 uploadWin:
 	#scp pubToolsWin64.zip max@hgwdev.soe.ucsc.edu:public_html/pubtools/
 	rsync pubToolsWin64.zip max@hgwdev.soe.ucsc.edu:public_html/pubtools/ --progress
+
+bigFiles:
+	tar cvfz bigFiles.tgz data/genes/* data/accessions/uniprot.sqlite
+	mv bigFiles.tgz ~/public_html/pubs/tools/
+
+data:
+	curl http://hgwdev.soe.ucsc.edu/~max/pubs/tools/bigFiles.tgz | tar xvz
