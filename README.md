@@ -35,7 +35,7 @@ Remember that all programs mentioned here accept the -d and -v options, which wi
 lots of debugging information. Many programs accept -c which specifies the cluster to use.
 You can either specify the "headnode" of a cluster, so the program will ssh onto it and run
 commands there. An alternative is to specify "localhost" to force running on the local machine,
-or "localhost:5" to use 5 CPUs for the processing.
+or "localhost:5" to use 5 local CPUs for the processing.
 
 # An example run
 
@@ -60,17 +60,19 @@ Convert crawled PDFs to text:
 
 This will convert html, xml, pdf, txt, ppt, doc, xls and some other file formats, if you have installed the necessary packages.
 
-# Output format
+# Text storage format
 
 To allow easy processing on a cluster of metadata and text separately, the tools store the text as gzipped tab-sep tables, split into *chunks* of several hundred rows each (configurable). There are two tables for each chunk:
 - articles.gz
 - files.gz
 
-The table "articles" contains basic information on articles. The internal article integer ID, an "external ID" (PII for Elsevier, PMID for crawled articles, Springer IDs for Springer articles, etc), the article authors, title, abstract, keywords, DOI, year, source of the article, fulltext URL, etc (see lib/pubStore.py for all fields). The internal article identifier (articleId) is a 10 digit number and is unique across all publishers. Duplicated articles (which can happen) will have different articleIds.
+These "chunks" are named <update>_<chunkId>.(articles|files).gz, e.g. 12_00001.articles.gz which would be update 12 part 1 metadata. Updates typically come in weekly or nightly, whenever you run a pubGetXXX program over an existing directory, the update counts will increase.
 
-The table "files" contains the files, one or more per article: the ASCII content string, the URL for each file, the date when it was downloaded, a MIME type etc. All files also have a column with the external identifier of the article associated to it. The internal fileID is the article identifier plus some additional digits. To get the article for a file, you can either use the externalID (like PMID12345) or the first 10 digits of fileId. 
+The file "articles" contains basic meta information on articles: the internal article integer ID, an "external ID" (PII for Elsevier, PMID for crawled articles, Springer IDs for Springer articles, etc), the article authors, title, abstract, keywords, DOI, year, source of the article, fulltext URL, etc (see lib/pubStore.py for all fields). The internal article identifier (articleId) is a 10 digit number and is unique across all publishers. Duplicated articles (which can happen) will have different articleIds.
 
-One article can have several main fulltext files and several supplemental files. It should have at least one main file (even though in an old version of the tables, there were articles without any file, this should be corrected by now). 
+The table "files" contains the files, one or more per article: the internal fileId integer ID and the internal article integer ID, the ASCII content string, the URL for each file, the date when it was downloaded, a MIME type etc. All files also have a column with a copy of the external identifier of the article. The internal fileID is the article identifier plus three additional digits. To get the article for a file, you can either use the externalID (like PMID12345) or the first 10 digits of fileId or the articleId column directly. To join article and file tables, use the articleId.
+
+One article can have several main fulltext files and several supplemental files. It should have at least one main file. 
 
 This format allows you to use the normal UNIX textutils. E.g. to search for all articles that contain the word HOXA2 and get their external IDs (which is the PMID for crawled data) you can use simply zgrep:
 
@@ -78,7 +80,7 @@ This format allows you to use the normal UNIX textutils. E.g. to search for all 
 
 As the files are sorted on the articleId, you can create a big table that includes both meta information and files in one table by gunzipping all files first and then running a join:
 
-    join 0_00000.articles 0_00000.files > textData.tab
+    join -1 1 0_00000.articles -2 3 0_00000.files > textData.tab
 
 # Annotator taggers
 
@@ -109,17 +111,19 @@ For a parasol cluster, the command looks like this:
 To use 10 local CPUs, run it like this: 
     pubRunAnnot foxFinder.py myCrawlText --cat foxFinderOut.tab --cluster localhost:10
 
-the tools will submit one cluster job for each chunk of articles. Each job will get one chunk of articles from the myCrawlText directory, parse the articles and files tables and run them through foxFinder.py. As our function yields fields called "start" and
+the tools will submit one cluster job for each chunk of articles. Each job will get one chunk of articles from the myCrawlText directory, parse the articles and files tables and run them through foxFinder.py. As our function yields rows where the first two fields are called "start" and
 "end", 150 characters around each FOXO1-match will be extracted and appended to
 the rows as a field "snippet".
 
-The results are written to gzipped tables with the columns articleId,
+The results are written to gzipped tables with the columns annotId,
 externalId, start, end, year, geneId and snippet. Since we provided the --cat
 option, once the cluster jobs are done, their results will be concatenated into
 one big table, foxFinderOut.tab. Depending on how big your cluster is, this can
 be a lot faster than running a grep.
 
-There is a collection of taggeres in the directory taggers/. 
+The article ID of an annotation row is the first 10 digits of the annotation ID. The file ID of the annotation row is the first 13 digits of the annotation ID.
+
+There is a collection of taggers in the directory taggers/. 
 
 These scripts can use Java classes. If the name of the script starts with "java", pubRunAnnot will run the script not in the normal python interpreter, but through Jython. That means that you can add .jar
 files to sys.path in your script and use the Java classes as you would use python classes.
@@ -167,11 +171,11 @@ write the result to a tab-sep table with columns "pmid" and "textLen".
 
 # Installation
 
-Install these packages in ubuntu:
+Install these packages on ubuntu:
     sudo apt-get install catdoc poppler-utils docx2text gnumeric python-lxml
 
 - catdoc contains various converters for Microsoft Office files
-- poppler-utils contains the pdftotext converter
+- poppler-utils contains one of the pdftotext converters
 - docx2text is a perl script for docx files
 - gnumeric includes the ssconvert tools for xslx Excel files
 - python-lxml is a fast xml/html parser
