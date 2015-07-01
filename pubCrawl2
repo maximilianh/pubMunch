@@ -29,6 +29,9 @@ def main(args, options):
     if options.outputHash:
         scrapeLib.TEST_OUTPUT = True
 
+    if options.skipLocalMedline:
+        scrapeLib.SKIPLOCALMEDLINE = True
+
     if options.tryHarder:
         scrapeLib.ERRWAIT = 0
         scrapeLib.MAXCONSECERR = 500
@@ -94,6 +97,8 @@ parser.add_option("", "--test", dest="testDoc", action="store_true", \
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
 
 parser.add_option("", "--hash", dest="outputHash", action="store_true", help="don't write files to disk, just output their SHA1 values. Used for automated testing.")
+
+parser.add_option("", "--noLocalMedline", dest="skipLocalMedline", action="store_true", help="do not use the local copy of Medline, always query Eutils through the internet")
 
 parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")
 

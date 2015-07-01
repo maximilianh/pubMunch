@@ -74,6 +74,9 @@ TEST_OUTPUT = False
 # None = not known yet
 DOWNLOADER = None
 
+# Always download meta information via eutils
+SKIPLOCALMEDLINE = False
+
 # GLOBALS 
 
 # global crawler delay config, values in seconds
@@ -989,129 +992,6 @@ def replaceUrl(landingUrl, landingUrl_pdfUrl_replace):
         newUrl = None
     return newUrl
 
-def findFulltextHtmlUrl(landingPage, crawlConfig):
-    " return URL to html fulltext derived from landing page "
-    landUrl = landingPage["url"]
-    # some landing pages contain the full article directly as html
-    if crawlConfig.get("landingPage_containsFulltext", False):
-        logging.debug("config says that fulltext html is on landing page")
-        return landUrl
-
-    if "landingUrl_isFulltextKeyword" in crawlConfig and \
-           crawlConfig["landingUrl_isFulltextKeyword"] in landUrl:
-                logging.debug("URL suggests that landing page is same as article html")
-                #fulltextData["main.html"] = landingPage
-                return landUrl
-
-    if "landingPage_ignoreUrlWords" in crawlConfig and \
-        containsAnyWord(landingPage["url"], crawlConfig["landingPage_ignoreUrlWords"]):
-        logging.debug("Found blacklist word in landing URL, ignoring article")
-        raise pubGetError("blacklist word in landing URL", "blackListWordUrl")
-
-    if "landingPage_ignorePageWords" in crawlConfig and \
-        containsAnyWord(landingPage["data"], crawlConfig["landingPage_ignorePageWords"]):
-        logging.debug("Found blacklist word, ignoring article")
-        raise pubGetError("blacklist word on landing page", "blackListWord")
-
-    ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
-
-    # some others can be derived by replacing strings in the landing url
-    if "landingUrl_fulltextUrl_replace" in crawlConfig:
-        ftUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_fulltextUrl_replace"])
-        logging.debug("Found fulltext url by repacing keywords")
-        return ftUrl
-
-    canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
-    landingPage = parseHtmlLinks(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
-
-    fulltextUrl = None
-    mainLinkNameREs = crawlConfig.get("landingPage_fulltextLinkTextREs", [])
-    links = landingPage["links"]
-    #logging.debug("Found putative fulltext links %s" % links)
-    for mainLinkNameRe in mainLinkNameREs:
-        for linkText, linkUrl in links.iteritems():
-            dbgStr = "Checking %s, %s against %s" % (unidecode.unidecode(linkText), linkUrl, mainLinkNameRe.pattern)
-            logging.log(5, dbgStr)
-            if mainLinkNameRe.match(linkText):
-                fulltextUrl = linkUrl
-                logging.debug("Found link to html fulltext: %s -> %s" % (linkText, linkUrl))
-    return fulltextUrl
-
-def findPdfFileUrl(landingPage, crawlConfig):
-    " return the url that points to the main pdf file on the landing page "
-    pdfUrl = None
-    # first parse the html 
-    if "links" not in landingPage:
-        ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
-        canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
-        landingPage = parseHtmlLinks(landingPage, canBeOffsite, landingPage_ignoreUrlREs=ignoreUrls)
-
-    links = landingPage["links"]
-    htmlMetas = landingPage["metas"]
-
-    # some pages contain meta tags to the pdf
-    if not crawlConfig.get("landingPage_ignoreMetaTag", False):
-        if "citation_pdf_url" in htmlMetas:
-            pdfUrl = htmlMetas["citation_pdf_url"]
-            logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
-            if not pdfUrl.startswith("http://"):
-                pdfUrl = urlparse.urljoin(landingPage["url"], pdfUrl)
-        else:
-            logging.debug("No citation_pdf_url on landing page %s" % landingPage["url"])
-        #if "wkhealth_pdf_url" in htmlMetas:
-            #pdfUrl = htmlMetas["wkhealth_pdf_url"]
-            #logging.debug("Found link to PDF in meta tag wkhealth_pdf_url: %s" % pdfUrl)
-        if pdfUrl!=None:
-            return pdfUrl
-
-    # some pdf urls are just a variation of the main url by appending something
-    if "landingUrl_pdfUrl_append" in crawlConfig:
-        pdfUrl = landingPage["url"]+crawlConfig["landingUrl_pdfUrl_append"]
-        logging.debug("Appending string to URL yields new URL %s" % (pdfUrl))
-        return pdfUrl
-
-    # some others can be derived by replacing strings in the landing url
-    if "landingUrl_pdfUrl_replace" in crawlConfig:
-        print crawlConfig["landingUrl_pdfUrl_replace"]
-        pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_pdfUrl_replace"])
-        logging.debug("Replacing strings in URL yields new URL %s" % (pdfUrl))
-        return pdfUrl
-
-    # if all of that doesn't work, parse the html and try all <a> links
-    if pdfUrl == None and "landingPage_pdfLinkTextREs" in crawlConfig:
-        pdfLinkNames = crawlConfig["landingPage_pdfLinkTextREs"]
-        for pdfLinkName in pdfLinkNames:
-            for linkText, linkUrl in links.iteritems():
-                if pdfLinkName.match(linkText):
-                    pdfUrl = linkUrl
-                    logging.debug("Found link to main PDF: %s -> %s" % (pdfLinkName.pattern, pdfUrl))
-
-    if pdfUrl==None and not crawlConfig.get("landingPage_acceptNoPdf", False):
-        raise pubGetError("main PDF not found", "mainPdfNotFound", landingPage["url"])
-
-    return pdfUrl
-
-def isErrorPage(landingPage, crawlConfig):
-    if not "landingPage_errorKeywords" in crawlConfig:
-        return False
-
-    if crawlConfig["landingPage_errorKeywords"] in landingPage["data"]:
-        logging.warn("Found error page, waiting for 15 minutes")
-        time.sleep(60*15)
-        return True
-    else:
-        return False
-
-    
-def noLicensePage(landingPage, crawlConfig):
-    " return True if page looks like a 'purchase this article now' page "
-    for stopPhrase in crawlConfig.get("landingPage_stopPhrases", []):
-        #logging.debug("Checking for stop phrases %s" % stopPhrase)
-        if stopPhrase in landingPage["data"]:
-            logging.debug("Found stop phrase %s" % stopPhrase)
-            return True
-    return False
-
 def blacklistIssnYear(outDir, issnYear, journal):
     " append a line to issnStatus.tab file in outDir "
     issn, year = issnYear
@@ -1519,25 +1399,6 @@ def checkIssnErrorCounts(pubmedMeta, ignoreIssns, outDir):
         raise pubGetError("a previous run disabled this issn+year", "issnErrorExceed", \
             "%s %s" % issnYear)
 
-def noMatches(landingUrl, hostnames):
-    " check if landing url contains none of the hostnames "
-    for hostname in hostnames:
-        if hostname in landingUrl:
-            return False
-    return True
-
-def stringRewrite(origString, crawlConfig, configKey):
-    " lookup a dict with pat, repl combinations and run them over origString through re.sub "
-    if crawlConfig==None or configKey not in crawlConfig:
-        return origString
-
-    string = origString
-    for pat, repl in crawlConfig[configKey].iteritems():
-        string = re.sub(pat, repl, string)
-
-    logging.debug("string %s was rewritten to %s" % (origString, string))
-    return string
-
 def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
     #>>> resolveDoi("10.1073/pnas.1121051109")
@@ -1553,32 +1414,6 @@ def resolveDoi(doi):
     trgUrl = page["url"]
     logging.debug("DOI %s redirects to %s" % (doi, trgUrl))
     return trgUrl
-
-def parseDirectories(outDirs):
-    """
-    iterates over all directories and collects data from
-    docIds.txt, issns.tab, crawler.txt, pmidStatus.tab and issnStatus.tab
-
-    return a three-tuple:
-    a list of (docId, outDir) from all outDirs, a set of docIds to skip,
-    a set of issns to skip 
-    """
-    docIds = [] # a list of tuples (docId, outDir)
-    ignoreDocIds = []
-    ignoreIssns = []
-    for srcDir in outDirs:
-        # do some basic checks on outDir
-        if not isdir(srcDir):
-            continue
-        srcDocIds = parseDocIds(srcDir)
-        if srcDocIds==None:
-            continue
-
-        docIds.extend(srcDocIds)
-        ignoreDocIds.extend(parseDocIdStatus(srcDir))
-        ignoreIssns.extend(parseIssnStatus(srcDir))
-
-    return docIds, ignoreDocIds, ignoreIssns
 
 def findCrawlers_article(artMeta):
     """
@@ -1617,6 +1452,33 @@ class Crawler():
         return 0
     def crawl(self, url):
         return None
+
+def parseDirectories(outDirs):
+    """
+    iterates over all directories and collects data from
+    docIds.txt, issns.tab, crawler.txt, pmidStatus.tab and issnStatus.tab
+
+    return a three-tuple:
+    a list of (docId, outDir) from all outDirs, a set of docIds to skip,
+    a set of issns to skip 
+    """
+    docIds = [] # a list of tuples (docId, outDir)
+    ignoreDocIds = []
+    ignoreIssns = []
+    for srcDir in outDirs:
+        # do some basic checks on outDir
+        if not isdir(srcDir):
+            continue
+        srcDocIds = parseDocIds(srcDir)
+        if srcDocIds==None:
+            continue
+
+        docIds.extend(srcDocIds)
+        ignoreDocIds.extend(parseDocIdStatus(srcDir))
+        ignoreIssns.extend(parseIssnStatus(srcDir))
+
+    return docIds, ignoreDocIds, ignoreIssns
+
 
 def findLinksByText(page, searchRe):
     " parse html page and return URLs in links with matches to given compiled re pattern"
@@ -1883,7 +1745,9 @@ class NpgCrawler(Crawler):
         return paperData
 
 class ElsevierCrawler(Crawler):
-    " sciencedirect.com is Elsevier's hosting platform "
+    """ sciencedirect.com is Elsevier's hosting platform 
+    This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
+    """
     name = "elsevier"
 
     def canDo_url(self, url):
@@ -2480,7 +2344,8 @@ def crawlOneDoc(artMeta, srcDir):
         raise pubGetError(errMsg, "noCrawler", landingUrl)
 
     artMeta["page"] = artMeta["page"].split("-")[0] # need only first page
-    artMeta["landingUrl"] = landingUrl
+    if landingUrl is not None:
+        artMeta["landingUrl"] = landingUrl
 
     for crawler in crawlers:
         logging.info("Trying crawler %s" % crawler.name)
@@ -2510,7 +2375,7 @@ def getArticleMeta(docId):
 
     haveMedline = pubConf.mayResolveTextDir("medline")
 
-    if haveMedline:
+    if haveMedline and not SKIPLOCALMEDLINE:
         artMeta = readLocalMedline(docId)
     if artMeta==None:
         artMeta = downloadPubmedMeta(docId)
