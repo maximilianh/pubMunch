@@ -1129,19 +1129,22 @@ def artIdToDatasetName(artId):
 
 def getArtDbPath(datasetName):
     """ return the sqlite database name with meta info of a dataset """
-    dataDir = pubConf.resolveTextDir(datasetName)
+    dataDir = pubConf.resolveTextDir(datasetName, mustFind=False)
+    if dataDir==None:
+        return None
     dbPath = join(dataDir, "articles.db")
     return dbPath
 
 conCache = {}
 def openArticleDb(datasetName):
+    " open an article sqlite DB, return (conn, cur) tuple "
     if datasetName in conCache:
         con, cur = conCache[datasetName]
     else:
         path = getArtDbPath(datasetName)
-        if not isfile(path):
-            #return None, None
-            raise Exception("Could not find %s" % path)
+        if path is None or not isfile(path):
+            logging.error("Could not find %s" % path)
+            return None, None
         logging.debug("Opening db %s" % path)
         con, cur = maxTables.openSqlite(path, asDict=True)
         conCache[datasetName] = (con,cur)
@@ -1155,24 +1158,29 @@ def lookupArticleByArtId(artId):
 
 connCache = {}
 
-def lookupArticleByPmid(datasets, pmid):
+def lookupArticleByPmid(datasets, pmid, preferLocal=True):
     """ convenience method to get article info given pubmed Id, caches db connections.
-        Uses eutils of local medline is not available
+        Uses eutils if local medline is not available and mustBeLocal is False
     """
     for dataset in datasets:
-        # keep cache of db connections
-        if not dataset in connCache:
-            con, cur = openArticleDb(dataset)
-            connCache[dataset] = con, cur
-        else:
-            con, cur = connCache[dataset]
+        con = None
+        if preferLocal:
+            # keep cache of db connections
+            if not dataset in connCache:
+                con, cur = openArticleDb(dataset)
+                if con is None and useLocalMedline:
+                    raise Exception("Could not find a local copy of Medline. Use a command line option to switch to remote NCBI Eutils lookups. For low-volume crawls (< 10000), remote lookups are sufficient.")
+                connCache[dataset] = con, cur
+            else:
+                con, cur = connCache[dataset]
 
-        if con!=None:
-            # we a local medline, lookup article locally
-            art = lookupArticle(con, cur, "pmid", pmid)
-        else:
-            # we don't have a local medline copy, use eutils
+        if con is None:
+            # we don't have a local database, use eutils
             art = pubPubmed.getOnePmid(pmid)
+        else:
+            # we have a local medline, lookup article locally
+            art = lookupArticle(con, cur, "pmid", pmid)
+
         if art!=None:
             return art
     return None

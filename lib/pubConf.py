@@ -613,10 +613,10 @@ def mayResolveTextDir(dataDir):
 
     return None
 
-def resolveTextDir(dataDir):
+def resolveTextDir(dataDir, mustFind=True):
     " check if dataDir exists, if not: try subdir with this name of textDir. abort if not found "
     fullPath = mayResolveTextDir(dataDir)
-    if fullPath == None:
+    if mustFind and fullPath == None:
         raise Exception("Could not resolve dataset %s to a directory" % dataDir)
     logging.debug("Resolved dataset name %s to dataset directory %s" % (dataDir, fullPath))
     return fullPath

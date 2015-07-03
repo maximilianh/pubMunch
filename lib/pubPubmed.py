@@ -375,6 +375,7 @@ def PubmedTestDoc():
 
 def getOnePmid(pmid):
     " fill out article data dict via eutils service for one single pmid "
+    #logging.debug("Getting article meta data from NCBI via Eutils for PMID %s" % str(pmid))
     articleDataList = list(ncbiEFetchGenerator([pmid]))
     if len(articleDataList)==0:
         logging.info("No data from Pubmed for PMID %s" % str(pmid))

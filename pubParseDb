@@ -939,8 +939,11 @@ def parseUniprot(db, inDir, outDir, taxonIds):
         pm.taskCompleted()
 
         entryTax = int(entryEl.find("organism/dbReference").attrib["id"])
-        if taxonIds!=None and entryTax not in taxonIds:
-            continue
+        if taxonIds==['all']: 
+            taxId = "all"
+        else:
+            if entryTax not in taxonIds:
+                continue
         entryOf, refOf, mutOf = outFhs[taxId]
 
         entryRow = parseRecInfo(entryEl, entry, isoSeqs)
@@ -983,10 +986,12 @@ def main(args, options):
         dbDir = pubConf.uniProtBaseDir
         #taxonIds = set(pubConf.uniProtTaxonIds)
         if len(args)==1:
-            raise Exception("Please specify a taxonId or list of taxonIds, like 9606")
+            raise Exception("Please specify a taxonId or list of taxonIds, like 9606, or 'all'")
 
         taxonIds = args[1]
-        if taxonIds:
+        if taxonIds=="all":
+            taxonIds = ['all']
+        else:
             taxonIds=[int(x) for x in taxonIds.split(",")]
         parseUniprot(db, dbDir, refDir, taxonIds)
     else:
