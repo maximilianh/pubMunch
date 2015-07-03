@@ -36,15 +36,19 @@ By default, only a variable "headers" and a function "annotateFile" is needed in
 the script contains classes to separate different functions, you need to add the class name, separated by
 a ":", like "dnaSearch.py:Annotate"
 
-<in> can be a directory or dataset name:
+Use the option -o to run plain text files through the annotators.
+
+Otherwise, <in> is a directory of tab-sep text files created by pubConvXXX converters.
+It can be relative to pubConf.datasetDir.
+pubRunAnnot will then:
 - search <in> for fulltext chunks (*.articles.gz and *.files.gz)
-- for each chunk submit a cluster job to write results to <out>
+- for each chunk submit a cluster or local job to write results to <out>
 
 """)
 
-parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout") 
+parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="Run plain text files through the annotator. <in> can be a single text file or a directory with .txt files")
+parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout")
 #parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
-parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="like --test, no cluster support and output to stdout. In addition, <in> can be a single text file or a directory with .txt files")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. doi or title. Option can be used several times", default=[])
 parser.add_option("-l", "--limit", dest="limitJobs", action="store", type="int", help="limit jobs to X concurrent jobs on the cluster")
 parser.add_option("-r", "--ram", dest="ram", action="store", type="int", help="request x GB of ram for the jobs on the cluster")
