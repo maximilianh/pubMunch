@@ -12,7 +12,7 @@ except ImportError:
 
 from pubSeqTables import threeToOneLower, threeToOne, oneToThree, aaToDna, dnaToAa
 from pycbio.hgdata.Psl import Psl
-import pslMapBed, pubAlg, maxbio, pubConf, maxCommon
+import pslMapBed, pubAlg, maxbio, pubConf, maxCommon, pubKeyVal
 
 regexes = None
 # ===== DATA TYPES ========
@@ -160,9 +160,10 @@ class SeqData(object):
         #self.pmid2entrez = pmid2entrez
         
         # refseq sequences
-        fname = join(mutDataDir, "seqs.dbm")
+        fname = join(mutDataDir, "seqs")
         logging.info("opening %s" % fname)
-        seqs = gdbm.open(fname, "r")
+        #seqs = gdbm.open(fname, "r")
+        seqs = pubKeyVal.SqliteKvDb(fname, compress=True)
         self.seqs = seqs
         
         # refprot to refseqId
@@ -179,15 +180,17 @@ class SeqData(object):
 
         # -- these four parts could be fused into one
         # refseq to genome
-        liftFname = join(mutDataDir, "refGene.%s.psl.dbm" % taxId)
+        liftFname = join(mutDataDir, "refGenePsl.%s.sqlite" % taxId)
         logging.debug("Opening %s" % liftFname)
-        self.refGenePsls = gdbm.open(liftFname, "r")
+        #self.refGenePsls = gdbm.open(liftFname, "r")
+        self.refGenePsls = pubKeyVal.SqliteKvDb(liftFname, compress=True)
         self.refGenePslCache = {}
         # refseq to old refseq
-        liftFname = join(mutDataDir, "oldRefseqToRefseq.%s.prot.psl.dbm" % taxId)
+        liftFname = join(mutDataDir, "oldRefseqToRefseqPsl.%s.dbm" % taxId)
         # oldRefseqToRefseq.9606.prot.psl.dbm
         logging.debug("Opening %s" % liftFname)
-        self.oldRefseqPsls = gdbm.open(liftFname, "r")
+        #self.oldRefseqPsls = gdbm.open(liftFname, "r")
+        self.oldRefseqPsls = pubKeyVal.SqliteKvDb(liftFname, compress=True)
         self.oldRefseqPslCache = {}
         # uniprot to refseq
         liftFname = join(mutDataDir, "upToRefseq.%s.psl.dbm" % taxId)

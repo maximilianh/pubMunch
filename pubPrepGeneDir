@@ -5,7 +5,7 @@
 # in this file the prefix "up" always refers to "uniProt" not to the word "up" (like "down")
 
 # load default python packages
-import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, gdbm, re, zlib, cPickle
+import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, re, zlib, cPickle
 import types, string
 import struct, itertools, dumbdbm
 import urllib, urllib2
@@ -47,6 +47,7 @@ allSteps = ["genePmids", "entrez", "refseq", "seqs",
 
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
 
+BUILDGENEDATADIR = "/hive/data/inside/pubs/geneData/"
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [step] - reformat various gene-centric databases into tables or DBM filesfor gene/mutation finding or resolution. 
 Output goes to directory {}.
@@ -338,7 +339,7 @@ def parseEntrezGenePmids(taxIds, dbm):
 
     logging.info("Writing to dbm file")
     count = 0
-    data = {}
+    #data = {}
     for pmid, entrezList in pmidToEntrez.iteritems():
         if count%10000==0:
             print count
@@ -346,26 +347,16 @@ def parseEntrezGenePmids(taxIds, dbm):
         entrezStr = ",".join(entrezList)
         dbm[pmid] = entrezStr
         #dbm2[pmid] = entrezStr
-        data[int(pmid)] = entrezStr
+        #data[int(pmid)] = entrezStr
         count += 1
-    return data
 
 def faToDbm(faName, dbm):
-    logging.info("indexing %s into dbm as compressed seqs" % faName)
+    logging.info("indexing %s into dbm as seqs" % faName)
     faSizeOfh = open(faName+".size", "w")
-    #logging.info("Reading %s" % faName)
+    logging.info("Loading %s" % faName)
     for seqId, seq in maxbio.parseFasta(faName):
         dbm[seqId] = zlib.compress(seq)
     #logging.info("Converted %s to dbm" % (faName))
-
-def tabToDbm(fname):
-    dbmFname = fname+".dbm"
-    logging.info("Indexing %s to %s" % (fname, dbmFname))
-    dbm = gdbm.open(dbmFname, "nf")
-    for row in maxCommon.iterTsvRows(fname):
-        key, val = row
-        dbm[key] = val
-    dbm.close()
 
 def parseRaWriteToTab(raName, tabName):
     " write refseqId.version, refProt ID and cds Start to a tabular file "
@@ -440,8 +431,17 @@ def parseRefseq(taxId, geneDataDir):
     accList = parseRaWriteToTab(raName, refseqInfoFname)
     os.remove(raName)
 
-def loadSeqs(taxId, geneDataDir, uniprotDir):
-    """ parse refseq and uniprot sequences as compressed values to gdbm file """
+def getRefseqs(transFaName, protFaName):
+    " extract refseq sequences from UCSC genome browser database "
+    cmdTemp = "gbGetSeqs -gbRoot=/hive/data/outside/genbank RefSeq %s %s -db=hg19 -inclVersion"
+    for seqType, fname in [("mrna", transFaName), ("pep", protFaName)]:
+        logging.info("Getting data for %s" % seqType)
+        cmd = cmdTemp % (seqType, fname)
+        maxCommon.runCommand(cmd)
+    logging.info("Wrote fastas to %s and %s" % (transFaName, protFaName))
+
+def loadSeqs(taxId, uniprotDir):
+    """ parse refseq and uniprot sequences as compressed values to sqlite file """
     assert(taxId==9606)
 
     # get old refseqs, too
@@ -453,36 +453,33 @@ def loadSeqs(taxId, geneDataDir, uniprotDir):
     #outFh.write("\n".join(oldAccs[:1000]))
     #assert(False)
 
-    # get fastas
-    cmdTemp = "gbGetSeqs -gbRoot=/hive/data/outside/genbank RefSeq %s %s -db=hg19 -inclVersion"
-    transFaName = join(geneDataDir, "refseq.%s.trans.fa" % str(taxId))
-    protFaName =  join(geneDataDir, "refseq.%s.prot.fa"  % str(taxId))
-    for seqType, fname in [("mrna", transFaName), ("pep", protFaName)]:
-        logging.info("Getting data for %s" % seqType)
-        cmd = cmdTemp % (seqType, fname)
-        maxCommon.runCommand(cmd)
-    logging.info("Wrote fastas to %s and %s" % (transFaName, protFaName))
+    # get fastas for refseq sequences
+    transFaName = join(BUILDGENEDATADIR, "refseq.%s.trans.fa" % str(taxId))
+    protFaName =  join(BUILDGENEDATADIR, "refseq.%s.prot.fa"  % str(taxId))
+    getRefseqs(transFaName, protFaName)
 
     # index fastas
-    dbmTmpFname = join(pubConf.getFastTempDir(), "seqs.dbm")
+    #dbmTmpFname = join(pubConf.getFastTempDir(), "seqs.dbm")
+    seqFname = join(pubConf.geneDataDir, "seqs")
     upFaName = join(uniprotDir, "uniprot.%d.var.fa.gz" % taxId)
-    gbFaName = join(geneDataDir, "genbank.%d.prot.fa" % taxId)
-    oldRefseqFaName = join(geneDataDir, "oldRefseq.%d.prot.fa" % taxId)
+    gbFaName = join(BUILDGENEDATADIR, "genbank.%d.prot.fa" % taxId)
+    oldRefseqFaName = join(BUILDGENEDATADIR, "oldRefseq.%d.prot.fa" % taxId)
 
-    dbm = gdbm.open(dbmTmpFname, "nf")
-    faToDbm(oldRefseqFaName, dbm)
-    faToDbm(upFaName, dbm)
-    faToDbm(gbFaName, dbm)
+    #dbm = gdbm.open(dbmTmpFname, "nf")
+    db = pubKeyVal.SqliteKvDb(seqFname, singleProcess=True, newDb=True, \
+        tmpDir=pubConf.getFastTempDir(), compress=True)
+    faToDbm(oldRefseqFaName, db)
+    faToDbm(upFaName, db)
+    faToDbm(gbFaName, db)
+    faToDbm(transFaName, db)
+    faToDbm(protFaName, db)
 
-    faToDbm(transFaName, dbm)
-    faToDbm(protFaName, dbm)
+    db.close()
 
-    dbm.close()
-
-    dbmFname = join(geneDataDir, "seqs.dbm")
-    shutil.copy(dbmTmpFname, dbmFname)
-    os.remove(dbmTmpFname)
-    logging.info("Finished writing all seqs to %s" % dbmFname)
+    #dbmFname = join(geneDataDir, "seqs.dbm")
+    #shutil.copy(dbmTmpFname, dbmFname)
+    #os.remove(dbmTmpFname)
+    logging.info("Finished writing all seqs to %s" % seqFname)
 
 def writeUpRefseqPairs(taxId, uniprotDir, proteinType, pairFname):
     " write a list of tuples uniprot-protein id, refseqId"
@@ -600,25 +597,25 @@ def mapProtToRefseq(taxId, tmpDir, protFaName):
     runner.finish(wait=True)
 
 def dbSnp(taxId, geneDataDir, doRev=False):
-    """ parse dbSnp into dbm files, most of these won't be used as they're in intergenic 
+    """ index dbSnp data, most of these won't be used as they're in intergenic 
     regions but we keep them for now 
     """
     assert(taxId==9606)
     tmpDir = pubConf.getTempDir()
     fastTmp = pubConf.getFastTempDir()
 
-    snpFname = join(tmpDir, "snp137.tab")
-    logging.info("dumping snp137 into file %s" % snpFname)
+    snpFname = join(tmpDir, "snp142.tab")
+    logging.info("dumping snp142 into file %s" % snpFname)
     if not isfile(snpFname):
-        cmd = '''hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from snp137' > %s''' % \
+        cmd = '''hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from snp142' > %s''' % \
             snpFname
         maxCommon.runCommand(cmd)
     else:
         logging.info("%s already exists, delete if you want to restart" % snpFname)
 
-    # dbm has a huge problem when rec count > 25 million, so we split it over many files
-    dbSnpDbms = {}
-    coordDbms = {}
+    # sqlite has a problem when rec count > 25 million, so we split it over many files
+    # one per chrom
+    dbs = {}
     count = 0
     for line in open(snpFname):
         if count % 1000000 == 0:
@@ -628,40 +625,45 @@ def dbSnp(taxId, geneDataDir, doRev=False):
         # ignore haps and _gl
         if "hap" in chrom or "_gl" in chrom:
             continue
+        # rsId as 4 bytes
         packRsId = struct.pack("<l", int(rsId[2:]))
+        # rsId as a python integer
+        intRsId = int(rsId[2:])
 
-        if not doRev:
-            # open dbm: lazily create dbms, one for each chrom
-            packCoord = struct.pack("<ll", int(start), int(end))
-            if chrom not in dbSnpDbms:
-                fname = join(fastTmp, "snp137.%s.dbm" % chrom)
-                logging.info("Creating %s" % fname)
-                dbm = gdbm.open(fname, "nf")
-                dbSnpDbms[chrom] = (fname, dbm)
-            else:
-                dbm = dbSnpDbms[chrom][1]
-            dbm[packCoord] = packRsId
+        # index from coord -> rsId
+        # open dbm: lazily create dbms, one for each chrom
+        packCoord = str(struct.pack("<ll", int(start), int(end)))
+        if chrom not in dbs:
+            fname = join(fastTmp, "snp142CoordToId.%s" % chrom)
+            logging.info("Creating %s" % fname)
+            dbm = pubKeyVal.SqliteKvDb(fname, singleProcess=True, newDb=True, \
+                tmpDir=fastTmp, eightBit=True)
+            dbs[chrom] = (fname, dbm)
         else:
-            # open dbm2: lazily create reverse dbms, one for each last digit of the rsId
-            packCoord = maxbio.packChromCoord(chrom, start, end)
-            lastDigit = rsId[-1]
-            if lastDigit not in coordDbms:
-                fname = join(fastTmp, "snp137.coords.%s.dbm" % lastDigit)
-                logging.info("Creating %s" % fname)
-                coordDbm = gdbm.open(fname, "nf")
-                coordDbms[lastDigit] = (fname, coordDbm) # need dbm and fname
-            else:
-                coordDbm = coordDbms[lastDigit][1]
-            # pack and save data
-            coordDbm[packRsId] = packCoord
-            dbSnpDbms = coordDbms
+            dbm = dbs[chrom][1]
+        #dbm[packCoord] = packRsId
 
-    for tmpFname, dbm in dbSnpDbms.values():
+        # index rsId -> coordinates
+        # open dbm2: lazily create reverse dbms, one for each last digit of the rsId
+        packCoord = maxbio.packChromCoord(chrom, start, end)
+        lastDigit = rsId[-1]
+        if lastDigit not in dbs:
+            fname = "snp142IdToCoord.lastDigit%s" % lastDigit
+            dbPath = join(geneDataDir, fname)
+            logging.info("Creating %s" % dbPath)
+            #coordDbm = gdbm.open(fname, "nf")
+            coordDbm = pubKeyVal.SqliteKvDb(dbPath, singleProcess=True, newDb=True, \
+                tmpDir=fastTmp, eightBit=True)
+            dbs[lastDigit] = (fname, coordDbm) # need dbm and fname
+        else:
+            coordDbm = dbs[lastDigit][1]
+            # pack and save data
+            #coordDbm[intRsId] = packCoord
+            coordDbm[packRsId] = packCoord
+
+    for tmpFname, dbm in dbs.values():
+        print "closing", tmpFname
         dbm.close()
-        finalDbmName = join(geneDataDir, basename(tmpFname))
-        shutil.copy(tmpFname, finalDbmName)
-        os.remove(tmpFname)
-        logging.info("Copied %s to %s and deleted temp" % (tmpFname, finalDbmName))
 
 def loadPslToDbm(pslFname, dbmFname, isProt=False, stripVersion=False):
     " load psl file into a compressed dbm file, ignore haplotypes and unplaced seqs"
@@ -684,9 +686,11 @@ def loadPslToDbm(pslFname, dbmFname, isProt=False, stripVersion=False):
         qNamePsls[qName].append(line)
 
     # write to dbm as \n separated psl lines indexed by qName
-    dbm = gdbm.open(dbmFname, "nf")
+    #dbm = gdbm.open(dbmFname, "nf")
+    dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True, newDb=True, \
+                    tmpDir=pubConf.getFastTempDir(), compress=True)
     for qName, pslLines in qNamePsls.iteritems():
-        dbm[qName]= zlib.compress("\n".join(pslLines))
+        dbm[qName]= "\n".join(pslLines)
     dbm.close()
     logging.info("Compressed and indexed %d psls (%d qNames) from %s to %s" % \
         (count, len(qNamePsls), pslFname, dbmFname))
@@ -907,8 +911,9 @@ def writeFa(data, outFname):
     
 def loadFaSeqs(protFaFname):
     " load (append) seqs in a fasta file into a dbm file as compressed sequences "
-    dbmFname = join(geneDataDir, "seqs.dbm")
-    dbm = gdbm.open(dbmFname, "w")
+    dbmFname = join(geneDataDir, "seqs")
+    #dbm = gdbm.open(dbmFname, "w")
+    dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True, compress=True)
     faToDbm(protFaFname, dbm)
     dbm.close()
 
@@ -1457,7 +1462,7 @@ def makeGeneDict():
     #fastFind.compileDict(fnameLow)
     
 def mapRefseqOldToNewLoad(seqType, taxId):
-    " create psl from odl to new refseqs and load into dbm, load old refseqs into seq dbm "
+    " create psl from old to new refseqs and load into dbm, load old refseqs into seq dbm "
     oldRefseqFname = join(geneDataDir, "oldRefseq.%d.%s.gb" % (taxId, seqType))
     pslDbmFname = join(geneDataDir, "oldRefseqToRefseq.%d.%s.psl.dbm" % (taxId, seqType))
     faFname = join(geneDataDir, "oldRefseq.%d.%s.fa" % (taxId, seqType))
@@ -1557,30 +1562,30 @@ def indexAccsUniprot():
 
     dbFname = join(pubConf.accDataDir, "uniprotNew")
 
-    db = pubKeyVal.SqliteKvDb(dbFname, singleProcess=True, newDb=True, tmpDir=pubConf.getFastTempDir())
+    db = pubKeyVal.SqliteKvDb(dbFname, singleProcess=True, newDb=True, \
+        tmpDir=pubConf.getFastTempDir(), compress=True)
     logging.info("writing to %s, a tempfile on ram disk" % db.dbName)
     lastAcc = None
-    i = 0
-    newTuples = []
-    fnames = ["uniprot.tab", "uniprotTrembl.tab"]
+    lastChunk = 0
+    fnames = ["uniprot.all.tab", "uniprotTrembl.all.tab"]
     #fnames = ["uniprot.9606.tab"]
+    doneAccs = set()
     for fname in fnames:
         path = join(pubConf.dbRefDir, fname)
         logging.info("Reading %s" % path)
         for row in maxCommon.iterTsvRows(path):
-            accs = row.accList.split("|")
+            accs = set(row.accList.split("|"))
             refs = row.refSeq
             for acc in accs:
-                newTuples.append((acc, refs))
-                i+=1
-            if len(newTuples)>100000:
-                db.update(newTuples)
-                print "Wrote %d accessions" % i
-                newTuples = []
-    db.update(newTuples)
-
+                if acc in doneAccs:
+                    continue
+                db[acc]= refs
+            doneAccs.update(accs)
+            if len(doneAccs)/50000!=lastChunk:
+                print "%d accessions done" % len(doneAccs)
+                lastChunk = len(doneAccs)/50000
     db.close()
-    logging.info("wrote %d accessions to %s.sqlite" % (i, dbFname))
+    logging.info("wrote %d accessions to %s.sqlite" % (len(doneAccs), dbFname))
 
 def indexAccsPdb():
     " download list of PDB accessions into a key-val tab file, adding obsolete accessions, format oldAcc->newAcc "
@@ -1625,14 +1630,16 @@ def main(args, options):
     if step=="genePmids" or step=="all":
         # parse entrez gene into dict pmid -> list of entrez ids
         # we also create a marshal file for jython
-        entrezFname = join(geneDataDir, "pmid2entrez.dbm")
-        dataFname = join(geneDataDir, "pmid2entrez.marshal.gz")
-        dbm = gdbm.open(entrezFname, "nf")
-        data = parseEntrezGenePmids(taxIds, dbm)
-        open(dataFname, "w").write(zlib.compress(marshal.dumps(data)))
-
-        logging.info("Wrote pmid -> entrez to %s and %s" % (entrezFname, dataFname))
+        entrezFname = join(geneDataDir, "pmid2entrez")
+        #dataFname = join(geneDataDir, "pmid2entrez.marshal.gz")
+        #dbm = gdbm.open(entrezFname, "nf")
+        dbm = pubKeyVal.SqliteKvDb(entrezFname, singleProcess=True, newDb=True, \
+            tmpDir=pubConf.getFastTempDir())
         dbm.close()
+        parseEntrezGenePmids(taxIds, dbm)
+        #open(dataFname, "w").write(zlib.compress(marshal.dumps(data)))
+
+        logging.info("Wrote pmid -> entrez to %s" % (entrezFname))
         #dbm2.close()
 
     if step=="entrez" or step=="all":
@@ -1700,7 +1707,7 @@ def main(args, options):
         mapProtToRefseqIndex(taxId, "genbank", protFaFname, uniprotDir, stripVersion=True)
 
     if step=="seqs":
-        loadSeqs(taxId, geneDataDir, uniprotDir)
+        loadSeqs(taxId, uniprotDir)
 
     if step=="snp":
         " mapping coordinates -> rsId and the reverse"

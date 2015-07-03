@@ -1,5 +1,6 @@
+import logging, random, socket, atexit, sqlite3, os, time, shutil, types, zlib
+from collections import Counter
 from os.path import join, dirname, basename, isdir, isfile, abspath
-import logging, random, socket, atexit, sqlite3, os, time, shutil, types
 
 import maxCommon, maxTables
 
@@ -172,9 +173,13 @@ class RedisDb(object):
 
 class SqliteKvDb(object):
     """ wrapper around sqlite to create an on-disk key/value database (or just keys)
+        Uses batches when writing.
         On ramdisk, this can write 40k pairs / sec, tested on 40M uniprot pairs  
     """
-    def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None, onlyKey=False):
+    def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None, onlyKey=False, compress=False, keyIsInt=False, eightBit=False):
+        self.compress = compress
+        self.batchMaxSize = 100000
+        self.batch = []
         self.finalDbName = None
         self.onlyKey = onlyKey
         self.dbName = "%s.sqlite" % fname
@@ -202,19 +207,25 @@ class SqliteKvDb(object):
 
         logging.debug("Opening sqlite DB %s" % self.dbName)
 
+        keyType = "TEXT"
+        if keyIsInt:
+            keyType = "INT"
         if onlyKey:
-            self.con.execute("Create table IF NOT EXISTS data (key PRIMARY KEY)")
+            self.con.execute("cREATE TABLE IF NOT EXISTS data (key %s PRIMARY KEY)" % keyType)
         else:
-            self.con.execute("Create table IF NOT EXISTS data (key PRIMARY KEY,value)")
+            self.con.execute("cREATE TABLE IF NOT EXISTS data (key %s PRIMARY KEY,value BLOB)" % keyType)
 
         self.cur = self.con
         if singleProcess:
             self.cur.execute("PRAGMA synchronous=OFF") # recommended by
             self.cur.execute("PRAGMA count_changes=OFF") # http://blog.quibb.org/2010/08/fast-bulk-inserts-into-sqlite/
-            self.cur.execute("PRAGMA cache_size=20000000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
+            self.cur.execute("PRAGMA cache_size=8000000") # http://web.utk.edu/~jplyon/sqlite/SQLite_optimization_FAQ.html
             self.cur.execute("PRAGMA journal_mode=OFF") # http://www.sqlite.org/pragma.html#pragma_journal_mode
             self.cur.execute("PRAGMA temp_store=memory")
             self.con.commit()
+
+        if eightBit:
+            self.con.text_factory = str
     
     def get(self, key, default=None):
         try:
@@ -230,17 +241,18 @@ class SqliteKvDb(object):
     def __getitem__(self, key):
         row = self.con.execute("select value from data where key=?",(key,)).fetchone()
         if not row: raise KeyError
-        return row[0]
+        value = str(row[0])
+        if self.compress:
+            value = zlib.decompress(value)
+        return value
     
-    def __setitem__(self, key, item):
-        logging.debug("Writing %s, %s" % (key, item))
-        if self.con.execute("select key from data where key=?",(key,)).fetchone():
-            self.con.execute("update data set value=? where key=?",(item,key))
-        else:
-            #self.con.execute("INSERT OR REPLACE INTO data (key,value) VALUES (?,?)",(key, item))
-            self.con.execute("INSERT INTO data (key,value) VALUES (?,?)",(key, item))
-
-        self.con.commit()
+    def __setitem__(self, key, value):
+        if self.compress:
+            value = zlib.compress(value)
+        self.batch.append( (key, sqlite3.Binary(value)) )
+        if len(self.batch)>self.batchMaxSize:
+            self.update(self.batch)
+            self.batch = []
                
     def __delitem__(self, key):
         if self.con.execute("select key from data where key=?",(key,)).fetchone():
@@ -249,26 +261,38 @@ class SqliteKvDb(object):
         else:
              raise KeyError
              
-    def add(self, keys):
-        " can only be used if db has been opened with onlyKey=True "
-        assert(self.onlyKey==True) # you can only use this on onlyKey-databases
-        assert(type(keys)==types.ListType) # only lists please
-        if len(keys)==0:
-            return
-        sql = "INSERT INTO data (key) VALUES (?)"
-        keys = [(k,) for k in keys]
-        self.cur.executemany(sql, keys)
-        self.cur.commit()
+    #def add(self, keys):
+        #" can only be used if db has been opened with onlyKey=True "
+        #assert(self.onlyKey==True) # you can only use this on onlyKey-databases
+        #assert(type(keys)==types.ListType) # only lists please
+        #if len(keys)==0:
+            #return
+        #sql = "INSERT INTO data (key) VALUES (?)"
+        #keys = [(k,) for k in keys]
+        #self.cur.executemany(sql, keys)
+        #self.cur.commit()
         
     def update(self, keyValPairs):
-        sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
+        " add many key,val pairs at once "
+        logging.debug("Writing %d key-val pairs to db" % len(keyValPairs))
+        #sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
+        #c = Counter()
+        #keys = [k for k,v in keyValPairs]
+        #c.update(keys)
+        #print c.most_common(10)
+        sql = "INSERT INTO data (key, value) VALUES (?,?)"
+        #try:
         self.cur.executemany(sql, keyValPairs)
+        #except sqlite3.IntegrityError:
+            #raise Exception("duplicate key %s" % keyValPairs)
         self.cur.commit()
         
     def keys(self):
         return [row[0] for row in self.con.execute("select key from data").fetchall()]
 
     def close(self):
+        if len(self.batch)>0:
+            self.update(self.batch)
         self.con.commit()
         self.con.close()
         if self.finalDbName!=None:

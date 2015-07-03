@@ -126,6 +126,7 @@ def rangeDescs(text, rangeList, useSym=False):
 def startup(paramDict):
     geneFinder.initData(exclMarkerTypes=["dnaSeq", "band"])
     varFinder.loadDb(loadSequences=False)
+    #varFinder.loadDb()
     
 def findDisGeneVariant(text):
     """

@@ -46,7 +46,7 @@ pubRunAnnot will then:
 
 """)
 
-parser.add_option("-o", "--oneText", dest="oneText", action="store_true", help="Run plain text files through the annotator. <in> can be a single text file or a directory with .txt files")
+parser.add_option("-o", "--onlyText", dest="onlyText", action="store_true", help="Run plain text files through the annotator. <in> can be a single text file or a directory with .txt files")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout")
 #parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. doi or title. Option can be used several times", default=[])
@@ -78,7 +78,7 @@ def testMode():
     reload(sys)
     sys.setdefaultencoding('utf-8')
     outName = "stdout"
-    if options.oneText:
+    if options.onlyText:
         inFiles = [inName]
     else:
         inDir = pubConf.resolveTextDir(inName.split(",")[0])
@@ -86,8 +86,8 @@ def testMode():
 
     for inFname in inFiles:
         logging.info("Running on %s" % inFname)
-        if options.oneText:
-            logging.info("Running only on file %s" % options.oneText)
+        if options.onlyText:
+            logging.info("Running only on file %s" % options.onlyText)
             reader = pubStore.PubReaderTest(inFname)
         else:
             reader = pubStore.PubReaderFile(inFname)
@@ -124,7 +124,7 @@ if not algName.startswith("java"):
 paramDict["startAnnotId"] = 0
 paramDict["addFields"] = options.addFields
 
-if options.test or options.oneText:
+if options.test or options.onlyText:
     testMode()
 
 checkCleanDir(outName, options.keepOldFiles)
