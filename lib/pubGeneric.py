@@ -89,7 +89,10 @@ def runCommandTimeout(command, timeout=30, bufSize=128000, env=None, shell=True)
 
     returns stdout, stderr, ret
     """
-    logging.log(5, "running command %s" % command)
+    if type(command)==types.ListType:
+        logging.log(5, "running command %s" % " ".join(command))
+    else:
+        logging.log(5, "running command %s" % command)
     if os.name=="nt":
         closeFds = False
     else:
