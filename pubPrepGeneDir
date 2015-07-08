@@ -32,22 +32,28 @@ from pycbio.hgdata import Psl
 from Bio import SeqIO
 import fastFind
 
+# target directory for all variant information
+varDataDir = pubConf.varDataDir
+
+# files not needed by end users, only at UCSC for building
+varBuildDir = pubConf.varBuildDir
+
 # all possible commands for this script
 allSteps = ["genePmids", "entrez", "refseq", "seqs",
     "uniprot", "refseqMap", "uniprotMap", "snp", 
-    "oldRefseqProtGet", "oldRefseqProtMap",
-    "oldRefseqGet", "oldRefseqMap",
-    "genbankProtGet", "genbankProtParse", "genbankProtMap", 
     "omim",
     "geneNames", "geneDict", 
     "lociNames", "bandLoci",
     "cells", 
-    "accsGenbank", "accsUniprot", "accsPdb"
+    "accsGenbank", "accsUniprot", "accsPdb", "accsSts",
+    # not used anymore
+    "oldRefseqProtGet", "oldRefseqProtMap",
+    "oldRefseqGet", "oldRefseqMap",
+    "genbankProtGet", "genbankProtParse", "genbankProtMap", 
     ]
 
-genbankDir = "/hive/data/outside/genbank/data/download/genbank.195.0"
+genbankDir = "/hive/data/outside/genbank/data/download/genbank.208.0"
 
-BUILDGENEDATADIR = "/hive/data/inside/pubs/geneData/"
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [step] - reformat various gene-centric databases into tables or DBM filesfor gene/mutation finding or resolution. 
 Output goes to directory {}.
@@ -59,7 +65,7 @@ For accession finding:
 - geneNames: do the raw parsing of the entrez/hugo/uniprot databases
 - lociNames: split hg19 into separate loci around exons and assign them to gene symbols
 - bandLoci: get cytogenetic bands from hg19 and using lociNames, assign them to genes in them
-- accsGenbank: parse genbank accession format
+- accsGenbank: parse genbank accession prefixes + digit lengths into text file
 - accsUniprot: index uniprot accessions into sqlite db
 - accsPdb: index pdb accessions into text file
 
@@ -72,17 +78,18 @@ for the disambiguation and sequence lookup steps of the gene finder:
 - entrez: table (entrezId, refSeqId, refSeqProtId) from entrez for human genes
 - refseq: from genome browser hg19: table (protId, transId, cdsStart)
 - uniprot: using uniprot, write a table that links entrezId, uniprotId and genbankIds (also marshal)
-- refseqMap: get refSeq PSL for hg19 
 - genbankProtGet: get genbank sequences linked from human uniprot
-- seqs: load human refseq and uniprot sequences into a DBM database
 - omim: get list of OMIM gene ids
 - lociNames: split hg19 into separate loci around exons and assign them to gene symbols
 - bandLoci: get cytogenetic bands from hg19 and using lociNames, assign them to genes in them
 
-for mutation detection:
+for variant finding and resolution:
 - cells: get a list of cell names from cellosaurus, used as a blacklist for mutations
+- snp: index dbSNP data, coord -> identifier and identifier -> coord
+- refseqMap: get refSeq PSL for hg19 
+- seqs: load human refseq and uniprot sequences into a DBM database
 
-not used anywhere currently as they didn't improve the recall of mutation finding:
+variant finding, but not necessary currently as they didn't improve the recall:
 - uniprotMap: get uniprot -> genome PSL for hg19
 - oldRefseqProtGet: map archived refseqProtIds to new Ids
 - oldRefseqProtMap: get archived refseq prots -> genome PSL for hg19
@@ -98,6 +105,9 @@ pubGeneric.addGeneralOptions(parser)
 # ==== FUNCTIONS =====
 taxToDb = {9606 : "hg19"}
 geneDataDir = None
+
+# variation data base directory
+varDataDir = pubConf.varDataDir
 
 def writeGzDict(data, fname, appendFnames=None, toLower=False):
     logging.info("Writing %d keys to %s" % (len(data), fname))
@@ -123,9 +133,11 @@ def getOmimGeneIds():
     """
     tmpFname = join(geneDataDir, "omim.genemap2.tmp")
     if not isfile(tmpFname):
-        omimUrl = "ftp://grcf.jhmi.edu/OMIM/genemap2.txt"
-        logging.info("Downloading OMIM genemap from %s" % omimUrl)
+        #omimUrl = "ftp://grcf.jhmi.edu/OMIM/genemap2.txt"
+        omimUrl = pubConf.omimUrl
+        logging.info("Reading OMIM genemap from %s" % omimUrl)
         data = urllib2.urlopen(omimUrl).read()
+        #data = open(omimUrl).read()
         open(tmpFname, "w").write(data)
     else:
         data = open(tmpFname).read()
@@ -154,7 +166,7 @@ def parseUniprotLinks(uniprotDir, taxId):
             upToGbs: upId -> list of gbank accessions
             upToGbProts: upId -> list of protein gb accessions
             upToRefseqProt: upId -> list of refseq protein IDs
-            acToUps: any accession -> list of uniprots. 
+            accToUps: any accession -> list of uniprots. 
                      versions are stripped from refseq and genbank, omim and entrez
                      are prefixd with "omim" and "entrez" to distinguish them
     """
@@ -183,8 +195,8 @@ def parseUniprotLinks(uniprotDir, taxId):
             if row.geneName!="":
                 upToSym[acc] = str(row.geneName)
 
-            if row.hugo!="":
-                hugo = row.hugo.split(",")
+            if row.hgncSym!="":
+                hugo = row.hgncSym.split(",")
                 appendToDict(accToUps, hugo, acc)
 
             if row.ec!="":
@@ -454,20 +466,20 @@ def loadSeqs(taxId, uniprotDir):
     #assert(False)
 
     # get fastas for refseq sequences
-    transFaName = join(BUILDGENEDATADIR, "refseq.%s.trans.fa" % str(taxId))
-    protFaName =  join(BUILDGENEDATADIR, "refseq.%s.prot.fa"  % str(taxId))
+    transFaName = join(varBuildDir, "refseq.%s.trans.fa" % str(taxId))
+    protFaName =  join(varBuildDir, "refseq.%s.prot.fa"  % str(taxId))
     getRefseqs(transFaName, protFaName)
 
     # index fastas
     #dbmTmpFname = join(pubConf.getFastTempDir(), "seqs.dbm")
     seqFname = join(pubConf.geneDataDir, "seqs")
     upFaName = join(uniprotDir, "uniprot.%d.var.fa.gz" % taxId)
-    gbFaName = join(BUILDGENEDATADIR, "genbank.%d.prot.fa" % taxId)
-    oldRefseqFaName = join(BUILDGENEDATADIR, "oldRefseq.%d.prot.fa" % taxId)
+    gbFaName = join(varBuildDir, "genbank.%d.prot.fa" % taxId)
+    oldRefseqFaName = join(varBuildDir, "oldRefseq.%d.prot.fa" % taxId)
 
     #dbm = gdbm.open(dbmTmpFname, "nf")
     db = pubKeyVal.SqliteKvDb(seqFname, singleProcess=True, newDb=True, \
-        tmpDir=pubConf.getFastTempDir(), compress=True)
+        tmpDir=pubConf.getFastTempDir())
     faToDbm(oldRefseqFaName, db)
     faToDbm(upFaName, db)
     faToDbm(gbFaName, db)
@@ -512,8 +524,8 @@ def mapProtToRefseqIndex(taxId, protType, protFname, uniprotDir, stripVersion=Fa
     pairFname = join(tmpDir, "%s.%d.pairs" % (outPrefix, taxId))
     writeUpRefseqPairs(taxId, uniprotDir, protType, pairFname)
 
-    dbmFname  = join(geneDataDir, "%s.%d.psl.dbm" % (outPrefix, taxId))
-    mapFname  = join(geneDataDir, "%s.%d.psl" % (outPrefix, taxId))
+    dbmFname  = join(varDataDir, "%s.%d" % (outPrefix, taxId))
+    mapFname  = join(varBuildDir, "%s.%d.psl" % (outPrefix, taxId))
 
     mapProtToRefseq(taxId, tmpDir, protFname)
     filterPsls(tmpDir, pairFname, mapFname)
@@ -528,7 +540,7 @@ def filterPsls(tmpDir, pairFname, mapFname):
 
 def mapDnaToRefseq(taxId, tmpDir, dnaFaName):
     logging.debug("mapping %s to refseq, tmpdir %s" % (dnaFaName, tmpDir))
-    refseqFname = join(geneDataDir, "refseq.%s.trans.fa" % str(taxId))
+    refseqFname = join(varBuildDir, "refseq.%s.trans.fa" % str(taxId))
     targetFname = join(tmpDir, "target.fa")
     logging.info("Copying %s to %s" % (refseqFname, targetFname))
     shutil.copy(refseqFname, targetFname)
@@ -617,6 +629,8 @@ def dbSnp(taxId, geneDataDir, doRev=False):
     # one per chrom
     dbs = {}
     count = 0
+    doneRsIds = set()
+    doneCoords = set()
     for line in open(snpFname):
         if count % 1000000 == 0:
             print "%d" % count
@@ -627,32 +641,41 @@ def dbSnp(taxId, geneDataDir, doRev=False):
             continue
         # rsId as 4 bytes
         packRsId = struct.pack("<l", int(rsId[2:]))
-        # rsId as a python integer
+        # rsId as a binary python integer
         intRsId = int(rsId[2:])
+        if intRsId in doneRsIds:
+            logging.warn("RsId %d already done" % intRsId)
+            continue
+        doneRsIds.add(intRsId)
 
         # index from coord -> rsId
         # open dbm: lazily create dbms, one for each chrom
         packCoord = str(struct.pack("<ll", int(start), int(end)))
         if chrom not in dbs:
-            fname = join(fastTmp, "snp142CoordToId.%s" % chrom)
-            logging.info("Creating %s" % fname)
+            fname = join(geneDataDir, "snp142CoordToId.%s" % chrom)
+            logging.debug("Creating %s" % fname)
             dbm = pubKeyVal.SqliteKvDb(fname, singleProcess=True, newDb=True, \
                 tmpDir=fastTmp, eightBit=True)
             dbs[chrom] = (fname, dbm)
         else:
             dbm = dbs[chrom][1]
-        #dbm[packCoord] = packRsId
+
+        if packCoord in doneCoords:
+            #logging.warn("%s %s %s %s already done" % (chrom, start, end, rsId))
+            pass
+        else:
+            dbm[packCoord] = packRsId
+        doneCoords.add(packCoord)
 
         # index rsId -> coordinates
         # open dbm2: lazily create reverse dbms, one for each last digit of the rsId
         packCoord = maxbio.packChromCoord(chrom, start, end)
         lastDigit = rsId[-1]
         if lastDigit not in dbs:
-            fname = "snp142IdToCoord.lastDigit%s" % lastDigit
-            dbPath = join(geneDataDir, fname)
-            logging.info("Creating %s" % dbPath)
+            fname = join(geneDataDir, "snp142IdToCoord.lastDigit%s" % lastDigit)
+            logging.debug("Creating %s" % fname)
             #coordDbm = gdbm.open(fname, "nf")
-            coordDbm = pubKeyVal.SqliteKvDb(dbPath, singleProcess=True, newDb=True, \
+            coordDbm = pubKeyVal.SqliteKvDb(fname, singleProcess=True, newDb=True, \
                 tmpDir=fastTmp, eightBit=True)
             dbs[lastDigit] = (fname, coordDbm) # need dbm and fname
         else:
@@ -666,7 +689,7 @@ def dbSnp(taxId, geneDataDir, doRev=False):
         dbm.close()
 
 def loadPslToDbm(pslFname, dbmFname, isProt=False, stripVersion=False):
-    " load psl file into a compressed dbm file, ignore haplotypes and unplaced seqs"
+    " load psl file into a sqlite file, ignore haplotypes and unplaced seqs"
     qNamePsls = defaultdict(list)
     count = 0
     for line in open(pslFname):
@@ -687,22 +710,24 @@ def loadPslToDbm(pslFname, dbmFname, isProt=False, stripVersion=False):
 
     # write to dbm as \n separated psl lines indexed by qName
     #dbm = gdbm.open(dbmFname, "nf")
-    dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True, newDb=True, \
-                    tmpDir=pubConf.getFastTempDir(), compress=True)
+    #dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True, newDb=True, \
+                    #tmpDir=pubConf.getFastTempDir(), compress=True)
+    logging.info("Writing psls to %s" % dbmFname)
+    dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True)
     for qName, pslLines in qNamePsls.iteritems():
         dbm[qName]= "\n".join(pslLines)
     dbm.close()
-    logging.info("Compressed and indexed %d psls (%d qNames) from %s to %s" % \
-        (count, len(qNamePsls), pslFname, dbmFname))
+    logging.info("Indexed %d psls (%d qNames) from %s to %s" % \
+        (count, len(qNamePsls), pslFname, dbm.dispName()))
 
 def refseqMap(taxId, geneDataDir):
     " get refseq -> genome map from browser "
     db = taxToDb[taxId]
-    refPslFname = join(geneDataDir, "refGene.%d.psl" % taxId)
+    refPslFname = join(varBuildDir, "refGenePsls.%d" % taxId)
     cmd = 'hgsql -NB hg19 -e "select * from refSeqAli" | grep -v hap | grep -v _gl | cut -f2- > %s' % refPslFname
     runCommand(cmd)
 
-    refPslDbmFname = join(geneDataDir, "refGene.%d.psl.dbm" % taxId)
+    refPslDbmFname = join(varDataDir, "refGenePsls.%s" % taxId)
     loadPslToDbm(refPslFname, refPslDbmFname)
 
 def gbToFa(inGbFname, faFname):
@@ -913,7 +938,8 @@ def loadFaSeqs(protFaFname):
     " load (append) seqs in a fasta file into a dbm file as compressed sequences "
     dbmFname = join(geneDataDir, "seqs")
     #dbm = gdbm.open(dbmFname, "w")
-    dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True, compress=True)
+    #dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True, compress=True)
+    dbm = pubKeyVal.SqliteKvDb(dbmFname, singleProcess=True)
     faToDbm(protFaFname, dbm)
     dbm.close()
 
@@ -1463,8 +1489,8 @@ def makeGeneDict():
     
 def mapRefseqOldToNewLoad(seqType, taxId):
     " create psl from old to new refseqs and load into dbm, load old refseqs into seq dbm "
-    oldRefseqFname = join(geneDataDir, "oldRefseq.%d.%s.gb" % (taxId, seqType))
-    pslDbmFname = join(geneDataDir, "oldRefseqToRefseq.%d.%s.psl.dbm" % (taxId, seqType))
+    oldRefseqFname = join(varBuildDir, "oldRefseq.%d.%s.gb" % (taxId, seqType))
+    pslDbmFname = join(varDataDir, "oldRefseqToRefseq.%d.%s.psl" % (taxId, seqType))
     faFname = join(geneDataDir, "oldRefseq.%d.%s.fa" % (taxId, seqType))
     gbToFa(oldRefseqFname, faFname)
     mapOldRefseqToNewRefseqIndex(seqType, faFname, taxId, pslDbmFname)
@@ -1560,7 +1586,7 @@ def indexAccsUniprot():
     #idFname = join(pubConf.getTempDir(), "uniprotIdMap.tab.gz")
     #downloadToTmp(idUrl, idFname)
 
-    dbFname = join(pubConf.accDataDir, "uniprotNew")
+    dbFname = join(pubConf.accDataDir, "uniprot")
 
     db = pubKeyVal.SqliteKvDb(dbFname, singleProcess=True, newDb=True, \
         tmpDir=pubConf.getFastTempDir(), compress=True)
@@ -1609,6 +1635,30 @@ def indexAccsPdb():
     ofh.close()
     logging.info("wrote %d accessions to %s" % (i, outFname))
 
+def indexAccsSts():
+    " NOT USED: index STS accessions from UCSC db hg19 "
+    sql = "select alias from stsAlias"
+    tmpFname = join(pubConf.getTempDir(), "sts.txt")
+    maxCommon.delOnExit(tmpFname)
+    cmd = "hgsql hg19 -NB -e '%s' > %s" % (sql, tmpFname)
+    maxCommon.runCommand(cmd)
+
+    dbPath = join(pubConf.accDataDir, "sts")
+    db = pubKeyVal.SqliteKvDb(dbPath, singleProcess=True, newDb=True, \
+        tmpDir=pubConf.getFastTempDir())
+    i = 0
+    doneIds = set()
+    for line in open(tmpFname):
+        acc = line.rstrip("\n")
+        if acc in doneIds:
+            continue
+        doneIds.add(acc)
+        db[acc] = ""
+        i+=1
+    db.close()
+    logging.info("Wrote %d sts accessions to %s" % (i, db.dispName()))
+        
+
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
     step = args[0]
@@ -1635,37 +1685,43 @@ def main(args, options):
         #dbm = gdbm.open(entrezFname, "nf")
         dbm = pubKeyVal.SqliteKvDb(entrezFname, singleProcess=True, newDb=True, \
             tmpDir=pubConf.getFastTempDir())
-        dbm.close()
         parseEntrezGenePmids(taxIds, dbm)
+        dbm.close()
         #open(dataFname, "w").write(zlib.compress(marshal.dumps(data)))
 
         logging.info("Wrote pmid -> entrez to %s" % (entrezFname))
         #dbm2.close()
 
     if step=="entrez" or step=="all":
+        # entrez -> refseq + refseqProt
         outFname = join(geneDataDir, "entrez.%s.tab" % taxId)
         parseEntrezGeneRefseq(taxId, outFname)
 
+    # ==== VARIANT DATA =====
+
     if step=="refseq" or step=="all":
+        # refseq ID -> refseqProt ID + cdsStart
         parseRefseq(taxId, geneDataDir)
 
     if step=="uniprot" or step=="all":
+        # uniprot -> uniprot isoforms + genbank, genbankProt, symbol
         writeUniprotEntrezSymGbLinks(taxId, uniprotDir)
 
     if step=="refseqMap" or step=="all":
-        refseqMap(taxId, geneDataDir)
+        " refseq -> hg19 psls "
+        refseqMap(taxId, varDataDir)
 
     if step=="uniprotMap" or step=="all":
+        # create PSLs uniprot -> refseq 
         upFaName  = join(uniprotDir, "uniprot.%d.var.fa.gz" % taxId)
-        #pairFname = join(tmpDir, "uniprotRefseq.%d.pairs" % (taxId))
-        #writeUpRefseqPairs(taxId, uniprotDir, "uniprot", pairFname)
         mapProtToRefseqIndex(taxId, "uniprot", upFaName, uniprotDir)
 
     # these two go together, but the first one takes really long, ~1 hour
     if step=="oldRefseqProtGet":
-        oldRefseqFname = join(geneDataDir, "oldRefseq.%d.prot.gb" % taxId)
+        oldRefseqFname = join(varBuildDir, "oldRefseq.%d.prot.gb" % taxId)
         oldAccs = constructOldRefseqAccs(taxId, "prot")
         downloadFromGenbank(oldAccs.keys(), oldRefseqFname)
+
     if step=="oldRefseqProtMap":
         mapRefseqOldToNewLoad("prot", taxId)
 
@@ -1712,8 +1768,8 @@ def main(args, options):
     if step=="snp":
         " mapping coordinates -> rsId and the reverse"
         # gdbm gave malloc errors if not done in two separate steps
-        dbSnp(taxId, geneDataDir)
-        dbSnp(taxId, geneDataDir, doRev=True)
+        dbSnp(taxId, varDataDir)
+        dbSnp(taxId, varDataDir, doRev=True)
 
     if step=="geneNames":
         # create dict with mapping gene name -> official symbols
@@ -1756,6 +1812,9 @@ def main(args, options):
 
     if step=="accsPdb":
         indexAccsPdb()
+
+    #if step=="accsSts":
+        #indexAccsSts()
 
     #if step=="ncbi" or step=="all":
         #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz") 
