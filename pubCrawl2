@@ -70,6 +70,8 @@ parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles
   It is used to avoid crawling the same article twice and to keep status codes.
 - the status of whole journals is written to sourceDir/issnStatus.log
   It is used to blacklist an ISSN if too many of its articles fail.
+  Documents from blacklisted ISSNs are then skipped.
+- crawling stops if more than 100 consecutive errors are encountered.
 - output goes into a subdirectory "files" of each sourceDir
 
 A crawler is a class that retrieves fulltext and supplements, is has the name

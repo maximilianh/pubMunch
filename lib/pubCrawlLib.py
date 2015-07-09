@@ -38,7 +38,7 @@ issnYearErrorCounts = defaultdict(int)
 WGETOPTIONS = " --no-check-certificate --tries=3 --random-wait --waitretry=%d --connect-timeout=%d --dns-timeout=%d --read-timeout=%d --ignore-length " % (pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout)
 
 # fixed options for curl
-CURLOPTIONS = ' --insecure --ignore-content-length --silent --show-error --location --header "Connection: close"'
+CURLOPTIONS = ['--insecure','--ignore-content-length', '--silent', '--show-error', '--location', '--header', 'Connection: close']
 
 # global variable, http userAgent for all requests
 userAgent = None
@@ -413,11 +413,10 @@ def runCurl(url, userAgent):
     timeout = pubConf.httpTransferTimeout
     url = url.replace("'","")
 
-    os.system("free -g")
     cmd = [DOWNLOADER, url, "-A", userAgent, "--cookie-jar",
         curlCookieFile.name, "-o", tmpFile.name, "--max-time", str(timeout),
-        "-w", '%{url_effective} %{content_type}', CURLOPTIONS] 
-    #cmd = [DOWNLOADER, "--help"]
+        "-w", '%{url_effective} %{content_type}']
+    cmd.extend(CURLOPTIONS)
 
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env, shell=False)
     if ret!=0:
