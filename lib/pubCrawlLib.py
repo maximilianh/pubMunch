@@ -542,7 +542,12 @@ def htmlExtractPart(page, tag, attrs):
     return a part of an html page as a string given a tag and the required attribute values
     If not found, return the full html text string. Parsing result is cached in the page.
     """
-    htmlParsePage(page)
+    try:
+        htmlParsePage(page)
+    except UnicodeEncodeError:
+        logging.warn("could not parse html")
+        return page["data"]
+
     bs = page["parsedHtml"]
     el = bs.find(tag, attrs=attrs)
     if el!=None:
@@ -1862,7 +1867,7 @@ class HighwireCrawler(Crawler):
         return delay
 
     def canDo_article(self, artMeta):
-        " return true if ISSN is know to be hosted by highwire "
+        " return true if ISSN is known to be hosted by highwire "
         if self.highwireIssns is None:
             self.highwireIssns, self.highwireHosts = getHosterIssns("HIGHWIRE")
 
@@ -1934,15 +1939,34 @@ class HighwireCrawler(Crawler):
         delayTime = self._highwireDelay(url)
         htmlPage = httpGetDelay(url, delayTime)
 
-        aaasStr = "The content you requested is not included in your institutional subscription"
-        aacrStr = "Purchase Short-Term Access"
-        stopWords = [aaasStr, aacrStr]
-        if pageContains(htmlPage, stopWords):
-            raise pubGetError("noLicense", "no license for this article")
+        if htmlPage["mimeType"] != "application/pdf" and not htmlPage["data"].startswith("%PDF"):
+            aaasStr = "The content you requested is not included in your institutional subscription"
+            aacrStr = "Purchase Short-Term Access"
+            stopWords = [aaasStr, aacrStr]
+            if pageContains(htmlPage, stopWords):
+                raise pubGetError("noLicense", "no license for this article")
 
-        if pageContains(htmlPage, ["We are currently doing routine maintenance"]):
-            time.sleep(600)
-            raise pubGetError("siteMaintenance", "site is down, waited for 10 minutes")
+            if pageContains(htmlPage, ["We are currently doing routine maintenance"]):
+                time.sleep(600)
+                raise pubGetError("siteMaintenance", "site is down, waited for 10 minutes")
+            # try to strip the navigation elements from more recent article html
+            # highwire has at least two generators: a new one based on drupal and their older
+            # in-house one
+            if "drupal.org" in htmlPage["data"]:
+                logging.debug("Drupal-Highwire detected")
+                # trailing space!
+                htmlPage["data"] = htmlExtractPart(htmlPage, "div", {"class":"article fulltext-view "})
+            else:
+                htmlPage["data"] = htmlExtractPart(htmlPage, "div", {"id":"content-block"})
+
+            # also try to strip them via two known tags highwire is leaving for us
+            htmlPage["data"] = stripOutsideOfTags(htmlPage["data"], "highwire-journal-article-marker-start", \
+                "highwire-journal-article-marker-end")
+
+            paperData["main.html"] = htmlPage
+
+        else:
+            logging.warn("Got PDF page where html page was expected, no html available")
 
         # check if we have a review process file, EMBO journals
         # e.g. http://emboj.embopress.org/content/early/2015/03/31/embj.201490819
@@ -1951,22 +1975,6 @@ class HighwireCrawler(Crawler):
             logging.debug("Downloading review process file")
             reviewPage = httpGetDelay(reviewUrl, delayTime)
             paperData["review.pdf"] = reviewPage
-
-        # try to strip the navigation elements from more recent article html
-        # highwire has at least two generators: a new one based on drupal and their older
-        # in-house one
-        if "drupal.org" in htmlPage["data"]:
-            logging.debug("Drupal-Highwire detected")
-            # trailing space!
-            htmlPage["data"] = htmlExtractPart(htmlPage, "div", {"class":"article fulltext-view "})
-        else:
-            htmlPage["data"] = htmlExtractPart(htmlPage, "div", {"id":"content-block"})
-
-        # also try to strip them via two known tags highwire is leaving for us
-        htmlPage["data"] = stripOutsideOfTags(htmlPage["data"], "highwire-journal-article-marker-start", \
-            "highwire-journal-article-marker-end")
-
-        paperData["main.html"] = htmlPage
 
         pdfUrl = url.replace(".long", ".full.pdf")
         pdfPage = httpGetDelay(pdfUrl, delayTime)
