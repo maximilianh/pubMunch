@@ -1469,7 +1469,7 @@ def parseDirectories(outDirs):
     docIds = [] # a list of tuples (docId, outDir)
     ignoreDocIds = []
     ignoreIssns = []
-    for srcDir in outDirs:
+    for srcDir, dirs, files in os.walk(outDirs):
         # do some basic checks on outDir
         if not isdir(srcDir):
             continue
