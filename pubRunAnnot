@@ -46,7 +46,7 @@ pubRunAnnot will then:
 
 """)
 
-parser.add_option("-o", "--onlyText", dest="onlyText", action="store_true", help="Run plain text files through the annotator. <in> can be a single text file or a directory with .txt files")
+parser.add_option("-o", "--onlyText", dest="onlyText", action="store_true", help="Run plain text files through the annotator. <in> can be a single text file or a directory with .txt files. Uses only a single thread.")
 parser.add_option("-t", "--test", dest="test", action="store_true", help="run locally in single process, not on cluster or multi processes, to see error messages, dump annotations to stdout")
 #parser.add_option("", "--realTest", dest="realTest", action="store_true", help="spawn processes on local machine, like a cluster run, but error messages are visible, write annotations to final output files")
 parser.add_option("-a", "--addFields", dest="addFields", action="append", help="add article fields to output files, e.g. doi or title. Option can be used several times", default=[])

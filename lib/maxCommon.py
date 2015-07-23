@@ -16,10 +16,10 @@ def delTemp():
 
     for tmpPath in tempPaths:
         if tmpPath!=None and isdir(tmpPath):
-            logging.info("Deleting dir+subdirs %s" % tmpPath)
+            logging.debug("Deleting dir+subdirs %s" % tmpPath)
             shutil.rmtree(tmpPath)
         elif tmpPath!=None and isfile(tmpPath):
-            logging.info("Deleting file %s" % tmpPath)
+            logging.debug("Deleting file %s" % tmpPath)
             os.remove(tmpPath)
         else:
             # has already been deleted

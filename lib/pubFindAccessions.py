@@ -6,6 +6,10 @@
 # detected but not validated: bands, dbsnp, ensembl, UCSC, omim, ec, and many more
 # some accessions need additional keywords in the text to trigger a match, see below
 
+# todo: marker names from uniSts are not recognized, they don't seem to follow any 
+# structure, e.g. D2S286
+# which is http://genome.ucsc.edu/cgi-bin/hgc?c=chr2&o=75342129&t=75342456&g=stsMap&i=AFM200XB2
+
 import re, logging
 from os.path import join
 
@@ -52,7 +56,7 @@ startSep = r'''["'\s,.();:=]'''
 startSepDash = r'''["'\s,.();:=-]'''
 
 
-def compileREs(addOptional=True):
+def compileREs():
     " compile REs and return as dict type -> regex object "
     # received genbank regex by email from Guy Cochrane, EBI
     genbankRe = re.compile("""[ ;,.()](?P<id>(([A-Z]{1}\d{5})|([A-Z]{2}\d{6})|([A-Z]{4}\d{8,9})|([A-Z]{5}\d{7}))(\.[0-9]{1,})?)%s""" % endSep)
@@ -114,85 +118,84 @@ def compileREs(addOptional=True):
               "merops" : meropsRe
               }
 
-    if addOptional:
-        arrayExprRe = re.compile(r'%s(?P<id>E-[A-Z]{4}-[0-9]+)' % (startSep))
-        geoRe = re.compile(r'%s(?P<id>GSE[0-9]{2,8})' % (startSepDash))
-        interproRe = re.compile(r'%s(?P<id>IPR[0-9]{5})' % (startSepDash))
-        pfamRe = re.compile(r'%s(?P<id>PF[0-9]{5})' % (startSepDash))
-        printsRe = re.compile(r'%s(?P<id>PR[0-9]{5})' % (startSepDash))
-        pirsfRe = re.compile(r'%s(?P<id>PIRSF[0-9]{6})' % (startSepDash))
-        prositeRe = re.compile(r'%s(?P<id>PS[0-9]{5})' % (startSepDash))
-        smartRe = re.compile(r'%s(?P<id>SM[0-9]{5})' % (startSepDash))
-        supFamRe = re.compile(r'%s(?P<id>SSF[0-9]{5})' % (startSepDash))
-        ccdsRe = re.compile(r'%s(?P<id>CCDS[0-9]{1,8})' % (startSepDash))
-        affyRe = re.compile(r'%s(?P<id>[0-9]{5,8}(_[sa])?_at)' % (startSepDash))
-        keggRe = re.compile(r'%s(?P<id>hsa:[0-9]{5,8})' % (startSepDash))
-        hprdRe = re.compile(r'%s(HPRD|hprd)[: ](id [: ])?(?P<id>[0-9]{5,8})' % (startSepDash))
-        pharmGkbRe = re.compile(r'%s(?P<id>PA[0-9]{3,6})' % (startSepDash))
-        chemblRe = re.compile(r'%s(?P<id>CHEMBL[0-9]{3,6})' % (startSepDash))
-        hInvRe = re.compile(r'%s(?P<id>HIX[0-9]{3,7})' % (startSepDash))
-        hgncRe = re.compile(r'%s(?P<id>HGNC:[0-9]{2,7})' % (startSepDash))
-        ucscRe = re.compile(r'%s(?P<id>uc[0-9]{3}[a-z]{3})' % (startSepDash))
-        goRe = re.compile(r'%s(?P<id>GO:[0-9]{6})' % (startSepDash))
-        uniGeneRe = re.compile(r'%s(?P<id>Hs\.[0-9]{3,6})' % (startSepDash))
-        vegaRe = re.compile(r'%s(?P<id>OTTHUM[TPG][0-9]{11})' % (startSepDash))
-        cosmicRe = re.compile(r'%s(?P<id>COSM[0-9]{6})' % (startSepDash))
-        mgiRe = re.compile(r'%s(MGI|MGI accession no.|MGI id|MGI accession|MGI acc.)[: ](?P<id>[0-9]{3,8})' % (startSepDash))
-        # http://flybase.org/static_pages/docs/nomenclature/nomenclature3.html#2.
-        flybaseRe = re.compile("""[ ;,.()-](?P<id>(CG|CR)[0-9]{4,5})""" )
-        # http://flybase.org/static_pages/docs/refman/refman-F.html
-        flybase2Re = re.compile("""[ ;,.()-](?P<id>FB(ab|al|ba|cl|gn|im|mc|ms|pp|rf|st|ti|tp|tr)[0-9]{7})%s""" )
-        wormbaseRe = re.compile(r'%s(?P<id>(WBGene[0-9]{8}|WP:CE[0-9]{5}))' % (startSepDash))
-        sgdRe = re.compile(r'%s(?P<id>Y[A-Z]{2}[0-9]{3}[CW](-[AB])?|S[0-9]{9})' % (startSepDash))
-        zfinRe = re.compile(r'%s(?P<id>ZDB-GENE-[0-9]{6,8}-[0-9]{2,4})' % (startSepDash))
-        clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8})' % startSepDash)
+    arrayExprRe = re.compile(r'%s(?P<id>E-[A-Z]{4}-[0-9]+)' % (startSep))
+    geoRe = re.compile(r'%s(?P<id>GSE[0-9]{2,8})' % (startSepDash))
+    interproRe = re.compile(r'%s(?P<id>IPR[0-9]{5})' % (startSepDash))
+    pfamRe = re.compile(r'%s(?P<id>PF[0-9]{5})' % (startSepDash))
+    printsRe = re.compile(r'%s(?P<id>PR[0-9]{5})' % (startSepDash))
+    pirsfRe = re.compile(r'%s(?P<id>PIRSF[0-9]{6})' % (startSepDash))
+    prositeRe = re.compile(r'%s(?P<id>PS[0-9]{5})' % (startSepDash))
+    smartRe = re.compile(r'%s(?P<id>SM[0-9]{5})' % (startSepDash))
+    supFamRe = re.compile(r'%s(?P<id>SSF[0-9]{5})' % (startSepDash))
+    ccdsRe = re.compile(r'%s(?P<id>CCDS[0-9]{1,8})' % (startSepDash))
+    affyRe = re.compile(r'%s(?P<id>[0-9]{5,8}(_[sa])?_at)' % (startSepDash))
+    keggRe = re.compile(r'%s(?P<id>hsa:[0-9]{5,8})' % (startSepDash))
+    hprdRe = re.compile(r'%s(HPRD|hprd)[: ](id [: ])?(?P<id>[0-9]{5,8})' % (startSepDash))
+    pharmGkbRe = re.compile(r'%s(?P<id>PA[0-9]{3,6})' % (startSepDash))
+    chemblRe = re.compile(r'%s(?P<id>CHEMBL[0-9]{3,6})' % (startSepDash))
+    hInvRe = re.compile(r'%s(?P<id>HIX[0-9]{3,7})' % (startSepDash))
+    hgncRe = re.compile(r'%s(?P<id>HGNC:[0-9]{2,7})' % (startSepDash))
+    ucscRe = re.compile(r'%s(?P<id>uc[0-9]{3}[a-z]{3})' % (startSepDash))
+    goRe = re.compile(r'%s(?P<id>GO:[0-9]{6})' % (startSepDash))
+    uniGeneRe = re.compile(r'%s(?P<id>Hs\.[0-9]{3,6})' % (startSepDash))
+    vegaRe = re.compile(r'%s(?P<id>OTTHUM[TPG][0-9]{11})' % (startSepDash))
+    cosmicRe = re.compile(r'%s(?P<id>COSM[0-9]{6})' % (startSepDash))
+    mgiRe = re.compile(r'%s(MGI|MGI accession no.|MGI id|MGI accession|MGI acc.)[: ](?P<id>[0-9]{3,8})' % (startSepDash))
+    # http://flybase.org/static_pages/docs/nomenclature/nomenclature3.html#2.
+    flybaseRe = re.compile("""[ ;,.()-](?P<id>(CG|CR)[0-9]{4,5})""" )
+    # http://flybase.org/static_pages/docs/refman/refman-F.html
+    flybase2Re = re.compile("""[ ;,.()-](?P<id>FB(ab|al|ba|cl|gn|im|mc|ms|pp|rf|st|ti|tp|tr)[0-9]{7})%s""" )
+    wormbaseRe = re.compile(r'%s(?P<id>(WBGene[0-9]{8}|WP:CE[0-9]{5}))' % (startSepDash))
+    sgdRe = re.compile(r'%s(?P<id>Y[A-Z]{2}[0-9]{3}[CW](-[AB])?|S[0-9]{9})' % (startSepDash))
+    zfinRe = re.compile(r'%s(?P<id>ZDB-GENE-[0-9]{6,8}-[0-9]{2,4})' % (startSepDash))
+    clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8})' % startSepDash)
 
-        # a more or less random selection of keywords, not sure if this is really necessary
-        global reqWordDict
-        reqWordDict.update({
-            "arrayexpress": ["arrayexpress"],
-            "geo": ["geo"],
-            "interpro": ["interpro"],
-            "pfam": ["pfam"],
-            "pirsf": ["pirsf"],
-            "smart": ["smart"],
-            "prints": ["prints"],
-            "pharmgkb": ["pharmgkb"],
-            "flybase": ["flybase"],
-            "wormbase": ["wormbase"],
-            "sgd": ["sgd"],
+    # a more or less random selection of keywords, not sure if this is really necessary
+    global reqWordDict
+    reqWordDict.update({
+        "arrayexpress": ["arrayexpress"],
+        "geo": ["geo"],
+        "interpro": ["interpro"],
+        "pfam": ["pfam"],
+        "pirsf": ["pirsf"],
+        "smart": ["smart"],
+        "prints": ["prints"],
+        "pharmgkb": ["pharmgkb"],
+        "flybase": ["flybase"],
+        "wormbase": ["wormbase"],
+        "sgd": ["sgd"],
+    })
+
+    reDict.update({
+        "arrayexpress" : arrayExprRe,
+        "geo"          : geoRe,
+        "interpro"     : interproRe,
+        "pfam"         : pfamRe,
+        "prints"       : printsRe,
+        "pirsf"        : pirsfRe,
+        "smart"        : smartRe,
+        "supfam"       : supFamRe,
+        "affymetrix"   : affyRe,
+        "kegg"         : keggRe,
+        "hprd"         : hprdRe,
+        "pharmgkb"     : pharmGkbRe,
+        "chembl"       : chemblRe,
+        "hinv"         : hInvRe,
+        "hgnc"         : hgncRe,
+        "ucsc"         : ucscRe,
+        "go"           : goRe,
+        "uniGene"      : uniGeneRe,
+        "vega"         : vegaRe,
+        "cosmic"       : cosmicRe,
+        "mgi"          : mgiRe,
+        "flybase"      : flybaseRe,
+        "flybase2"     : flybase2Re,
+        "wormbase"     : wormbaseRe,
+        "sgd"          : sgdRe,
+        "zfin"         : zfinRe,
+        # https://clinicaltrials.gov/show/NCT01204177
+        "clintrials"   : clinTrialsRe
         })
-
-        reDict.update({
-            "arrayexpress" : arrayExprRe,
-            "geo"          : geoRe,
-            "interpro"     : interproRe,
-            "pfam"         : pfamRe,
-            "prints"       : printsRe,
-            "pirsf"        : pirsfRe,
-            "smart"        : smartRe,
-            "supfam"       : supFamRe,
-            "affymetrix"   : affyRe,
-            "kegg"         : keggRe,
-            "hprd"         : hprdRe,
-            "pharmgkb"     : pharmGkbRe,
-            "chembl"       : chemblRe,
-            "hinv"         : hInvRe,
-            "hgnc"         : hgncRe,
-            "ucsc"         : ucscRe,
-            "go"           : goRe,
-            "uniGene"      : uniGeneRe,
-            "vega"         : vegaRe,
-            "cosmic"       : cosmicRe,
-            "mgi"          : mgiRe,
-            "flybase"      : flybaseRe,
-            "flybase2"     : flybase2Re,
-            "wormbase"     : wormbaseRe,
-            "sgd"          : sgdRe,
-            "zfin"         : zfinRe,
-            # https://clinicaltrials.gov/show/NCT01204177
-            "clintrials"   : clinTrialsRe
-            })
 
     return reDict
 
@@ -379,7 +382,7 @@ class AccsFinder():
         """ compile regexes.
             you can remove DBs with removeDbs or restrict to onlyDbs 
         """
-        self.reDict = compileREs(addOptional=True)
+        self.reDict = compileREs()
         if onlyDbs is not None:
             newReDict = {}
             for db in onlyDbs:
@@ -451,7 +454,7 @@ class AccsFinder():
 if __name__ == "__main__":
     #logging.basicConfig(level=logging.DEBUG)
     # just output current list of accession types
-    print ", ".join(sorted(compileREs(addOptional=True).keys()))
+    print ", ".join(sorted(compileREs().keys()))
     logging.basicConfig(level=logging.INFO)
     import doctest
     doctest.testmod()

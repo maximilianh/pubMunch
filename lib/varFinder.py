@@ -1,9 +1,9 @@
 # find descriptions of variants in text
-import logging, gdbm, marshal, zlib, copy, struct, random
+import logging, gdbm, marshal, zlib, copy, struct, random, sqlite3
 from collections import defaultdict, namedtuple
 from os.path import join
 
-# I highly recommend installing re2, it's way faster than re here
+# re2 is often faster than re
 # we fallback to re just in case
 try:
     import re2 as re
@@ -26,7 +26,7 @@ VariantFields = [
     "mutType", # sub, del or ins
     "seqType", # prot, dna or dbSnp 
     "seqId",  # protein or nucleotide accession
-    "geneId", # entrez gene id, if found nearby in text
+    "geneId", # entrez gene id, if a gene was found nearby in text
     "start",  # original position in text
     "end",    # end position in text
     "origSeq", # wild type seq, used for sub and del, also used to store rsId for dbSnp variants
@@ -120,50 +120,56 @@ blackList = set([
 def loadDb(loadSequences=True):
     if loadSequences:
         global geneData
-        geneData = SeqData(pubConf.geneDataDir, 9606)
+        geneData = SeqData(9606)
     global regexes
-    regexes = parseRegex(join(pubConf.staticDataDir, "variants"))
+    regexes = parseRegex(pubConf.varDataDir)
     logging.info("Blacklist has %d entries" % len(blackList))
 
+def openIndexedPsls(mutDataDir, fileBaseName):
+    " return a dict-like object that returns psls given a transcript ID "
+    liftFname = join(mutDataDir, fileBaseName)
+    logging.debug("Opening %s" % liftFname)
+    pslDict = pubKeyVal.SqliteKvDb(liftFname)
+    return pslDict
+
+def parseEntrez(fname):
+    """ parse a tab-sep table with headers and return one dict with entrez to refprots
+    and another dict with entrez to symbol
+    """
+    entrez2Sym = dict()
+    entrez2RefseqProts = dict()
+
+    for row in maxCommon.iterTsvRows(fname):
+        entrez2Sym[int(row.entrezId)] = row.sym
+        #refseqs = row.refseqIds.split(",")
+        if row.refseqProtIds=="":
+            refProts = None
+        else:
+            refProts = row.refseqProtIds.split(",")
+            #assert(len(refProts)==len(refseqs))
+
+        entrez2RefseqProts[int(row.entrezId)] = refProts
+    return entrez2Sym, entrez2RefseqProts
+        
+        
 # ===== CLASSES =================
 class SeqData(object):
     """ functions to get sequences and map between identifiers for entrez genes,
     uniprot, refseq, etc """
 
-    def __init__(self, mutDataDir, taxId):
+    def __init__(self, taxId):
         " open db files, compile patterns, parse input as far as possible "
+        mutDataDir = pubConf.varDataDir
+        geneDataDir = pubConf.geneDataDir
         if mutDataDir==None:
             return
         self.mutDataDir = mutDataDir
-        # load uniprot data into mem
-        logging.info("Reading variant data: uniprot, entrez, ")
-        fname = join(mutDataDir, "uniprot.tab.marshal")
-        logging.debug("Reading uniprot data from %s" % fname)
-        data = marshal.load(open(fname))
-        self.entrez2Up = data[taxId]["entrezToUp"]
-        self.upToSym = data[taxId]["upToSym"]
-        self.upToIsos = data[taxId]["upToIsos"]
-        self.upToGbProts = data[taxId]["upToGbProts"]
+        self.entrez2sym, self.entrez2refprots = parseEntrez(join(geneDataDir, "entrez.tab"))
 
-        # load mapping entrez -> refseq/refprot/symbol
-        fname = join(mutDataDir, "entrez.%s.tab.marshal" % taxId)
-        logging.debug("Reading entrez data from %s" % fname)
-        entrezRefseq = marshal.load(open(fname))
-        self.entrez2refseqs = entrezRefseq["entrez2refseqs"]
-        self.entrez2refprots = entrezRefseq["entrez2refprots"]
-        self.entrez2sym = entrezRefseq["entrez2sym"]
-
-        # pmid -> entrez genes
-        #fname = join(mutDataDir, "pmid2entrez.gdbm")
-        #logging.info("opening %s" % fname)
-        #pmid2entrez = gdbm.open(fname, "r")
-        #self.pmid2entrez = pmid2entrez
-        
         # refseq sequences
         fname = join(mutDataDir, "seqs")
         logging.info("opening %s" % fname)
-        #seqs = gdbm.open(fname, "r")
-        seqs = pubKeyVal.SqliteKvDb(fname, compress=True)
+        seqs = pubKeyVal.SqliteKvDb(fname)
         self.seqs = seqs
         
         # refprot to refseqId
@@ -174,138 +180,56 @@ class SeqData(object):
         self.refSeqCds = {}
         for row in maxCommon.iterTsvRows(fname):
             self.refProtToRefSeq[row.refProt] = row.refSeq
-            self.refSeqCds[row.refSeq] = int(row.cdsStart)-1
+            self.refSeqCds[row.refSeq] = int(row.cdsStart)-1 # NCBI is 1-based
 
-        self.seqCache = {}
-
-        # -- these four parts could be fused into one
         # refseq to genome
-        liftFname = join(mutDataDir, "refGenePsl.%s.sqlite" % taxId)
-        logging.debug("Opening %s" % liftFname)
-        #self.refGenePsls = gdbm.open(liftFname, "r")
-        self.refGenePsls = pubKeyVal.SqliteKvDb(liftFname, compress=True)
-        self.refGenePslCache = {}
-        # refseq to old refseq
-        liftFname = join(mutDataDir, "oldRefseqToRefseqPsl.%s.dbm" % taxId)
-        # oldRefseqToRefseq.9606.prot.psl.dbm
-        logging.debug("Opening %s" % liftFname)
-        #self.oldRefseqPsls = gdbm.open(liftFname, "r")
-        self.oldRefseqPsls = pubKeyVal.SqliteKvDb(liftFname, compress=True)
-        self.oldRefseqPslCache = {}
-        # uniprot to refseq
-        liftFname = join(mutDataDir, "upToRefseq.%s.psl.dbm" % taxId)
-        logging.debug("Opening %s" % liftFname)
-        self.uniprotPsls = gdbm.open(liftFname, "r")
-        self.uniprotPslCache = {}
-        # genbank to refseq
-        liftFname = join(mutDataDir, "genbankToRefseq.%s.psl.dbm" % taxId)
-        logging.debug("Opening %s" % liftFname)
-        self.genbankPsls = gdbm.open(liftFname, "r")
-        self.genbankPslCache = {}
+        self.pslCache = {}
+        self.refGenePsls      = openIndexedPsls(mutDataDir, "refGenePsls.9606")
+
+        # dbsnp db
+        fname = join(self.mutDataDir, "dbSnp.sqlite")
+        self.snpDb = sqlite3.connect(fname)
+
 
         logging.info("Reading of data finished")
 
-        # dbsnp dbm file handles
-        self.snpDbmCache = {}
-        self.rsIdDbmCache = {}
 
     def getSeq(self, seqId):
         " get seq from db , cache results "
         logging.log(5, "Looking up sequence for id %s" % seqId)
-        seqId = str(seqId) # gdbm doesn't like unicode
-        if seqId not in self.seqCache:
-            if seqId not in self.seqs:
-                return None
-            comprSeq = self.seqs[seqId]
-            seq = zlib.decompress(comprSeq)
-            self.seqCache[seqId] = seq
-        else:
-            seq = self.seqCache[seqId]
-        return seq
+        seqId = str(seqId) # no unicode
+        if seqId not in self.seqs:
+            return None
+        return self.seqs[seqId]
 
     def lookupDbSnp(self, chrom, start, end):
         " return the rs-Id of a position or None if not found "
-        if chrom in self.snpDbmCache:
-            dbm = self.snpDbmCache[chrom]
+        # TABLE data (chrom TEXT, start INT, end INT, rsId INT PRIMARY KEY);
+        sql = 'SELECT rsId from data where chrom=? and start=? and end=?'
+        cur = self.snpDb.execute(sql, (chrom, start, end))
+        row = cur.fetchone()
+        if row is None:
+            return None
         else:
-            fname = join(self.mutDataDir, "snp137."+chrom+".dbm")
-            logging.debug("Opening %s" % fname)
-            dbm = gdbm.open(fname, "r")
-            self.snpDbmCache[chrom] = dbm
-
-        # crazy bit-packing of coordinates, probably too much effort here
-        # keeps dbsnp file small
-        packCoord = struct.pack("<ll", int(start), int(end))
-        if packCoord in dbm:
-            packRsId = dbm[packCoord]
-            rsId = struct.unpack("<l", packRsId)[0]
-            rsId = "rs"+str(rsId)
-        else:
-            rsId = None
-        return rsId
+            return "rs"+str(row[0])
 
     def rsIdToGenome(self, rsId):
         " given the rs-Id, return chrom, start, end of it"
-        lastDigit = rsId[-1]
-        # lazily open dbms
-        if lastDigit in self.rsIdDbmCache:
-            dbm = self.rsIdDbmCache[lastDigit]
+        rsId = int(rsId)
+        sql = 'SELECT chrom, start, end from data where rsId=?'
+        cur = self.snpDb.execute(sql, (rsId,))
+        row = cur.fetchone()
+        if row is None:
+            return None
         else:
-            fname = join(self.mutDataDir, "snp137.coords."+lastDigit+".dbm")
-            logging.debug("Opening %s" % fname)
-            dbm = gdbm.open(fname, "r")
-            self.rsIdDbmCache[lastDigit] = dbm
+            return row[0], row[1], row[2]
 
-        rsIdInt = int(rsId)
-        if not -2147483648 <= rsIdInt <= 2147483647:
-            logging.warn("clearly invalid rsId %s, out of int bounds" % rsId)
-            return None, None, None
-
-        rsIdPack = struct.pack("<l", rsIdInt)
-        if not rsIdPack in dbm:
-            logging.debug("rsId %s not found in db" % rsId)
-            return None, None, None
-        else:
-            packCoord = dbm[rsIdPack]
-            chrom, start, end = maxbio.unpackChromCoord(packCoord)
-            logging.debug("rsId %s maps to %s, %d, %d" % (rsId, chrom, start, end))
-            return chrom, start, end
-
-    def entrezToUniProtIds(self, entrezGene):
-        " return all uniprot isoform IDs for an entrez gene "
-        upIds = self.entrez2Up.get(entrezGene, [])
-        allIsos = []
-        for upId in upIds:
-            isoIds = self.upToIsos[upId]
-            allIsos.extend(isoIds)
-        logging.debug("entrez gene %s has uniprot IDs %s" % (entrezGene, allIsos))
-        return allIsos
-
-    def entrezToGenbankProtIds(self, entrezGene):
-        " return all genbank protein IDs for an entrez gene "
-        upIds = self.entrez2Up.get(entrezGene, [])
-        allGbIds = []
-        for upId in upIds:
-            gbIds = self.upToGbProts.get(upId, None)
-            if gbIds==None:
-                logging.debug("entrezGene %s -> uniprot %s, but uniprot has not genbank IDs here" %
-                    (entrezGene, upId))
-                continue
-            allGbIds.extend(gbIds)
-        logging.debug("entrez gene %s has genbank IDs %s" % (entrezGene, allGbIds))
-        return allGbIds
-
-    def entrezToOtherDb(self, entrezGene, db):
-        " return accessions (list) in otherDb for entrezGene "
+    def entrezToProtDbIds(self, entrezGene, db):
+        " return protein accessions (list) in otherDb for entrezGene "
         entrezGene = int(entrezGene)
         if db=="refseq":
             protIds = self.entrezToRefseqProts(entrezGene)
-        elif db=="oldRefseq":
-            protIds = self.entrezToOldRefseqProts(entrezGene)
-        elif db=="uniprot":
-            protIds = self.entrezToUniProtIds(entrezGene)
-        elif db=="genbank":
-            protIds = self.entrezToGenbankProtIds(entrezGene)
+        # used to have other DBs here
         else:
             assert(False)
         return protIds
@@ -328,30 +252,20 @@ class SeqData(object):
         if entrezGene not in self.entrez2refprots:
             logging.debug("gene %s is not valid or not in selected species" % str(entrezGene))
             return []
+
         protIds = self.entrez2refprots[entrezGene]
-        logging.debug("Entrez gene %s is mapped to proteins %s" % \
+        if protIds is None:
+            logging.debug("gene %s is a non-coding gene, no protein seq available")
+            return []
+
+        logging.debug("Entrez gene %d is mapped to proteins %s" % \
             (entrezGene, ",".join(protIds)))
         return protIds
 
-    def entrezToOldRefseqProts(self, entrezGene):
-        " map entrez gene to old refseq prots "
-        newProtIds = self.entrezToRefseqProts(entrezGene)
-        protIds = newToOldRefseqs(newProtIds)
-        if len(protIds)>0:
-            logging.debug("Also trying old refseq protein IDs %s" % protIds)
-        return protIds
-
     def getCdsStart(self, refseqId):
+        " return refseq CDS start position "
         cdsStart = self.refSeqCds[refseqId]
         return cdsStart
-
-    #def getEntrezGenes(self, pmid):
-        #if not pmid in self.pmid2entrez:
-            #return None
-        #dbRes = self.pmid2entrez[pmid]
-        #entrezGenes = dbRes.split(",")
-        #entrezGenes = [int(x) for x in entrezGenes]
-        #return entrezGenes
 
     def getRefSeqId(self, refProtId):
         " resolve refprot -> refseq using refseq data "
@@ -361,30 +275,18 @@ class SeqData(object):
     def getProteinPsls(self, db, protId):
         if db=="uniprot":
             return self.getUniprotPsls(protId)
-        elif db=="oldRefseq":
-            return self.getOldRefseqPsls(protId)
-        elif db=="genbank":
-            return self.getGenbankPsls(protId)
+        #elif db=="oldRefseq":
+            #return self.getOldRefseqPsls(protId)
+        #elif db=="genbank":
+            #return self.getGenbankPsls(protId)
         else:
             assert(False)
 
-    # ---- these three could be folded into a single method
-    def getOldRefseqPsls(self, protId):
-        psls = getPsls(protId, self.oldRefseqPslCache, self.oldRefseqPsls)
-        return psls
-    def getUniprotPsls(self, uniprotId):
-        psls = getPsls(uniprotId, self.uniprotPslCache, self.uniprotPsls)
-        return psls
-    def getGenbankPsls(self, protId):
-        " strip version of id and return psl "
-        psls = getPsls(protId, self.genbankPslCache, self.genbankPsls, stripVersion=True)
-        return psls
-    #  ---------------------
     def getRefseqPsls(self, refseqId):
         """ return psl objects for regseq Id
-            as ucsc refseq track doesn't support version numbers, we're stripping those on input
+            as UCSC refseq track doesn't support version numbers, we're stripping those on input
         """
-        psls = getPsls(refseqId, self.refGenePslCache, self.refGenePsls, stripVersion=True)
+        psls = getPsls(refseqId, self.pslCache, self.refGenePsls, stripVersion=True)
         return psls
 
     # end of class seqData
@@ -528,7 +430,7 @@ def getPsls(qId, cache, dbm, stripVersion=False):
         if not qId in dbm:
             logging.error("Could not find PSL for %s" % qId)
             return []
-        pslLines = zlib.decompress(dbm[qId])
+        pslLines = dbm[qId]
         psls = []
         for line in pslLines.split("\n"):
             psl = Psl(line.split("\t"))
@@ -600,10 +502,7 @@ def parseMatchRsId(match, patName):
     groups = match.groupdict()
     mutType = "dbSnp"
     rsId = groups["rsId"]
-    if geneData!=None:
-        chrom, start, end = geneData.rsIdToGenome(rsId)
-    else:
-        chrom, start, end = "dbSnpNotLoaded", 0, 0
+    chrom, start, end = geneData.rsIdToGenome(rsId)
 
     if chrom==None:
         return None
@@ -884,7 +783,7 @@ def bedToRsIds(beds):
     for bed in beds:
         chromCoord = bed[0], bed[1], bed[2]
         snpId = geneData.lookupDbSnp(*chromCoord)
-        if snpId==None:
+        if snpId is None:
             logging.debug("Chromosome location %s does not map to any dbSNP" % str(chromCoord))
             ret.append("na")
         else:
@@ -964,7 +863,7 @@ def hasSeqAtPos(protIds, variant):
             foundProtIds.append(protId)
     return foundProtIds
 
-def checkAminAcidAgainstSequence(variant, entrezGene, protDbs=["refseq"]):
+def checkAminAcidAgainstSequence(variant, entrezGene, sym, protDbs=["refseq"]):
     """ given a variant and a gene ID, 
     try to resolve gene to transcript sequence via  various protein databases 
     and check if they have matches for the wildtype aa at the right position 
@@ -972,9 +871,9 @@ def checkAminAcidAgainstSequence(variant, entrezGene, protDbs=["refseq"]):
     """
     for entrezGene in entrezGene.split("/"):
         entrezGene = int(entrezGene)
-        logging.debug("Trying to ground %s to entrez gene %s" % (str(variant), entrezGene))
+        logging.debug("Trying to ground %s to entrez gene %s / %s" % (str(variant), entrezGene, sym))
         for db in ["refseq"]:
-            protIds = geneData.entrezToOtherDb(entrezGene, db)
+            protIds = geneData.entrezToProtDbIds(entrezGene, db)
             if len(protIds)==0:
                 continue
             foundProtIds = hasSeqAtPos(protIds, variant)
@@ -1108,20 +1007,22 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
         if not geneSym:
             logging.warn("No symbol for entrez gene %s. Skipping gene." % str(entrezGene))
             continue
-        db, protIds = checkAminAcidAgainstSequence(variant, entrezGene)
+        db, protIds = checkAminAcidAgainstSequence(variant, entrezGene, geneSym)
 
         if len(protIds)!=0:
             # we found a sequence hit
             if db=="refseq":
                 protVars = rewriteToRefProt(variant, protIds)
                 comment  = ""
-            # if needed, map to current refseq from uniprot or genbank or oldRefseq
             else:
-                protVars = mapToRefProt(db, variant, protIds)
-                comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
-                if protVars==None:
-                    logging.warn("found seqs, but no PSLs for %s" % protIds)
-                    continue
+                assert(False)
+            # if needed, map to current refseq from uniprot or genbank or oldRefseq
+            #else:
+                #protVars = mapToRefProt(db, variant, protIds)
+                #comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
+                #if protVars==None:
+                    #logging.warn("found seqs, but no PSLs for %s" % protIds)
+                    #continue
 
             # map variants to coding and rna sequence coordinates
             varId              = str(docId)

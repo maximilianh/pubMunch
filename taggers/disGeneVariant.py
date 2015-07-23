@@ -125,8 +125,8 @@ def rangeDescs(text, rangeList, useSym=False):
 
 def startup(paramDict):
     geneFinder.initData(exclMarkerTypes=["dnaSeq", "band"])
-    varFinder.loadDb(loadSequences=False)
-    #varFinder.loadDb()
+    #varFinder.loadDb(loadSequences=False)
+    varFinder.loadDb()
     
 def findDisGeneVariant(text):
     """
@@ -137,6 +137,9 @@ def findDisGeneVariant(text):
     >>> #list(findDisGeneVariant("We undertook a quantitative review of the literature to estimate the effectiveness of desferrioxamine and deferiprone in decreasing hepatic iron concentrations (HIC) in thalassemia major."))
     >>> list(findDisGeneVariant("his mutation, we cotransfected C3H10T cells with expression vectors encoding SMO-WT or SMO-D473H "))
     """
+    docGenes = list(geneFinder.findGeneNames(text))
+    docEntrezIds = set([r[-1] for r in docGenes])
+
     for section, start, end, sentence in pubNlp.sectionSentences(text):
         conds = list(pubNlp.findDiseases(sentence))
         drugs = list(pubNlp.findDrugs(sentence))
@@ -153,11 +156,16 @@ def findDisGeneVariant(text):
         mutDescs = []
         mutDict = varFinder.findVariantDescriptions(sentence)
         if "prot" in mutDict:
-            for mut in mutDict["prot"]:
-                varDesc, mentions = mut
+            for varDesc, mentions in mutDict["prot"]:
                 if varDesc.mutType!="sub":
                     continue
-                mutDescs.append(varDesc.origSeq+str(varDesc.start+1)+varDesc.mutSeq) # 0-based!!
+                logging.debug("grounding variant: %s %s"% (varDesc, mentions))
+                groundedMuts, ungroundVar, beds = \
+                    varFinder.groundVariant(None, sentence, varDesc, mentions, [], docEntrezIds)
+
+                for mutInfo in groundedMuts:
+                    shortDesc = varDesc.origSeq+str(varDesc.start+1)+varDesc.mutSeq # 0-based!!
+                    mutDescs.append(shortDesc+"=%s:%s"%(mutInfo.geneSymbol,mutInfo.hgvsProt))
             
         #mutMatches =  list(mutRe.finditer(sentence))
         #mutDescs = [(m.group(1),m.group(2), m.group(3)) for m in mutMatches]

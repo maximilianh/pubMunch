@@ -30,7 +30,7 @@ uploadWin:
 	rsync pubToolsWin64.zip max@hgwdev.soe.ucsc.edu:public_html/pubtools/ --progress
 
 bigFiles:
-	tar cvfz bigFiles.tgz data/genes/* data/accessions/uniprot.sqlite
+	tar cvfz bigFiles.tgz data/genes/* data/variants/* data/accessions/uniprot.sqlite
 	mv bigFiles.tgz ~/public_html/pubs/tools/
 
 data:

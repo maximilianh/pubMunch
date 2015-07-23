@@ -174,9 +174,11 @@ class RedisDb(object):
 class SqliteKvDb(object):
     """ wrapper around sqlite to create an on-disk key/value database (or just keys)
         Uses batches when writing.
-        On ramdisk, this can write 40k pairs / sec, tested on 40M uniprot pairs  
+        On ramdisk, this can write 50k pairs / sec, tested on 40M uniprot pairs  
+        set onlyUnique if you know that the keys are unique.
     """
-    def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None, onlyKey=False, compress=False, keyIsInt=False, eightBit=False):
+    def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None, onlyKey=False, compress=False, keyIsInt=False, eightBit=False, onlyUnique=False):
+        self.onlyUnique = onlyUnique
         self.compress = compress
         self.batchMaxSize = 100000
         self.batch = []
@@ -211,9 +213,10 @@ class SqliteKvDb(object):
         if keyIsInt:
             keyType = "INT"
         if onlyKey:
-            self.con.execute("cREATE TABLE IF NOT EXISTS data (key %s PRIMARY KEY)" % keyType)
+            self.con.execute("CREATE TABLE IF NOT EXISTS data (key %s PRIMARY KEY)" % keyType)
         else:
-            self.con.execute("cREATE TABLE IF NOT EXISTS data (key %s PRIMARY KEY,value BLOB)" % keyType)
+            self.con.execute("CREATE TABLE IF NOT EXISTS data (key %s PRIMARY KEY,value BLOB)" % keyType)
+        self.con.commit()
 
         self.cur = self.con
         if singleProcess:
@@ -238,6 +241,13 @@ class SqliteKvDb(object):
         row = self.con.execute("select key from data where key=?",(key,)).fetchone()
         return row!=None
     
+    def dispName(self):
+        " return a name for log messages "
+        if self.finalDbName is not None:
+            return "sqlite:"+self.finalDbName
+        else:
+            return "sqlite:"+self.dbName
+
     def __getitem__(self, key):
         row = self.con.execute("select value from data where key=?",(key,)).fetchone()
         if not row: raise KeyError
@@ -275,12 +285,10 @@ class SqliteKvDb(object):
     def update(self, keyValPairs):
         " add many key,val pairs at once "
         logging.debug("Writing %d key-val pairs to db" % len(keyValPairs))
-        #sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
-        #c = Counter()
-        #keys = [k for k,v in keyValPairs]
-        #c.update(keys)
-        #print c.most_common(10)
-        sql = "INSERT INTO data (key, value) VALUES (?,?)"
+        if self.onlyUnique:
+            sql = "INSERT INTO data (key, value) VALUES (?,?)"
+        else:
+            sql = "INSERT OR REPLACE INTO data (key, value) VALUES (?,?)"
         #try:
         self.cur.executemany(sql, keyValPairs)
         #except sqlite3.IntegrityError:

@@ -62,6 +62,15 @@ ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
 #ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/release/vertebrate_mammalian'
 ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens/mRNA_Prot'
 
+# VARIANT MAPPING ========================================================
+# directory for files that are needed to build the variants at UCSC but not needed 
+# to run the programs. Examples are the PSL alignments built at UCSC, before they are
+# indexed into sqlite
+varBuildDir = '/hive/data/inside/pubs/variants'
+
+# OMIM genemap2 on local disk or via internet
+omimUrl = "file:///hive/data/outside/omim/01122013/genemap2.txt"
+
 # CONVERTER SETTINGS ================================================
 # for auto mode: base data dir with raw input files from publishers or databases
 extDir = '/hive/data/outside/pubs'
@@ -549,6 +558,9 @@ accDataDir = join(staticDataDir, "accessions")
 
 # directory with lots of data about genes
 geneDataDir = join(staticDataDir, "genes")
+
+# directory with data required to detect variants
+varDataDir = join(staticDataDir, "variants")
 
 # the british national corpus is a list of 30k common words in English
 # used for symbol filtering
