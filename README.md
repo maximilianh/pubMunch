@@ -7,7 +7,7 @@ on them.  All tools start with the prefix "pub".
 
 # The tools
 
-- pubCrawl = crawl papers from various publishers, needs a directory with a
+- pubCrawl2 = crawl papers from various publishers, needs a directory with a
         textfile "pmids.txt" in it and the data/journalList directory
 - pubGetPUB = download files from publisher PUB directly (medline, pmc, elsevier)
 - pubConvPUB = convert downloaded files to my pub format (tab-separated table
@@ -26,7 +26,7 @@ on them.  All tools start with the prefix "pub".
 
 If you plan to use any of these, make sure to go over lib/pubConf.py first.
 Most commands need some settings in the config file adapted to your particular
-server / cluster system. E.g. pubCrawl needs your email address, pubConvX 
+server / cluster system. E.g. pubCrawl2 needs your email address, pubConvX 
 need the cluster system (SGE or parasol) and various input/output directories.
 
 # Common command line options
@@ -49,7 +49,7 @@ Get a list of PMIDs, put them into the file pmids.txt
 
 Run the crawler in unrestricted mode and with debug output on this list: (in the default, restricted mode, it will only crawl a single publisher) 
 
-    pubCrawl -du myCrawl
+    pubCrawl2 -du myCrawl
 
 The PDFs should then be in the subdirectory myCrawl/files. Error messages are in myCrawl/pmidStatus.txt, and a crawler log file crawler.log with all sorts of status messages to help me debug problems.  Metadata (authors, title, etc) is in a sqlite database and also a tab separated file in the same directory. 
 
