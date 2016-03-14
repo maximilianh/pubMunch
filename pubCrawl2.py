@@ -54,7 +54,7 @@ def main(args, options):
 
     scrapeLib.checkCreateLock(outDir)
 
-    docIds, skipDocs, skipIssns = scrapeLib.parseDirectories(outDir)
+    docIds, skipDocs, skipIssns = scrapeLib.parseDirectories([outDir])
     scrapeLib.crawlDocuments(docIds, skipDocs, skipIssns)
 
     scrapeLib.removeLocks()
