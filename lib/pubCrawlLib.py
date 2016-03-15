@@ -1910,9 +1910,12 @@ class HighwireCrawler(Crawler):
             # try the vol/issue/page, is a lot faster
             vol = artMeta.get("vol", "")
             issue = artMeta.get("issue", "")
+            non_decimal = re.compile(r'[^\d]+')
+            issue = non_decimal.sub('', issue)
             page = artMeta.get("page", "")
             if (vol, issue, page) != ("", "", ""):
                 url = "%s/content/%s/%s/%s.long" % (baseUrl, vol, issue, page)
+                logging.info("URL: %s" % url)
                 page = httpGetDelay(url, delayTime)
                 if page != None:
                     return url
@@ -2061,8 +2064,8 @@ class WileyCrawler(Crawler):
 
     def makeLandingUrl(self, artMeta):
         ""
-        url = "http://onlinelibrary.wiley.com/resolve/openurl?genre=article&sid=genomeBot&issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
-        return url
+        #url = "http://onlinelibrary.wiley.com/resolve/openurl?genre=article&sid=genomeBot&issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
+        return "http://onlinelibrary.wiley.com/doi/%s/abstract" % artMeta["doi"]
         
     def crawl(self, url):
         delayTime = crawlDelays["wiley"]
@@ -2093,6 +2096,7 @@ class WileyCrawler(Crawler):
         # pdf
         #pdfUrl = getMetaPdfUrl(mainPage)
         pdfUrl = absUrl.replace("/abstract", "/pdf")
+        logging.info("PDF URL: " + pdfUrl)
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         parseHtmlLinks(pdfPage)
         if "pdfDocument" in pdfPage["iframes"]:
