@@ -414,10 +414,11 @@ def runCurl(url, userAgent):
     timeout = pubConf.httpTransferTimeout
     url = url.replace("'","")
 
-    cmd = [DOWNLOADER, url, "-A", userAgent, "--cookie-jar",
+    cmd = [DOWNLOADER, url, "--cookie-jar",
         curlCookieFile.name, "-o", tmpFile.name, "--max-time", str(timeout),
         "-w", '%{url_effective} %{content_type}']
     cmd.extend(CURLOPTIONS)
+    logging.debug("Command: " + ' '.join(cmd))
 
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env, shell=False)
     if ret!=0:
@@ -1786,7 +1787,7 @@ class ElsevierCrawler(Crawler):
         pdfEl = bs.find("a", id="pdfLink")
         if pdfEl!=None:
             pdfUrl = pdfEl["href"]
-            pdfUrl = urlparse.urljoin(htmlPage["url"], url)
+            pdfUrl = urlparse.urljoin(htmlPage["url"], pdfUrl)
             pdfPage = httpGetDelay(pdfUrl, delayTime)
             paperData["main.pdf"] = pdfPage
             # the PDF link becomes invalid after 10 minutes, so direct users
