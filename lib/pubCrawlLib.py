@@ -93,7 +93,8 @@ crawlDelays = {
     "elsevier" : 10,
     "wiley" : 10,
     "springer" : 10,
-    "silverchair" : 10
+    "silverchair" : 10,
+    "pubmedBook": 0
 }
 
 # the config file can contain site-specific delays, e.g. for testing
@@ -2035,6 +2036,28 @@ class NejmCrawler(Crawler):
         assert(pdfUrl != url)
 
         return paperData
+
+class PubmedBookCrawler(Crawler):
+    name = "pubmedBook"
+    
+    def canDo_article(self, artMeta):
+        return "bookaccession" in artMeta and len(artMeta["bookaccession"]) > 0
+
+    def makeLandingUrl(self, artMeta):
+        return "http://www.ncbi.nlm.nih.gov/books/%s/" % artMeta["bookaccession"]
+        
+    def crawl(self, url):
+        delayTime = crawlDelays["pubmedBook"]
+        paperData = OrderedDict()
+        mainPage = httpGetDelay(url, delayTime)
+
+        artHtml = htmlExtractPart(mainPage, "div", {"id":"maincontent"})
+        if artHtml!=None:
+            logging.debug("Stripped pubmed book")
+            mainHtml = artHtml
+            mainPage["data"] = mainHtml
+        paperData["main.html"] = mainPage
+        return paperData
     
 class WileyCrawler(Crawler):
     """
@@ -2289,7 +2312,8 @@ class SilverchairCrawler(Crawler):
 # order is important: the most specific crawlers come first
 allCrawlers = [
     ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
-    WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), PmcCrawler()
+    WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), PmcCrawler(), 
+    PubmedBookCrawler()
     ]
 allCrawlerNames = [c.name for c in allCrawlers]
 
