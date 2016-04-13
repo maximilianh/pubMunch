@@ -2427,6 +2427,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
     for docId, srcDir in docIds:
         if docId in skipDocIds:
             logging.log(5, "Skipping docId %s" % docId)
+            yield docId
             continue
         logging.info("Crawling document with ID %s" % docId)
 
@@ -2445,6 +2446,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
             checkIssnErrorCounts(artMeta, skipIssns, srcDir)
             paperData = crawlOneDoc(artMeta, srcDir)
             writePaperData(docId, artMeta, paperData, srcDir)
+            yield docId
             consecErrorCount = 0
             totalCount += 1
 
