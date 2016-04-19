@@ -2445,6 +2445,8 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
         try:
             checkIssnErrorCounts(artMeta, skipIssns, srcDir)
             paperData = crawlOneDoc(artMeta, srcDir)
+            if paperData is None:
+                raise pubGetError("paperData is None", "PaperDataNone")
             writePaperData(docId, artMeta, paperData, srcDir)
             yield docId
             consecErrorCount = 0
