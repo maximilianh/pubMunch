@@ -78,6 +78,9 @@ extDir = '/hive/data/outside/pubs'
 # for auto mode: base dir of all publisher text files
 textDir = join(pubsDataDir, "text")
 
+# gzip compress the text data? Seeking is faster if not gzip compressed.
+compress = False
+
 # for pubConvMedline:
 
 # an sqlite db with the content of medline, kept up-to-date

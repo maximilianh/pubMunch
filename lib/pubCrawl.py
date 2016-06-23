@@ -415,7 +415,7 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
             metaData["mainHtmlFile"] = filename
             metaData["mainHtmlUrl"] = pageDict["url"]
         elif suffix=="main.pdf":
-            if pageDict["mime"]!="application/pdf":
+            if pageDict["mimeType"]!="application/pdf":
                 raise pubGetError("invalidPdf", "invalid mimetype of PDF. dir %s, docId %s, title %s" % \
                     (outDir, pmid, metaData["title"]), pageDict["url"])
             metaData["mainPdfFile"] = filename

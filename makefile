@@ -7,7 +7,7 @@ all:
 
 install:
 	mkdir -p $(BIN)
-	rm $(BIN)/*
+	#rm $(BIN)/*
 	cp -R * $(BIN)/
 	# most other hgwdev users don't have the correct python
 	# in their path, so I have to force it
@@ -30,7 +30,7 @@ uploadWin:
 	rsync pubToolsWin64.zip max@hgwdev.soe.ucsc.edu:public_html/pubtools/ --progress
 
 bigFiles:
-	tar cvfz bigFiles.tgz data/genes/* data/variants/* data/accessions/uniprot.sqlite
+	tar cvfz bigFiles.tgz data/genes/* data/variants/* data/accessions/uniprot.sqlite data/variants/dbSnp.sqlite  data/variants/refGenePsls.9606.sqlite  data/variants/seqs.sqlite
 	mv bigFiles.tgz ~/public_html/pubs/tools/
 
 data:

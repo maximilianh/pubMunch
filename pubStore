@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 
+# general tool to extract from, rewrite or add to text collection files
+# that are split into "chunks". This is our primary text storage format
+# aka "pubStore format".
+
 # first load the standard libraries from python
-# we require at least python 2.5
+# we require at least python 2.7
 #from sys import *
 import sys
 if sys.version_info[0]==2 and not sys.version_info[1]>=7:
@@ -26,28 +30,41 @@ import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubPubmed
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] command options
 
+command is one of filterText, filterPmid, addPmids, rechunk
+
 command "filterText": 
     create subset of dataset(s) with text that contains a keyword
     %prog filter <datasetList> <keywordListCommaSep> <datasetOut> 
-
 example:
 %prog filter pmc,elsevier,crawler ebola,filovirus ebola
 
 command "filterPmid": 
     create subset of dataset(s) with a list of PMIDs, create a new dataset
     %prog filter <datasetList> <pmidListFile> <datasetOut> 
-
 example:
 %prog filter pmc,elsevier,crawler uniprotPmids.txt uniProtText
-
 
 command "addPmids": 
     read PMIDs from datasetDir/medline.ids.tab, rewrite all 
     articles.gz files and add the new PMID.
     medlines.ids.tab can be created with pubFingerprint.
-
 example:
 %prog addPmids elsevier 
+
+command "rechunk":
+    %prog rechunk <inDir> <outDir>
+read all munched text tables from inDir and write to outDir. Merges smaller
+chunks into bigger ones.
+
+command "index":
+    %prog index inDir
+loads missing article files into the sqlite index. 
+
+command "show":
+    %prog show <inDirList> <docSelector>
+pull a single text file out of the text directories specified.
+example:
+%prog show pmc 'pmid=1234567' 
 
 
 """)
@@ -67,6 +84,7 @@ def main(args, options):
         pmidFname = os.path.abspath(pmidFname)
         assert(isfile(pmidFname))
         pubChange.filterCmd(inSpec, pmidFname, outDir, options)
+
     elif cmd=="filterText":
         inSpec, searchSpec, outDir = args[1:]
 
@@ -83,14 +101,28 @@ def main(args, options):
     elif cmd=="filterJob":
         inSpec, pmidFname, outSpec = args[1:]
         pubChange.filterOneChunk(inSpec, pmidFname, outSpec)
+
     elif cmd=="rechunk":
         inDir, outDir = args[1:]
         pubChange.rechunk(inDir, outDir)
 
+    elif cmd=="index":
+        inDir = args[1]
+        pubStore.updateSqlite(inDir)
+
+    elif cmd=="show":
+        inDirStr, whereExpr = args[1:]
+        inDirs = inDirStr.split(",")
+        for artDict, fileDicts in pubStore.lookupFullDocs(inDirs, whereExpr):
+            print pubStore.dictToMarkLines(artDict)
+            print
+            for fileDict in fileDicts:
+                print pubStore.dictToMarkLines(fileDict)
+
     elif cmd=="addPmids":
         pubChange.addPmids(args[1])
     else:
-        raise Exception("Unknown command %s" % cmd) 
+        raise Exception("Unknown command %s" % cmd)
         
 # ----------- MAIN --------------
 if args==[]:

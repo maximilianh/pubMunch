@@ -17,7 +17,8 @@ def filterOneChunk(inFname, searchSpec, outFname):
 
     reader = pubStore.PubReaderFile(inFname)
     store  = pubStore.PubWriterFile(outFname)
-    for article, files in reader.iterArticlesFileList():
+
+    for article, files in reader.iterArticlesFileList(None):
         # this is the filtering part: continue if article is not accepted
         if pmids!=None:
             if (article.pmid=="" or int(article.pmid) not in pmids):
@@ -37,7 +38,7 @@ def filterOneChunk(inFname, searchSpec, outFname):
             if not foundMatch:
                 continue
 
-        # now write the article to output
+        # now write the article to output directory
         store.writeArticle(article.articleId, article._asdict())
         for fileRow in files:
             store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
@@ -61,22 +62,18 @@ def submitJobs(inSpec, filterSpec, outDir):
     return outFnames
 
 def rechunk(inDir, outDir):
-    " merge bits and pieces into fresh chunks "
-    #maxCommon.mustBeEmptyDir(outDir, makeDir=True)
+    """ Read and write everything in inDir and write to outDir. potentially
+    merges small chunks into bigger chunks """ 
     existOutFnames = glob.glob(join(outDir, "*"))
-    assert(len(existOutFnames)==1) # only one "parts" directory allowed
-    inFnames = glob.glob(join(inDir, "*.articles.gz"))
-    logging.info("rechunking %d input chunks" % len(inFnames))
+    assert(len(existOutFnames)<=1) # only one "parts" directory allowed
     artCount = 0
     chunkCount = 0
     store = None
-    pm = maxCommon.ProgressMeter(len(inFnames))
-    for inFname in inFnames:
-        reader = pubStore.PubReaderFile(inFname)
-        logging.debug("Reading %s" % inFname)
-        for article, files in reader.iterArticlesFileList():
+    outFnames = []
+    for reader in pubStore.iterPubReaders(inDir):
+        for article, files in reader.iterArticlesFileList(None):
             if store==None:
-                outFname = join(outDir, "0_%05d.articles.gz" % chunkCount)
+                outFname = join(outDir, "0_%05d.articles" % chunkCount)
                 store = pubStore.PubWriterFile(outFname)
                 logging.debug("Writing to %s" % outFname)
 
@@ -91,11 +88,13 @@ def rechunk(inDir, outDir):
                 store = None
                 chunkCount += 1
 
-        pm.taskCompleted()
+    if artCount % pubConf.chunkArticleCount !=0:
+        outFnames.append(outFname)
 
     logging.info("Created %d chunks with %d article" % (chunkCount+1, artCount))
     if store!=None:
         store.close()
+    pubStore.updateSqlite(outDir)
 
 def filterCmd(inSpec, searchSpec, outSpec, options):
     outDir = pubConf.resolveTextDir(outSpec)

@@ -1,0 +1,486 @@
+2016-03-12 08:10:02,621 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:10:02,622 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:10:02,622 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:10:02,622 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:10:02,623 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:10:02,623 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:10:02,624 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:10:02,624 - root - DEBUG - Skipped 0 PMIDs
+2016-03-12 08:10:02,624 - root - DEBUG - 12 more PMIDs to go
+2016-03-12 08:10:02,625 - root - DEBUG - PMID 26421060, Sat Mar 12 08:10:02 2016
+2016-03-12 08:10:02,625 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:10:02,625 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26421060
+2016-03-12 08:10:03,218 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:10:03,221 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:10:03,222 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:10:03,222 - root - DEBUG - Resolving DOI 10.1186/s13039-015-0178-8
+2016-03-12 08:10:05,824 - root - DEBUG - DOI 10.1186/s13039-015-0178-8 redirects to http://molecularcytogenetics.biomedcentral.com/articles/10.1186/s13039-015-0178-8
+2016-03-12 08:10:05,824 - root - DEBUG - Looking for config for url http://molecularcytogenetics.biomedcentral.com/articles/10.1186/s13039-015-0178-8, hostname molecularcytogenetics.biomedcentral.com
+2016-03-12 08:10:05,827 - root - ERROR - PMID 26421060, error: No config for hostname molecularcytogenetics.biomedcentral.com, code: noConfig, details: molecularcytogenetics.biomedcentral.com
+2016-03-12 08:10:05,828 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:10:05,829 - root - DEBUG - 11 more PMIDs to go
+2016-03-12 08:10:05,829 - root - DEBUG - PMID 24726472, Sat Mar 12 08:10:05 2016
+2016-03-12 08:10:05,829 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:10:05,829 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24726472
+2016-03-12 08:10:06,227 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:10:06,230 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:10:06,231 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:10:06,231 - root - DEBUG - Resolving DOI 10.1016/j.ajhg.2014.03.013
+2016-03-12 08:10:08,909 - root - DEBUG - DOI 10.1016/j.ajhg.2014.03.013 redirects to http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:10:08,909 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:10:08,910 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:10:08,910 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:10:08,911 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:10:09,917 - root - ERROR - PMID 24726472, error: non-null return code from wget, code: wgetRetNonNull, details: http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:10:09,919 - root - DEBUG - Sleeping for 10 secs after error
+2016-03-12 08:10:19,929 - root - DEBUG - 10 more PMIDs to go
+2016-03-12 08:10:19,930 - root - DEBUG - PMID 25424714, Sat Mar 12 08:10:19 2016
+2016-03-12 08:10:19,930 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:10:19,930 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=25424714
+2016-03-12 08:10:20,562 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:10:20,564 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:10:20,565 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:10:20,565 - root - DEBUG - Resolving DOI 10.1038/ejhg.2014.253
+2016-03-12 08:10:23,819 - root - DEBUG - DOI 10.1038/ejhg.2014.253 redirects to http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:10:23,820 - root - DEBUG - Looking for config for url http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html, hostname nature.com
+2016-03-12 08:10:23,820 - root - DEBUG - Found config for host nature.com: www.nature.com, npg
+2016-03-12 08:10:23,820 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:10:23,821 - root - DEBUG - Downloading http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:10:24,828 - root - ERROR - PMID 25424714, error: non-null return code from wget, code: wgetRetNonNull, details: http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:10:24,831 - root - DEBUG - Sleeping for 20 secs after error
+2016-03-12 08:10:41,593 - root - INFO - stopped with ctrl-c, no email sent
+2016-03-12 08:10:41,611 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:11:00,703 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:11:00,705 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:11:00,705 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:11:00,705 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:11:00,706 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:11:00,706 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:11:00,708 - root - INFO - Found 3 PMIDs that have some status
+2016-03-12 08:11:00,708 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:11:00,708 - root - DEBUG - Skipped 3 PMIDs
+2016-03-12 08:11:00,708 - root - DEBUG - 9 more PMIDs to go
+2016-03-12 08:11:00,708 - root - DEBUG - PMID 26804200, Sat Mar 12 08:11:00 2016
+2016-03-12 08:11:00,709 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:11:00,709 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26804200
+2016-03-12 08:11:01,044 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:11:01,047 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:11:01,047 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:11:01,047 - root - DEBUG - Resolving DOI 10.1002/ajmg.a.37567
+2016-03-12 08:11:04,068 - root - DEBUG - DOI 10.1002/ajmg.a.37567 redirects to http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37567/abstract;jsessionid=7B828C1F6E27B4B84C27C8158CAC0D69.f02t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:11:04,068 - root - DEBUG - Looking for config for url http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37567/abstract;jsessionid=7B828C1F6E27B4B84C27C8158CAC0D69.f02t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience., hostname onlinelibrary.wiley.com
+2016-03-12 08:11:04,070 - root - DEBUG - Found config for host onlinelibrary.wiley.com: onlinelibrary.wiley.com, wiley
+2016-03-12 08:11:04,071 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:11:04,071 - root - DEBUG - Downloading http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37567/abstract;jsessionid=7B828C1F6E27B4B84C27C8158CAC0D69.f02t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:11:05,080 - root - ERROR - PMID 26804200, error: non-null return code from wget, code: wgetRetNonNull, details: http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37567/abstract;jsessionid=7B828C1F6E27B4B84C27C8158CAC0D69.f02t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:11:17,987 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:11:17,988 - root - DEBUG - 8 more PMIDs to go
+2016-03-12 08:11:17,988 - root - DEBUG - PMID 24917291, Sat Mar 12 08:11:17 2016
+2016-03-12 08:11:17,988 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:11:17,988 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24917291
+2016-03-12 08:11:18,287 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:11:18,290 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:11:18,290 - root - DEBUG - Looking up DOI for article Sakaguchi, Masayuki; Gotou, Hirohisa; Nakahara, Takashi; Fuke, Megumi; Nishimura, Kazunori; Kuraishi, Hiroshi; Furuya, Mitsuko, [Acute type A aortic dissection with Birt-Hogg-Dubé syndrome; report of a case]. with crossref links api
+2016-03-12 08:11:18,291 - root - DEBUG - JSON string ["Sakaguchi, Masayuki; Gotou, Hirohisa; Nakahara, Takashi; Fuke, Megumi; Nishimura, Kazunori; Kuraishi, Hiroshi; Furuya, Mitsuko, \"[Acute type A aortic dissection with Birt-Hogg-Dub\u00e9 syndrome; report of a case].\", Kyobu geka. The Japanese journal of thoracic surgery, 2014, vol. 67, no. 5, pp. 415-8, 0021-5252"]
+2016-03-12 08:11:20,722 - root - DEBUG - no match in crossref resply
+2016-03-12 08:11:27,156 - root - DEBUG - 24917291: Getting outlink from pubmed
+2016-03-12 08:11:27,373 - root - DEBUG - 24917291: Found outlinks OrderedDict([('knwc', 'http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415')])
+2016-03-12 08:11:27,374 - root - DEBUG - landing page based on first outlink of Pubmed, URL http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415
+2016-03-12 08:11:27,374 - root - DEBUG - Downloading http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415
+2016-03-12 08:11:28,382 - root - ERROR - PMID 24917291, error: non-null return code from wget, code: wgetRetNonNull, details: http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415
+2016-03-12 08:11:28,386 - root - DEBUG - Sleeping for 10 secs after error
+2016-03-12 08:11:35,602 - root - INFO - stopped with ctrl-c, no email sent
+2016-03-12 08:11:35,612 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:12:28,022 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:12:28,025 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:12:28,025 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:12:28,025 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:12:28,026 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:12:28,026 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:12:28,028 - root - INFO - Found 5 PMIDs that have some status
+2016-03-12 08:12:28,028 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:12:28,029 - root - DEBUG - Skipped 5 PMIDs
+2016-03-12 08:12:28,029 - root - DEBUG - 7 more PMIDs to go
+2016-03-12 08:12:28,030 - root - DEBUG - PMID 25929198, Sat Mar 12 08:12:28 2016
+2016-03-12 08:12:28,030 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:12:28,030 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=25929198
+2016-03-12 08:12:28,338 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:12:28,340 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:12:28,342 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:12:28,342 - root - DEBUG - Resolving DOI 10.1002/ajmg.a.37130
+2016-03-12 08:12:29,973 - root - DEBUG - DOI 10.1002/ajmg.a.37130 redirects to http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37130/abstract;jsessionid=CCBB8FE9DF1E419AEA44FA51D73E0987.f01t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:12:29,974 - root - DEBUG - Looking for config for url http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37130/abstract;jsessionid=CCBB8FE9DF1E419AEA44FA51D73E0987.f01t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience., hostname onlinelibrary.wiley.com
+2016-03-12 08:12:29,977 - root - DEBUG - Found config for host onlinelibrary.wiley.com: onlinelibrary.wiley.com, wiley
+2016-03-12 08:12:29,977 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:12:29,978 - root - DEBUG - Downloading http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37130/abstract;jsessionid=CCBB8FE9DF1E419AEA44FA51D73E0987.f01t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:12:30,985 - root - ERROR - PMID 25929198, error: non-null return code from wget, code: wgetRetNonNull, details: http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37130/abstract;jsessionid=CCBB8FE9DF1E419AEA44FA51D73E0987.f01t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:12:30,988 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:12:30,988 - root - DEBUG - 6 more PMIDs to go
+2016-03-12 08:12:30,988 - root - DEBUG - PMID 26184463, Sat Mar 12 08:12:30 2016
+2016-03-12 08:12:30,989 - root - DEBUG - Waiting for 0.041506 seconds
+2016-03-12 08:12:31,031 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:12:31,031 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26184463
+2016-03-12 08:12:31,285 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:12:31,287 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:12:31,287 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:12:31,287 - root - DEBUG - Resolving DOI 10.1016/j.mcp.2015.07.003
+2016-03-12 08:12:34,296 - root - DEBUG - DOI 10.1016/j.mcp.2015.07.003 redirects to http://www.sciencedirect.com/science/article/pii/S0890850815300219
+2016-03-12 08:12:34,297 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0890850815300219, hostname sciencedirect.com
+2016-03-12 08:12:34,298 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:12:34,299 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:12:34,299 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0890850815300219
+2016-03-12 08:12:35,308 - root - ERROR - PMID 26184463, error: non-null return code from wget, code: wgetRetNonNull, details: http://www.sciencedirect.com/science/article/pii/S0890850815300219
+2016-03-12 08:12:35,311 - root - DEBUG - Sleeping for 10 secs after error
+2016-03-12 08:12:45,320 - root - DEBUG - 5 more PMIDs to go
+2016-03-12 08:14:38,256 - root - DEBUG - PMID 25722288, Sat Mar 12 08:14:38 2016
+2016-03-12 08:14:38,257 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:14:38,258 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=25722288
+2016-03-12 08:14:38,666 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:14:38,674 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:14:38,674 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:14:38,675 - root - DEBUG - Resolving DOI 10.1093/brain/awv045
+2016-03-12 08:14:42,007 - root - DEBUG - DOI 10.1093/brain/awv045 redirects to http://brain.oxfordjournals.org/content/138/6/1613
+2016-03-12 08:14:42,008 - root - DEBUG - Looking for config for url http://brain.oxfordjournals.org/content/138/6/1613, hostname brain.oxfordjournals.org
+2016-03-12 08:14:42,012 - root - DEBUG - Found config for host brain.oxfordjournals.org: brain.oxfordjournals.org, Oxford University Press
+2016-03-12 08:14:42,013 - root - DEBUG - string http://brain.oxfordjournals.org/content/138/6/1613 was rewritten to http://brain.oxfordjournals.org/content/138/6/1613.long
+2016-03-12 08:14:42,014 - root - DEBUG - Downloading http://brain.oxfordjournals.org/content/138/6/1613.long
+2016-03-12 08:14:43,024 - root - ERROR - PMID 25722288, error: non-null return code from wget, code: wgetRetNonNull, details: http://brain.oxfordjournals.org/content/138/6/1613.long
+2016-03-12 08:14:43,028 - root - DEBUG - Sleeping for 20 secs after error
+2016-03-12 08:14:48,049 - root - INFO - stopped with ctrl-c, no email sent
+2016-03-12 08:14:48,060 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:14:51,248 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:14:51,251 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:14:51,251 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:14:51,251 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:14:51,252 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:14:51,252 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:14:51,254 - root - INFO - Found 8 PMIDs that have some status
+2016-03-12 08:14:51,254 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:14:51,254 - root - DEBUG - Skipped 8 PMIDs
+2016-03-12 08:14:51,255 - root - DEBUG - 4 more PMIDs to go
+2016-03-12 08:14:51,255 - root - DEBUG - PMID 25604658, Sat Mar 12 08:14:51 2016
+2016-03-12 08:14:51,255 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:14:51,255 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=25604658
+2016-03-12 08:14:51,632 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:14:51,638 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:14:51,638 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:14:51,638 - root - DEBUG - Resolving DOI 10.1002/ajmg.a.36887
+2016-03-12 08:14:53,595 - root - DEBUG - DOI 10.1002/ajmg.a.36887 redirects to http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.36887/abstract;jsessionid=C7198EA90EA36E2964536E517C086184.f03t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:14:53,596 - root - DEBUG - Looking for config for url http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.36887/abstract;jsessionid=C7198EA90EA36E2964536E517C086184.f03t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience., hostname onlinelibrary.wiley.com
+2016-03-12 08:14:53,598 - root - DEBUG - Found config for host onlinelibrary.wiley.com: onlinelibrary.wiley.com, wiley
+2016-03-12 08:14:53,598 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:14:53,611 - root - DEBUG - Downloading http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.36887/abstract;jsessionid=C7198EA90EA36E2964536E517C086184.f03t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:14:54,618 - root - ERROR - PMID 25604658, error: non-null return code from wget, code: wgetRetNonNull, details: http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.36887/abstract;jsessionid=C7198EA90EA36E2964536E517C086184.f03t04?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:14:54,622 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:14:54,622 - root - DEBUG - 3 more PMIDs to go
+2016-03-12 08:14:54,622 - root - DEBUG - PMID 26478204, Sat Mar 12 08:14:54 2016
+2016-03-12 08:14:54,622 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:14:54,622 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26478204
+2016-03-12 08:14:54,877 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:14:54,880 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:14:54,881 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:14:54,881 - root - DEBUG - Resolving DOI 10.1007/s00062-015-0472-1
+2016-03-12 08:14:56,123 - root - DEBUG - DOI 10.1007/s00062-015-0472-1 redirects to http://link.springer.com/article/10.1007%2Fs00062-015-0472-1
+2016-03-12 08:15:13,402 - root - INFO - stopped with ctrl-c, no email sent
+2016-03-12 08:15:13,416 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:15:22,389 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:15:22,391 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:15:22,391 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:15:22,391 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:15:22,392 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:15:22,393 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:15:22,395 - root - INFO - Found 9 PMIDs that have some status
+2016-03-12 08:15:22,395 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:15:22,395 - root - DEBUG - Skipped 9 PMIDs
+2016-03-12 08:15:22,395 - root - DEBUG - 3 more PMIDs to go
+2016-03-12 08:15:22,396 - root - DEBUG - PMID 26478204, Sat Mar 12 08:15:22 2016
+2016-03-12 08:15:22,396 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:15:22,396 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26478204
+2016-03-12 08:15:22,739 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:15:22,743 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:15:22,743 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:15:22,743 - root - DEBUG - Resolving DOI 10.1007/s00062-015-0472-1
+2016-03-12 08:15:24,114 - root - DEBUG - DOI 10.1007/s00062-015-0472-1 redirects to http://link.springer.com/article/10.1007%2Fs00062-015-0472-1
+2016-03-12 08:15:24,116 - root - DEBUG - Looking for config for url http://link.springer.com/article/10.1007%2Fs00062-015-0472-1, hostname link.springer.com
+2016-03-12 08:15:24,121 - root - DEBUG - Found config for host link.springer.com: link.springer.com, springer
+2016-03-12 08:15:24,122 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:15:24,122 - root - DEBUG - Downloading http://link.springer.com/article/10.1007%2Fs00062-015-0472-1
+2016-03-12 08:15:25,136 - root - ERROR - PMID 26478204, error: non-null return code from wget, code: wgetRetNonNull, details: http://link.springer.com/article/10.1007%2Fs00062-015-0472-1
+2016-03-12 08:15:25,141 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:15:25,141 - root - DEBUG - 2 more PMIDs to go
+2016-03-12 08:15:25,141 - root - DEBUG - PMID 26842493, Sat Mar 12 08:15:25 2016
+2016-03-12 08:15:25,142 - root - DEBUG - Waiting for 0.254114 seconds
+2016-03-12 08:15:25,397 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:15:25,397 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26842493
+2016-03-12 08:15:25,718 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:15:25,729 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:15:25,730 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:15:25,730 - root - DEBUG - Resolving DOI 10.1002/ajmg.a.37476
+2016-03-12 08:15:26,753 - root - INFO - stopped with ctrl-c, no email sent
+2016-03-12 08:15:26,792 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:15:32,822 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:15:32,824 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:15:32,825 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:15:32,825 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:15:32,825 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:15:32,825 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:15:32,827 - root - INFO - Found 10 PMIDs that have some status
+2016-03-12 08:15:32,827 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:15:32,828 - root - DEBUG - Skipped 10 PMIDs
+2016-03-12 08:15:32,828 - root - DEBUG - 2 more PMIDs to go
+2016-03-12 08:15:32,828 - root - DEBUG - PMID 26842493, Sat Mar 12 08:15:32 2016
+2016-03-12 08:15:32,828 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:15:32,829 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26842493
+2016-03-12 08:15:33,143 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:15:33,154 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:15:33,155 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:15:33,156 - root - DEBUG - Resolving DOI 10.1002/ajmg.a.37476
+2016-03-12 08:15:34,742 - root - DEBUG - DOI 10.1002/ajmg.a.37476 redirects to http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37476/abstract;jsessionid=9E9A5B3002C4186B39B2DABCF226C2DE.f04t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:15:34,745 - root - DEBUG - Looking for config for url http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37476/abstract;jsessionid=9E9A5B3002C4186B39B2DABCF226C2DE.f04t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience., hostname onlinelibrary.wiley.com
+2016-03-12 08:15:34,751 - root - DEBUG - Found config for host onlinelibrary.wiley.com: onlinelibrary.wiley.com, wiley
+2016-03-12 08:15:34,752 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:15:34,753 - root - DEBUG - Downloading http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37476/abstract;jsessionid=9E9A5B3002C4186B39B2DABCF226C2DE.f04t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:15:35,765 - root - ERROR - PMID 26842493, error: non-null return code from wget, code: wgetRetNonNull, details: http://onlinelibrary.wiley.com/doi/10.1002/ajmg.a.37476/abstract;jsessionid=9E9A5B3002C4186B39B2DABCF226C2DE.f04t03?systemMessage=Wiley+Online+Library+will+be+unavailable+for+up+to+3+hours+on+Saturday+19th+March+2016+from++11%3A00-14%3A00+GMT+%2F+07%3A00-10%3A00+EDT+%2F+19%3A00-22%3A00+SGT+for+essential+maintenance.++Apologies+for+the+inconvenience.
+2016-03-12 08:15:35,783 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:15:35,783 - root - DEBUG - 1 more PMIDs to go
+2016-03-12 08:15:35,783 - root - DEBUG - PMID 24830046, Sat Mar 12 08:15:35 2016
+2016-03-12 08:15:35,783 - root - DEBUG - Waiting for 0.045074 seconds
+2016-03-12 08:15:35,829 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:15:35,829 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24830046
+2016-03-12 08:15:36,060 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:15:36,061 - root - INFO - No data from Pubmed for PMID 24830046
+2016-03-12 08:15:36,062 - root - ERROR - PMID 24830046, error: empty result when requesting metadata from NCBI Eutils for PMID 24830046, code: pubmedEmpty, details: None
+2016-03-12 08:15:36,063 - root - DEBUG - Sleeping for 10 secs after error
+2016-03-12 08:15:46,073 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:15:46,075 - root - INFO - directory pubCrawl: Downloaded 0 articles
+2016-03-12 08:15:46,075 - root - INFO - Downloaded 0 articles in total
+2016-03-12 08:17:52,204 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:17:52,207 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:17:52,207 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:17:52,207 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:17:52,208 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:17:52,208 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:17:52,208 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:17:52,209 - root - DEBUG - Skipped 0 PMIDs
+2016-03-12 08:17:52,209 - root - DEBUG - 12 more PMIDs to go
+2016-03-12 08:17:52,209 - root - DEBUG - PMID 26421060, Sat Mar 12 08:17:52 2016
+2016-03-12 08:17:52,210 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:17:52,210 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=26421060
+2016-03-12 08:17:52,587 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:17:52,592 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:17:52,593 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:17:52,593 - root - DEBUG - Resolving DOI 10.1186/s13039-015-0178-8
+2016-03-12 08:17:53,465 - root - DEBUG - DOI 10.1186/s13039-015-0178-8 redirects to http://molecularcytogenetics.biomedcentral.com/articles/10.1186/s13039-015-0178-8
+2016-03-12 08:17:53,465 - root - DEBUG - Looking for config for url http://molecularcytogenetics.biomedcentral.com/articles/10.1186/s13039-015-0178-8, hostname molecularcytogenetics.biomedcentral.com
+2016-03-12 08:17:53,467 - root - ERROR - PMID 26421060, error: No config for hostname molecularcytogenetics.biomedcentral.com, code: noConfig, details: molecularcytogenetics.biomedcentral.com
+2016-03-12 08:17:53,469 - root - DEBUG - Sleeping for 0 secs after error
+2016-03-12 08:17:53,469 - root - DEBUG - 11 more PMIDs to go
+2016-03-12 08:17:53,469 - root - DEBUG - PMID 24726472, Sat Mar 12 08:17:53 2016
+2016-03-12 08:17:53,469 - root - DEBUG - Waiting for 1.740202 seconds
+2016-03-12 08:17:55,212 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:17:55,213 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24726472
+2016-03-12 08:17:55,531 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:17:55,536 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:17:55,537 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:17:55,537 - root - DEBUG - Resolving DOI 10.1016/j.ajhg.2014.03.013
+2016-03-12 08:17:57,783 - root - DEBUG - DOI 10.1016/j.ajhg.2014.03.013 redirects to http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:17:57,784 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:17:57,785 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:17:57,786 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:17:57,786 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:17:58,795 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:17:58,796 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:17:58,797 - root - DEBUG - Final landing page after redirects is http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:18:00,909 - root - DEBUG - Could not find article html fulltext
+2016-03-12 08:18:00,909 - root - DEBUG - No citation_pdf_url on landing page http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:18:00,909 - root - DEBUG - Found link to main PDF: Download PDF -> http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:18:00,910 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:18:03,927 - root - DEBUG - PDF has correct right MIME type
+2016-03-12 08:18:03,929 - root - DEBUG - No link to list of supplemental files found
+2016-03-12 08:18:03,933 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:18:03,934 - root - INFO - Downloaded 0 articles in total
+2016-03-12 08:18:36,459 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:18:36,461 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:18:36,462 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:18:36,462 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:18:36,462 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:18:36,463 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:18:36,464 - root - INFO - Found 1 PMIDs that have some status
+2016-03-12 08:18:36,464 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:18:36,465 - root - DEBUG - Skipped 1 PMIDs
+2016-03-12 08:18:36,465 - root - DEBUG - 11 more PMIDs to go
+2016-03-12 08:18:36,465 - root - DEBUG - PMID 24726472, Sat Mar 12 08:18:36 2016
+2016-03-12 08:18:36,465 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:18:36,465 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24726472
+2016-03-12 08:18:36,958 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:18:36,962 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:18:36,962 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:18:36,962 - root - DEBUG - Resolving DOI 10.1016/j.ajhg.2014.03.013
+2016-03-12 08:18:38,881 - root - DEBUG - DOI 10.1016/j.ajhg.2014.03.013 redirects to http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:18:38,881 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:18:38,882 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:18:38,883 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:18:38,884 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:18:39,890 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:18:39,891 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:18:39,892 - root - DEBUG - Final landing page after redirects is http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:18:41,675 - root - DEBUG - Could not find article html fulltext
+2016-03-12 08:18:41,676 - root - DEBUG - No citation_pdf_url on landing page http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:18:41,676 - root - DEBUG - Found link to main PDF: Download PDF -> http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:18:41,676 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:18:42,691 - root - DEBUG - PDF has correct right MIME type
+2016-03-12 08:18:42,694 - root - DEBUG - No link to list of supplemental files found
+2016-03-12 08:18:42,698 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:18:42,699 - root - INFO - Downloaded 0 articles in total
+2016-03-12 08:19:03,188 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:19:03,190 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:19:03,190 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:19:03,191 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:19:03,191 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:19:03,192 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:19:03,193 - root - INFO - Found 1 PMIDs that have some status
+2016-03-12 08:19:03,193 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:19:03,194 - root - DEBUG - Skipped 1 PMIDs
+2016-03-12 08:19:03,194 - root - DEBUG - 11 more PMIDs to go
+2016-03-12 08:19:03,194 - root - DEBUG - PMID 24726472, Sat Mar 12 08:19:03 2016
+2016-03-12 08:19:03,194 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:19:03,195 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24726472
+2016-03-12 08:19:03,515 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:19:03,519 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:19:03,519 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:19:03,519 - root - DEBUG - Resolving DOI 10.1016/j.ajhg.2014.03.013
+2016-03-12 08:19:05,538 - root - DEBUG - DOI 10.1016/j.ajhg.2014.03.013 redirects to http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:19:05,538 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:19:05,539 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:19:05,540 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:19:05,540 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:19:06,546 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:19:06,548 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:19:06,548 - root - DEBUG - Final landing page after redirects is http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:19:08,219 - root - DEBUG - Could not find article html fulltext
+2016-03-12 08:19:08,219 - root - DEBUG - No citation_pdf_url on landing page http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:19:08,221 - root - DEBUG - Found link to main PDF: Download PDF -> http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:19:08,221 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:19:09,237 - root - DEBUG - PDF has correct right MIME type
+2016-03-12 08:19:09,240 - root - DEBUG - No link to list of supplemental files found
+2016-03-12 08:19:09,252 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:19:56,645 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:19:56,647 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:19:56,647 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:19:56,647 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:19:56,647 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:19:56,648 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:19:56,648 - root - INFO - Found 1 PMIDs that have some status
+2016-03-12 08:19:56,649 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:19:56,649 - root - DEBUG - Skipped 1 PMIDs
+2016-03-12 08:19:56,649 - root - DEBUG - 11 more PMIDs to go
+2016-03-12 08:19:56,649 - root - DEBUG - PMID 24726472, Sat Mar 12 08:19:56 2016
+2016-03-12 08:19:56,650 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:19:56,650 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24726472
+2016-03-12 08:19:56,999 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:19:57,003 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:19:57,003 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:19:57,003 - root - DEBUG - Resolving DOI 10.1016/j.ajhg.2014.03.013
+2016-03-12 08:19:59,083 - root - DEBUG - DOI 10.1016/j.ajhg.2014.03.013 redirects to http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:19:59,084 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:19:59,086 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:19:59,087 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:19:59,088 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:00,099 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:20:00,100 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:20:00,101 - root - DEBUG - Final landing page after redirects is http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:01,827 - root - DEBUG - Could not find article html fulltext
+2016-03-12 08:20:01,827 - root - DEBUG - No citation_pdf_url on landing page http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:01,827 - root - DEBUG - Found link to main PDF: Download PDF -> http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:20:01,828 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:20:02,839 - root - DEBUG - PDF has correct right MIME type
+2016-03-12 08:20:02,841 - root - DEBUG - No link to list of supplemental files found
+2016-03-12 08:20:02,850 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:20:35,873 - root - DEBUG - Creating lockfile pubCrawl/_pubCrawl.lock
+2016-03-12 08:20:35,876 - root - DEBUG - Setting useragent to Mozilla
+2016-03-12 08:20:35,876 - root - DEBUG - Parsing pubCrawl/pmids.txt
+2016-03-12 08:20:35,876 - root - DEBUG - Parsing PMIDS pubCrawl/pmids.txt
+2016-03-12 08:20:35,877 - root - DEBUG - Found 12 PMIDS
+2016-03-12 08:20:35,877 - root - INFO - Parsing pubCrawl/pmidStatus.tab
+2016-03-12 08:20:35,878 - root - INFO - Found 1 PMIDs that have some status
+2016-03-12 08:20:35,879 - root - INFO - Parsing pubCrawl/issnStatus.tab
+2016-03-12 08:20:35,879 - root - DEBUG - Skipped 1 PMIDs
+2016-03-12 08:20:35,879 - root - DEBUG - 11 more PMIDs to go
+2016-03-12 08:20:35,879 - root - DEBUG - PMID 24726472, Sat Mar 12 08:20:35 2016
+2016-03-12 08:20:35,879 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:20:35,880 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24726472
+2016-03-12 08:20:38,648 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:20:38,652 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:20:38,652 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:20:38,652 - root - DEBUG - Resolving DOI 10.1016/j.ajhg.2014.03.013
+2016-03-12 08:20:40,564 - root - DEBUG - DOI 10.1016/j.ajhg.2014.03.013 redirects to http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:40,565 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:20:40,565 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:20:40,566 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:20:40,566 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:41,574 - root - DEBUG - Looking for config for url http://www.sciencedirect.com/science/article/pii/S0002929714001153, hostname sciencedirect.com
+2016-03-12 08:20:41,577 - root - DEBUG - Found config for host sciencedirect.com: www.sciencedirect.com, elsevier
+2016-03-12 08:20:41,578 - root - DEBUG - Final landing page after redirects is http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:43,310 - root - DEBUG - Could not find article html fulltext
+2016-03-12 08:20:43,310 - root - DEBUG - No citation_pdf_url on landing page http://www.sciencedirect.com/science/article/pii/S0002929714001153
+2016-03-12 08:20:43,311 - root - DEBUG - Found link to main PDF: Download PDF -> http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:20:43,311 - root - DEBUG - Downloading http://www.sciencedirect.com/science/article/pii/S0002929714001153/pdfft?md5=38ef5be654c07ec8e042b7edcad7c39c&pid=1-s2.0-S0002929714001153-main.pdf
+2016-03-12 08:20:44,328 - root - DEBUG - PDF has correct right MIME type
+2016-03-12 08:20:44,332 - root - DEBUG - No link to list of supplemental files found
+2016-03-12 08:20:44,334 - root - DEBUG - Writing file pubCrawl/files/24726472.main.pdf
+2016-03-12 08:20:44,339 - root - DEBUG - Appending metadata to pubCrawl/articleMeta.tab
+2016-03-12 08:20:44,342 - root - DEBUG - Opening sqlite db pubCrawl/articles.db
+2016-03-12 08:20:44,395 - root - DEBUG - 10 more PMIDs to go
+2016-03-12 08:20:44,395 - root - DEBUG - PMID 25424714, Sat Mar 12 08:20:44 2016
+2016-03-12 08:20:44,396 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:20:44,396 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=25424714
+2016-03-12 08:20:45,031 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:20:45,036 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:20:45,036 - root - DEBUG - Resolving DOI and rewriting
+2016-03-12 08:20:45,048 - root - DEBUG - Resolving DOI 10.1038/ejhg.2014.253
+2016-03-12 08:20:47,197 - root - DEBUG - DOI 10.1038/ejhg.2014.253 redirects to http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:20:47,197 - root - DEBUG - Looking for config for url http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html, hostname nature.com
+2016-03-12 08:20:47,198 - root - DEBUG - Found config for host nature.com: www.nature.com, npg
+2016-03-12 08:20:47,198 - root - DEBUG - Nothing to rewrite
+2016-03-12 08:20:47,199 - root - DEBUG - Downloading http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:20:49,210 - root - DEBUG - Looking for config for url http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html, hostname nature.com
+2016-03-12 08:20:49,211 - root - DEBUG - Found config for host nature.com: www.nature.com, npg
+2016-03-12 08:20:49,212 - root - DEBUG - Final landing page after redirects is http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:20:49,212 - root - DEBUG - URL suggests that landing page is same as article html
+2016-03-12 08:20:49,558 - root - DEBUG - No citation_pdf_url on landing page http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html
+2016-03-12 08:20:49,558 - root - DEBUG - Replacing words in URL http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html yields new URL http://www.nature.com/ejhg/journal/v23/n9/pdf/ejhg2014253a.pdf
+2016-03-12 08:20:49,559 - root - DEBUG - Downloading http://www.nature.com/ejhg/journal/v23/n9/pdf/ejhg2014253a.pdf
+2016-03-12 08:20:55,579 - root - DEBUG - Replacing strings in URL yields new URL http://www.nature.com/ejhg/journal/v23/n9/pdf/ejhg2014253a.pdf
+2016-03-12 08:20:55,583 - root - DEBUG - PDF has correct right MIME type
+2016-03-12 08:20:55,586 - root - DEBUG - Replacing words in URL http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html yields new URL http://www.nature.com/ejhg/journal/v23/n9/suppinfo/ejhg2014253a.html
+2016-03-12 08:20:55,586 - root - DEBUG - Downloading http://www.nature.com/ejhg/journal/v23/n9/suppinfo/ejhg2014253a.html
+2016-03-12 08:20:57,597 - root - DEBUG - replaced URL is not valid / triggers wget error
+2016-03-12 08:20:57,598 - root - DEBUG - Searching for links to suppl list on page http://www.nature.com/ejhg/journal/v23/n9/full/ejhg2014253a.html using link text
+2016-03-12 08:20:57,600 - root - DEBUG - Found link: 'Supplementary Information', u'http://www.nature.com/ejhg/journal/v23/n9/suppinfo/ejhg2014253s1.html'
+2016-03-12 08:20:57,600 - root - DEBUG - Found link to supplemental list page: http://www.nature.com/ejhg/journal/v23/n9/suppinfo/ejhg2014253s1.html
+2016-03-12 08:20:57,600 - root - DEBUG - Downloading http://www.nature.com/ejhg/journal/v23/n9/suppinfo/ejhg2014253s1.html
+2016-03-12 08:20:59,609 - root - DEBUG - Looking for suppListPage_suppFile_textREs and suppListPage_suppFile_urlREs
+2016-03-12 08:20:59,647 - root - DEBUG - Found acceptable extension AND matching link for pattern [Ss]upplementary [iI]nformation.*: text 'Supplementary Information (doc 237K)', url http://www.nature.com/ejhg/journal/v23/n9/extref/ejhg2014253x1.doc
+2016-03-12 08:20:59,648 - root - DEBUG - Found 1 links to supplementary files
+2016-03-12 08:20:59,648 - root - DEBUG - Downloading http://www.nature.com/ejhg/journal/v23/n9/extref/ejhg2014253x1.doc
+2016-03-12 08:21:00,657 - root - DEBUG - Determined filetype as doc based on mime type
+2016-03-12 08:21:00,660 - root - DEBUG - Writing file pubCrawl/files/25424714.S1.doc
+2016-03-12 08:21:00,663 - root - DEBUG - Writing file pubCrawl/files/25424714.main.html
+2016-03-12 08:21:00,664 - root - DEBUG - Writing file pubCrawl/files/25424714.main.pdf
+2016-03-12 08:21:00,670 - root - DEBUG - Appending metadata to pubCrawl/articleMeta.tab
+2016-03-12 08:21:00,684 - root - DEBUG - Opening sqlite db pubCrawl/articles.db
+2016-03-12 08:21:00,708 - root - DEBUG - 9 more PMIDs to go
+2016-03-12 08:21:00,708 - root - DEBUG - PMID 24917291, Sat Mar 12 08:21:00 2016
+2016-03-12 08:21:00,710 - root - DEBUG - Getting data on 1 PMIDs from NCBI, 1 PMIDs left to download
+2016-03-12 08:21:00,710 - root - DEBUG - Getting http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&tool=pubtools&email=max@soe.ucsc.edu&retmode=xml&rettype=medline&id=24917291
+2016-03-12 08:21:01,244 - root - DEBUG - Parsing pubmed file
+2016-03-12 08:21:01,246 - root - DEBUG - not in -r mode, so not subdirectory=config, cannot use URL templates yet
+2016-03-12 08:21:01,246 - root - DEBUG - Looking up DOI for article Sakaguchi, Masayuki; Gotou, Hirohisa; Nakahara, Takashi; Fuke, Megumi; Nishimura, Kazunori; Kuraishi, Hiroshi; Furuya, Mitsuko, [Acute type A aortic dissection with Birt-Hogg-Dubé syndrome; report of a case]. with crossref links api
+2016-03-12 08:21:01,247 - root - DEBUG - JSON string ["Sakaguchi, Masayuki; Gotou, Hirohisa; Nakahara, Takashi; Fuke, Megumi; Nishimura, Kazunori; Kuraishi, Hiroshi; Furuya, Mitsuko, \"[Acute type A aortic dissection with Birt-Hogg-Dub\u00e9 syndrome; report of a case].\", Kyobu geka. The Japanese journal of thoracic surgery, 2014, vol. 67, no. 5, pp. 415-8, 0021-5252"]
+2016-03-12 08:21:03,651 - root - DEBUG - no match in crossref resply
+2016-03-12 08:21:03,652 - root - DEBUG - 24917291: Getting outlink from pubmed
+2016-03-12 08:21:03,858 - root - DEBUG - 24917291: Found outlinks OrderedDict([('knwc', 'http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415')])
+2016-03-12 08:21:03,858 - root - DEBUG - landing page based on first outlink of Pubmed, URL http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415
+2016-03-12 08:21:03,858 - root - DEBUG - Downloading http://www.pieronline.jp/openurl?issn=0021-5252&volume=67&issue=5&spage=415
+2016-03-12 08:21:04,659 - root - INFO - stopped with ctrl-c, no email sent
+2016-03-12 08:21:04,681 - root - DEBUG - Removing lockfile pubCrawl/_pubCrawl.lock

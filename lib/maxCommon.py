@@ -194,6 +194,24 @@ def fastIterTsvRows(inFname):
     for line in lines[1:]:
         yield Record(*line.split("\t")), line
 
+class TsvReader():
+    """ yields namedtuple objects from a tab-sep file. Was necessary as I needed a .seek function. """
+    def __init__(self, ifh, encoding="utf8"):
+        self.fieldNames = ifh.readline().lstrip("#").rstrip("\n").split("\t")
+        self.Rec = collections.namedtuple('tsvRec', self.fieldNames)
+        self.ifh = ifh
+        self.encoding=encoding
+
+    def nextRow(self):
+        line = self.ifh.readline()
+        cols = line.strip("\n").split("\t")
+        cols = [c.decode("utf8") for c in cols]
+        row = self.Rec(*cols)
+        return row
+
+    def seek(self, pos):
+        self.ifh.seek(pos)
+    
 def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False, skipLines=None, makeHeadersUnique=False, commentPrefix=None):
     """ 
         parses tab-sep file with headers as field names 

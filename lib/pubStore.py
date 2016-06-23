@@ -53,7 +53,8 @@ articleFields=[
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
 "fulltextUrl",     # URL to fulltext of article
-"time"     # date of download
+"time",     # date of download
+"offset"   # offset in .files, number of bytes (NOT number of unicode characters).
 ]
 
 fileDataFields = [
@@ -183,7 +184,9 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
     return data.keys()
 
 def toUnicode(var):
-    " force variable to unicode, by decoding as utf8 first, then latin1 "
+    """ 
+    if string is not already a unicode strin (can happen due to upstream programming error):
+    force variable to a unicode string, by decoding from utf8 first, then latin1 """
     if isinstance(var, unicode):
         return var
     elif type(var)==type(1):
@@ -204,6 +207,7 @@ def listToUtf8Escape(list):
     for var in list:
         var = toUnicode(var)
         var = replaceSpecialChars(var)
+        var = var.encode("utf8")
         utf8List.append(var)
     return utf8List
 
@@ -266,10 +270,10 @@ class PubWriterFile:
     that are located in a subdirectory. 
     
     Constructor will create two files:
-        <chunkId>.files.gz    = raw file content and some meta (filetype, url)
-        <chunkId>.articles.gz = article meta data (author, year, etc)
+        <chunkId>.files    = raw file content and some meta (filetype, url)
+        <chunkId>.articles = article meta data (author, year, etc)
 
-    The constructor takes only the .fileData base filename as input and will
+    The constructor takes only the .files or .articles base filename as input and will
     derive outDir and chunkId from it.
 
     all writes will first go to tempDir, and will only be copied over 
@@ -292,23 +296,32 @@ class PubWriterFile:
         articleBaseName = chunkId+".articles"
         refBaseName = chunkId+".refs"
 
-        self.finalArticleName = join(outDir, articleBaseName+".gz")
-        self.finalFileDataName    = join(outDir, self.fileBaseName+".gz")
-
         # setup reference table handle
         self.refDir = join(outDir, "refs")
-        self.finalRefFname = join(self.refDir, refBaseName+".gz")
         self.tempRefName = join(self.tempDir, refBaseName)
         self.refFh = None
 
+        if pubConf.compress:
+            self.finalArticleName = join(outDir, articleBaseName+".gz")
+            self.finalFileDataName    = join(outDir, self.fileBaseName+".gz")
+            self.finalRefFname = join(self.refDir, refBaseName+".gz")
+        else:
+            self.finalArticleName = join(outDir, articleBaseName)
+            self.finalFileDataName    = join(outDir, self.fileBaseName)
+            self.finalRefFname = join(self.refDir, refBaseName)
+
         # setup file and article table handles
+        # in temporary directory, so we do not leave behind half-written
+        # chunks. Temp files are moved over to final when chunk is closed.
         fileFname = os.path.join(self.tempDir, self.fileBaseName)
-        self.fileFh = codecs.open(fileFname, "w", encoding="utf8")
+        #self.fileFh = codecs.open(fileFname, "w", encoding="utf8")
+        self.fileFh = open(fileFname, "w")
         self.fileFh.write("#"+"\t".join(fileDataFields)+"\n")
         maxCommon.delOnExit(fileFname)
 
         articleFname = os.path.join(self.tempDir, articleBaseName)
-        self.articleFh = codecs.open(articleFname, "w", encoding="utf8") 
+        #self.articleFh = codecs.open(articleFname, "w", encoding="utf8") 
+        self.articleFh = open(articleFname, "w")
         self.articleFh.write("#"+"\t".join(articleFields)+"\n")
         maxCommon.delOnExit(articleFname)
 
@@ -403,8 +416,14 @@ class PubWriterFile:
         self.fileFh.write(line+"\n")
         
     def writeArticle(self, articleId, articleDict):
-        """ appends data to current chunk """
+        """ appends data to current chunk. filePos is current position in file table. """
         articleDict["articleId"]=articleId
+
+        filePos = 0
+        if self.fileFh is not None:
+            filePos = self.fileFh.tell()
+
+        articleDict["offset"] = str(filePos)
         articleDict = self._removeSpecChar(articleDict)
         logging.log(5, "appending article info to %s: %s" % (self.articleFh.name, str(articleDict)))
         if len(articleDict)!=len(articleFields):
@@ -447,17 +466,26 @@ class PubWriterFile:
         assert(self.fileFh.name.endswith(".files"))
 
         self.fileFh.close()
+        self.articleFh.close()
+
         if self.articlesWritten==0:
             logging.warn("No articles received, not writing anything, but creating a 0 sized file for parasol")
             # just create a 0-size file for parasol
             open(self.finalArticleName, "w")
             
         if self.filesWritten > 0 or keepEmpty:
-            self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
+            if self.finalFileDataName.endswith(".gz"):
+                self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
+            else:
+                logging.debug("copying articles table to %s" % self.finalArticleName)
+                shutil.move(self.fileFh.name, self.finalFileDataName)
 
-        self.articleFh.close()
         if self.articlesWritten > 0 or keepEmpty:
-            self._gzipAndMove(self.articleFh.name, self.finalArticleName)
+            if self.finalArticleName.endswith(".gz"):
+                self._gzipAndMove(self.articleFh.name, self.finalArticleName)
+            else:
+                logging.debug("copying files table to %s" % self.finalFileDataName)
+                shutil.move(self.articleFh.name, self.finalArticleName)
 
         if self.refFh!=None:
             self.refFh.close()
@@ -477,7 +505,7 @@ def createPseudoFile(articleData):
 
 class PubReaderFile:
     """ 
-    read articles from compressed tab-sep files
+    read articles from tab-sep files
     """
     def __init__(self, fname):
         " fname can end in .articles.gz, reader will still read both articles and files "
@@ -495,8 +523,6 @@ class PubReaderFile:
         self.fileRows = None
         if isfile(fileFn) and getsize(fileFn)!=0:
             self.fileRows  = maxCommon.iterTsvRows(fileFn, encoding="utf8")
-
-        #assert(self.articleRows!=None or self.fileRows!=None)
 
     def iterFileRows(self):
         """ iterate over file data """
@@ -617,7 +643,7 @@ class PubReaderFile:
                 continue
             logging.log(5, "Read article meta info for %s" % str(articleData.articleId))
 
-            if self.fileRows!=None and algPrefs!=None and algPrefs.onlyMeta==False:
+            if self.fileRows!=None and (algPrefs is None or (algPrefs!=None and algPrefs.onlyMeta==False)):
                 # if file data is there and we want it, read as much as we can
                 fileDataList, lastFileData = \
                     self._readFilesForArticle(articleData.articleId, fileDataList)
@@ -1013,27 +1039,30 @@ def iterChunks(datasets):
             for fname in glob.glob(dirName+"/*.articles.gz"):
                 yield fname
 
-def addLoadedFiles(dbFname, fileNames):
+def addLoadedFiles(con, cur, fileNames):
     " given a sqlite db, create a table loadedFiles and add fileNames to it "
-    fileNames = [(basename(x), ) for x in fileNames] # sqlite only accepts tuples, strip path
-    con, cur = maxTables.openSqlite(dbFname, lockDb=True)
+    #dbFname = getArtDbPath(inDir)
+    #assert(isfile(dbFname))
+    #fileNames = [(basename(x), ) for x in fileNames] # sqlite only accepts tuples, strip path
+    #con, cur = maxTables.openSqlite(dbFname, lockDb=True)
+    fileNames = [(s,) for s in fileNames]
     cur.execute("CREATE TABLE IF NOT EXISTS loadedFiles (fname TEXT PRIMARY KEY);")
     con.commit()
+    logging.debug("INSERTing %d filenames into table loadedFiles" % len(fileNames))
     sql = "INSERT INTO loadedFiles (fname) VALUES (?)"
-    cur.executemany(sql, list(fileNames))
+    cur.executemany(sql, fileNames)
     con.commit()
     
-def getUnloadedFnames(dbFname, newFnames):
+def getUnloadedFnames(con, cur, newFnames):
     """ given a sqlite db and a list of filenames, return those that have not
     been loaded yet into the db. Looks only at basename of files.
     """
-    con, cur = maxTables.openSqlite(dbFname)
     loadedFnames = []
     try:
         for row in cur.execute("SELECT fname from loadedFiles"):
             loadedFnames.append(row[0])
     except sqlite3.OperationalError:
-        logging.debug("No loadedFiles table yet in %s" % dbFname)
+        logging.debug("No loadedFiles table yet")
         return newFnames
     #logging.debug("Files that have been loaded already: %s" % loadedFnames)
 
@@ -1065,37 +1094,95 @@ def sortPubFnames(fnames):
     newFnames = [el[1] for el in newList]
     return newFnames
         
+def chunkIdFromFname(fname):
+    " given the path of chunk, return it's chunk ID, like 0_00001 "
+    return basename(fname).split(".")[0]
 
-def loadNewTsvFilesSqlite(dbFname, tableName, tsvFnames):
-    " load pubDoc files into sqlite db table, keep track of loaded file names "
-    if len(tsvFnames)==0:
-        return
-    logging.debug("Preparing to load %d files into table %s, db %s" %(len(tsvFnames), tableName, dbFname))
-    firstFname = tsvFnames[0]
-    if firstFname.endswith(".gz"):
-        firstFh = gzip.open(firstFname)
-    else:
-        firstFh = open(firstFname)
-    #headers = firstFh.readline().strip("\n#").split("\t")
-    headers = articleFields
-    logging.debug("DB fields are: %s" % headers)
-    toLoadFnames = getUnloadedFnames(dbFname, tsvFnames)
-    logging.debug("Loading %d files" % (len(toLoadFnames)))
-    toLoadFnames = sortPubFnames(toLoadFnames)
+def loadIndexes(con, cur, tsvFnames):
+    " load articles files into sqlLite db table. Adds a field 'chunkId'. "
+    tableName = "articles"
+    allFields = list(tuple(articleFields)) # make a deep copy of list
+    allFields.append("chunkId")
 
-    #if not isfile(dbFname):
-        #lockDb = True
+    idxFields = ["pmid", "pmcId","printIssn", "eIssn", "year", "doi", "extId"]
+    intFields = ["pmid", "pmcId","year","offset"]
+    primKey = "articleId"
+
+    # create table
+    tableFields = articleFields
+    tableFields.append("chunkId")
+    createSql, idxSqls = maxTables.makeTableCreateStatement(tableName, articleFields, \
+        intFields=intFields, idxFields=idxFields, primKey=primKey)
+    logging.log(5, "creating table with %s" % createSql)
+    cur.execute(createSql)
+    con.commit()
+
+    logging.info("Loading data into table")
+    tp = maxCommon.ProgressMeter(len(tsvFnames))
+    sql = "INSERT INTO %s (%s) VALUES (%s)" % (tableName, ", ".join(allFields), ", ".join(["?"]*len(allFields)))
+    rowCount = 0
+    for tsvName in tsvFnames:
+        logging.debug("Loading file %s" % tsvName)
+        if os.path.getsize(tsvName)==0:
+            logging.debug("Skipping %s, zero size" % tsvName)
+            continue
+        rows = list(maxCommon.iterTsvRows(tsvName))
+        chunkId = chunkIdFromFname(tsvName)
+
+        # add the chunkId field
+        newRows = []
+        for row in rows:
+            newRow = list(row)
+            newRow.append(chunkId)
+            newRows.append(newRow)
+        rowCount += len(newRows)
+
+        logging.log(5, "Running Sql %s against %d rows" % (sql, len(newRows)))
+        cur.executemany(sql, newRows)
+        con.commit()
+        tp.taskCompleted()
+
+    logging.info("Adding indexes to table")
+    for idxSql in idxSqls:
+        cur.execute(idxSql)
+        con.commit()
+
+    addLoadedFiles(con, cur, tsvFnames)
+    logging.info("Loaded %s chunks into index, %d new rows" % (len(tsvFnames), rowCount))
+
+#def loadNewTsvFilesSqlite(inDir, tableName, tsvFnames):
+    #" load pubDoc files that are not loaded yet into sqlite db table, mark them as loaded at the end "
+    #if len(tsvFnames)==0:
+        #return
+    #logging.debug("Preparing to load %d files into table %s, db dir %s" %(len(tsvFnames), tableName, inDir))
+    #firstFname = tsvFnames[0]
+    #if firstFname.endswith(".gz"):
+        #firstFh = gzip.open(firstFname)
     #else:
-        #lockDb = False
+        #firstFh = open(firstFname)
+    #logging.debug("fields in first input file are: %s" % )
 
-    if len(toLoadFnames)==0:
-        logging.debug("No files to load")
-    else:
-        indexedFields = ["pmid", "pmcId","printIssn", "eIssn", "year", "doi", "extId"]
-        intFields = ["pmid", "pmcId","year"]
-        maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
-            primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False)
-        addLoadedFiles(dbFname, toLoadFnames)
+    #con, cur = openArticleDb(textDir)
+    #toLoadFnames = getUnloadedFnames(con, cur, tsvFnames)
+    #logging.debug("Loading %d files" % (len(toLoadFnames)))
+    #toLoadFnames = sortPubFnames(toLoadFnames)
+#
+    #if len(toLoadFnames)==0:
+        #logging.debug("No new files to load")
+    #else:
+        ##maxTables.loadTsvSqlite(dbFname, tableName, toLoadFnames, headers=headers, \
+            #primKey="articleId", intFields=intFields, idxFields=indexedFields, dropTable=False)
+        #con, cur = openArticleDb(inDir)
+        #loadIndexes(con, cur, toLoadFnames)
+
+def updateSqlite(textDir):
+    """ load all .articles files that are not currently indexed 
+    into the sqlite database 
+    """
+    artFnames = getAllArticleFnames(textDir)
+    con, cur = openArticleDb(textDir)
+    toLoadFnames = getUnloadedFnames(con, cur, artFnames)
+    loadIndexes(con, cur, toLoadFnames)
 
 datasetRanges = None
 
@@ -1129,22 +1216,23 @@ def artIdToDatasetName(artId):
 
 def getArtDbPath(datasetName):
     """ return the sqlite database name with meta info of a dataset """
-    dataDir = pubConf.resolveTextDir(datasetName, mustFind=False)
-    if dataDir==None:
-        return None
+    dataDir = pubConf.resolveTextDir(datasetName, mustFind=True)
     dbPath = join(dataDir, "articles.db")
     return dbPath
 
 conCache = {}
-def openArticleDb(datasetName):
+
+def openArticleDb(datasetName, mustOpen=False):
     " open an article sqlite DB, return (conn, cur) tuple "
     if datasetName in conCache:
         con, cur = conCache[datasetName]
     else:
         path = getArtDbPath(datasetName)
         if path is None or not isfile(path):
-            logging.error("Could not find %s" % path)
-            return None, None
+            logging.debug("Creating new file %s" % path)
+            if mustOpen:
+                raise Exception("Could not open dataset %s" % datasetName)
+            #return None, None
         logging.debug("Opening db %s" % path)
         con, cur = maxTables.openSqlite(path, asDict=True)
         conCache[datasetName] = (con,cur)
@@ -1160,7 +1248,7 @@ connCache = {}
 
 def lookupArticleByPmid(datasets, pmid, preferLocal=True):
     """ convenience method to get article info given pubmed Id, caches db connections.
-        Uses eutils if local medline is not available and mustBeLocal is False
+        Uses eutils if local medline is not available and preferLocal is False
     """
     for dataset in datasets:
         con = None
@@ -1168,7 +1256,7 @@ def lookupArticleByPmid(datasets, pmid, preferLocal=True):
             # keep cache of db connections
             if not dataset in connCache:
                 con, cur = openArticleDb(dataset)
-                if con is None and useLocalMedline:
+                if con is None and preferLocal:
                     raise Exception("Could not find a local copy of Medline. Use a command line option to switch to remote NCBI Eutils lookups. For low-volume crawls (< 10000), remote lookups are sufficient.")
                 connCache[dataset] = con, cur
             else:
@@ -1186,13 +1274,18 @@ def lookupArticleByPmid(datasets, pmid, preferLocal=True):
     return None
 
 def lookupArticle(con, cur, column, val):
-    " uses sqlite db, returns a dict with info we have locally about article, None if not found "
+    " uses sqlite db, returns a dict with info we have locally about last matching article, None if not found "
+    whereExpr = "%s=%s" % (column, val)
+    return list(iterArticlesWhere(con, cur, whereExpr))[-1]
+    
+def iterArticlesWhere(con, cur, whereExpr):
+    " yields dicts for article that satisfy where expression "
     rows = None
     tryCount = 60
 
     while rows==None and tryCount>0:
         try:
-            rows = list(cur.execute("SELECT * from articles where %s=?" % column, (val, )))
+            rows = list(cur.execute("SELECT * from articles WHERE %s" % whereExpr))
         except sqlite3.OperationalError:
             logging.info("Database is locked, waiting for 60 secs")
             time.sleep(60)
@@ -1202,22 +1295,15 @@ def lookupArticle(con, cur, column, val):
         raise Exception("database was locked for more than 60 minutes")
         
     if len(rows)==0:
-        logging.debug("No info in local db for %s %s" % (column, val))
-        return None
+        logging.warn("No info in local db for %s" % (whereExpr))
     # the last entry should be the newest one
-    lastRow = rows[-1]
 
-    # convert sqlite object to normal dict with strings
-    result = {}
-    for key, val in zip(lastRow.keys(), lastRow):
-        result[key] = unicode(val)
-        #if isinstance(val, basestring):
-            #print repr(val)
-            #result[key] = val.decode("utf8")
-        #else:
-            #result[key] = val
-
-    return result
+    for row in rows:
+        # convert sqlite object to normal dict with strings
+        rowDict = {}
+        for key, val in zip(row.keys(), row):
+            rowDict[key] = val
+        yield rowDict
 
 def lookupArticleData(articleId, lookupKey="articleId"):
     " lookup article meta data for an article via a database "
@@ -1232,7 +1318,7 @@ def lookupArticleData(articleId, lookupKey="articleId"):
     textDir = join(pubConf.textBaseDir, dataset)
 
     if textDir not in conCache:
-        dbPath = join(textDir, "articles.db")
+        dbPath = getArtDbPath(textDir)
         #assert(isfile(dbPath))
         if not (isfile(dbPath)):
             return None
@@ -1257,6 +1343,75 @@ def lookupArticleData(articleId, lookupKey="articleId"):
     #title = title.encode("latin1").decode("utf8")
     #text = '<small>%s (%s)</small><br><a href="%s">%s</a>' % (author, dataset, row["fulltextUrl"], title)
     return articleData
+
+def makeChunkPath(inDir, chunkId, tabType="articles"):
+    " construct path to articles table file given input dir and chunkId "
+    artPath = join(inDir, "%s.%s" % (chunkId, tabType))
+    if not isfile(artPath):
+        artPath = join(inDir, "%s.%s.gz" % (chunkId, tabType))
+    return artPath
+        
+def lookupFullDocs(inDirs, whereExpr):
+    """
+    inDirs is a list of directories with pubStore sqlite indexes (article.db files)
+    query is the part behind the WHERE in an sql command on the articles table
+    yields tuples of (articleRow, list of fileRow).
+    """
+    for inDir in inDirs:
+        con, cur = openArticleDb(inDir, mustOpen=True)
+        fileRows = []
+        for artDict in iterArticlesWhere(con, cur, whereExpr):
+            artId = artDict["articleId"]
+            chunkId, offset = artDict["chunkId"], artDict["offset"]
+            filesPath = makeChunkPath(inDir, chunkId, "files")
+            filesFh = open(filesPath)
+            fileReader = maxCommon.TsvReader(filesFh)
+            fileReader.seek(int(offset))
+
+            # pull out all files with this article ID
+            while True:
+                row = fileReader.nextRow()
+                if row.fileId[:len(artId)]!=artId:
+                    break
+                fileRows.append(row._asdict())
+            yield artDict, fileRows
+        
+def getAllArticleFnames(inDir):
+    " find all article chunks in inDir "
+    inFnames = glob.glob(join(inDir, "*.articles"))
+    if len(inFnames)==0:
+        inFnames = glob.glob(join(inDir, "*.articles.gz"))
+    return inFnames
+
+
+def iterPubReaders(inDir):
+    " yield a PubReader for each input chunk in inDir "
+    fnames = getAllArticleFnames(inDir)
+    pm = maxCommon.ProgressMeter(len(fnames))
+    logging.info("found %d input chunks in %s" % (len(fnames), inDir))
+    for fname in fnames:
+        pr = PubReaderFile(fname)
+        yield pr
+        pm.taskCompleted()
+
+def dictToMarkLines(d):
+    """ convert a dict to newline-sep strings like '||key: value' and return long string """
+    lines = []
+    keys = d.keys()
+    for key in sorted(keys):
+        val = d[key]
+        if type(val)==types.IntType:
+            val = str(val)
+        if val=="":
+            continue
+        if key!="content":
+            lines.append("|%s: %s" % (key.encode("utf8"), val.encode('utf')))
+
+    contStr = d.get("content")
+    if contStr is not None:
+        lines.append(d["content"].replace("\a", "\n").encode("utf8"))
+
+    return "\n".join(lines)
 
 if __name__=="__main__":
     import doctest
