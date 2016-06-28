@@ -93,7 +93,8 @@ crawlDelays = {
     "elsevier" : 10,
     "wiley" : 10,
     "springer" : 10,
-    "silverchair" : 10
+    "silverchair" : 10,
+    "pubmedBook": 0
 }
 
 # the config file can contain site-specific delays, e.g. for testing
@@ -413,10 +414,11 @@ def runCurl(url, userAgent):
     timeout = pubConf.httpTransferTimeout
     url = url.replace("'","")
 
-    cmd = [DOWNLOADER, url, "-A", userAgent, "--cookie-jar",
+    cmd = [DOWNLOADER, url, "--cookie-jar",
         curlCookieFile.name, "-o", tmpFile.name, "--max-time", str(timeout),
         "-w", '%{url_effective} %{content_type}']
     cmd.extend(CURLOPTIONS)
+    logging.debug("Command: " + ' '.join(cmd))
 
     stdout, stderr, ret = pubGeneric.runCommandTimeout(cmd, timeout=timeout, env=env, shell=False)
     if ret!=0:
@@ -1785,7 +1787,7 @@ class ElsevierCrawler(Crawler):
         pdfEl = bs.find("a", id="pdfLink")
         if pdfEl!=None:
             pdfUrl = pdfEl["href"]
-            pdfUrl = urlparse.urljoin(htmlPage["url"], url)
+            pdfUrl = urlparse.urljoin(htmlPage["url"], pdfUrl)
             pdfPage = httpGetDelay(pdfUrl, delayTime)
             paperData["main.pdf"] = pdfPage
             # the PDF link becomes invalid after 10 minutes, so direct users
@@ -1910,9 +1912,12 @@ class HighwireCrawler(Crawler):
             # try the vol/issue/page, is a lot faster
             vol = artMeta.get("vol", "")
             issue = artMeta.get("issue", "")
+            non_decimal = re.compile(r'[^\d]+')
+            issue = non_decimal.sub('', issue)
             page = artMeta.get("page", "")
             if (vol, issue, page) != ("", "", ""):
                 url = "%s/content/%s/%s/%s.long" % (baseUrl, vol, issue, page)
+                logging.info("URL: %s" % url)
                 page = httpGetDelay(url, delayTime)
                 if page != None:
                     return url
@@ -2032,6 +2037,28 @@ class NejmCrawler(Crawler):
         assert(pdfUrl != url)
 
         return paperData
+
+class PubmedBookCrawler(Crawler):
+    name = "pubmedBook"
+    
+    def canDo_article(self, artMeta):
+        return "bookaccession" in artMeta and len(artMeta["bookaccession"]) > 0
+
+    def makeLandingUrl(self, artMeta):
+        return "http://www.ncbi.nlm.nih.gov/books/%s/" % artMeta["bookaccession"]
+        
+    def crawl(self, url):
+        delayTime = crawlDelays["pubmedBook"]
+        paperData = OrderedDict()
+        mainPage = httpGetDelay(url, delayTime)
+
+        artHtml = htmlExtractPart(mainPage, "div", {"id":"maincontent"})
+        if artHtml!=None:
+            logging.debug("Stripped pubmed book")
+            mainHtml = artHtml
+            mainPage["data"] = mainHtml
+        paperData["main.html"] = mainPage
+        return paperData
     
 class WileyCrawler(Crawler):
     """
@@ -2061,8 +2088,8 @@ class WileyCrawler(Crawler):
 
     def makeLandingUrl(self, artMeta):
         ""
-        url = "http://onlinelibrary.wiley.com/resolve/openurl?genre=article&sid=genomeBot&issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
-        return url
+        #url = "http://onlinelibrary.wiley.com/resolve/openurl?genre=article&sid=genomeBot&issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
+        return "http://onlinelibrary.wiley.com/doi/%s/abstract" % artMeta["doi"]
         
     def crawl(self, url):
         delayTime = crawlDelays["wiley"]
@@ -2093,6 +2120,7 @@ class WileyCrawler(Crawler):
         # pdf
         #pdfUrl = getMetaPdfUrl(mainPage)
         pdfUrl = absUrl.replace("/abstract", "/pdf")
+        logging.info("PDF URL: " + pdfUrl)
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         parseHtmlLinks(pdfPage)
         if "pdfDocument" in pdfPage["iframes"]:
@@ -2285,7 +2313,8 @@ class SilverchairCrawler(Crawler):
 # order is important: the most specific crawlers come first
 allCrawlers = [
     ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
-    WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), PmcCrawler()
+    WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), PmcCrawler(), 
+    PubmedBookCrawler()
     ]
 allCrawlerNames = [c.name for c in allCrawlers]
 
@@ -2398,6 +2427,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
     for docId, srcDir in docIds:
         if docId in skipDocIds:
             logging.log(5, "Skipping docId %s" % docId)
+            yield docId
             continue
         logging.info("Crawling document with ID %s" % docId)
 
@@ -2409,13 +2439,19 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
         except pubGetError:
             writeDocIdStatus(srcDir, docId, "no meta", "")
             continue
+        except:
+            writeDocIdStatus(srcDir, docId, "exception in meta", "")
+            continue
 
         logging.info("Got Metadata: %s, %s, %s" % (artMeta["journal"], artMeta["year"], artMeta["title"]))
 
         try:
             checkIssnErrorCounts(artMeta, skipIssns, srcDir)
             paperData = crawlOneDoc(artMeta, srcDir)
+            if paperData is None:
+                raise pubGetError("paperData is None", "PaperDataNone")
             writePaperData(docId, artMeta, paperData, srcDir)
+            yield docId
             consecErrorCount = 0
             totalCount += 1
 
@@ -2446,7 +2482,7 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
             if DO_PAUSE:
                 raw_input("Press Enter to process next paper...")
         except:
-            raise
+            writeDocIdStatus(srcDir, docId, "exception general", "")
 
     logging.info("Downloaded %d articles" % (totalCount))
 

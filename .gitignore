@@ -47,3 +47,7 @@ pip-log.txt
 *~
 *.save
 
+*.pyc
+
+.project
+.pydevproject

@@ -44,6 +44,10 @@ def parseMedline(xmlParser):
         data["pmcId"] = pmcIds[0].split()[0].replace("PMC","")
 
     artTree               = medlineData.getXmlFirst("Article")
+    book = False
+    if artTree is None:
+        artTree = medlineData.getXmlFirst("Book")
+        book = True
     data["title"]         = artTree.getTextFirst("ArticleTitle", default="")
 
     # handle structured abstracts
@@ -64,26 +68,27 @@ def parseMedline(xmlParser):
     data["authorAffiliations"]   = artTree.getTextFirst("Affiliation", default="")
     data["doi"]           = artTree.getTextFirst("ELocationID", default="", reqAttrDict={"EIdType":"doi"})
 
-    data["journalUniqueId"] = medlineData.getTextFirst("MedlineJournalInfo/NlmUniqueID")
-    linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking")
+    data["journalUniqueId"] = medlineData.getTextFirst("MedlineJournalInfo/NlmUniqueID", default="")
+    linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking", default="")
     
-    journalTree = artTree.getXmlFirst("Journal")
-    data["eIssn"]       = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Electronic'}, default="")
-    data["printIssn"]   = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Print'}, default="")
-    if linkingIssn!=None:
-        data["eIssn"]       = linkingIssn
-        data["printIssn"]   = linkingIssn
-        
-    data["vol"]         = journalTree.getTextFirst("JournalIssue/Volume", default="")
-    data["issue"]       = journalTree.getTextFirst("JournalIssue/Issue", default="")
-    data["year"]        = journalTree.getTextFirst("JournalIssue/PubDate/Year", default="")
-    if data["year"]=="":
-        year = journalTree.getTextFirst("JournalIssue/PubDate/MedlineDate", default="").split()[0]
-        if not year.isdigit():
-            year = ""
-        data["year"] = year
-    data["journal"]     = journalTree.getTextFirst("Title", default="")
-    data["page"]        = artTree.getTextFirst("Pagination/MedlinePgn", default="")
+    if not book:
+        journalTree = artTree.getXmlFirst("Journal")
+        data["eIssn"]       = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Electronic'}, default="")
+        data["printIssn"]   = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Print'}, default="")
+        if linkingIssn!=None:
+            data["eIssn"]       = linkingIssn
+            data["printIssn"]   = linkingIssn
+            
+        data["vol"]         = journalTree.getTextFirst("JournalIssue/Volume", default="")
+        data["issue"]       = journalTree.getTextFirst("JournalIssue/Issue", default="")
+        data["year"]        = journalTree.getTextFirst("JournalIssue/PubDate/Year", default="")
+        if data["year"]=="":
+            year = journalTree.getTextFirst("JournalIssue/PubDate/MedlineDate", default="").split()[0]
+            if not year.isdigit():
+                year = ""
+            data["year"] = year
+        data["journal"]     = journalTree.getTextFirst("Title", default="")
+        data["page"]        = artTree.getTextFirst("Pagination/MedlinePgn", default="")
 
     authorList  = artTree.getXmlFirst("AuthorList")
     lastNames   = []
@@ -153,6 +158,7 @@ def parsePubmedFields(xmlEl, dataDict):
     dataDict["pii"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pii'}, default="")
     dataDict["mid"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'mid'}, default="")
     dataDict["pmcId"]         = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pmc'}, default="").replace("PMC", "")
+    dataDict["bookaccession"] = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'bookaccession'}, default="")
     return dataDict
 
 def parsePubmedMedlineIter(xml, fromMedline=False):
@@ -181,6 +187,11 @@ def parsePubmedMedlineIter(xml, fromMedline=False):
         if not closeTag in xml:
             logging.warn("Addding closing tag")
             xml = xml+"\n"+closeTag
+    
+    book = False
+    if "PubmedBookArticle" in xml:
+        recordTag = "PubmedBookArticle/BookDocument"
+        book = True
 
     logging.debug("Parsing pubmed file")
     try:
@@ -194,7 +205,10 @@ def parsePubmedMedlineIter(xml, fromMedline=False):
 
     for medlineCitEl in topEl.getXmlAll(recordTag):
         dataDict = parseMedline(medlineCitEl)
-        if not fromMedline:
+        if book:
+            pubmedCitEl = topEl.getXmlFirst("PubmedBookArticle/BookDocument")
+            dataDict = parsePubmedFields(pubmedCitEl, dataDict)
+        elif not fromMedline:
             pubmedCitEl = topEl.getXmlFirst("PubmedArticle/PubmedData")
             dataDict = parsePubmedFields(pubmedCitEl, dataDict)
         yield dataDict
@@ -439,6 +453,7 @@ def getOutlinks(pmid, preferPmc=False):
             url = stripTag(url).replace("&amp;", "&") # XX strange!
             url = stripTag(url).replace("&lt;", "<")
             url = stripTag(url).replace("&gt;", ">")
+            outlinks["book"] = url
             if "www.ncbi.nlm.nih.gov" in url and "/pmc/" in url and preferPmc:
                 # override all other links
                 outlinks.clear()
