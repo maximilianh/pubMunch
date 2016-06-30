@@ -113,9 +113,7 @@ class Runner:
                 self.clusterType="parasol"
             else:
                 ret = os.system("%s echo $SGE_ROOT | grep SGE > /dev/null" % prefixCmd)
-                #sge = os.environ.get("SGE_ROOT", None)
-                #if sge!=None:
-                if ret ==0:
+                if ret == 0:
                     self.clusterType="sge"
                 else:
                     self.clusterType="local"
@@ -125,10 +123,6 @@ class Runner:
             self.jobListFname = os.path.join(self.batchDir, "jobList")
             self.jobListFh = open(self.jobListFname, "w")
             logging.info("Created jobList file in %s" % self.jobListFname)
-        #elif self.clusterType.startswith("localhost:"):
-            #self.maxCpu = int(self.clusterType.split(":")[1])
-            #assert(self.maxCpu <= multiprocessing.cpu_count())
-            #self.clusterType="smp"
         elif self.clusterType in ["sge","local","smp","localhost"]:
             pass
         else:
@@ -148,7 +142,7 @@ class Runner:
         if ret!=0:
             logging.error("Error %d when executing command: %s" % (ret, cmdLine))
             if stopOnError:
-                logging.info("Runner told to stop on errors")
+                logging.info("Cluster job batch failed. Batch directory: %s" % self.batchDir)
                 sys.exit(1)
         if ret==2:
             logging.error("Seems that you pressed ctrl-c, quitting")

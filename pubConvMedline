@@ -173,11 +173,7 @@ def main(args,options):
         updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
         updateIds = [updateId]
         pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)
-
-        # write article info into sql db
-        tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-        dbPath = join(outDir, "articles.db")
-        pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+        pubStore.updateSqlite(outDir)
 
         if options.crawlDir:
             pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)

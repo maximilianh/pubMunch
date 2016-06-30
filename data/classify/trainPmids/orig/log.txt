@@ -202,3 +202,6 @@ wget ftp://jjwanglab.org/GWASdb/gwasdb_20140908_annotation.gz
 gunzip gwasdb_20140908_annotation.gz 
 less gwasdb_20140908_annotation | cut -f6 | uniq | sort -u | grep -v Pmid > pos.gwasDb.txt
 rm gwasdb_20140908_annotation 
+
+# TAIR (The Arabidopsis Information Resource) - http://arabidopsis.org
+wget https://www.arabidopsis.org/download_files/Public_Data_Releases/TAIR_Data_20140930/Locus_Published_20140930.txt.gz -O - | zcat | cut -f3 | grep -v -i Pubmed | sort -u > pos.tair.txt

@@ -73,6 +73,11 @@ def getEIssnToPIssn(journalFname):
                 ret[eIs] = pIs
     return ret
         
+def getPmidsForIssn(medlineDir, issn):
+    " retrieve PMIDs for an ISSN "
+    con, cur = pubStore.openArticleDb(medlineDir, mustOpen=True)
+
+
 def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
     """ go over subdirs of crawlDir, for each: read the ISSNs, and add new
     PMIDs we have in medlineDir to subdir/pmids.txt
@@ -81,8 +86,14 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
     """ 
     logging.info("Now updating crawler directories with the new PMIDs")
     eIssnToPIssn = getEIssnToPIssn(pubConf.publisherIssnTable)
-    issnToPmid, issnToJournal = getIssnPmidDict(medlineDir, updateIds, minYear)
+    con, cur = 
+    #issnToPmid, issnToJournal = getIssnPmidDict(medlineDir, updateIds, minYear)
     for subdir in getSubdirs(crawlDir):
+        subPath = join(crawlDir, subdir)
+        if pubCrawlLib.containsLockFile(subPath):
+            logging.warn("Ongoing crawling in %s, skipping" % subPath)
+            continue
+
         pmidFname = join(crawlDir, subdir, "pmids.txt")
         issnFname = join(crawlDir, subdir, "issns.tab")
         if not isfile(issnFname) or not isfile(pmidFname):
@@ -95,14 +106,15 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
         newPmids = set()
         # add new pmids, for each issn
         for issn in issns:
-            if issn not in issnToPmid:
-                if issn in eIssnToPIssn:
-                    logging.debug("Looks like eISSN, mapped to printISSN %s" % issn)
-                    issn = eIssnToPIssn[issn]
-                else:
-                    logging.debug("No Pmids for ISSN %s and not eIssn for it" % issn)
+            #if issn not in issnToPmid:
+                #if issn in eIssnToPIssn:
+                    #logging.debug("Looks like eISSN, mapped to printISSN %s" % issn)
+                    #issn = eIssnToPIssn[issn]
+                #else:
+                    #logging.debug("No Pmids for ISSN %s and not eIssn for it" % issn)
 
-            issnPmids = issnToPmid.get(issn, None)
+            #issnPmids = issnToPmid.get(issn, None)
+            issnPmids = getPmidsForIssn(medlineDir, issn)
             if issnPmids==None:
                 logging.debug("No Pmids for ISSN %s" % issn)
                 continue

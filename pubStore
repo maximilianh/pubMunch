@@ -63,6 +63,7 @@ loads missing article files into the sqlite index.
 command "show":
     %prog show <inDirList> <docSelector>
 pull a single text file out of the text directories specified.
+Output goes to stdout, attributes are prefixed with |
 example:
 %prog show pmc 'pmid=1234567' 
 

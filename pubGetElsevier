@@ -25,8 +25,11 @@ except ImportError:
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - download newest update from Elsevier Consyn and place into outDir
 
-NB: The initial download has to be uploaded by Elsevier into your own ftp server
-    or are shipped on blue ray discs. This script only downloads the updates
+To get access, contact universalaccess@elsevier.com 
+See https://www.elsevier.com/about/company-information/policies/text-and-data-mining
+
+The initial download has to be uploaded by Elsevier into your own ftp server
+or are shipped on blue ray discs. This script only downloads the updates.
 
 """)
 

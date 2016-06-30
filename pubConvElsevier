@@ -83,13 +83,9 @@ def main(args, options):
         print "first parameter must be a directory"
         sys.exit(1)
 
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
     pubConvElsevier.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
-
-    # if this fails, updates.tab will still be OK... maybe think about this one day...
-    tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-    dbPath = join(outDir, "articles.db")
-    pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+    pubStore.updateSqlite(outDir)
 
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()

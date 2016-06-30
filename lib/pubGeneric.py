@@ -159,6 +159,16 @@ def addGeneralOptions(parser, noCluster=False, logDir=False, keepTemp=False):
         parser.add_option("", "--keepTemp", dest="keepTemp", action="store_true", help="keep temporary files, for debugging")
     return parser
 
+def logToFile(logFileName):
+    " add a log handler that write to a file and return the handler "
+    rootLog = logging.getLogger('')
+    fh = logging.FileHandler(logFileName)
+    fh.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    fh.setFormatter(formatter)
+    rootLog.addHandler(fh)
+    return fh
+
 debugMode=False
 
 def setupLogging(progName, options, parser=None, logFileName=None, \
@@ -205,7 +215,6 @@ def setupLogging(progName, options, parser=None, logFileName=None, \
 
     rootLog = logging.getLogger('')
     rootLog.setLevel(fileLevel)
-
     logging.root.handlers = []
 
     logging.verbose = verboseFunc
@@ -277,7 +286,7 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
 
     asciiData = None
 
-    if ret==2:
+    if ret==2 and "docx2text" not in cmdLine: # docx2text returns exit code 2 in same cases
         logging.error("stopped on errno 2: looks like you pressed ctrl-c")
         sys.exit(2)
 
@@ -524,13 +533,21 @@ def recursiveSubmit(runner, parameterString):
     cmd = "%(python)s %(progFile)s %(parameterString)s" % locals()
     runner.submit(cmd)
 
-def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None, maxRam=None):
-    " create a default runner to submit jobs to cluster system "
+def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None, maxRam=None, outDir=None):
+    """ create a default runner to submit jobs to cluster system 
+    outDir is the directory where the output files go. A directory
+    "<outDir>/clusterBatch" will be created with the tracking info for the
+    cluster jobs, e.g. the parasol status files
+    """
     scriptBase = splitext(basename(scriptName))[0]
-    if algName!=None:
-        batchDir = join(pubConf.clusterBatchDir, scriptBase+'-'+algName)
+
+    if outDir is None:
+        if algName!=None:
+            batchDir = join(pubConf.clusterBatchDir, scriptBase+'-'+algName)
+        else:
+            batchDir = join(pubConf.clusterBatchDir, scriptBase)
     else:
-        batchDir = join(pubConf.clusterBatchDir, scriptBase)
+        batchDir = join(outDir, "clusterBatch")
 
     if not isdir(batchDir):
         logging.debug("Creating dir %s" % batchDir)
@@ -612,7 +629,7 @@ def appendLog(outDir, change, fname):
 def getFtpDir(server, path):
     " return list of files on ftp server "
     logging.info("Getting FTP directory server %s, %s" % (server, path))
-    ftp = ftplib.FTP(server, user="anonymous", passwd=pubConf.email)
+    ftp = ftplib.FTP(server, user="anonymous", passwd=pubConf.email, timeout=60)
     ftp.cwd(path)
     dirLines = ftp.nlst() 
     #fnames = [split(line)[0] for line in dirLines]

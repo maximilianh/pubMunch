@@ -12,13 +12,8 @@ if not getattr(sys, 'frozen', False):
 import pubGeneric, pubConf
 import pubCrawlLib as scrapeLib
 
-def main(args, options):
-    pubGeneric.setupLogging("", options)
-    outDir = args[0]
-    if options.report:
-        scrapeLib.writeReport(outDir, options.report)
-        sys.exit(0)
-
+def setOptions(options):
+    " configure pubCrawLib "
     if options.waitTime!=None:
         logging.info("Http delay is set to %d secs from command line." % options.waitTime)
         scrapeLib.globalForceDelay = options.waitTime
@@ -41,23 +36,37 @@ def main(args, options):
         logging.debug("Setting useragent to Mozilla")
         scrapeLib.userAgent = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:23.0) Gecko/20130406 Firefox/23.0'
 
-    if options.testDoc:
-        # testing a single document, do not write to disk
-        scrapeLib.globalForceDelay = 0
-        docId = outDir
-        artMeta = scrapeLib.getArticleMeta(docId)
-        paperData = scrapeLib.crawlOneDoc(artMeta, None)
-        scrapeLib.printPaperData(paperData)
+def testDownload(docId):
+    " test crawler on docId, don't write anything to disk. docId can have format <docId>/<crawler> "
+    scrapeLib.globalForceDelay = 0
+    if "/" in docId:
+        docId, crawlerStr = docId.split("/")
+        crawlers = crawlerStr.split(",")
+    else:
+        crawlers = None
+
+    artMeta = scrapeLib.getArticleMeta(docId)
+    paperData = scrapeLib.crawlOneDoc(artMeta, None, forceCrawlers=crawlers)
+    scrapeLib.printPaperData(paperData)
+
+def main(args, options):
+    pubGeneric.setupLogging("", options)
+    outDirs = args
+    if options.report:
+        scrapeLib.writeReport(outDirs[0], options.report)
         sys.exit(0)
 
-    pubGeneric.setupLogging("", options, logFileName=join(outDir, "crawler.log"), fileMode="a")
+    setOptions(options)
 
-    scrapeLib.checkCreateLock(outDir)
+    #pubGeneric.setupLogging("", None, logFileName=join(srcDir, "crawler.log"), fileMode="a")
+    pubGeneric.setupLogging("", options)
 
-    docIds, skipDocs, skipIssns = scrapeLib.parseDirectories(outDir)
-    scrapeLib.crawlDocuments(docIds, skipDocs, skipIssns)
+    if options.testDoc:
+        testDownload(outDirs[0])
+        sys.exit(0)
 
-    scrapeLib.removeLocks()
+    docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
+    scrapeLib.crawlDocuments(docIds, skipIssns)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of hosters. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 
@@ -94,7 +103,7 @@ parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
 
 parser.add_option("", "--test", dest="testDoc", action="store_true", \
     help="test mode, outDir is not a directory but a PMID."
-    "Output is just summary information of files downloaded, not written to disk.")
+    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format number/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Legal crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
 
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
 

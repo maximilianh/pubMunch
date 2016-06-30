@@ -19,6 +19,13 @@ except ImportError:
 
 import pubGeneric, pubConf, maxCommon, unicodeConvert, maxTables, pubPubmed
 
+try:
+    import Bio.bgzf
+    bgzfLoaded = True
+except ImportError:
+    logging.warn("biopython not installed (use: pip install biopython, apt-get install python-biopython, yum install python-biopython")
+    bgzfLoaded = False
+
 from os.path import *
 from collections import namedtuple
 
@@ -53,8 +60,9 @@ articleFields=[
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
 "fulltextUrl",     # URL to fulltext of article
-"time",     # date of download
-"offset"   # offset in .files, number of bytes (NOT number of unicode characters).
+"time",     # entry creation time (conversion time)
+"offset",   # offset in .files, number of bytes (NOT number of unicode characters).
+"size"      # total size (in bytes, not utf8 characters) of all files in this article + size of abstract
 ]
 
 fileDataFields = [
@@ -224,24 +232,6 @@ def dictToUtf8Escape(dict):
         utf8Dict[key]=var
     return utf8Dict
 
-def utf8GzReader(fname):
-    " wrap a utf8 codec around a gzip reader "
-    if fname=="stdin":
-        return sys.stdin
-    zf = gzip.open(fname, "rb")
-    reader = codecs.getreader("utf-8")
-    fh = reader(zf)
-    return fh
-
-def utf8GzWriter(fname):
-    " wrap a utf8 codec around a gzip writer "
-    if fname=="stdout":
-        return sys.stdout
-    zf = gzip.open(fname, "w")
-    reader = codecs.getwriter("utf-8")
-    fh = reader(zf)
-    return fh
-
 def removeTabNl(var):
     " remove tab and all forms (!) of newline characters from string "
     # RAHHH! CRAZY UNICODE LINEBREAKS
@@ -287,13 +277,23 @@ class PubWriterFile:
         self.filesWritten = 0
         self.tempDir = pubConf.getTempDir()
 
-        # very convoluted way to find output filenames
+        # convoluted way to find output filenames
         # needed because of parasol 
         outDir = os.path.dirname(fileDataFilename)
         fileDataBasename = os.path.basename(fileDataFilename)
         chunkId = fileDataBasename.split(".")[0]
-        self.fileBaseName = chunkId+".files"
-        articleBaseName = chunkId+".articles"
+
+        ext = ".gz" # use .gz extension even if not compressing, saves a ton of file name problems
+        if pubConf.compress:
+            if bgzfLoaded:
+                openFunc = Bio.bgzf.open
+            else:
+                openFunc = gzip.open
+        else:
+            openFunc = open
+
+        self.fileBaseName = chunkId+".files"+ext
+        articleBaseName = chunkId+".articles"+ext
         refBaseName = chunkId+".refs"
 
         # setup reference table handle
@@ -301,31 +301,27 @@ class PubWriterFile:
         self.tempRefName = join(self.tempDir, refBaseName)
         self.refFh = None
 
-        if pubConf.compress:
-            self.finalArticleName = join(outDir, articleBaseName+".gz")
-            self.finalFileDataName    = join(outDir, self.fileBaseName+".gz")
-            self.finalRefFname = join(self.refDir, refBaseName+".gz")
-        else:
-            self.finalArticleName = join(outDir, articleBaseName)
-            self.finalFileDataName    = join(outDir, self.fileBaseName)
-            self.finalRefFname = join(self.refDir, refBaseName)
+        self.finalArticleName = join(outDir, articleBaseName)
+        self.finalFileDataName    = join(outDir, self.fileBaseName)
+        self.finalRefFname = join(self.refDir, refBaseName)
 
         # setup file and article table handles
         # in temporary directory, so we do not leave behind half-written
-        # chunks. Temp files are moved over to final when chunk is closed.
-        fileFname = os.path.join(self.tempDir, self.fileBaseName)
-        #self.fileFh = codecs.open(fileFname, "w", encoding="utf8")
-        self.fileFh = open(fileFname, "w")
+        # chunks. Temp files are moved over to final on self.close()
+        self.tmpFileFname = os.path.join(self.tempDir, self.fileBaseName)
+        self.fileFh = openFunc(self.tmpFileFname, "w")
         self.fileFh.write("#"+"\t".join(fileDataFields)+"\n")
-        maxCommon.delOnExit(fileFname)
 
-        articleFname = os.path.join(self.tempDir, articleBaseName)
-        #self.articleFh = codecs.open(articleFname, "w", encoding="utf8") 
-        self.articleFh = open(articleFname, "w")
+        self.tmpArticleFname = os.path.join(self.tempDir, articleBaseName)
+        self.articleFh = openFunc(self.tmpArticleFname, "w")
         self.articleFh.write("#"+"\t".join(articleFields)+"\n")
-        maxCommon.delOnExit(articleFname)
+
+        maxCommon.delOnExit(self.tmpFileFname)
+        maxCommon.delOnExit(self.tmpArticleFname)
 
         self.outFilename = os.path.join(outDir, fileDataBasename)
+        logging.debug("pubStore writer open. tmp files %s and %s. Dest files %s and %s" % \
+            (self.tmpArticleFname, self.tmpFileFname, self.finalArticleName, self.finalFileDataName))
 
     def _removeSpecChar(self, lineDict):
         " remove tab and NL chars from values of dict "
@@ -344,7 +340,6 @@ class PubWriterFile:
                 except OSError:
                     logging.info("makedir %s failed, probably just race condition" % self.refDir)
                     pass
-            #self.refFh = tempfile.NamedTemporaryFile(dir=self.tempDir, suffix=".gz", prefix=self.fileBaseName+".")
             self.refFh = open(self.tempRefName, "w")
             logging.info("Created tempfile for refs %s" % self.refFh.name)
             maxCommon.delOnExit(self.tempRefName)
@@ -376,31 +371,16 @@ class PubWriterFile:
 
     def writeFile(self, articleId, fileId, fileDict, externalId=""):
         """ appends id and data to current .file table,
-            will not write if maximum filesize exceeded
         """
+        assert("content" in fileDict)
         if fileDict["content"]==None:
             logging.warn("file %s, object or content is None" % fileId)
             fileDict["content"] = ""
 
-        # checked in toAscii() now
-        #if len(fileDict["content"]) > pubConf.MAXTXTFILESIZE:
-            #logging.info("truncating file %s, too big" % fileId)
-            #fileDict["content"] = fileDict["content"][:pubConf.MAXTXTFILESIZE]
-
         if "externalId" not in fileDict:
             fileDict["externalId"] = fileDict["articleId"]
-        if "locFname" not in fileDict:
-            fileDict["locFname"] = ""
 
-        if len(fileDict)!=len(fileDataFields):
-            logging.error("column counts between file dict and file objects don't match")
-            dictFields = fileDict.keys()
-            dictFields.sort()
-            logging.error("columns are          %s" % str(dictFields))
-            expFields = fileDataFields
-            expFields.sort()
-            logging.error("expected columns are %s" % str(expFields))
-            raise Exception()
+        self._checkFields(fileDict, fileDataFields)
 
         if "externalId" not in fileDict:
             fileDict["externalId"] = externalId
@@ -415,26 +395,39 @@ class PubWriterFile:
         self.filesWritten += 1
         self.fileFh.write(line+"\n")
         
+    def _checkFields(self, inDict, fieldList):
+        """ makes sure that inDict contains one key for each string in fieldList.
+        Keys not found are set to empty strings.
+        Aborts if a key is found in inDict that is not in fieldList.
+        """
+        gotFields = set(inDict.keys())
+        mustHaveFields = set(fieldList)
+        unknownFields = gotFields - mustHaveFields
+        if len(unknownFields)>0:
+            raise Exception("article/file writer got unknown fields: %s" % repr(unknownFields))
+
+        missingFields = mustHaveFields - gotFields
+        logging.log(5, "PubStore Writer: Adding empty strings for: %s" % missingFields)
+        for key in missingFields:
+            articleDict[key] = ""
+        return inDict
+
+
     def writeArticle(self, articleId, articleDict):
-        """ appends data to current chunk. filePos is current position in file table. """
+        """ appends data to current chunk. article info has to be written before the files, 
+        otherwise the offset in the article dict will be wrong. 
+        """
+        logging.log(5, "appending article info to %s: %s" % (self.tmpArticleFname, str(articleDict)))
         articleDict["articleId"]=articleId
 
+        # fill the "offset" field
         filePos = 0
         if self.fileFh is not None:
             filePos = self.fileFh.tell()
-
         articleDict["offset"] = str(filePos)
+
         articleDict = self._removeSpecChar(articleDict)
-        logging.log(5, "appending article info to %s: %s" % (self.articleFh.name, str(articleDict)))
-        if len(articleDict)!=len(articleFields):
-            logging.error("column counts between article dict and article objects don't match")
-            dictFields = articleDict.keys()
-            dictFields.sort()
-            logging.error("columns are          %s" % str(dictFields))
-            expFields = articleFields
-            expFields.sort()
-            logging.error("expected columns are %s" % str(expFields))
-            raise("Error")
+        articleDict = self._checkFields(articleDict, articleFields)
 
         articleTuple = ArticleRec(**articleDict)
 
@@ -446,24 +439,25 @@ class PubWriterFile:
         self.articlesWritten += 1
         logging.log(5, "%d articles written" % self.articlesWritten)
         
-    def _gzipAndMove(self, fname, finalName, removeSrc=True):
-        " gzip fname and move to finalName "
-        gzName = fname+".gz"
-        if isfile(gzName):
-            os.remove(gzName)
-        maxCommon.runCommand("gzip %s" % fname)
-        logging.debug("compressing and copying files table to %s" % finalName)
-        shutil.copyfile(gzName, finalName)
-        if removeSrc:
-            os.remove(gzName)
+    def writeDocs(self, artDict, fileDicts):
+        " write all article and files in one go "
+        # set the 'size' field of the article
+        totalSize = 0
+        for fileDict in fileDicts:
+            totalSize += len(fileDict['content'])
+        totalSize += len(artDict['abstract'])
+        artDict['size'] = str(totalSize)
+
+        self.writeArticle(artDict['articleId'], artDict)
+
+        for fileDict in fileDicts:
+            self.writeFile(artDict['articleId'], fileDict['fileId'], fileDict)
 
     def close(self, keepEmpty=False):
         """ 
-        close the 3 files, copy them over to final targets and  delete the
-        temps 
+        close the 3 files, move them over to final targets 
         """ 
-        logging.debug("Copying local tempfiles over to files on server %s" % self.finalArticleName)
-        assert(self.fileFh.name.endswith(".files"))
+        logging.debug("Moving local tempfiles over to files on server %s" % self.finalArticleName)
 
         self.fileFh.close()
         self.articleFh.close()
@@ -474,22 +468,16 @@ class PubWriterFile:
             open(self.finalArticleName, "w")
             
         if self.filesWritten > 0 or keepEmpty:
-            if self.finalFileDataName.endswith(".gz"):
-                self._gzipAndMove(self.fileFh.name, self.finalFileDataName)
-            else:
-                logging.debug("copying articles table to %s" % self.finalArticleName)
-                shutil.move(self.fileFh.name, self.finalFileDataName)
+            logging.debug("moving articles table to %s" % self.finalArticleName)
+            shutil.move(self.tmpFileFname, self.finalFileDataName)
 
         if self.articlesWritten > 0 or keepEmpty:
-            if self.finalArticleName.endswith(".gz"):
-                self._gzipAndMove(self.articleFh.name, self.finalArticleName)
-            else:
-                logging.debug("copying files table to %s" % self.finalFileDataName)
-                shutil.move(self.articleFh.name, self.finalArticleName)
+            logging.debug("moving files table to %s" % self.finalFileDataName)
+            shutil.move(self.tmpArticleFname, self.finalArticleName)
 
         if self.refFh!=None:
             self.refFh.close()
-            self._gzipAndMove(self.refFh.name, self.finalRefFname, removeSrc=False)
+            shutil.move(self.refFh.name, self.finalRefFname)
 
 def createPseudoFile(articleData):
     """ create a file from the abstract and title of an article,
@@ -786,7 +774,7 @@ class PubReaderTest:
 def iterArticleDirList(textDir, algPrefs=None):
     " iterate over all files with article/fileData in textDir "
     logging.debug("Getting filenames in dir %s" % textDir)
-    fileNames = glob.glob(os.path.join(textDir, "*.articles.gz"))
+    fileNames = getAllArticleFnames(textDir)
     logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))
     pm = maxCommon.ProgressMeter(len(fileNames))
     for textCount, textFname in enumerate(fileNames):
@@ -810,24 +798,15 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
         given list of updateIds.
     """
     fcount = 0
-    if type=="articles":
-        baseMask = "*.articles.gz"
-    elif type=="files":
-        baseMask = "*.files.gz"
-    elif type=="annots":
-        baseMask = "*.tab.gz"
-    else:
-        logging.error("Article type %s not valid" % type)
-        sys.exit(1)
+    assert(type in ["articles", "files"])
         
     if isfile(textDir):
         fileNames = [textDir]
         logging.debug("Found 1 file, %s" % textDir)
     else:
-        fileMask = os.path.join(textDir, baseMask)
-        fileNames = glob.glob(fileMask)
+        fileNames = getAllArticleFnames(textDir, type=type)
         logging.debug("Looking for all fulltext files in %s, found %d files" % \
-            (fileMask, len(fileNames)))
+            (textDir, len(fileNames)))
         if updateIds!=None and len(updateIds)!=0:
             logging.debug("Restricting fulltext files to updateIds %s" % str(updateIds))
             filteredFiles = []
@@ -837,7 +816,6 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
                         filteredFiles.append(fname)
                 logging.debug("Update Id %s, %d files" % (str(updateId), len(filteredFiles)))
             fileNames = list(filteredFiles)
-
         logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))
 
     pm = maxCommon.ProgressMeter(len(fileNames), stepCount=100)
@@ -903,8 +881,8 @@ def prepSqlString(string, maxLen=pubConf.maxColLen):
        string = string[:maxLen]
     return string
 
-def iterFileDataDir(textDir):
-    return iterArticleDataDir(textDir, type="files")
+#def iterFileDataDir(textDir):
+    #return iterArticleDataDir(textDir, type="files")
 
 def getAllBatchIds(outDir):
     """ parse batches.tab and return all available batchIds
@@ -962,9 +940,12 @@ def guessChunkSize(outDir):
     " get line count of  0_00000.articles.gz in outDir"
     fname = join(outDir, "0_00000.articles.gz")
     if not isfile(fname):
-        #raise Exception("%s does not exist, corrupted output directory from previous run?" % fname)
-        return None
-    lineCount = len(gzip.open(fname).readlines())-1
+        fname = join(outDir, "0_00000.articles")
+        if not isfile(fname):
+            return None
+        lineCount = len(open(fname).readlines())
+    else:
+        lineCount = len(gzip.open(fname).readlines())
     logging.info("Guessing chunk size: Chunk size of %s is %d" % (fname, lineCount))
     return lineCount
 
@@ -1036,7 +1017,7 @@ def iterChunks(datasets):
             yield dataset
         else:
             dirName = join(pubConf.textBaseDir, dataset)
-            for fname in glob.glob(dirName+"/*.articles.gz"):
+            for fname in getAllArticleFnames(dirName):
                 yield fname
 
 def addLoadedFiles(con, cur, fileNames):
@@ -1045,7 +1026,7 @@ def addLoadedFiles(con, cur, fileNames):
     #assert(isfile(dbFname))
     #fileNames = [(basename(x), ) for x in fileNames] # sqlite only accepts tuples, strip path
     #con, cur = maxTables.openSqlite(dbFname, lockDb=True)
-    fileNames = [(s,) for s in fileNames]
+    fileNames = [(basename(s),) for s in fileNames]
     cur.execute("CREATE TABLE IF NOT EXISTS loadedFiles (fname TEXT PRIMARY KEY);")
     con.commit()
     logging.debug("INSERTing %d filenames into table loadedFiles" % len(fileNames))
@@ -1060,20 +1041,20 @@ def getUnloadedFnames(con, cur, newFnames):
     loadedFnames = []
     try:
         for row in cur.execute("SELECT fname from loadedFiles"):
-            loadedFnames.append(row[0])
+            loadedFnames.append(basename(row[0]))
     except sqlite3.OperationalError:
         logging.debug("No loadedFiles table yet")
         return newFnames
-    #logging.debug("Files that have been loaded already: %s" % loadedFnames)
+    logging.debug("Files that have been loaded already: %s" % loadedFnames)
 
     # keep only filenames that haven't been loaded yet
     loadedFnames = set(loadedFnames)
     toLoadFnames = []
     for newFname in newFnames:
         if basename(newFname) not in loadedFnames:
-            toLoadFnames.append(newFname)
+            toLoadFnames.append(basename(newFname))
             
-    #logging.debug("Files that have not been loaded yet: %s" % toLoadFnames)
+    logging.debug("Files that have not been loaded yet: %s" % toLoadFnames)
     return toLoadFnames
 
 def sortPubFnames(fnames):
@@ -1098,7 +1079,7 @@ def chunkIdFromFname(fname):
     " given the path of chunk, return it's chunk ID, like 0_00001 "
     return basename(fname).split(".")[0]
 
-def loadIndexes(con, cur, tsvFnames):
+def addToDatabase(con, cur, tsvFnames):
     " load articles files into sqlLite db table. Adds a field 'chunkId'. "
     tableName = "articles"
     allFields = list(tuple(articleFields)) # make a deep copy of list
@@ -1180,9 +1161,10 @@ def updateSqlite(textDir):
     into the sqlite database 
     """
     artFnames = getAllArticleFnames(textDir)
+    assert(len(artFnames)!=0)
     con, cur = openArticleDb(textDir)
     toLoadFnames = getUnloadedFnames(con, cur, artFnames)
-    loadIndexes(con, cur, toLoadFnames)
+    addToDatabase(con, cur, toLoadFnames)
 
 datasetRanges = None
 
@@ -1364,23 +1346,25 @@ def lookupFullDocs(inDirs, whereExpr):
             artId = artDict["articleId"]
             chunkId, offset = artDict["chunkId"], artDict["offset"]
             filesPath = makeChunkPath(inDir, chunkId, "files")
-            filesFh = open(filesPath)
+            logging.debug("Opening %s" % filesPath)
+            filesFh = Bio.bgzf.open(filesPath)
             fileReader = maxCommon.TsvReader(filesFh)
+            logging.debug("Seeking to offset %s" % offset)
             fileReader.seek(int(offset))
 
             # pull out all files with this article ID
             while True:
                 row = fileReader.nextRow()
-                if row.fileId[:len(artId)]!=artId:
+                if row is None or row.fileId[:len(artId)]!=artId:
                     break
                 fileRows.append(row._asdict())
             yield artDict, fileRows
         
-def getAllArticleFnames(inDir):
+def getAllArticleFnames(inDir, type="articles"):
     " find all article chunks in inDir "
-    inFnames = glob.glob(join(inDir, "*.articles"))
+    inFnames = glob.glob(join(inDir, "*.%s.gz" % type))
     if len(inFnames)==0:
-        inFnames = glob.glob(join(inDir, "*.articles.gz"))
+        inFnames = glob.glob(join(inDir, "*.%s" % type))
     return inFnames
 
 

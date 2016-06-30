@@ -62,14 +62,23 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
         zipFilename = join(inDir, fname)
         logging.info("Indexing %s, %d files left" % (zipFilename, len(zipFilenames)-i))
         i+=1
-        try:
-            zipNames = zipfile.ZipFile(zipFilename).namelist()
-        except zipfile.BadZipfile:
-            logging.error("Bad zipfile: %s" % zipFilename)
-            continue
+
+        # read index of .zip, keep the output in <zipFname>.txt, this makes all future updates a lot faster
+        zipIndexFname = join(inDir, fname, ".txt")
+        # use the index if we have one
+        if isfile(zipIndexFname):
+            zipContentFnames = open(zipIndexFname).read().splitlines()
+        else:
+            try:
+                zipContentFnames = zipfile.ZipFile(zipFilename).namelist()
+            except zipfile.BadZipfile:
+                logging.error("Bad zipfile: %s" % zipFilename)
+                continue
+
+            zifh = open(zipIndexFname, "w")
 
         zipRelName = basename(zipFilename)
-        for fileName in zipNames:
+        for fileName in zipContentFnames:
             # do not import a PII twice
             pii = splitext(basename(fileName))[0]
             if pii in donePiis:
@@ -105,7 +114,7 @@ def submitJobs(runner, zipDir, chunkIds, splitDir, idFname, outDir):
         outFname = os.path.join(outDir, chunkId+".articles.gz")
         maxCommon.mustNotExist(outFname)
         thisFilePath = __file__
-        command = "%s %s %s {check in line %s} {check in line %s} {check out exists %s}" % (sys.executable, thisFilePath, zipDir, idFname, chunkFname, outFname)
+        command = "%s %s %s {check in line %s} {check in line %s} {check out exists %s}" % (sys.executable, thisFilePath, abspath(zipDir), abspath(idFname), abspath(chunkFname), abspath(outFname))
         runner.submit(command)
     runner.finish(wait=True)
 

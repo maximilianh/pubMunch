@@ -4,17 +4,20 @@ import logging, urllib2, urlparse, urllib, re
 import pubConf, pubGeneric, maxCommon, html, maxCommon
 from collections import OrderedDict
 
-# full publisher name to internal publisher ID
+# this file mostly is dealing with the problem that we need to figure out which journals 
+# correpond to a publisher.
+
+# it maps full publisher name to our internal publisher ID
 # used for assignment of ISSNs to a directory
 # links a publisher name from PubMed to a directory for the crawler
 
-# pubPrepCrawlDir parses journal data and groups journals by publishers.
-# In most cases, to download all journal from a publisher, all you have to do
-# is to copy the publisher field from publisher.tab
-# here and define a directory name for it
+# pubPrepCrawlDir parses journal lists from various sources and groups journals
+# by publishers.  In most cases, to download all journal from a publisher, all
+# you have to do is to copy the publisher field from publisher.tab here and
+# define a directory name for it
 
 # format: publisher name -> directory name
-# prefix NLM means that the ISSNs come from the NLM Catalog (~PubMed)
+# the prefix 'NLM' means that the ISSNs come from the NLM Catalog (~PubMed)
 # other prefixes (WILEY, HIGHWIRE, etc) are specific journal lists
 # in the tools/data directory.
 
@@ -23,6 +26,7 @@ crawlPubIds = {
 "LWW lww" : "lww",
 # all ISSNs that wiley gave us go into the subdir wiley
 "WILEY Wiley" : "wiley",
+"WILEY EMBO" : "embo",
 # we don't have ISSNs for NPG directly, so we use grouped data from NLM
 "NLM Nature Publishing Group" : "npg",
 "NLM American College of Chest Physicians" : "chest",
@@ -46,7 +50,7 @@ crawlPubIds = {
 "HIGHWIRE The Company of Biologists" : "cob",
 "HIGHWIRE Genetics Society of America" : "genetics",
 "HIGHWIRE Society for General Microbiology" : "sgm",
-"NLM Informa Healthcare" : "informa"
+"NLM Informa Healthcare" : "informa",
 #"Society for Molecular Biology and Evolution" : "smbe"
 }
 

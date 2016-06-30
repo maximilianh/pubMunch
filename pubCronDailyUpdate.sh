@@ -35,7 +35,7 @@ $PYTHON $BIN/pubGetElsevier $DOWNBASE/elsevier
 echo __DOWNLOADING PUBMEDCENTRAL
 $PYTHON $BIN/pubGetPmc $DOWNBASE/pmc
 echo __DOWNLOADING SPRINGER
-$PYTHON $BIN/pubGetSpringer $DOWNBASE/springer
+$PYTHON $BIN/pubGetSpringer $DOWNBASE/springer/updates
 
 # execute the rest only if there is no running job
 if [ -e "${FLAGFILE}" ]

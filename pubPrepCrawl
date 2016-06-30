@@ -161,7 +161,7 @@ def resolveIssnToPmid_Pubmed(issnRowFnames, minYear):
             query += " %s:%s[dp]" % (str(startYear), str(endYear))
             logging.debug("sending query to pubmed: %s" % query)
             
-            issnPmids = list(pubPubmed.ncbiESearch(query, tool="pubtools_pubPrepCrawlDir", \
+            issnPmids = list(pubPubmed.ncbiESearch(query, tool="pubtools_pubPrepCrawl", \
                 email=pubConf.email, delaySecs=pubConf.eutilsDelaySecs))
             if len(issnPmids)==0:
                 logging.warn("No PMIDs for pubmed query %s" % query)
@@ -228,7 +228,6 @@ def main(args, options):
 
     elif command=="allpmids":
         medlineDir = pubConf.resolveTextDir("medline")
-        #medlineDir = pubConf.resolveTextDir("testMedline")
         pubUpdatePmids.updatePmids(medlineDir, outDir, None, minYear=minYear)
 
     else:
@@ -238,26 +237,41 @@ def main(args, options):
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [issns|pmids] <outDir> - prepare the directories for the crawler filling it with ISSNs and PMIDs.
 
-outDir has to correspond to a "publisher name". Publishers are defined in pubCrawlConf.py and need three configuraton items:
-- a name in the NLM Catalog / Pubmed, for pubPrepCrawlDir. This will be used by pubPrepCrawlDir to find the PMIDs.
+outDir has to correspond to a "publisher name". Publishers are defined in
+pubCrawlConf.py and need three configuration items for the crawler:
+- a publisher name in the NLM Catalog / Pubmed, for %prog. This will be used by %prog to
+  find the PMIDs.
 - a list of rules, to specify how to crawl the files
 - a delay time, between any two http requests
 
+The journal lists for this program are stored in data/publishers/journals.tab. 
+If your publisher of interest is not already recognized in the "publisher" column in 
+the file journals.tab there, then the easiest way forward is probably to not
+use the "issns" argument, but copy an existing issns.tab file and fill it with a handful of
+ISSNs manually.
+
+To get an idea of the problem, try this search:
+    $ egrep '(^source)|(EMBO)' data/journals/journals.tab
+You can see that EMBO journals sometimes show Wiley as the publisher, sometimes EMBO,
+and at other times are assigned to NPG. Neither NLM, nor Wiley nor Scopus really 
+show us the copyright holder.
+
 commands:
-    %prog issns <outDir>      - create subdirectories under outDir and fill them 
-                                with issn.tab files. resolve name of outDir to publisher using pubConf.
+    %prog issns <pubName>      - create a file pubName/issn.tab and fill it with all ISSNs of the 
+                                 publisher named <pubName> from the file data/journals/publishers.tab
 
-    %prog pmids <outDir>      - retrieve the PMIDs from Pubmed Eutils for all ISSNs in outDir
-    %prog allPmids <baseDir>  - retrieve the PMIDs from a local medline copy for all ISSNs 
-                                in all direct *subdirectories* of baseDir
+    %prog pmids <pubName>      - retrieve the PMIDs from Pubmed Eutils for all ISSNs in pubName/issns.tab
+    %prog allPmids <pubName>  - retrieve the PMIDs from a local medline copy for all ISSNs 
+                                in all direct *subdirectories* of baseDir. In this way, you can update
+                                all PMIDs for all publishers that you crawl with a single command.
 
-    usually not needed (internal data dir contains a list of publishers and their journals):
+    usually not needed (the dir data/journals/ contains a pre-made list of publishers and their journals):
     %prog publishers          - re-create the list of publishers and their journals
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
-parser.add_option("", "--nlmCatalog", dest="nlmCatalog", action="store", help="use a given nlmCatalog.xml instead of the default one")
+parser.add_option("", "--nlmCatalog", dest="nlmCatalog", action="store", help="use a given nlmCatalog.xml instead of the default one. Used for the 'publishers' argument.")
 parser.add_option("-m", "--minYear", dest="minYear", action="store", type="int", help="minimum year for articles, default is %default", default=1990)
 #parser.add_option("-o", "--onlyDir", dest="onlyDir", action="store", help="apply the PMID step only on a given directory")
 (options, args) = parser.parse_args()

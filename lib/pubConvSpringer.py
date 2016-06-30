@@ -4,6 +4,7 @@ import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, maxTables, pubC
 
 # convert springer zip files to pubtools format
 # lots of code pasted from pubConvElsevier
+# For documentation on the A++ format, see http://www.springeropen.com/get-published/indexing-archiving-and-access-to-data/xml-dtd
 
 # load lxml parser, with fallback to default python parser
 try:
@@ -57,6 +58,7 @@ def createIndexFile(inDir, inFnames, indexFilename, updateId, minId, chunkSize):
                     continue
                 xmlCount += 1
                 data = [str(numId), chunkString, zipRelName, fileName]
+                data = [d.encode("utf8") for d in data]
                 indexFile.write("\t".join(data)+"\n")
                 numId+=1
         else:
@@ -132,7 +134,11 @@ def parseXml(tree, data):
         data["title"]           = pubXml.treeToAsciiText(titleEl)
     else:
         data["title"] = ""
+
     data["articleType"]     = findText(artEl, "ArticleCategory")
+    if data["articleType"]==None:
+        data["articleType"] = "unknown"
+
     data["page"]            = findText(artEl, "ArticleFirstPage")
 
     springerBaseUrl = "http://link.springer.com/article/"

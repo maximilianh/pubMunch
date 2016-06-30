@@ -30,11 +30,13 @@ pubConvSpringer /hive/data/outside/pubs/springer/ /hive/data/inside/pubs/text/sp
 Big zips are shipped on harddisk, updates transferred by ftp. 
 Email dds_support@springer.com for details.
 
+XML documentation: see http://www.springeropen.com/get-published/indexing-archiving-and-access-to-data/xml-dtd
 """)
 
 parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=800) 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["springer"])
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None)
+parser.add_option("", "--auto", dest="auto", action="store_true", help="read from default input text dir, write to default output text dir")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -54,12 +56,16 @@ if options.parse!=None:
         ofh.write("%s\t%s\n" % (key, pubStore.replaceSpecialChars(val)))
     sys.exit(0)
 
-if args==[]:
+if args==[] and not options.auto:
     parser.print_help()
     exit(1)
 
 # normal operation
-inDir, outDir = args
+if options.auto:
+    inDir, outDir = pubConf.defaultInOutDirs("springer")
+else:
+    inDir, outDir = args
+
 maxCommon.mustExist(inDir)
 
 minId = options.minId
@@ -68,9 +74,10 @@ if not os.path.isdir(inDir):
     print "first parameter must be a directory"
     sys.exit(1)
 
-runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
 pubConvSpringer.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
+pubStore.updateSqlite(outDir)
 
-tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-dbPath = join(outDir, "articles.db")
-pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+#tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
+#dbPath = join(outDir, "articles.db")
+#pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)

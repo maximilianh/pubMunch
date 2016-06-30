@@ -18,7 +18,7 @@ from pubXml import *
 MAXFILESIZE = 50000000 # don't even try to convert files bigger than 50MB
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <in> <out> - convert a local mirror of the Pubmed Central FTP server to pubtools format
+parser = optparse.OptionParser("""usage: %prog [options] <in> <outDir> - convert a local mirror of the Pubmed Central FTP server to pubtools format
 
 Example:
     pubConvPmc /hive/data/outside/pubs/pmc/ /hive/data/inside/pubs/text/pmc/
@@ -31,10 +31,15 @@ If in and out are files:
     Will parse the input file as a file_list.txt file 
     Writes to outDir.articleInfo/.fileInfo/.fileArticles
 
-to debug xml parser: just specify one xml file, will output to stdout
+to debug the PMC xml parser: just specify one xml file, will dump result to stdout
+
+<outDir> should never be in an inconsistent state during the conversion.  The
+conversion is done first into a temporary directory under <outDir>, so if the
+conversion crashes at any point, what is left behind is a temporary directory,
+in the worst case.
 """)
 
-parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default", default=2000)
+parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default. If there are already files in outDir, use the size of the first chunk in it instead", default=2000)
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pmc"]) 
 parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
 #parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
@@ -373,10 +378,9 @@ def createIndexFile( inDir, inFname, pmcToPmid, \
     """
     inAbsFname = os.path.join(inDir, "file_list.txt")
     if not os.path.isfile(inAbsFname):
-        logging.info("Could not find %s, check localMirrorDir in pubtools.conf" % inAbsFname)
-        sys.exit(1)
-    else:
-        logging.info("Copying pmc index from %s to %s, assigning identifers and chunk IDs" % (inAbsFname, outFname))
+        raise Exception("Could not find %s, check localMirrorDir in pubtools.conf" % inAbsFname)
+
+    logging.info("Copying pmc index from %s to %s, assigning identifers and chunk IDs" % (inAbsFname, outFname))
 
     inList = open(inAbsFname)
     if ignoreHeaders:
@@ -470,7 +474,8 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chu
     # create temporary directory and schedule for deletion
     outDir     = tempfile.mktemp(dir = finalOutDir, prefix = "update%d.tmp." % updateId)
     os.makedirs(outDir)
-    maxCommon.delOnExit(outDir)
+    if chunkCount < 30: # for big cluster jobs, do not remove the temp output directory
+        maxCommon.delOnExit(outDir)
 
     # write big index
     indexFile = join(outDir, "%d_index.tab" % updateId)
@@ -495,7 +500,7 @@ def splitIndexAndSubmitConvertJobs(pmcDirectory, finalOutDir, minId, runner, chu
         outFname = os.path.join(outDir, chunkId+".articles.gz")
         chunkFname = os.path.join(indexDir, chunkId)
         maxCommon.mustNotExist(outFname)
-        command = "%s %s {check in line %s} {check out exists %s}" % (sys.executable, progFile, chunkFname, outFname)
+        command = "%s %s {check in line %s} {check out exists %s}" % (sys.executable, progFile, abspath(chunkFname), abspath(outFname))
         runner.submit(command)
     runner.finish(wait=True)
 
@@ -637,27 +642,33 @@ def convertOneChunk(inIndexFile, outFile):
         articleData, suppFileDict, refs = parsePmcXml(nxmlData, articleData)
         articleData["origFile"] = tgzName+":"+nxmlName
         articleData["publisher"] = "pmc"
+        articleData["articleId"] = articleId
 
         fileWritten = False
         fileDataList = createFileData(tgzName, nxmlName, nxmlData, suppFileDict, extractedFiles, \
             articleData["externalId"])
         fileIdx = 0
+        fileDicts = []
         for fileData in fileDataList:
             fileId   = (1000*int(articleId))+fileIdx
             fileDebugDesc = fileData["locFname"]
             fileData = pubGeneric.toAsciiEscape(fileData)
-            fileIdx+=1
 
             if fileData==None:
                 logging.warn("Could not convert file %s" % fileDebugDesc)
             else:
-                store.writeFile(articleId, fileId, fileData, externalId=articleData["externalId"])
+                #store.writeFile(articleId, fileId, fileData, externalId=articleData["externalId"])
+                fileIdx+=1
+                fileData["fileId"] = fileId
+                fileDicts.append(fileData)
                 fileWritten = True
 
         # only write article meta information if at least one article file could be converted
         if fileWritten:
-            store.writeArticle(articleId, articleData)
+            #store.writeArticle(articleId, articleData)
+            store.writeDocs(articleData, fileDicts)
             store.writeRefs(articleData, refs)
+            fileDicts = []
         else:
             logging.warn("Not writing anything, not a single article file converted")
 
@@ -683,7 +694,7 @@ def main(args, options):
         sys.exit(0)
 
     if options.auto:
-        pmcDir, outDir = join(pubConf.extDir, "pmc"), join(pubConf.textBaseDir, "pmc")
+        pmcDir, outDir = pubConf.defaultInOutDirs("pmc")
     else:
         pmcDir, outDir = args
     maxCommon.mustExist(pmcDir)
@@ -703,12 +714,10 @@ def main(args, options):
         maxCommon.mustExist(outDir)
         pubGeneric.setLockFile(outDir, "pubConvPmc")
         maxCommon.mustExistDir(outDir)
-        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+        runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
         if not options.updateDb:
             splitIndexAndSubmitConvertJobs(pmcDir, outDir, minId, runner, chunkCount)
-        tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-        dbPath = join(outDir, "articles.db")
-        pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+        pubStore.updateSqlite(outDir)
     else:
         inIndexFile = pmcDir
         outFile = outDir

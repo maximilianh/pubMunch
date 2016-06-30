@@ -35,21 +35,25 @@ extToolDir = normpath(join(dirname(__file__), "..", "ext"))
 # manually
 journalListDir = join(staticDataDir, "journalLists")
 
+# base dir for anything journal related in the repo data dir
+journalInfoDir = join(staticDataDir, "journals")
+
 # the lists are reformatted into this table. It is created by pubJournals and used by pubPrepCrawl
 # it contains the ISSNs and server names for each publisher
 # it is required by pubCrawl for the highwire configuration
-publisherIssnTable = join(staticDataDir, "journals", "publishers.tab")
+publisherIssnTable = join(journalInfoDir, "publishers.tab")
 
 # same info, but one line per journal
 # not used anymore
-journalTable = join(staticDataDir, "journals", "journals.tab")
+journalTable = join(journalInfoDir, "journals.tab")
+
 
 # directory with various tracking files expected vs retrieved documents
 inventoryDir = join(pubsDataDir, "inventory")
 
 # a directory on the main server (hgwdev) on which the scripts is run, on local disk
 # with lots of space available. Used to store intermediate results ? -> pubClassify
-localHeadDir = '/scratch/max/pubTools'
+# localHeadDir = '/scratch/max/pubTools'
 
 # DB PARSER SETTINGS ================================================
 # directory for files with parsed DBs each DB, e.g. uniprot or pdb
@@ -79,7 +83,7 @@ extDir = '/hive/data/outside/pubs'
 textDir = join(pubsDataDir, "text")
 
 # gzip compress the text data? Seeking is faster if not gzip compressed.
-compress = False
+compress = True
 
 # for pubConvMedline:
 
@@ -647,6 +651,10 @@ def getStaticDataDir():
     """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
     """
     return staticDataDir
+
+def defaultInOutDirs(datasetName):
+    " return the default input and the default output directory for a dataset "
+    return join(extDir, datasetName), join(textBaseDir, datasetName)
 
 #def getDataDir(name):
     #" somewhat more flexible, can be redirected based on program name "

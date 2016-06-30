@@ -73,14 +73,18 @@ def rechunk(inDir, outDir):
     for reader in pubStore.iterPubReaders(inDir):
         for article, files in reader.iterArticlesFileList(None):
             if store==None:
-                outFname = join(outDir, "0_%05d.articles" % chunkCount)
+                outFname = join(outDir, "0_%05d.articles.gz" % chunkCount)
                 store = pubStore.PubWriterFile(outFname)
                 logging.debug("Writing to %s" % outFname)
 
-            logging.debug("Adding %s, %d files" % (article.externalId, len(files)))
-            store.writeArticle(article.articleId, article._asdict())
+            #logging.debug("Adding %s, %d files" % (article.externalId, len(files)))
+            artDict = article._asdict()
+            fileDicts = []
             for fileRow in files:
-                store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
+                #store.writeFile(article.articleId, fileRow.fileId, fileRow._asdict())
+                fileDicts.append(fileRow._asdict())
+            store.writeDocs(artDict, fileDicts)
+            #store.writeArticle(article.articleId, article._asdict())
 
             artCount += 1
             if artCount % pubConf.chunkArticleCount == 0:

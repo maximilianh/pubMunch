@@ -199,12 +199,19 @@ class TsvReader():
     def __init__(self, ifh, encoding="utf8"):
         self.fieldNames = ifh.readline().lstrip("#").rstrip("\n").split("\t")
         self.Rec = collections.namedtuple('tsvRec', self.fieldNames)
+        self.fieldCount = len(self.fieldNames)
         self.ifh = ifh
         self.encoding=encoding
 
     def nextRow(self):
         line = self.ifh.readline()
+        if line=="":
+            return None
+        logging.log(5, "got line: %s" % line)
         cols = line.strip("\n").split("\t")
+        if len(cols)!=self.fieldCount:
+            raise Exception("headers not in sync with column count. headers: %s, column: %s" % (self.fieldNames, cols))
+            
         cols = [c.decode("utf8") for c in cols]
         row = self.Rec(*cols)
         return row
@@ -511,7 +518,7 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
             return u'HEAD'
 
     def handleEx(ex, count):
-        logging.debug("Got Exception %s, %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
+        logging.info("Got Exception %s, %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
             (type(ex), str(ex), url, params, delaySecs))
         time.sleep(delaySecs)
         count = count - 1
