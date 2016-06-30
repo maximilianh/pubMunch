@@ -29,7 +29,7 @@ import unidecode
 
 # === CONSTANTS ===================================
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert medline .gz files to pubTools format and optionally write to a sqlite db
+parser = optparse.OptionParser("""usage: %prog [options] <inDir> <outDir> - convert medline .gz files to pubTools format. Also create fingerprints so data sources without PMIDs can look up their PMIDs quickly.
 
 example:
 pubConvMedline /hive/data/outside/pubs/medline/ /hive/data/inside/pubs/text/medline
@@ -37,8 +37,8 @@ pubConvMedline /hive/data/outside/pubs/medline/ /hive/data/inside/pubs/text/medl
 Each file is a separate job, articleIds are assigned to each file such that each chunk starts at +300k articleIds
 after the last chunk, to avoid overlaps
 
-Download medline files from Medline ftp with pubGetMedline.
-Or alternatively with something like:
+Download medline files from Medline ftp with the tool 'pubGetMedline'.
+Or alternatively with something like this:
     lftp -e 'set net:socket-buffer 4000000; connect ftp://ftp.nlm.nih.gov/nlmdata/.medleasebaseline/gz; mirror -c --parallel=8 .; quit'
 """)
 

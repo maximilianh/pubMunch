@@ -17,7 +17,7 @@ from distutils.spawn import find_executable
 
 # load our own libraries
 import pubConf, pubGeneric, pubStore, pubCrossRef, pubPubmed
-import maxTables, html, maxCommon
+import maxTables, htmlPrint, maxCommon
 
 import chardet # guessing encoding, ported from firefox
 import unidecode # library for converting to ASCII, ported from perl
@@ -1328,7 +1328,7 @@ crawlPubIds = {
 
 def writeReport(baseDir, htmlFname):
     " parse pmids.txt and pmidStatus.tab and write a html report to htmlFname "
-    h = html.htmlWriter(htmlFname)
+    h = htmlPrint.htmlWriter(htmlFname)
     h.head("Genocoding crawler status", stylesheet="bootstrap/css/bootstrap.css")
     h.startBody("Crawler status as of %s" % time.asctime())
 
@@ -1625,7 +1625,7 @@ def getHosterIssns(publisherName):
         for row in maxCommon.iterTsvRows(journalFname):
             if row.source in ["HIGHWIRE", "WILEY"]:
                 hoster = row.source
-                journalUrl = row.urls.strip().replace("http://", "")
+                journalUrl = "http://"+ row.urls.strip().replace("http://", "")
                 issn = row.pIssn.strip()
                 eIssn = row.eIssn.strip()
                 publisherIssns[hoster][issn] = journalUrl
@@ -2071,11 +2071,19 @@ class NejmCrawler(Crawler):
         else:
             return False
 
+    def makeLandingUrl(self, artMeta):
+        if artMeta["doi"]!="":
+            return "http://www.nejm.org/doi/%s" % artMeta["doi"]
+        return None
+
     def crawl(self, url):
         paperData = OrderedDict()
         delayTime = crawlDelays["nejm"]
 
-        htmlPage = httpGetDelay(url)
+        if "doi" in url and not "doi/full" in url:
+            url = url.replace("/doi/", "/doi/full/")
+        url = url.replace("/abs/", "/full/")
+        htmlPage = httpGetDelay(url, delayTime)
 
         # suppl files first, as we modify the html afterwards
         suppListUrls = findLinksWithUrlPart(htmlPage, "/showSupplements?")
@@ -2096,6 +2104,8 @@ class NejmCrawler(Crawler):
         # PDF 
         pdfUrl = url.replace("/full/", "/pdf/")
         assert(pdfUrl != url)
+        pdfPage = httpGetDelay(pdfUrl)
+        paperData["main.pdf"] = pdfPage
 
         return paperData
     
@@ -2195,12 +2205,12 @@ class WileyCrawler(Crawler):
         return paperData
 
 class SpringerCrawler(Crawler):
-    " crawler for springerlink "
+    " crawler for springerlink. Not usually needed, see pubGetSpringer and pubConvSpringer. "
 
     name = "springer"
 
     def canDo_article(self, artMeta):
-        if artMeta["doi"].startswith("10.1007"):
+        if artMeta["doi"].split("/")[0] in ["10.1007", "10.1023", "10.1134"]:
             return True
         return False
 

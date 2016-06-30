@@ -12,7 +12,7 @@ pubToolsLibDir = os.path.join(progDir, "lib")
 sys.path.insert(0, pubToolsLibDir)
 
 # now load our own libraries
-import pubGeneric, pubStore, pubConf, maxCommon, html
+import pubGeneric, pubStore, pubConf, maxCommon, htmlPrint
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <textDir> <chunkId> <extId> <annotFile1> <annotFile2> ... - print article data as HTML.
@@ -172,7 +172,7 @@ def main(args, options):
     artRow, fileRows = getArticleRows(chunkFname, extId)
     fileIdToAnnotRowsList = readAnnotRows(annotFnames, extId)
 
-    h = html.htmlWriter(options.outFile)
+    h = htmlPrint.htmlWriter(options.outFile)
 
     h.head(artRow.title)
     h.startBody(artRow.title)

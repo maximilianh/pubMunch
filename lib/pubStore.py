@@ -903,7 +903,7 @@ def parseUpdatesTab(outDir, minArticleId):
     inFname = join(outDir, "updates.tab")
 
     if not isfile(inFname):
-        logging.warn("could not find %s, this seems to be the first run in this dir" % inFname)
+        logging.info("could not find %s, this seems to be the first run in this dir" % inFname)
         return 0, minArticleId, []
 
     doneFiles = set()

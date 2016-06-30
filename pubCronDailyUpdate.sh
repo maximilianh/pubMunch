@@ -49,12 +49,12 @@ touch $FLAGFILE
 echo
 echo __CONVERT MEDLINE and update DB__ 
 cd $JOBDIR; time $PYTHON $BIN/pubConvMedline --cluster=localhost $DOWNBASE/medline $TEXTBASE/medline
-echo __CONVERT ELSEVIER___
-cd $JOBDIR; $PYTHON $BIN/pubConvElsevier --cluster=localhost $DOWNBASE/elsevier $TEXTBASE/elsevier
-echo __CONVERT PMC___
-cd $JOBDIR; time $PYTHON $BIN/pubConvPmc --cluster=localhost $DOWNBASE/pmc $TEXTBASE/pmc
-echo __CONVERT CRAWLER___
-cd $JOBDIR; time $PYTHON $BIN/pubConvCrawler --cluster=localhost $DOWNBASE/crawler $TEXTBASE/crawler
+#echo __CONVERT ELSEVIER___
+#cd $JOBDIR; $PYTHON $BIN/pubConvElsevier --cluster=localhost $DOWNBASE/elsevier $TEXTBASE/elsevier
+#echo __CONVERT PMC___
+#cd $JOBDIR; time $PYTHON $BIN/pubConvPmc --cluster=localhost $DOWNBASE/pmc $TEXTBASE/pmc
+#echo __CONVERT CRAWLER___
+#cd $JOBDIR; time $PYTHON $BIN/pubConvCrawler --cluster=localhost $DOWNBASE/crawler $TEXTBASE/crawler
 
 echo
 echo __CREATING CRAWLER REPORT

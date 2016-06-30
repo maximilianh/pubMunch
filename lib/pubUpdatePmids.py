@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 import os, logging, random, shutil
-import maxCommon, pubStore, unidecode, pubConf
+import maxCommon, pubStore, unidecode, pubConf, pubCrawlLib
 from os.path import *
 
 def getIssnPmidDict(medlineDir, updateIds, minYear):
@@ -73,10 +73,13 @@ def getEIssnToPIssn(journalFname):
                 ret[eIs] = pIs
     return ret
         
-def getPmidsForIssn(medlineDir, issn):
-    " retrieve PMIDs for an ISSN "
-    con, cur = pubStore.openArticleDb(medlineDir, mustOpen=True)
-
+def getPmidsForIssn(con, cur, issn, fieldName):
+    " retrieve PMIDs for an ISSN, use fieldName as the ISSN field  "
+    pmids = []
+    query = "SELECT pmid FROM articles WHERE %s=?" % fieldName
+    for row in cur.execute(query, (issn,)):
+        pmids.append(row[0])
+    return pmids
 
 def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
     """ go over subdirs of crawlDir, for each: read the ISSNs, and add new
@@ -86,10 +89,11 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
     """ 
     logging.info("Now updating crawler directories with the new PMIDs")
     eIssnToPIssn = getEIssnToPIssn(pubConf.publisherIssnTable)
-    con, cur = 
+    con, cur = pubStore.openArticleDb("medline", mustOpen=True)
     #issnToPmid, issnToJournal = getIssnPmidDict(medlineDir, updateIds, minYear)
     for subdir in getSubdirs(crawlDir):
         subPath = join(crawlDir, subdir)
+        logging.debug("Processing subdirectory %s" % subPath)
         if pubCrawlLib.containsLockFile(subPath):
             logging.warn("Ongoing crawling in %s, skipping" % subPath)
             continue
@@ -97,6 +101,7 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
         pmidFname = join(crawlDir, subdir, "pmids.txt")
         issnFname = join(crawlDir, subdir, "issns.tab")
         if not isfile(issnFname) or not isfile(pmidFname):
+            logging.info("Skipping %s, ISSN or docId file not found" % subPath)
             continue
         logging.debug("reading subdir %s: %s and %s" % (subdir, pmidFname, issnFname))
         issns = [row.issn.strip() for row in maxCommon.iterTsvRows(issnFname)]
@@ -106,21 +111,21 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
         newPmids = set()
         # add new pmids, for each issn
         for issn in issns:
-            #if issn not in issnToPmid:
-                #if issn in eIssnToPIssn:
-                    #logging.debug("Looks like eISSN, mapped to printISSN %s" % issn)
-                    #issn = eIssnToPIssn[issn]
-                #else:
-                    #logging.debug("No Pmids for ISSN %s and not eIssn for it" % issn)
+            logging.debug("Processing ISSN %s" % issn)
 
-            #issnPmids = issnToPmid.get(issn, None)
-            issnPmids = getPmidsForIssn(medlineDir, issn)
-            if issnPmids==None:
-                logging.debug("No Pmids for ISSN %s" % issn)
+            issnPmids = getPmidsForIssn(con, cur, issn, "printIssn")
+            if len(issnPmids)==0:
+                issnPmids = getPmidsForIssn(con, cur, issn, "eIssn")
+
+            if len(issnPmids)==0:
+                logging.warn("No Pmids for ISSN %s" % issn)
                 continue
-            logging.debug("Issn %s, %d PMIDs" % (issn, len(issnPmids)))
+
+            logging.debug("%d PMIDs" % (issn, len(issnPmids)))
             newPmids.update(issnPmids)
         # get some counts and output to user
+        logging.info("Subdirectory %s: %d ISSNs, %d old PMIDs, %d new PMIDs" % \
+            (subPath, len(issns), len(oldPmids), len(newPmids)))
         oldCount = len(oldPmids)
         updateCount = len(newPmids)
         oldPmids.update(newPmids) # faster to add new to old set than old to new set
@@ -129,6 +134,7 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
         addCount = newCount - oldCount
         logging.info("crawl dir %s: old PMID count %d, update has %d, new total %d, added %d" % \
             (subdir, oldCount, updateCount, newCount, addCount))
+
         # write new pmids
         pmids = [str(x) for x in pmids]
         # randomize order, to distribute errors
@@ -142,7 +148,7 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
 
         # keep a copy of the original pmid file
         shutil.copy(pmidFname, pmidFname+".bak")
-        # rename  the tmp file to the original file
+        # atomic rename  the tmp file to the original file
         # to make sure that an intact pmid file always exists
         os.rename(pmidTmpFname, pmidFname)
         

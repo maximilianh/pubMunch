@@ -1,0 +1,6209 @@
+9632163	Am J Med Genet
+26985933	Genet Mol Res
+11791869	Hemoglobin
+23791652	Gene
+2088165	Annu Rev Genet
+14970705	Cytogenet Genome Res
+26883102	Oncotarget
+23430502	JIMD Rep
+10217419	FEBS Lett
+10211467	Ann Neurol
+24655771	J Affect Disord
+10084588	J Clin Endocrinol Metab
+16021915	Nucleosides Nucleotides Nucleic Acids
+17641689	EMBO J
+10835640	Nat Genet
+25873734	J Med Genet
+1971035	Lancet
+22267179	Hum Mutat
+11167787	Br J Haematol
+18805831	J Med Genet
+15784703	J Clin Endocrinol Metab
+23349226	J Med Genet
+10652016	Kidney Int
+26539891	Neuron
+23648549	J Invest Dermatol
+10203101	Am J Hematol
+11835375	Ann Neurol
+20489179	Proc Natl Acad Sci U S A
+23449172	Curr Opin Neurol
+25071441	Front Mol Neurosci
+24312577	PLoS One
+8838346	Tissue Antigens
+19363478	Nat Genet
+18194880	Eur J Med Genet
+23470771	Biosci Biotechnol Biochem
+10376762	Pharmacogenetics
+23698098	J Invest Dermatol
+10199775	J Clin Endocrinol Metab
+24621671	J Dent Res
+10805813	Proc Natl Acad Sci U S A
+2377351	Ophthalmic Paediatr Genet
+7898702	Neurology
+20950786	Am J Hum Genet
+18391568	Audiol Neurootol
+7713748	Hemoglobin
+859288	Klin Wochenschr
+8241293	Biochim Biophys Acta
+16440883	Genet Couns
+10080184	Nat Genet
+6186637	Hemoglobin
+18199861	N Engl J Med
+16131319	Thyroid
+15733277	Clin Genet
+23243084	J Med Genet
+3500672	Ann Pediatr (Paris)
+10069712	Am J Med Genet
+12611827	Am J Psychiatry
+8829656	Hum Mutat
+17993579	J Med Genet
+4027254	Biochim Biophys Acta
+18978652	Clin Dysmorphol
+17666473	J Clin Endocrinol Metab
+22887726	Am J Med Genet A
+21965167	Am J Med Genet A
+1960615	J Pediatr
+1646587	Ann Dermatol Venereol
+24413633	Cornea
+19609311	J Invest Dermatol
+10678660	Am J Med Genet
+16928994	N Engl J Med
+19264582	Eur J Dermatol
+10861667	Am J Med Genet
+18830268	J Invest Dermatol
+11300344	Hemoglobin
+9342199	Am J Med Genet
+2420748	Hemoglobin
+16912130	J Clin Endocrinol Metab
+10700176	Nat Genet
+2454900	Hemoglobin
+1898413	Biochem Biophys Res Commun
+10852465	J Clin Endocrinol Metab
+10946357	Am J Med Genet
+18285827	Eur J Hum Genet
+21956287	Mov Disord
+9328353	Mol Endocrinol
+19750230	PLoS One
+24726472	Am J Hum Genet
+9364978	Thromb Haemost
+9604303	Xenobiotica
+445864	Clin Genet
+1872917	Atherosclerosis
+11925305	Am J Psychiatry
+4209318	Acta Haematol
+8644984	Ann Intern Med
+7161109	Hemoglobin
+26566278	Pathobiology
+7523529	J Invest Dermatol
+6204398	Thromb Res
+12705872	Cell
+9734643	Br J Haematol
+7898705	Neurology
+8294200	Hemoglobin
+9892921	Br J Dermatol
+3408672	Br J Haematol
+6266066	Thromb Haemost
+18390553	J Biol Chem
+11381256	Nat Genet
+19005420	Clin Dysmorphol
+9662404	Nat Genet
+23934752	Semin Thromb Hemost
+8247964	Pediatr Pathol
+25368108	J Med Genet
+3377986	Br J Haematol
+18477613	J Cell Sci
+14574005	Fam Cancer
+26011300	Neuropediatrics
+16705068	J Clin Endocrinol Metab
+15910695	Expert Rev Mol Med
+8274222	DNA Cell Biol
+10746561	Hum Genet
+1571050	Biochem Biophys Res Commun
+19648123	J Med Genet
+20938048	J Dent Res
+4225453	Nouv Rev Fr Hematol
+23457316	J Pediatr Endocrinol Metab
+8164701	N Engl J Med
+17846126	Diabetes
+640856	Hemoglobin
+4402065	J Pediatr
+21849804	Nephron Physiol
+3675594	Biochem Biophys Res Commun
+8274781	Dermatology
+22240985	J Vet Med Sci
+11843659	Arch Dermatol
+18519631	J Med Genet
+27057633	Oncotarget
+26775375	Turk J Med Sci
+8069912	Cell
+10521831	Prenat Diagn
+1590804	Biochem Biophys Res Commun
+16439973	J Invest Dermatol
+12207612	Br J Dermatol
+11186263	Hemoglobin
+1740104	EMBO J
+11600535	J Clin Endocrinol Metab
+8252630	Cell
+2101836	Hemoglobin
+6543841	Helv Paediatr Acta
+7255153	Nouv Rev Fr Hematol
+10956390	Int J Cancer
+20137777	Am J Hum Genet
+17220172	Hum Mol Genet
+7904610	J Clin Endocrinol Metab
+12868467	Clin Dysmorphol
+11175790	Nat Genet
+26406308	PLoS One
+17785359	J Clin Endocrinol Metab
+15951337	J Med Genet
+15811932	J Clin Endocrinol Metab
+23392294	J Invest Dermatol
+20942817	Br J Pharmacol
+18509363	J Invest Dermatol
+8103767	J Clin Endocrinol Metab
+10443680	J Clin Endocrinol Metab
+24747200	Bone
+23750034	J Clin Endocrinol Metab
+26991507	Mov Disord
+10852545	Ann Neurol
+15845534	J Biol Chem
+9450187	Eur J Hum Genet
+1623631	Clin Genet
+14635102	Hum Mutat
+15714076	Genet Med
+12436245	Hum Genet
+26210959	Curr Opin Neurobiol
+11549687	J Clin Endocrinol Metab
+12050206	J Clin Endocrinol Metab
+20489179	Proc Natl Acad Sci U S A
+25902091	Klin Monbl Augenheilkd
+12519370	Clin Genet
+9661650	J Clin Endocrinol Metab
+7914875	Eur J Haematol
+26806107	Mol Biosyst
+17982255	Cell Physiol Biochem
+11332404	J Med Genet
+18272904	N Engl J Med
+17088553	Proc Natl Acad Sci U S A
+24429156	Lancet Respir Med
+11889243	Neurology
+12658451	Hum Genet
+16091483	J Clin Endocrinol Metab
+26479514	Eur J Anaesthesiol
+10551425	Tissue Antigens
+9764635	Obstet Gynecol
+2696185	Trends Genet
+17290276	Eur J Hum Genet
+7858169	Biomed Pharmacother
+24367057	J Med Genet
+7315103	Acta Biol Med Ger
+23352163	Neuron
+20949630	J Bone Miner Res
+7558877	Hemoglobin
+3690667	Cell
+14764818	J Clin Endocrinol Metab
+15058760	Invest Clin
+818090	J Bone Joint Surg Br
+11939508	Hemoglobin
+23918762	Am J Med Genet A
+25452114	Nat Commun
+17848410	J Clin Endocrinol Metab
+1773541	Clin Genet
+25514101	J Clin Endocrinol Metab
+9113933	N Engl J Med
+27082122	Int J Mol Med
+23674513	Cardiovasc Res
+8053762	Arch Fr Pediatr
+24556084	J Med Genet
+7338470	Hemoglobin
+8954020	J Clin Endocrinol Metab
+9745456	J Clin Endocrinol Metab
+15356051	J Clin Endocrinol Metab
+8107717	N Engl J Med
+26066746	Invest Ophthalmol Vis Sci
+16280294	Eur J Dermatol
+8636348	J Clin Endocrinol Metab
+25545482	Retina
+8649785	Oncogene
+11678778	Br J Clin Pharmacol
+9827545	FEBS Lett
+8352764	Biochem Biophys Res Commun
+20852445	J Hypertens
+8004673	Cell
+15998781	J Clin Endocrinol Metab
+1671786	J Clin Endocrinol Metab
+23885228	Mol Syndromol
+12727968	J Clin Endocrinol Metab
+9921896	Hum Genet
+22363743	PLoS One
+17293536	J Med Genet
+10738517	Ann Hum Genet
+11186267	Hemoglobin
+25091525	Muscle Nerve
+15397919	Helv Paediatr Acta
+2334637	Br J Haematol
+17767004	J Hered
+12915634	J Clin Endocrinol Metab
+15901872	N Engl J Med
+6188720	Hemoglobin
+5804199	J Pediatr
+7945303	Biochem Biophys Res Commun
+7565946	N Engl J Med
+21849793	Hum Hered
+10797423	Am J Med Genet
+26587761	Neuropediatrics
+8742474	Neuroreport
+10348712	Thromb Haemost
+25574899	Genet Test Mol Biomarkers
+22829077	Blood Cancer J
+8135797	Biochem Biophys Res Commun
+11169562	Am J Med Genet
+12050213	J Clin Endocrinol Metab
+19264732	J Med Genet
+12634868	Eur J Hum Genet
+15040480	Acta Derm Venereol
+16114179	Hemoglobin
+24253444	J Med Genet
+10227634	Neurology
+19789204	J Clin Endocrinol Metab
+24045842	Eur J Hum Genet
+2591977	Hum Hered
+17513018	Neurobiol Aging
+17703324	Neurogenetics
+10870882	Hemoglobin
+26991507	Mov Disord
+9771675	Muscle Nerve
+12139752	Br J Haematol
+15001634	J Clin Endocrinol Metab
+27082122	Int J Mol Med
+14986826	Clin Genet
+2896079	Clin Genet
+10508524	Nat Genet
+12372064	Clin Genet
+2244890	Biochem Biophys Res Commun
+19812674	Nature
+26075305	Connect Tissue Res
+26728869	Br J Haematol
+9589672	J Clin Endocrinol Metab
+15659725	N Engl J Med
+25140959	N Engl J Med
+9450183	Eur J Hum Genet
+10888877	Nat Genet
+2072928	Mol Endocrinol
+17290294	Kidney Int
+23692170	N Engl J Med
+12220450	Clin Genet
+9493607	Thromb Haemost
+2897240	Cell
+2079430	Hemoglobin
+2164807	Biochem Biophys Res Commun
+22772369	Nat Genet
+12632087	Int J Oncol
+11095995	Am J Hum Genet
+26857264	Cancer Res
+26453610	J Am Soc Nephrol
+21837366	Neurogenetics
+17513018	Neurobiol Aging
+24072177	J Cardiovasc Pharmacol
+26458567	Int J Mol Med
+17392301	N Engl J Med
+20921432	Hypertension
+11443223	J Clin Endocrinol Metab
+22043170	Curr Genomics
+16156023	Hum Genet
+17077513	Biol Pharm Bull
+11836339	J Clin Endocrinol Metab
+11117541	Ann Neurol
+17200175	J Clin Endocrinol Metab
+10690855	J Clin Endocrinol Metab
+10508519	Nat Genet
+11158005	J Clin Endocrinol Metab
+10636736	J Med Genet
+14523375	Eur J Hum Genet
+20942	Biochemistry
+17614209	Neuroscience
+11170080	Am J Med Genet
+3377987	Br J Haematol
+9017946	N Engl J Med
+18559922	J Clin Endocrinol Metab
+19947571	Zhonghua Nan Ke Xue
+9506761	J Clin Endocrinol Metab
+16790700	N Engl J Med
+11506403	Ann Neurol
+8552145	N Engl J Med
+8265770	Q J Med
+25059020	Genet Couns
+17595246	J Clin Endocrinol Metab
+938658	Biochim Biophys Acta
+22883145	Am J Hum Genet
+11073545	J Med Genet
+14557462	J Clin Endocrinol Metab
+11443201	J Clin Endocrinol Metab
+3754246	Hemoglobin
+8867657	Clin Dysmorphol
+3963113	Am J Ophthalmol
+10709732	Pediatr Res
+15481883	Hemoglobin
+3114091	Haematologica
+22481475	Retina
+7565971	N Engl J Med
+15858972	Acta Paediatr
+18367750	N Engl J Med
+22431104	Hum Mutat
+9603795	N Engl J Med
+8822583	Thromb Haemost
+6469697	Hemoglobin
+10443693	J Clin Endocrinol Metab
+12406074	Br J Haematol
+1675319	Lancet
+12780753	Clin Endocrinol (Oxf)
+3557462	Hum Hered
+9831355	Clin Genet
+2101838	Hemoglobin
+10203348	Neuroreport
+17478391	Eur J Dermatol
+22773737	J Med Genet
+19058223	Hum Mutat
+14510954	Br J Haematol
+4153368	S Afr J Med Sci
+9745434	J Clin Endocrinol Metab
+22693999	N Engl J Med
+13703277	Acta Genet Stat Med
+10569720	Hemoglobin
+7353957	Hemoglobin
+12679424	J Clin Endocrinol Metab
+19008300	Hum Mol Genet
+23709753	J Med Genet
+17331980	Hum Mol Genet
+10598813	Hum Genet
+20375987	Kidney Int
+7123903	Vox Sang
+18564921	Lymphat Res Biol
+23122586	Am J Hum Genet
+9486973	J Clin Invest
+19578037	J Med Genet
+21719701	J Biol Chem
+2483933	Hemoglobin
+10406661	Am J Med Genet
+22436048	N Engl J Med
+814049	Genetika
+12213891	J Clin Endocrinol Metab
+21029264	Oral Dis
+23240096	J Med Genet
+8124727	Cell
+21424692	Hum Genet
+26048982	J Med Genet
+25792360	Hum Genet
+2335573	J Clin Endocrinol Metab
+23696895	PLoS One
+10199795	J Clin Endocrinol Metab
+22087699	N Engl J Med
+11570727	Hemoglobin
+25374358	Neuron
+17488662	Haematologica
+10802647	Nat Genet
+11739457	J Clin Endocrinol Metab
+19188198	J Med Genet
+23168701	Indian J Med Res
+12072059	Br J Dermatol
+11891829	Ann Neurol
+7902134	Biochim Biophys Acta
+6421671	Haematologica
+19308960	Am J Med Genet B Neuropsychiatr Genet
+7762218	Vox Sang
+22555292	Eur J Cell Biol
+18550699	J Med Genet
+23160277	J Med Genet
+21931170	J Med Genet
+10780266	Pharmacogenetics
+23802516	N Engl J Med
+25631445	Nature
+6428250	Brain Dev
+19893577	EMBO Rep
+24322325	Psychiatr Genet
+9043863	Eur J Hum Genet
+10999802	J Clin Endocrinol Metab
+17433015	Anim Genet
+10870883	Hemoglobin
+5356627	Eur J Biochem
+20089953	N Engl J Med
+25730879	Proc Natl Acad Sci U S A
+8563471	Thyroid
+26626801	Exp Mol Pathol
+10973253	Nat Genet
+18955195	Eur J Dermatol
+9950363	J Med Genet
+20624953	Proc Natl Acad Sci U S A
+9409302	Arterioscler Thromb Vasc Biol
+18978656	Clin Dysmorphol
+15355432	Clin Genet
+3550563	Ophthalmic Paediatr Genet
+26323024	J Clin Endocrinol Metab
+19261599	J Med Genet
+15304105	J Invest Dermatol
+17430076	Immunohematology
+17311862	J Clin Endocrinol Metab
+2904651	N Engl J Med
+7151176	Cell
+19440220	J Invest Dermatol
+12754701	Hum Mutat
+12144059	Hemoglobin
+21816778	J Clin Endocrinol Metab
+9494049	Hemoglobin
+20610441	J Med Genet
+19357117	J Med Genet
+18385497	N Engl J Med
+1915858	FEBS Lett
+24510587	Mol Carcinog
+9777339	Genet Couns
+12144067	Hemoglobin
+9842995	Clin Genet
+25168903	Invest Ophthalmol Vis Sci
+25607374	Am J Respir Crit Care Med
+11344238	J Clin Endocrinol Metab
+2328408	Brain
+16636128	J Clin Endocrinol Metab
+11095995	Am J Hum Genet
+11932268	J Clin Endocrinol Metab
+1819460	Clin Chim Acta
+26239645	Nat Commun
+22594569	J Matern Fetal Neonatal Med
+15113837	J Biochem
+15658192	Hemoglobin
+25564734	N Engl J Med
+15557452	Invest Ophthalmol Vis Sci
+1972503	Lancet
+21029264	Oral Dis
+12939326	Invest Ophthalmol Vis Sci
+10319867	Nat Genet
+9295070	Am J Med Genet
+9550358	Clin Genet
+18042646	J Clin Endocrinol Metab
+12161522	J Clin Endocrinol Metab
+21940735	J Med Genet
+26991507	Mov Disord
+22499340	J Med Genet
+8435341	Br J Haematol
+18583467	J Clin Endocrinol Metab
+9141542	J Clin Endocrinol Metab
+15840742	J Clin Endocrinol Metab
+19603065	Eur J Hum Genet
+22802087	J Clin Endocrinol Metab
+16464939	J Clin Endocrinol Metab
+22187496	J Med Genet
+15282353	N Engl J Med
+8439335	Biochem Biophys Res Commun
+5925237	Arch Intern Med
+26406308	PLoS One
+12786757	Clin Genet
+8818454	Clin Dysmorphol
+11601506	Ann Neurol
+17110937	J Invest Dermatol
+22391136	J Endocrinol Invest
+10469016	Clin Endocrinol (Oxf)
+25765001	Sci Rep
+6985477	Cell
+20346435	Am J Hum Genet
+17377159	N Engl J Med
+24655771	J Affect Disord
+22576636	Chest
+74745	Lancet
+26381842	Ren Fail
+9427222	Muscle Nerve
+15930085	J Med Genet
+11600582	J Clin Endocrinol Metab
+12142464	Proc Natl Acad Sci U S A
+25312462	Zhonghua Yan Ke Za Zhi
+12919427	Transfusion
+24777424	Endoscopy
+24571724	N Engl J Med
+3935608	Hemoglobin
+10767004	Am J Med Genet
+25201924	Invest Ophthalmol Vis Sci
+11940089	Clin Genet
+18077821	N Engl J Med
+9762961	Brain
+17088553	Proc Natl Acad Sci U S A
+26789100	Expert Rev Hematol
+1360898	Eur J Clin Invest
+1400869	J Clin Endocrinol Metab
+23926262	J Neurosci
+21533135	PLoS One
+9389728	J Clin Invest
+18357469	Hum Genet
+25320347	J Med Genet
+836882	Biochim Biophys Acta
+2325662	Mol Endocrinol
+4171474	N Engl J Med
+1740503	J Clin Endocrinol Metab
+17332757	EMBO J
+15689442	J Med Genet
+10323402	J Clin Endocrinol Metab
+21345103	N Engl J Med
+11061524	J Clin Endocrinol Metab
+25296916	Hum Mol Genet
+10802646	Nat Genet
+12220451	Clin Genet
+19776401	N Engl J Med
+27013658	J Biol Chem
+26758118	Zhonghua Er Ke Za Zhi
+7143170	J Pediatr
+11231970	J Clin Endocrinol Metab
+26991507	Mov Disord
+1150303	Hum Hered
+1148221	Biochim Biophys Acta
+10720943	Kidney Int
+10443701	J Clin Endocrinol Metab
+23633300	Am J Med Genet A
+23214077	Nihon Rinsho
+7692306	Nature
+24010650	Semin Ophthalmol
+8352232	Am J Hematol
+5085670	Biochim Biophys Acta
+24356390	J Pediatr Endocrinol Metab
+1719419	N Engl J Med
+18420150	Lancet Neurol
+9660054	Clin Genet
+26157024	Hum Mol Genet
+26210959	Curr Opin Neurobiol
+10361383	J Investig Med
+6048303	Biochim Biophys Acta
+12603093	Hemoglobin
+25173926	Circ Cardiovasc Genet
+7842011	Nat Genet
+16429380	Neuropediatrics
+21787331	Biochem Soc Trans
+18805827	J Med Genet
+3348252	Am J Med
+15546900	J Clin Endocrinol Metab
+8448185	Biochim Biophys Acta
+10573015	Eur J Hum Genet
+15914600	Invest Ophthalmol Vis Sci
+26125805	Genet Mol Res
+23145354	PLoS Curr
+15718293	Mol Endocrinol
+10870888	Hemoglobin
+9182899	Clin Exp Immunol
+11502844	J Clin Endocrinol Metab
+26637975	Am J Hum Genet
+8532023	N Engl J Med
+11213809	Immunol Rev
+9771704	Nat Genet
+25577287	Mol Genet Metab
+20435886	J Biol Chem
+21152100	PLoS One
+11169561	Am J Med Genet
+22796651	Neurosci Lett
+19571295	N Engl J Med
+23694757	Brain Dev
+10982182	Hum Genet
+11111238	Vox Sang
+1933902	Cancer Res
+8731325	Braz J Med Biol Res
+11318785	Clin Endocrinol (Oxf)
+11328279	Br J Haematol
+8052958	Thromb Haemost
+12779278	Hemoglobin
+19732863	Am J Hum Genet
+1486044	Br J Haematol
+26641546	Invest Ophthalmol Vis Sci
+21178588	Clin Dysmorphol
+1917530	Hemoglobin
+21595004	Am J Med Genet A
+2753873	J Biochem
+16940453	J Clin Endocrinol Metab
+11186939	J Med Genet
+7124278	Acta Endocrinol (Copenh)
+10872988	Eur J Oral Sci
+18398705	Curr Eye Res
+8004675	Cell
+15182055	Hemoglobin
+25549701	Discov Med
+23014764	Thromb Haemost
+11281275	Ann Hum Genet
+9709921	J Clin Endocrinol Metab
+12522556	Hum Genet
+11722414	Br J Haematol
+11896312	Transfusion
+21725307	Nat Genet
+9851768	J Clin Endocrinol Metab
+22039234	Invest Ophthalmol Vis Sci
+1435917	N Engl J Med
+12213905	J Clin Endocrinol Metab
+9777341	Genet Couns
+16114186	Hemoglobin
+15728811	N Engl J Med
+10319273	Immunol Rev
+8807337	Hum Mutat
+15838387	J Pediatr Hematol Oncol
+8718697	Hemoglobin
+18403759	N Engl J Med
+8479491	N Engl J Med
+12441727	Retina
+26340335	Am J Hum Genet
+6629830	Hemoglobin
+10384394	J Inherit Metab Dis
+7137165	Am J Hematol
+21070332	Clin Exp Dermatol
+18379138	Genes Genet Syst
+12655418	Eur J Pediatr
+3429244	Hemoglobin
+15531537	J Clin Endocrinol Metab
+4141762	Nouv Rev Fr Hematol
+8201479	J Pediatr
+22499339	J Med Genet
+23661369	Invest Ophthalmol Vis Sci
+24992566	Curr Opin Nephrol Hypertens
+9332651	Am J Med Genet
+399801	Ophthalmology
+10762163	Ann Neurol
+16571646	J Med Genet
+18628516	J Clin Endocrinol Metab
+14557433	J Clin Endocrinol Metab
+15591841	Congest Heart Fail
+9450180	Eur J Hum Genet
+10192395	Nat Genet
+26111748	Audiol Neurootol
+22561520	Nat Genet
+9798744	Brain
+10335981	Hemoglobin
+12374873	N Engl J Med
+26655088	Oncotarget
+11508429	Arthritis Rheum
+10233438	Br J Haematol
+10835643	Nat Genet
+16738054	Proc Natl Acad Sci U S A
+15126515	J Clin Endocrinol Metab
+18197197	Eur J Hum Genet
+7441068	J Med Assoc Thai
+16604058	Mol Vis
+8500164	Cell
+19592391	J Med Genet
+25557914	Mol Genet Genomics
+26829730	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+22172551	Parkinsonism Relat Disord
+18391535	Sex Dev
+3654265	Hemoglobin
+15365457	Clin Dysmorphol
+1402641	J Intern Med
+152116	Br J Dermatol
+3781864	Hemoglobin
+11017067	Nat Genet
+10490141	Hemoglobin
+10416973	Prenat Diagn
+11570726	Hemoglobin
+10466419	Clin Genet
+22531706	Invest Ophthalmol Vis Sci
+15032979	Clin Genet
+20656943	Am J Respir Crit Care Med
+12919139	Clin Genet
+11138009	Nat Genet
+7864023	Am J Hematol
+8989258	J Clin Endocrinol Metab
+15639475	Cardiovasc Res
+1610789	Biochemistry
+25247810	Biochem J
+25152457	Am J Hum Genet
+6547117	Hemoglobin
+10053004	Am J Hum Genet
+11923233	Invest Ophthalmol Vis Sci
+11600539	J Clin Endocrinol Metab
+21152100	PLoS One
+9858827	Cytogenet Cell Genet
+7678782	Cell
+2579547	Am J Hematol
+21190457	N Engl J Med
+14299791	Mayo Clin Proc
+11242109	Nat Genet
+7718019	Atherosclerosis
+10494770	Thromb Haemost
+21628467	J Biol Chem
+3667323	Hemoglobin
+25892123	Cancer Genet
+4085141	Clin Genet
+1428941	Hemoglobin
+4186801	N Engl J Med
+22335740	N Engl J Med
+10398267	Am J Med Genet
+25751625	Nat Genet
+15622315	AIDS
+23707711	Mol Genet Metab
+18792946	Am J Med Genet B Neuropsychiatr Genet
+6078131	Biochim Biophys Acta
+11403041	J Med Genet
+10932187	Nat Genet
+7390862	Hemoglobin
+2493803	Br J Haematol
+3697657	Br J Surg
+11474210	Hum Hered
+10472535	J Inherit Metab Dis
+7628126	Clin Genet
+9590299	Nat Genet
+17724170	Invest Ophthalmol Vis Sci
+22775483	Clin Genet
+11726641	Invest Ophthalmol Vis Sci
+11903362	Clin Genet
+26811195	Cancer Med
+23144319	Carcinogenesis
+21252247	J Clin Endocrinol Metab
+25401301	Nat Genet
+15070943	J Clin Endocrinol Metab
+20065143	Arch Neurol
+8144352	Hemoglobin
+11435618	Mol Endocrinol
+2234842	Ophthalmology
+9156047	Clin Endocrinol (Oxf)
+7898930	Oncogene
+9450866	Am J Med Genet
+26721930	Hum Mol Genet
+1569163	J Clin Endocrinol Metab
+14014643	Ann Intern Med
+8961262	Mol Endocrinol
+20634290	J Biol Chem
+8319790	Eur J Haematol
+9157575	Thromb Haemost
+22992305	Clin Exp Rheumatol
+10802661	Nat Genet
+9892956	Br J Dermatol
+7236530	Br J Haematol
+8302318	N Engl J Med
+25918132	Toxicol Sci
+12664304	Hum Genet
+3486394	Ophthalmic Paediatr Genet
+26366710	Nat Med
+18029453	J Clin Endocrinol Metab
+12072797	Clin Dysmorphol
+10581027	Nat Genet
+10199800	J Clin Endocrinol Metab
+10794390	Neurotoxicology
+21931169	J Med Genet
+8031011	Ann Hum Genet
+8703815	Br J Haematol
+8411064	J Med Genet
+11101850	Nat Genet
+15768558	Hemoglobin
+9700603	J Inherit Metab Dis
+16199541	J Med Genet
+24809399	Br J Psychiatry
+3969118	N Engl J Med
+11527955	Invest Ophthalmol Vis Sci
+22768673	J Pediatr Endocrinol Metab
+10465120	J Med Genet
+11642233	N Engl J Med
+9233558	Br J Haematol
+1138921	Biochim Biophys Acta
+9494046	Hemoglobin
+7595333	J Forensic Sci
+10523019	J Clin Endocrinol Metab
+18087240	Mol Vis
+10102904	Clin Chem
+16087917	Neurology
+9697690	Nat Genet
+27010584	J Am Coll Surg
+24780602	Eur J Paediatr Neurol
+8048949	Biochem Biophys Res Commun
+1381287	Cell
+11238489	J Clin Endocrinol Metab
+10369259	Nat Genet
+7627690	Arterioscler Thromb Vasc Biol
+23042809	J Med Genet
+5823961	Clin Pediatr (Phila)
+10204861	J Med Genet
+27023906	Hum Genet
+7520042	J Cell Sci
+16542493	Arthritis Res Ther
+26184588	Fetal Diagn Ther
+12477941	N Engl J Med
+9792864	Am J Hum Genet
+7981186	Arterioscler Thromb
+5580403	Dtsch Med Wochenschr
+9730372	Hemoglobin
+2599878	Hemoglobin
+23893446	Mov Disord
+22703652	J Endod
+10328723	N Engl J Med
+18417549	J Med Genet
+11956052	Am J Respir Crit Care Med
+6627724	Clin Genet
+11158067	J Clin Endocrinol Metab
+10950928	Genomics
+8948562	N Engl J Med
+12675840	Kidney Int
+17993581	J Med Genet
+5476481	N Engl J Med
+1626570	Am J Med
+17504906	J Clin Endocrinol Metab
+12596055	Hum Genet
+22498896	Psychiatr Genet
+11424923	J Med Genet
+23732669	Yi Chuan
+12736278	N Engl J Med
+15300964	Hum Genet
+20445167	N Engl J Med
+9814507	J Clin Endocrinol Metab
+23862974	N Engl J Med
+10063989	Thromb Haemost
+6682021	Clin Genet
+17460281	Invest Ophthalmol Vis Sci
+9399950	J Clin Invest
+1562615	Biochim Biophys Acta
+9066888	Am J Med Genet
+12675839	Kidney Int
+12060141	Br J Haematol
+18540861	Biochem J
+12072800	Clin Dysmorphol
+10233717	Immunology
+11380459	Br J Haematol
+1517102	Hemoglobin
+9590153	Am J Hematol
+13915518	Helv Paediatr Acta
+10665501	Ann Neurol
+11889162	J Clin Endocrinol Metab
+2108715	Biochemistry
+25111118	Gene
+17623760	J Clin Endocrinol Metab
+12828738	Br J Dermatol
+1703138	Hemoglobin
+1963473	Mol Endocrinol
+1703535	J Cell Biol
+10431241	Nat Genet
+18076704	Br J Dermatol
+6883788	Clin Genet
+14706637	Biochem Biophys Res Commun
+19125229	J Mol Neurosci
+23708190	Nat Genet
+26643808	Sci Rep
+19289394	J Med Genet
+15181086	J Clin Endocrinol Metab
+9554464	Horm Res
+17018561	J Med Genet
+10869114	Am J Med Genet
+12791045	Clin Genet
+21174522	Ophthalmic Genet
+21533135	PLoS One
+9580132	J Clin Endocrinol Metab
+3383242	Cell
+14667076	Dev Med Child Neurol
+3793116	Hum Hered
+25651471	Am J Surg Pathol
+1764061	Biochem Biophys Res Commun
+23422828	Invest Ophthalmol Vis Sci
+19542096	Hum Mol Genet
+19302039	Annu Rev Immunol
+21691125	Kidney Blood Press Res
+21736673	Oral Dis
+25189356	Mol Cancer Res
+11409433	Ann Neurol
+18420493	N Engl J Med
+18252223	Am J Hum Genet
+9714015	Am J Med Genet
+2511016	Eur J Clin Invest
+16156017	Hum Genet
+7072192	Vox Sang
+11167698	Br J Dermatol
+18438405	Nat Genet
+14970693	Cytogenet Genome Res
+8636271	J Clin Endocrinol Metab
+26077327	Hum Mutat
+25776230	Mol Med Rep
+2713278	Br J Haematol
+11062464	Nat Genet
+10971406	Br J Haematol
+23519333	J Invest Dermatol
+10583221	Br J Haematol
+16858508	J Hum Genet
+10508514	Nat Genet
+1814859	Hemoglobin
+17761684	Hum Mol Genet
+7903314	J Clin Endocrinol Metab
+15769992	J Clin Endocrinol Metab
+22473150	Clin Dysmorphol
+12220458	Clin Genet
+10925380	Am J Med Genet
+15126572	J Clin Endocrinol Metab
+1540659	Biochim Biophys Acta
+15845031	Ann Hum Genet
+15099026	J Neuropathol Exp Neurol
+11391656	Am J Med Genet
+11106718	N Engl J Med
+9854118	N Engl J Med
+6324786	Biochem Biophys Res Commun
+16407510	N Engl J Med
+25296916	Hum Mol Genet
+7891072	J Neurochem
+10417733	Proc Assoc Am Physicians
+22661486	Invest Ophthalmol Vis Sci
+9056552	Am J Med Genet
+213719	N Engl J Med
+11061515	J Clin Endocrinol Metab
+7264357	J Invest Dermatol
+9467575	J Clin Endocrinol Metab
+15215484	N Engl J Med
+22322133	Blood Coagul Fibrinolysis
+9369448	Mol Endocrinol
+15872203	N Engl J Med
+9745458	J Clin Endocrinol Metab
+14756674	Clin Genet
+19820022	J Clin Endocrinol Metab
+4443857	J Pediatr
+21747397	Mol Psychiatry
+2152885	FEBS Lett
+11034457	Dev Med Child Neurol
+4398790	Klin Wochenschr
+12142726	Pharmacogenetics
+14996674	Ann Intern Med
+2241958	Biochem Biophys Res Commun
+25957469	Am J Hum Genet
+11849230	Br J Haematol
+17056636	J Med Genet
+121938	Nouv Rev Fr Hematol
+11828	Biochim Biophys Acta
+25835095	Expert Rev Proteomics
+1755842	Biochem Biophys Res Commun
+2918059	J Clin Endocrinol Metab
+22693689	Acta Biochim Pol
+15855260	J Clin Endocrinol Metab
+1873224	Br J Haematol
+15240641	J Clin Endocrinol Metab
+19387023	N Engl J Med
+12616398	Hum Genet
+14671162	J Clin Endocrinol Metab
+19535802	N Engl J Med
+17614209	Neuroscience
+9620765	Nat Genet
+15536163	J Clin Endocrinol Metab
+10508512	Nat Genet
+7717379	Am J Hematol
+20685671	J Med Genet
+21506748	N Engl J Med
+8574422	Clin Dysmorphol
+23365052	Neurology
+20805368	J Med Genet
+12786758	Clin Genet
+25142429	Mov Disord
+10870885	Hemoglobin
+7714110	J Clin Endocrinol Metab
+3865697	Brain
+9677057	Am J Med Genet
+3860318	Clin Endocrinol (Oxf)
+25728762	Prenat Diagn
+14616769	Clin Genet
+9322079	Hemoglobin
+18697920	RNA
+11701718	J Clin Endocrinol Metab
+10192379	Nat Genet
+15483095	J Clin Endocrinol Metab
+16968793	J Clin Endocrinol Metab
+25755106	J Med Genet
+14602786	J Clin Endocrinol Metab
+8133980	Neuropediatrics
+16155193	J Med Genet
+9755458	Nihon Yakurigaku Zasshi
+19641205	N Engl J Med
+8960475	N Engl J Med
+10973252	Nat Genet
+21117948	Genet Test Mol Biomarkers
+11506397	Ann Neurol
+22495976	Am J Med Genet A
+8485051	Br J Haematol
+24122612	Circ Cardiovasc Genet
+9467570	J Clin Endocrinol Metab
+24243761	Am J Med Genet A
+10487661	J Clin Endocrinol Metab
+19085651	Semin Thromb Hemost
+2022152	Dis Colon Rectum
+11938027	Diabetes Metab
+7723802	N Engl J Med
+11863127	Clin Nephrol
+23018043	Gene
+23636107	J Med Genet
+26823827	Int J Clin Exp Pathol
+9662395	Nat Genet
+12050338	N Engl J Med
+15647591	N Engl J Med
+6208668	Trans Assoc Am Physicians
+25157032	J Med Genet
+8054459	Blood Coagul Fibrinolysis
+16968799	J Clin Endocrinol Metab
+17497716	Am J Med Genet A
+22236196	N Engl J Med
+10722116	Hemoglobin
+19839044	Am J Med Genet A
+4163616	J Clin Endocrinol Metab
+4518991	Nat New Biol
+17421020	Hum Mutat
+16507630	J Clin Endocrinol Metab
+7364565	Isr J Med Sci
+10706361	Am J Med Genet
+23122324	Eur J Paediatr Neurol
+20843259	N Engl J Med
+11222742	Mol Endocrinol
+13367520	J Invest Dermatol
+12890191	Br J Dermatol
+1324420	Mol Endocrinol
+19352772	Lung
+11407343	N Engl J Med
+11889214	J Clin Endocrinol Metab
+11788621	J Clin Endocrinol Metab
+901812	Biochim Biophys Acta
+12727945	J Clin Endocrinol Metab
+24061513	Am J Surg Pathol
+15579741	J Clin Endocrinol Metab
+12028057	Br J Haematol
+9727719	Pediatr Res
+1911355	Br J Haematol
+9482646	Am J Med Genet
+18559916	J Clin Endocrinol Metab
+186477	J Clin Endocrinol Metab
+16533976	Arch Neurol
+16030166	J Clin Endocrinol Metab
+11506412	Ann Neurol
+23606727	J Med Genet
+25604084	J Med Genet
+16543896	J Invest Dermatol
+19481195	Am J Hum Genet
+26336158	J Mol Endocrinol
+11078571	Am J Med Genet
+9767254	Br J Dermatol
+15728199	J Clin Endocrinol Metab
+5674071	J Lab Clin Med
+9255617	Hemoglobin
+25390740	N Engl J Med
+25162926	Biochem Cell Biol
+1449176	Am J Otol
+26416026	Genome Biol
+24152999	Endocr J
+7882997	Eur J Biochem
+10730767	Br J Dermatol
+11939506	Hemoglobin
+21561349	N Engl J Med
+9207791	Nat Genet
+24997715	JIMD Rep
+10888875	Nat Genet
+10722115	Hemoglobin
+3009023	Cell
+11562938	Am J Med Genet
+8287186	Clin Dysmorphol
+10374757	J Neuropathol Exp Neurol
+12161543	J Clin Endocrinol Metab
+10722113	Hemoglobin
+21228764	Kidney Int
+21880262	Med Sci (Paris)
+15481886	Hemoglobin
+15044642	N Engl J Med
+11167850	Br J Haematol
+12000359	Clin Genet
+12716377	Br J Haematol
+10943630	Jpn Circ J
+10369255	Nat Genet
+23352163	Neuron
+10987655	Hum Genet
+24671081	J Med Genet
+12472664	Tissue Antigens
+24577744	J Med Genet
+5771504	Am J Dis Child
+11381253	Nat Genet
+26487440	Sci Rep
+7055587	Biochim Biophys Acta
+9343288	Acta Paediatr
+17848409	J Clin Endocrinol Metab
+3710819	Hemoglobin
+19139306	Arch Neurol
+15888481	Hum Mol Genet
+17393027	Thromb Haemost
+21399569	Psychiatr Genet
+3744871	Hemoglobin
+16707561	J Med Genet
+22781209	Curr Opin Pulm Med
+9806548	Nat Genet
+10073901	Prenat Diagn
+1394429	Cell
+10369264	Nat Genet
+10471492	Nat Genet
+640841	Hemoglobin
+21290976	Genet Couns
+8883260	Thromb Haemost
+10092094	Eur J Immunol
+25470569	N Engl J Med
+11484202	Am J Med Genet
+9452043	Hum Mutat
+7526210	N Engl J Med
+9730368	Hemoglobin
+11207363	Cell
+18784115	N Engl J Med
+1581215	Br J Haematol
+16754206	Ophthalmic Genet
+7784063	Oncogene
+18499582	N Engl J Med
+17804857	N Engl J Med
+11822703	Clin Dysmorphol
+10084607	J Clin Endocrinol Metab
+9100575	J Clin Endocrinol Metab
+26811494	Oncotarget
+17304052	Genet Med
+11095461	J Clin Endocrinol Metab
+19204725	Mol Psychiatry
+2563678	Cleft Palate J
+15861136	EMBO J
+10327149	Prenat Diagn
+9147870	Clin Genet
+12558110	Genet Couns
+18390553	J Biol Chem
+17557076	EMBO J
+6271242	Biochim Biophys Acta
+18257469	Clin Neuropathol
+15687324	J Clin Endocrinol Metab
+21174529	Ophthalmic Genet
+3456204	Am J Ophthalmol
+11260227	Clin Genet
+15625333	N Engl J Med
+11242116	Nat Genet
+19853237	Am J Hum Genet
+808940	Acta Haematol
+26424751	Carcinogenesis
+10080180	Nat Genet
+20332248	J Clin Endocrinol Metab
+12555939	J Inherit Metab Dis
+3527273	Biochim Biophys Acta
+22303800	Genet Couns
+9163595	Br J Haematol
+20121932	Eur J Oral Sci
+17251446	Invest Ophthalmol Vis Sci
+22392858	J Bone Miner Res
+9450874	Am J Med Genet
+7907600	J Clin Invest
+18157127	Nat Genet
+21037275	J Med Genet
+11279527	Nat Genet
+14715826	J Clin Endocrinol Metab
+7714096	J Clin Endocrinol Metab
+11397871	J Clin Endocrinol Metab
+12372058	Clin Genet
+9600739	Am J Med Genet
+15824259	Arch Neurol
+20357282	N Engl J Med
+4212045	Br J Haematol
+11098935	Tissue Antigens
+9814506	J Clin Endocrinol Metab
+6035181	Clin Chim Acta
+25612909	J Med Genet
+12646665	N Engl J Med
+12072062	Br J Dermatol
+2880291	N Engl J Med
+914645	Hemoglobin
+19474428	N Engl J Med
+25730879	Proc Natl Acad Sci U S A
+10700239	Nat Med
+20044737	Am J Hypertens
+11746050	Am J Med Genet
+10671061	Hum Mutat
+427203	Biochim Biophys Acta
+17139268	J Invest Dermatol
+12050236	J Clin Endocrinol Metab
+14756670	Clin Genet
+19598065	Semin Thromb Hemost
+23907418	Rev Neurosci
+5460202	Br J Haematol
+11242114	Nat Genet
+16613914	J Med Genet
+21328100	Anim Biotechnol
+5419329	N Engl J Med
+9336428	Arthritis Rheum
+16525029	J Med Genet
+11260233	Clin Genet
+19290787	Pharmacogenomics
+21952825	Mol Biol Rep
+8140431	Semin Thromb Hemost
+23885228	Mol Syndromol
+9375744	Br J Haematol
+5491586	Br J Haematol
+9806553	Nat Genet
+23355746	J Med Genet
+9324076	Muscle Nerve
+8811323	Hemoglobin
+26193228	Rom J Morphol Embryol
+7710253	Ann Genet
+5840408	Biochim Biophys Acta
+12694232	Clin Genet
+8205619	Cell
+11134129	J Clin Endocrinol Metab
+24385578	J Med Genet
+16868047	J Clin Endocrinol Metab
+15623749	Invest Ophthalmol Vis Sci
+7921055	Transfus Med
+2115061	J Endocrinol Invest
+10982192	Hum Genet
+26125805	Genet Mol Res
+12406076	Br J Haematol
+23404124	Invest Ophthalmol Vis Sci
+17434305	Neuromuscul Disord
+7629254	J Clin Endocrinol Metab
+10364522	Am J Hum Genet
+22040681	Int J Neuropsychopharmacol
+4884226	Medicine (Baltimore)
+20512086	Med Sci Monit
+19544009	J Inherit Metab Dis
+2887317	Clin Genet
+7911198	Lancet
+7669660	Br J Haematol
+23591986	Am J Hypertens
+19504436	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+15274049	Am J Med Genet B Neuropsychiatr Genet
+11502839	J Clin Endocrinol Metab
+24192683	Turk J Pediatr
+7204092	Hemoglobin
+11138011	Nat Genet
+1618300	FEBS Lett
+18348273	Am J Med Genet A
+19064877	Neurology
+19685389	Fortschr Neurol Psychiatr
+18434216	Osteoarthritis Cartilage
+8294206	Hemoglobin
+21159840	J Clin Endocrinol Metab
+6186635	Hemoglobin
+10471498	Nat Genet
+8960473	N Engl J Med
+22703652	J Endod
+3260007	N Engl J Med
+16021469	Hum Genet
+12105858	Gastroenterology
+11454140	J Intern Med
+12050282	J Clin Endocrinol Metab
+1944451	N Engl J Med
+10323385	J Clin Endocrinol Metab
+8768831	J Clin Endocrinol Metab
+18785023	Acta Oncol
+9537881	N Engl J Med
+21749991	J Med Genet
+25296916	Hum Mol Genet
+8361506	N Engl J Med
+16612335	Kidney Int
+1906892	J Clin Endocrinol Metab
+8530604	J Clin Endocrinol Metab
+830903	J Pediatr
+10590411	Muscle Nerve
+17374713	J Clin Endocrinol Metab
+7693620	Hemoglobin
+10551860	J Biol Chem
+23564749	J Med Genet
+16816528	Hum Hered
+12372057	Clin Genet
+11397856	J Clin Endocrinol Metab
+11017876	J Cell Sci
+82839	Lancet
+10759707	Br J Haematol
+19124645	J Med Genet
+11134146	J Clin Endocrinol Metab
+9830479	J Inherit Metab Dis
+532804	Am J Hematol
+15781101	Lancet
+8055130	Clin Dysmorphol
+4002201	Thromb Res
+15001631	J Clin Endocrinol Metab
+7669671	Br J Haematol
+26802095	Neurology
+9973643	Acta Haematol
+15498564	FEBS Lett
+16873766	Am J Respir Crit Care Med
+10932188	Nat Genet
+5764780	J Pediatr
+17391250	J Intellect Disabil Res
+3363529	Thromb Haemost
+9858247	Br J Haematol
+16543896	J Invest Dermatol
+26824984	Oncotarget
+16804045	J Clin Endocrinol Metab
+22889856	J Med Genet
+21301777	Thromb Haemost
+5032420	Vox Sang
+22499348	J Med Genet
+12606733	N Engl J Med
+9295073	Am J Med Genet
+23018576	J Pediatr Hematol Oncol
+708768	Biochim Biophys Acta
+23536131	Kidney Int
+13849708	J Bone Joint Surg Br
+2153578	FEBS Lett
+9062474	J Clin Endocrinol Metab
+11409420	Ann Neurol
+19760322	Mamm Genome
+24129065	J Invest Dermatol
+14260699	J Lab Clin Med
+3707969	Biochim Biophys Acta
+11984219	J Cardiovasc Risk
+1956279	Medicine (Baltimore)
+10987649	Hum Genet
+17634472	N Engl J Med
+22581968	J Med Genet
+18541964	Clin Dysmorphol
+18049072	Clin Dysmorphol
+15182057	Hemoglobin
+17513018	Neurobiol Aging
+24601690	J Clin Endocrinol Metab
+26993267	J Med Genet
+7316485	Ann Hum Genet
+18172102	Invest Ophthalmol Vis Sci
+17039978	Acta Myol
+20942817	Br J Pharmacol
+2840952	Biochemistry
+10404833	J Clin Endocrinol Metab
+9001800	Clin Genet
+26479061	G Ital Nefrol
+8330972	Hemoglobin
+19839856	Ren Fail
+22753902	J Clin Oncol
+11484689	N Engl J Med
+1974409	Ann Hum Genet
+16187910	Thyroid
+26849151	Ophthalmic Genet
+7528239	J Invest Dermatol
+2272835	Hemoglobin
+7558873	Hemoglobin
+21778275	Invest Ophthalmol Vis Sci
+8894317	Clin Exp Obstet Gynecol
+25574841	J Clin Invest
+23452772	Rev Neurol (Paris)
+25730879	Proc Natl Acad Sci U S A
+15355432	Clin Genet
+16467215	J Med Genet
+4256637	Acta Haematol
+10369257	Nat Genet
+10903929	Am J Hum Genet
+10564886	Am J Med Genet
+25596800	Rev Mal Respir
+15240592	J Clin Endocrinol Metab
+10666427	N Engl J Med
+7989465	J Clin Endocrinol Metab
+26310313	Sci Rep
+10982186	Hum Genet
+17200176	J Clin Endocrinol Metab
+21421862	Invest Ophthalmol Vis Sci
+8550762	J Clin Endocrinol Metab
+3177365	Am J Hematol
+20024584	Hum Genet
+26691941	Klin Onkol
+7586649	Clin Genet
+12825073	Eur J Hum Genet
+19661234	Invest Ophthalmol Vis Sci
+2012760	Br J Haematol
+16912583	Genet Med
+25180256	J Med Genet
+9389749	J Clin Invest
+2737920	Hemoglobin
+27085880	Behav Genet
+8943885	Br J Haematol
+3762648	N Engl J Med
+1678810	Lancet
+9287230	N Engl J Med
+19843503	J Med Genet
+25681989	Neurobiol Aging
+26969752	Circ Cardiovasc Genet
+8288694	J Clin Endocrinol Metab
+16816024	J Med Genet
+26830498	Appl Physiol Nutr Metab
+9171234	Mol Endocrinol
+9827909	Br J Haematol
+7717399	Am J Hum Genet
+25583493	Proc Natl Acad Sci U S A
+15605950	Acta Myol
+22392858	J Bone Miner Res
+11940084	Clin Genet
+12050230	J Clin Endocrinol Metab
+11017080	Nat Genet
+18849486	Blood
+23738509	N Engl J Med
+4246285	Nouv Rev Fr Hematol
+8462096	Cell
+15579740	J Clin Endocrinol Metab
+11468312	Neurology
+1201217	Br J Haematol
+20225023	Adv Exp Med Biol
+10602116	Am J Med Genet
+3080572	J Pediatr
+25096886	Horm Res Paediatr
+10071056	Brain
+25877001	J Hum Genet
+10599696	J Clin Endocrinol Metab
+26901141	Pediatr Endocrinol Diabetes Metab
+11328943	Pediatr Res
+10508980	Am J Med Genet
+20215591	Circ Cardiovasc Genet
+15658184	Hemoglobin
+8614422	N Engl J Med
+3591235	Nihon Ketsueki Gakkai Zasshi
+21736673	Oral Dis
+9662392	Nat Genet
+23141293	Am J Hum Genet
+26190982	Front Behav Neurosci
+25398053	J Invest Dermatol
+24923295	Blood
+12144066	Hemoglobin
+9559035	Mayo Clin Proc
+26182283	Zhongguo Dang Dai Er Ke Za Zhi
+15200235	Gene Expr
+11231339	Kidney Int
+17527005	Endocr J
+24471569	J Clin Endocrinol Metab
+11782989	Ann Neurol
+18326614	Am J Clin Nutr
+15377196	Immunohematology
+10701132	Genome
+22499341	J Med Genet
+20818844	N Engl J Med
+26301688	Nat Med
+9029003	Br J Haematol
+1346492	Biochem Biophys Res Commun
+12970316	J Clin Endocrinol Metab
+21506741	N Engl J Med
+1708753	Hum Immunol
+9620771	Nat Genet
+11919305	N Engl J Med
+24422024	J Oral Maxillofac Res
+7275668	Hemoglobin
+4429671	Biochim Biophys Acta
+12110737	N Engl J Med
+19050691	Asian J Androl
+26900472	Clin Transl Immunology
+8077693	J Invest Dermatol
+11134108	J Clin Endocrinol Metab
+22717650	J Med Genet
+27009842	Oncotarget
+12522564	Hum Genet
+9467560	J Clin Endocrinol Metab
+13665153	J Lab Clin Med
+4380311	Dtsch Med Wochenschr
+19125229	J Mol Neurosci
+11391654	Am J Med Genet
+9550363	Clin Genet
+15496624	N Engl J Med
+10360392	Am J Med Genet
+25016221	J Hepatol
+19574260	J Med Genet
+14649316	Hemoglobin
+26378117	J Med Genet
+478976	Hemoglobin
+10716263	Ann Neurol
+4265197	J Pediatr
+18039947	J Med Genet
+19542096	Hum Mol Genet
+25894502	Nat Genet
+20065546	JOP
+18923524	Nature
+18635443	N Engl J Med
+5085669	Biochim Biophys Acta
+18230893	Front Horm Res
+9266408	J Inherit Metab Dis
+10490139	Hemoglobin
+23995613	Ann Hematol
+26536348	PLoS One
+8703170	N Engl J Med
+16571880	N Engl J Med
+12144061	Hemoglobin
+9506752	J Clin Endocrinol Metab
+17440011	J Clin Endocrinol Metab
+14597387	Gene
+8537232	Hemoglobin
+24378291	Ear Hear
+12754701	Hum Mutat
+16203616	Ann Med
+23736028	Br J Cancer
+9215288	J Clin Endocrinol Metab
+15713706	J Clin Endocrinol Metab
+9019400	Cell
+15769978	J Clin Endocrinol Metab
+9360520	J Clin Endocrinol Metab
+6192110	Hemoglobin
+19603065	Eur J Hum Genet
+26200502	Invest Ophthalmol Vis Sci
+14715827	J Clin Endocrinol Metab
+4084461	Br J Haematol
+10894217	Ann Neurol
+8001158	Cell
+22392858	J Bone Miner Res
+10022392	J Clin Endocrinol Metab
+9700600	J Inherit Metab Dis
+1524075	Am J Med
+25683120	Am J Hum Genet
+23549421	J Invest Dermatol
+1138883	Biochim Biophys Acta
+25730879	Proc Natl Acad Sci U S A
+24823460	J Clin Endocrinol Metab
+25775823	Radiats Biol Radioecol
+11836331	J Clin Endocrinol Metab
+10471494	Nat Genet
+9199555	Am J Hum Genet
+19109585	N Engl J Med
+20949630	J Bone Miner Res
+1347703	Biochim Biophys Acta
+12414843	J Clin Endocrinol Metab
+12693958	Biochemistry
+9650766	Clin Genet
+7493155	Ophthalmic Genet
+22318583	Nature
+24021960	J Affect Disord
+4765089	Biochim Biophys Acta
+16267323	N Engl J Med
+11725203	Melanoma Res
+12836054	J Hum Genet
+26218636	Gen Physiol Biophys
+22303798	Genet Couns
+15370545	Ophthalmic Genet
+15303004	J Inherit Metab Dis
+16316724	Gene
+12702164	Clin Genet
+16950817	J Med Genet
+17451405	Ann Hum Genet
+12788851	J Clin Endocrinol Metab
+16043844	Invest Ophthalmol Vis Sci
+1346338	N Engl J Med
+10655068	Nat Genet
+23950976	PLoS One
+8807336	Hum Mutat
+15292360	J Clin Endocrinol Metab
+16470742	Am J Med Genet A
+16840571	J Med Genet
+26813553	Zhonghua Xin Xue Guan Bing Za Zhi
+11279515	Nat Genet
+2046713	N Engl J Med
+11701398	Eur J Dermatol
+3781865	Hemoglobin
+17088553	Proc Natl Acad Sci U S A
+4152602	Acta Haematol
+10722114	Hemoglobin
+10973251	Nat Genet
+24129101	J Pediatr Endocrinol Metab
+1552912	N Engl J Med
+9253358	J Clin Endocrinol Metab
+12566739	Hum Hered
+8530589	J Clin Endocrinol Metab
+9831339	Clin Genet
+2851587	J Biochem
+14158754	N Z Med J
+12974739	Clin Genet
+10973260	Nat Genet
+10335983	Hemoglobin
+9041101	N Engl J Med
+12050233	J Clin Endocrinol Metab
+22670615	Br J Dermatol
+10973257	Nat Genet
+24085429	Genet Mol Res
+15459303	N Engl J Med
+27022003	Br J Haematol
+11060466	Cytogenet Cell Genet
+9494053	Hemoglobin
+23620220	J Med Genet
+16855267	N Engl J Med
+11069477	Br J Dermatol
+11772685	Am J Psychiatry
+9714014	Am J Med Genet
+11186266	Hemoglobin
+2442123	Hemoglobin
+2738036	J Biochem
+7156325	Q J Med
+11260209	Clin Genet
+4623704	Biochem Biophys Res Commun
+6815131	Hemoglobin
+3384699	Hemoglobin
+10987650	Hum Genet
+18450588	Invest Ophthalmol Vis Sci
+12603090	Hemoglobin
+8659540	Am J Hum Genet
+11381270	Nat Genet
+11287838	Respiration
+11260212	Clin Genet
+1565144	N Engl J Med
+11062482	Nat Genet
+6153381	Hemoglobin
+12702166	Clin Genet
+11549691	J Clin Endocrinol Metab
+17065069	Nucleosides Nucleotides Nucleic Acids
+8723689	Hum Mutat
+10369247	Nat Genet
+1651174	Cell
+9712543	Clin Genet
+24918535	Exp Clin Endocrinol Diabetes
+15602022	N Engl J Med
+9737862	Biochemistry
+5128293	Clin Biochem
+9359043	Eur J Hum Genet
+16687714	N Engl J Med
+27026368	J Am Soc Nephrol
+9462751	Nat Genet
+2459082	Hemoglobin
+9607177	Kidney Int
+10192380	Nat Genet
+23404134	J Endocrinol Invest
+20463099	J Clin Endocrinol Metab
+15126564	J Clin Endocrinol Metab
+3102434	Jpn J Cancer Res
+23099353	Drug Metab Pharmacokinet
+25029335	N Engl J Med
+9621144	Dermatology
+10581036	Nat Genet
+24670410	Kidney Int
+1958666	Biochemistry
+17172942	Genet Med
+17690910	Hum Genet
+24057292	J Clin Endocrinol Metab
+10511610	N Engl J Med
+10589548	Ann Neurol
+827930	Adv Hum Genet
+26481120	Mamm Genome
+15304105	J Invest Dermatol
+7558871	Hemoglobin
+10987647	Hum Genet
+10735634	Clin Genet
+10090547	Acta Paediatr
+22187784	Rev Med Suisse
+18445675	J Clin Endocrinol Metab
+8855822	J Clin Endocrinol Metab
+11303518	J Med Genet
+25772935	Am J Hum Genet
+21533135	PLoS One
+7898523	N Engl J Med
+17325180	Invest Ophthalmol Vis Sci
+701082	Hemoglobin
+24896181	Nature
+21544081	Int J Obes (Lond)
+14234962	Monatsschr Kinderheilkd
+9674915	Am J Med Genet
+12414898	J Clin Endocrinol Metab
+11558799	Ann Neurol
+19478797	EMBO J
+25546157	J Clin Endocrinol Metab
+11549703	J Clin Endocrinol Metab
+21496632	Handb Clin Neurol
+10218481	FEBS Lett
+25948220	Zhongguo Shi Yan Xue Ye Xue Za Zhi
+6801987	Am J Ophthalmol
+1891024	N Engl J Med
+14636323	Epilepsia
+10802654	Nat Genet
+14467368	Acta Neurol Scand
+21428769	N Engl J Med
+8168595	Eur J Haematol
+22847150	Neurogenetics
+26178159	Am J Med Genet B Neuropsychiatr Genet
+24441665	Am J Surg Pathol
+10970245	Ann Neurol
+18753752	Fetal Diagn Ther
+1632786	Biochem Biophys Res Commun
+22036171	Am J Hum Genet
+10746568	Hum Genet
+17220211	J Med Genet
+20452998	J Med Genet
+25549701	Discov Med
+21991891	N Engl J Med
+10319206	Clin Dysmorphol
+17400793	J Med Genet
+14671150	J Clin Endocrinol Metab
+22703652	J Endod
+26695672	Zhongguo Dang Dai Er Ke Za Zhi
+24051510	Horm Res Paediatr
+26157024	Hum Mol Genet
+18564921	Lymphat Res Biol
+8195005	Hemoglobin
+11831930	Arch Ophthalmol
+20375417	N Engl J Med
+24334411	Drug Metabol Drug Interact
+1008056	Am J Hematol
+25719458	Genet Med
+16772352	J Clin Endocrinol Metab
+25788564	Ann Otol Rhinol Laryngol
+10430435	Neurology
+7686693	Thromb Haemost
+10391219	Nat Genet
+19935299	Plast Reconstr Surg
+10973241	Nat Genet
+3384693	Hemoglobin
+7338469	Hemoglobin
+18445047	Clin Genet
+9916837	Am J Med Genet
+18160688	N Engl J Med
+8325932	J Clin Endocrinol Metab
+22353287	Pediatr Neurol
+24791901	Am J Hum Genet
+9450877	Am J Med Genet
+11791875	Hemoglobin
+19556969	EMBO J
+15994863	J Med Genet
+1634368	Hemoglobin
+23696935	Int J Clin Exp Pathol
+10432380	Kidney Int
+23240094	J Med Genet
+10519336	Acta Paediatr
+8454474	Hemoglobin
+17409324	N Engl J Med
+4322674	J Pediatr
+15741265	J Clin Endocrinol Metab
+14230113	Klin Monbl Augenheilkd
+9620769	Nat Genet
+26811494	Oncotarget
+24399846	J Med Genet
+4221470	Medicine (Baltimore)
+823756	Acta Haematol
+9894888	Ann Neurol
+8989232	J Clin Endocrinol Metab
+1372102	Mutat Res
+12970298	J Clin Endocrinol Metab
+12684686	Int J Oncol
+14715872	J Clin Endocrinol Metab
+11836319	J Clin Endocrinol Metab
+2043465	Br J Haematol
+14205432	Arch Ophthalmol
+21747397	Mol Psychiatry
+12200606	Eur J Pediatr
+9482645	Am J Med Genet
+17981585	Front Biosci
+3022107	Mol Biol Med
+10843183	J Clin Endocrinol Metab
+10700177	Nat Genet
+11238503	J Clin Endocrinol Metab
+19246354	N Engl J Med
+17614209	Neuroscience
+18541817	Arch Neurol
+9449692	J Clin Invest
+2805380	Clin Genet
+26743651	Sci Rep
+26352260	PLoS Comput Biol
+9731527	Nat Genet
+24597873	N Engl J Med
+11710891	JAMA
+17213274	J Clin Endocrinol Metab
+3802554	Clin Genet
+1848334	Lab Invest
+6583683	Proc Natl Acad Sci U S A
+9697706	Nat Genet
+992050	FEBS Lett
+15292318	J Clin Endocrinol Metab
+1606711	Clin Genet
+22782628	Genet Mol Res
+18713828	Jpn J Clin Oncol
+23384345	Anim Genet
+25615553	J Invest Dermatol
+15081105	Genomics
+10610178	Nat Genet
+9450184	Eur J Hum Genet
+24305460	Continuum (Minneap Minn)
+15827093	J Clin Endocrinol Metab
+26919742	Dermatology
+2372510	Br J Haematol
+8261515	Cell
+23969951	Horm Res Paediatr
+22796651	Neurosci Lett
+9920061	J Clin Endocrinol Metab
+24048965	JIMD Rep
+5856126	Isr J Med Sci
+11456299	Ann Neurol
+2233247	Mol Biol Med
+1398296	Haematologica
+17763149	Platelets
+24509477	Nat Genet
+22796651	Neurosci Lett
+18686566	Ned Tijdschr Tandheelkd
+15472175	J Clin Endocrinol Metab
+18456718	J Med Genet
+25892123	Cancer Genet
+16709485	Eur J Dermatol
+9398697	J Clin Endocrinol Metab
+23907418	Rev Neurosci
+22889853	J Med Genet
+16155194	J Med Genet
+2599887	Hemoglobin
+23434763	J Med Genet
+9856844	J Invest Dermatol
+20713646	Dis Model Mech
+17692548	Mol Genet Metab
+11466687	Cancer
+9398715	J Clin Endocrinol Metab
+18762572	J Med Genet
+7661930	N Engl J Med
+16550914	Acta Myol
+9459326	Thromb Haemost
+19944109	J Mol Cell Cardiol
+15599957	N Engl J Med
+11224521	Nat Immunol
+20543203	J Med Genet
+9515586	Clin Exp Allergy
+1352724	Brain
+26325596	Clin Immunol
+15579739	J Clin Endocrinol Metab
+6172403	Hemoglobin
+18707767	J Neuroimmunol
+21170890	J Nephrol
+17513018	Neurobiol Aging
+10843189	J Clin Endocrinol Metab
+23033978	N Engl J Med
+9920109	J Clin Endocrinol Metab
+12603089	Hemoglobin
+27050078	Oncotarget
+12859417	Clin Genet
+15126516	J Clin Endocrinol Metab
+21524210	N Engl J Med
+25574057	Invest Ophthalmol Vis Sci
+7596372	N Engl J Med
+26105263	Pregnancy Hypertens
+15481895	Hemoglobin
+8445027	J Clin Endocrinol Metab
+14649315	Hemoglobin
+18390553	J Biol Chem
+16885549	N Engl J Med
+23301910	Fetal Pediatr Pathol
+23879678	BMC Genomics
+8288900	J Invest Dermatol
+7954831	Cell
+21295948	Schizophr Res
+2564060	Lancet
+1314846	J Clin Endocrinol Metab
+15300987	Hum Genet
+2634672	Hemoglobin
+9056547	Am J Med Genet
+9883875	FEBS Lett
+24820863	Pain
+15658190	Hemoglobin
+24312577	PLoS One
+4006357	Clin Pediatr (Phila)
+19538721	Arthritis Res Ther
+10655056	Nat Genet
+16799052	Invest Ophthalmol Vis Sci
+26910739	J Pediatr Endocrinol Metab
+3372781	J Am Acad Dermatol
+11835377	Ann Neurol
+21301777	Thromb Haemost
+23243086	J Med Genet
+11903360	Clin Genet
+16877430	Invest Ophthalmol Vis Sci
+14552188	Klin Oczna
+26587761	Neuropediatrics
+17380469	Prenat Diagn
+15240651	J Clin Endocrinol Metab
+15562009	J Clin Endocrinol Metab
+21506741	N Engl J Med
+8829655	Hum Mutat
+10406670	Am J Med Genet
+17684392	Endocr Dev
+9677055	Am J Med Genet
+8853566	Clin Chim Acta
+10471491	Nat Genet
+9415399	Mol Endocrinol
+8496314	J Clin Endocrinol Metab
+10369267	Nat Genet
+18839	Vopr Med Khim
+16156017	Hum Genet
+12639503	Toxicol Appl Pharmacol
+10946904	J Clin Endocrinol Metab
+20558373	N Engl J Med
+19407157	J Dent Res
+11298529	Br J Dermatol
+16418214	J Clin Endocrinol Metab
+8723684	Hum Mutat
+12166651	J Hum Genet
+10508986	Am J Med Genet
+15572430	J Clin Endocrinol Metab
+24582315	J Allergy Clin Immunol
+17351351	Clin Dysmorphol
+8835320	Clin Genet
+10870889	Hemoglobin
+11939509	Hemoglobin
+1847055	Biochem Biophys Res Commun
+20418530	Brain
+22581971	J Med Genet
+12081727	Clin Genet
+8580427	Neuroreport
+20512086	Med Sci Monit
+9109727	Ann Otol Rhinol Laryngol
+21812969	BMC Med Genet
+21428768	N Engl J Med
+8738659	Clin Nephrol
+9450868	Am J Med Genet
+24954872	Lung Cancer
+8811313	Hemoglobin
+17420317	Arch Neurol
+20121932	Eur J Oral Sci
+23528706	Cell Res
+10431244	Nat Genet
+17761593	N Engl J Med
+2241452	Arch Intern Med
+25371445	Cancer Epidemiol Biomarkers Prev
+26544196	Sex Dev
+10939576	Ann Neurol
+21165553	Int J Mol Med
+9586546	J Craniofac Surg
+3583768	Hemoglobin
+23749988	J Med Genet
+21791872	Drug Metab Pharmacokinet
+3187951	Thromb Haemost
+21512271	Exp Anim
+26957854	Middle East Afr J Ophthalmol
+24503146	Eur J Med Genet
+26943571	Oncotarget
+10615120	Nat Genet
+19072571	Genet Test
+15637709	Am J Med Genet A
+1520336	Biochem Biophys Res Commun
+18184961	N Engl J Med
+21208124	N Engl J Med
+25296916	Hum Mol Genet
+11889160	J Clin Endocrinol Metab
+23509818	Biomed Res Int
+21670407	Arch Neurol
+25604083	J Med Genet
+2953652	Genetika
+27011056	Genet Med
+12510040	N Engl J Med
+23509818	Biomed Res Int
+15008259	Hemoglobin
+10951468	Am J Med Genet
+4811796	Ann Intern Med
+11380448	Br J Haematol
+1932147	Biochim Biophys Acta
+9629496	Hemoglobin
+16258266	Cell Cycle
+26788535	Mol Genet Genomic Med
+12752114	Br J Haematol
+27010584	J Am Coll Surg
+24988569	N Engl J Med
+17609304	J Clin Endocrinol Metab
+17932120	J Med Genet
+6487335	Biochem Biophys Res Commun
+18157127	Nat Genet
+26352260	PLoS Comput Biol
+11791876	Hemoglobin
+9858242	Br J Haematol
+16527309	J Mol Biol
+26540125	Hamostaseologie
+12364478	J Clin Endocrinol Metab
+26974543	PLoS One
+5300597	Wien Med Wochenschr
+22521361	Cell
+14671186	J Clin Endocrinol Metab
+18194880	Eur J Med Genet
+22431104	Hum Mutat
+10581230	Brain
+25925082	Nephron
+22653152	Dermatology
+19535795	N Engl J Med
+5359663	J Lab Clin Med
+9661642	J Clin Endocrinol Metab
+21984748	J Med Genet
+11836282	J Clin Endocrinol Metab
+17519308	J Clin Endocrinol Metab
+24600593	Adv Biomed Res
+25612912	J Med Genet
+10080182	Nat Genet
+22331414	J Physiol
+10482875	Am J Med Genet
+8890099	N Engl J Med
+12843198	J Clin Endocrinol Metab
+2432426	N Engl J Med
+23445176	Clin Endocrinol (Oxf)
+9730365	Hemoglobin
+10746566	Hum Genet
+1677316	Cell
+10471490	Nat Genet
+10077730	Hum Hered
+14577675	Genet Couns
+21765412	Nat Genet
+25730879	Proc Natl Acad Sci U S A
+10971341	Br J Dermatol
+21623199	Int J Gynecol Pathol
+18597613	J Periodontol
+8616100	Br J Haematol
+7527413	J Clin Endocrinol Metab
+23890588	Mol Genet Metab
+11930274	Neuropediatrics
+23656646	N Engl J Med
+24061513	Am J Surg Pathol
+24551091	PLoS One
+19023274	Am J Hypertens
+11017086	Nat Genet
+2956987	Br J Dermatol
+9856856	J Invest Dermatol
+11791872	Hemoglobin
+10606872	Br J Haematol
+11062458	Nat Genet
+10710235	Am J Med Genet
+14470	Acta Haematol
+25755106	J Med Genet
+89283	Lancet
+18252228	Am J Hum Genet
+25979592	Mol Cell Probes
+18292238	Mol Endocrinol
+19290556	Neurogenetics
+24290379	Am J Hum Genet
+27081207	QJM
+10517259	Clin Genet
+16030159	J Clin Endocrinol Metab
+12324554	N Engl J Med
+10490140	Hemoglobin
+4743350	Am J Med
+23573331	Int J Clin Exp Pathol
+9843210	Nat Genet
+15287423	Genet Couns
+11186269	Hemoglobin
+10392369	J Pediatr Endocrinol Metab
+7551159	Clin Dysmorphol
+10971344	Br J Dermatol
+25749350	Cancer Genet
+17304047	Genet Med
+5311120	Am J Med
+10606845	Br J Dermatol
+20234359	Nat Rev Rheumatol
+23751782	Eur J Med Genet
+14652634	Thromb Haemost
+18463379	N Engl J Med
+12776230	Neuropediatrics
+16608894	J Clin Endocrinol Metab
+25681989	Neurobiol Aging
+15086549	J Invest Dermatol
+10566648	J Clin Endocrinol Metab
+18178629	J Med Genet
+8090165	N Engl J Med
+7666917	N Engl J Med
+22693542	PLoS One
+1565143	N Engl J Med
+22125647	PLoS One
+18420150	Lancet Neurol
+10839884	J Pediatr
+7737262	Eur J Clin Invest
+11310626	Ann Neurol
+9714007	Am J Med Genet
+8439212	Ann Surg
+9375921	Am J Med Genet
+17192541	N Engl J Med
+25858779	Pediatr Pulmonol
+25058219	JAMA
+10940383	FEBS Lett
+12213854	J Clin Endocrinol Metab
+9415400	Mol Endocrinol
+10722119	Hemoglobin
+12791036	Clin Genet
+15140213	J Invest Dermatol
+16121195	EMBO J
+11788650	J Clin Endocrinol Metab
+12456816	J Physiol
+11102934	Am J Med Genet
+11889198	J Clin Endocrinol Metab
+10678658	Am J Med Genet
+27050764	Clin Exp Rheumatol
+3284607	Brain
+7397219	Biochim Biophys Acta
+20489179	Proc Natl Acad Sci U S A
+16648376	J Med Genet
+9589689	J Clin Endocrinol Metab
+24746700	Mol Cell
+21278388	J Med Genet
+10797435	Am J Med Genet
+8510709	N Engl J Med
+1719701	Vox Sang
+7139106	Birth Defects Orig Artic Ser
+24022	Hemoglobin
+2757966	Br J Haematol
+12721840	Hum Genet
+11919200	J Biol Chem
+10914683	Hum Genet
+2363717	Biochem Biophys Res Commun
+23776197	J Med Genet
+11158025	J Clin Endocrinol Metab
+10720083	J Clin Endocrinol Metab
+12692518	Hematol J
+8334699	Cell
+10950928	Genomics
+10932183	Nat Genet
+8027236	J Clin Endocrinol Metab
+24517233	Curr HIV Res
+10398434	Genes Chromosomes Cancer
+20533261	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+11300349	Hemoglobin
+22790800	Rinsho Shinkeigaku
+10617778	Mol Vis
+21691125	Kidney Blood Press Res
+1951318	Am J Hematol
+9100577	J Clin Endocrinol Metab
+9100579	J Clin Endocrinol Metab
+6046325	Sci Am
+26406308	PLoS One
+8330977	Hemoglobin
+15548556	Brain
+23315540	J Med Genet
+2567794	Lancet
+26982174	Ophthalmic Res
+10369261	Nat Genet
+9662398	Nat Genet
+10323390	J Clin Endocrinol Metab
+8635257	Circulation
+21877133	Hum Genet
+8626815	J Clin Endocrinol Metab
+11412303	Immunology
+1520322	Biochem Biophys Res Commun
+1683921	Lancet
+16033914	J Med Genet
+11745231	Cancer
+1926040	Thromb Haemost
+27029036	Oncotarget
+9329347	J Clin Endocrinol Metab
+19752159	J Med Genet
+8811319	Hemoglobin
+18319072	Am J Hum Genet
+9198147	Thromb Haemost
+6811712	J Pediatr
+2634665	Hemoglobin
+25643588	Eur J Neurol
+14676472	Audiol Neurootol
+20798128	J Med Genet
+11739459	J Clin Endocrinol Metab
+2272837	Hemoglobin
+14566484	J Hum Genet
+19088120	J Med Genet
+12107250	J Clin Endocrinol Metab
+1670590	N Engl J Med
+24827035	N Engl J Med
+2919631	Am J Med Sci
+9661624	J Clin Endocrinol Metab
+15001591	J Clin Endocrinol Metab
+10466427	Clin Genet
+1353535	J Med Genet
+11062461	Nat Genet
+21747906	PLoS One
+2783132	Biochem Biophys Res Commun
+8896564	Nat Genet
+24308032	J Pathol
+11491306	Genet Couns
+11745997	Am J Med Genet
+22101682	Nat Genet
+10892847	Invest Ophthalmol Vis Sci
+20164846	J Invest Dermatol
+24829445	Nucleic Acids Res
+21272798	J Crohns Colitis
+7593451	J Clin Endocrinol Metab
+8547122	Br J Haematol
+18620679	An Pediatr (Barc)
+24123876	J Med Genet
+24131138	N Engl J Med
+9048664	Circ Res
+10869121	Am J Med Genet
+4749241	Ann Clin Res
+25285920	J Invest Dermatol
+3663508	Br J Haematol
+18805469	Gene
+17167404	Mol Vis
+11359398	Br J Dermatol
+25364163	J Oral Maxillofac Pathol
+18728072	J Med Genet
+9709959	J Clin Endocrinol Metab
+6871107	Br J Haematol
+8032855	Brain
+16291702	J Clin Endocrinol Metab
+8435324	Br J Haematol
+9233561	Br J Haematol
+26059843	Eur J Hum Genet
+11603379	Ann Neurol
+9859934	Hemoglobin
+10615125	Nat Genet
+16382669	J Investig Dermatol Symp Proc
+9611072	Clin Genet
+22802285	Proc Am Thorac Soc
+1356051	Thyroid
+11232028	J Clin Endocrinol Metab
+8101083	DNA Cell Biol
+7417488	Biochim Biophys Acta
+25615553	J Invest Dermatol
+15115830	N Engl J Med
+10627091	J Stud Alcohol
+4719146	Biochim Biophys Acta
+10602121	Am J Med Genet
+10192387	Nat Genet
+10842287	Am J Med Genet
+2419280	Hemoglobin
+17488796	J Clin Endocrinol Metab
+7798619	J Invest Dermatol
+20308937	Pediatr Res
+18348411	Biomed Environ Sci
+5687529	Ann Intern Med
+11939521	Hemoglobin
+6206897	Biochim Biophys Acta
+15964893	J Med Genet
+16236810	J Med Genet
+1268216	Biochim Biophys Acta
+26345833	Genet Mol Res
+11889177	J Clin Endocrinol Metab
+1681161	Lancet
+16543197	Ophthalmic Genet
+16258005	J Med Genet
+9715689	Arch Ophthalmol
+16826519	Am J Hum Genet
+23644744	Carcinogenesis
+19762971	J Infect Dev Ctries
+19556253	J Med Genet
+21901789	Hum Mutat
+23539728	J Clin Endocrinol Metab
+9024139	Circulation
+9886305	Br J Haematol
+15292344	J Clin Endocrinol Metab
+15001585	J Clin Endocrinol Metab
+17108763	Genet Med
+22310900	Genomics
+21740153	Hum Biol
+8718698	Hemoglobin
+20930055	J Med Genet
+10634598	Invest Ophthalmol Vis Sci
+14706637	Biochem Biophys Res Commun
+12825073	Eur J Hum Genet
+7815431	J Med Genet
+22079454	Neuroimage
+10233365	Br J Haematol
+20146806	BMC Med Genet
+20558387	Arch Neurol
+21367925	J Clin Endocrinol Metab
+12027806	Biochem J
+18564921	Lymphat Res Biol
+14715854	J Clin Endocrinol Metab
+14756744	Acta Obstet Gynecol Scand
+24690487	Ital J Pediatr
+24643644	Hum Genet
+11768581	J Inherit Metab Dis
+16207846	N Engl J Med
+16705067	J Clin Endocrinol Metab
+11241473	Am J Med Genet
+4161105	Lancet
+16801345	J Med Genet
+19603065	Eur J Hum Genet
+5972415	Clin Chim Acta
+15032978	Clin Genet
+25691505	J Med Genet
+21490620	J Invest Dermatol
+10490145	Hemoglobin
+2196279	J Clin Endocrinol Metab
+9427151	J Inherit Metab Dis
+15613436	J Clin Endocrinol Metab
+8811314	Hemoglobin
+22774401	Eur Rev Med Pharmacol Sci
+21178579	Am J Dermatopathol
+18936139	Invest Ophthalmol Vis Sci
+7803250	Br J Haematol
+24995871	Am J Hum Genet
+22102188	Semin Thromb Hemost
+25728762	Prenat Diagn
+14636323	Epilepsia
+11095425	J Clin Endocrinol Metab
+22943132	Orphanet J Rare Dis
+16670167	J Clin Endocrinol Metab
+14585940	N Engl J Med
+21152448	Acta Biochim Pol
+24255041	Invest Ophthalmol Vis Sci
+22796651	Neurosci Lett
+23906836	Hum Mol Genet
+9163587	Br J Haematol
+10712675	Immunology
+24382084	N Engl J Med
+19260473	Hepatogastroenterology
+15575056	N Engl J Med
+12779274	Hemoglobin
+18636146	Int J Oncol
+16816019	J Med Genet
+1360036	Lancet
+11836335	J Clin Endocrinol Metab
+9657379	FEBS Lett
+25051967	J Child Neurol
+18805469	Gene
+14532993	Int J Oncol
+1562620	Biochim Biophys Acta
+9360555	J Clin Endocrinol Metab
+21837366	Neurogenetics
+8745429	Hemoglobin
+9359037	Eur J Hum Genet
+25860235	Leuk Lymphoma
+11431697	Nat Genet
+10581026	Nat Genet
+9383023	Clin Genet
+11402105	Neurology
+12621137	N Engl J Med
+20164844	J Invest Dermatol
+10348711	Thromb Haemost
+2112427	Cell
+15060627	Biochem Cell Biol
+11168025	Clin Genet
+21474777	Invest Ophthalmol Vis Sci
+16541790	Rinsho Shinkeigaku
+25979592	Mol Cell Probes
+11431686	Nat Genet
+20479155	Circulation
+24651605	Genet Med
+8964822	J Clin Endocrinol Metab
+10655060	Nat Genet
+1374237	Biochem Biophys Res Commun
+25275363	Chest
+15713716	J Clin Endocrinol Metab
+22079454	Neuroimage
+23143597	Nat Genet
+22427576	Invest Ophthalmol Vis Sci
+22577224	J Med Genet
+7854377	N Engl J Med
+16954160	J Clin Endocrinol Metab
+5047808	East Afr Med J
+952960	Biochim Biophys Acta
+4125296	Lancet
+20921020	J Med Genet
+7918041	Br J Haematol
+10660331	Hum Mutat
+7773929	Cancer
+9859935	Hemoglobin
+18073311	J Clin Endocrinol Metab
+701083	Hemoglobin
+12639503	Toxicol Appl Pharmacol
+16596286	Int J Mol Med
+24521109	N Engl J Med
+7719340	Nat Genet
+25482530	J Natl Cancer Inst
+11169558	Am J Med Genet
+12919140	Clin Genet
+9806540	Nat Genet
+8094490	Lancet
+1653889	Mol Endocrinol
+21743172	Neurol India
+1263542	J Thorac Cardiovasc Surg
+9771698	Nat Genet
+3008810	Biochemistry
+9831343	Clin Genet
+8813042	N Engl J Med
+22693283	J Med Genet
+23667181	J Med Genet
+21737058	Am J Hum Genet
+10444183	Br J Haematol
+21791872	Drug Metab Pharmacokinet
+24123676	Genes Chromosomes Cancer
+893135	Hemoglobin
+7718558	Biochemistry
+9747372	Br J Dermatol
+10472529	J Inherit Metab Dis
+23885228	Mol Syndromol
+18310267	J Med Genet
+9605588	Am J Med Genet
+7714085	J Clin Endocrinol Metab
+16832	Ital J Biochem
+17142620	J Med Genet
+22102620	Hum Mutat
+11502818	J Clin Endocrinol Metab
+1493640	Clin Genet
+240418	Biochim Biophys Acta
+11018168	N Engl J Med
+7609750	N Engl J Med
+11167856	Br J Haematol
+429481	J Clin Endocrinol Metab
+22521702	J Dent
+11952783	Eur J Biochem
+10335980	Hemoglobin
+9272736	Eur J Hum Genet
+10508213	J Lipid Res
+6546989	Nouv Rev Fr Hematol
+9888789	Biochemistry
+20942817	Br J Pharmacol
+3937827	Hemoglobin
+11586956	N Engl J Med
+10982177	Hum Genet
+15854031	J Invest Dermatol
+7852089	Hemoglobin
+10391211	Nat Genet
+16849419	J Clin Endocrinol Metab
+6021187	Can J Biochem
+9029028	Br J Haematol
+17675530	J Med Genet
+12872815	Genet Couns
+12372054	Clin Genet
+5780360	Am J Med
+9713559	Clin Endocrinol (Oxf)
+4085453	Enzyme
+24016415	J Psychiatry Neurosci
+1662503	Biochem Biophys Res Commun
+13524805	Helv Paediatr Acta
+10431236	Nat Genet
+26181491	Genet Med
+10720087	J Clin Endocrinol Metab
+2842681	N Engl J Med
+10369256	Nat Genet
+25651737	Clin Lab
+10200986	Kidney Int
+11370632	J Med Genet
+16882041	Traffic
+18452888	Am J Hum Genet
+10888887	Nat Genet
+25738250	Kidney Int
+11703334	Br J Haematol
+8840296	Kidney Int
+6547119	Hemoglobin
+7713746	Hemoglobin
+10982185	Hum Genet
+24596948	Ann Neurol
+19710689	J Invest Dermatol
+20489179	Proc Natl Acad Sci U S A
+10355918	J Cardiovasc Electrophysiol
+11073544	J Med Genet
+3021139	Biochem Biophys Res Commun
+24940934	Ophthalmic Genet
+9129737	Am J Med Genet
+24988568	N Engl J Med
+25619955	Cancer Lett
+4838696	Eur J Clin Invest
+17763149	Platelets
+10073577	DNA Cell Biol
+9450182	Eur J Hum Genet
+3180993	DNA
+8102146	J Clin Endocrinol Metab
+7536460	Genes Chromosomes Cancer
+24123876	J Med Genet
+15472194	J Clin Endocrinol Metab
+20121932	Eur J Oral Sci
+12107262	J Clin Endocrinol Metab
+25053765	J Med Genet
+22957697	Biochem J
+19246479	J Med Genet
+12630961	Clin Genet
+14616764	Clin Genet
+10835633	Nat Genet
+9827716	Cancer
+10735636	Clin Genet
+19965803	J Med Genet
+25893637	J Clin Immunol
+11303519	J Med Genet
+10090891	Am J Hum Genet
+3032454	Cell
+893128	Hemoglobin
+11062472	Nat Genet
+3378363	Clin Genet
+23883322	J Neurogenet
+9843052	Am J Med Genet
+9562579	N Engl J Med
+11297581	J Clin Endocrinol Metab
+570292	Rev Neurol (Paris)
+21926974	Nat Genet
+25713110	J Med Genet
+20978712	Thromb Haemost
+10072046	Ann Neurol
+17018649	J Clin Endocrinol Metab
+10770215	J Clin Endocrinol Metab
+10706362	Am J Med Genet
+21506741	N Engl J Med
+18182450	J Clin Endocrinol Metab
+11167760	Br J Haematol
+2569551	Lancet
+9814475	J Clin Endocrinol Metab
+7615398	Hemoglobin
+17213282	J Clin Endocrinol Metab
+13716729	Clin Chim Acta
+1975675	Nucleic Acids Res
+21905019	Arthritis Rheum
+24552284	N Engl J Med
+15370544	Ophthalmic Genet
+9626125	J Clin Endocrinol Metab
+26928227	Nat Genet
+23227268	PLoS One
+2283296	Hemoglobin
+11138927	J Neuropathol Exp Neurol
+26735901	N Engl J Med
+3446652	Hemoglobin
+25243380	Neuropediatrics
+17881745	N Engl J Med
+12679481	J Clin Endocrinol Metab
+17018662	J Clin Endocrinol Metab
+20452997	J Med Genet
+18252223	Am J Hum Genet
+22499342	J Med Genet
+12050239	J Clin Endocrinol Metab
+6275383	Proc Natl Acad Sci U S A
+25564447	Invest Ophthalmol Vis Sci
+12050205	J Clin Endocrinol Metab
+18339850	Cancer Res
+23551418	Respirology
+2308162	J Mol Biol
+19118303	N Engl J Med
+22512499	N Engl J Med
+444582	Biochim Biophys Acta
+21862674	J Med Genet
+9843204	Nat Genet
+2300123	N Engl J Med
+26643377	Cephalalgia
+21506748	N Engl J Med
+23054245	J Med Genet
+15326462	Mol Psychiatry
+15481890	Hemoglobin
+16278265	J Clin Endocrinol Metab
+16087917	Neurology
+12788848	J Clin Endocrinol Metab
+20190276	Hum Mol Genet
+10335985	Hemoglobin
+18326704	Invest Ophthalmol Vis Sci
+3567158	Biochemistry
+23782177	N Engl J Med
+19185014	Mov Disord
+9576178	Br J Haematol
+15928254	J Clin Endocrinol Metab
+1594017	N Engl J Med
+18708426	J Med Genet
+14602801	J Clin Endocrinol Metab
+15769988	J Clin Endocrinol Metab
+24590585	Virchows Arch
+8608639	Clin Exp Immunol
+10422812	Clin Genet
+9211678	N Engl J Med
+17164310	J Clin Endocrinol Metab
+22371254	Neurogenetics
+22608502	Am J Hum Genet
+1117598	Johns Hopkins Med J
+26539479	Biomed Res Int
+11487585	J Biol Chem
+27060299	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+26424649	Curr Top Microbiol Immunol
+10770218	J Clin Endocrinol Metab
+23141294	Am J Hum Genet
+3170234	Hemoglobin
+2634610	Horm Res
+1347621	Lancet
+11381255	Nat Genet
+22693284	J Med Genet
+21637914	Int J Mol Med
+11071142	Neuropediatrics
+1678057	Lancet
+17426099	J Clin Endocrinol Metab
+11846744	Clin Genet
+20340136	Hum Mutat
+11071386	Hum Genet
+15921167	Hemoglobin
+10710236	Am J Med Genet
+1943753	Metabolism
+11545539	Behav Genet
+25693204	Oncotarget
+24747200	Bone
+9738863	Am J Med Genet
+22791835	J Med Genet
+25173926	Circ Cardiovasc Genet
+21496632	Handb Clin Neurol
+10569726	Hemoglobin
+10932181	Nat Genet
+26036949	Genome Biol
+9359036	Eur J Hum Genet
+5650416	Biochim Biophys Acta
+23122587	Am J Hum Genet
+9753710	N Engl J Med
+10444286	Haemophilia
+11026454	Ann Neurol
+2038366	N Engl J Med
+10973248	Nat Genet
+23542699	Nat Genet
+11311002	Clin Dysmorphol
+21150889	Eur J Hum Genet
+10192393	Nat Genet
+19116240	J Clin Endocrinol Metab
+16545939	Genomics
+12843176	J Clin Endocrinol Metab
+1832934	Br J Haematol
+11146471	Am J Med Genet
+11478532	Genet Med
+1671991	Lancet
+10506096	Brain
+8322269	Thromb Haemost
+3384709	Hemoglobin
+9888420	Invest Ophthalmol Vis Sci
+7275660	Hemoglobin
+17786112	Clin Dysmorphol
+11350031	RNA
+15282353	N Engl J Med
+17426087	J Clin Endocrinol Metab
+9843059	Am J Med Genet
+17299063	J Clin Endocrinol Metab
+8190477	Ophthalmology
+9428641	FEBS Lett
+188828	J Bone Joint Surg Am
+12213855	J Clin Endocrinol Metab
+15910695	Expert Rev Mol Med
+19564653	J Med Genet
+10960495	Pediatr Res
+12594532	Hum Genet
+2564952	Lancet
+21150643	J Neuroophthalmol
+9382140	Am J Med Genet
+9253359	J Clin Endocrinol Metab
+26747760	Invest Ophthalmol Vis Sci
+25256095	Hum Mutat
+10798362	Hum Genet
+11091194	Br J Haematol
+19581274	J Med Genet
+19948535	J Med Genet
+10770217	J Clin Endocrinol Metab
+8965888	N Engl J Med
+26956536	Acta Reumatol Port
+22689681	Haematologica
+11300352	Hemoglobin
+11446407	Clin Dysmorphol
+20522425	J Med Genet
+9255613	Hemoglobin
+9569178	Thromb Haemost
+8013151	Clin Endocrinol (Oxf)
+17164305	J Clin Endocrinol Metab
+10521820	Prenat Diagn
+2898460	Hemoglobin
+1523102	Nouv Rev Fr Hematol
+16760738	Clin Dysmorphol
+10424825	J Med Genet
+2233965	N Engl J Med
+25266737	Curr Eye Res
+8330984	Hemoglobin
+7741137	Am J Hematol
+19864897	Cytogenet Genome Res
+6067323	Br J Haematol
+15081105	Genomics
+26743950	Brain Dev
+9484139	J Clin Pediatr Dent
+11372010	N Engl J Med
+21262074	Cardiol Young
+18627284	Genet Test
+14170898	Vox Sang
+20679665	J Med Genet
+10323391	J Clin Endocrinol Metab
+24989505	Proc Natl Acad Sci U S A
+12843174	J Clin Endocrinol Metab
+9471561	N Engl J Med
+22957697	Biochem J
+12624722	J Hum Genet
+3715788	Thromb Haemost
+21798861	J Gerontol A Biol Sci Med Sci
+21388311	N Engl J Med
+7740448	Thromb Haemost
+22984506	PLoS One
+12050219	J Clin Endocrinol Metab
+9467553	J Clin Endocrinol Metab
+11279524	Nat Genet
+18492762	J Clin Endocrinol Metab
+12752575	Clin Genet
+27001897	Birth Defects Res A Clin Mol Teratol
+19304569	J Med Genet
+11553050	Clin Genet
+15032977	Clin Genet
+3580302	Br J Haematol
+15481888	Hemoglobin
+10651742	Br J Haematol
+22167769	J Med Genet
+15965226	J Neurol Neurosurg Psychiatry
+14970694	Cytogenet Genome Res
+6814491	Biochim Biophys Acta
+10999792	J Clin Endocrinol Metab
+11754051	Am J Med Genet
+26944947	Pediatrics
+9605924	Mol Endocrinol
+24270420	J Clin Invest
+23598818	Inflamm Bowel Dis
+1814856	Hemoglobin
+8956047	Hum Mutat
+12121355	Clin Genet
+2873459	Lancet
+9886312	Br J Haematol
+1944469	N Engl J Med
+15337662	Am J Psychiatry
+10522883	Neurology
+20383146	Nat Genet
+3174024	Ophthalmology
+23531547	Nucleic Acids Res
+11095426	J Clin Endocrinol Metab
+7586644	Clin Genet
+11749972	FEBS Lett
+16282978	Nat Genet
+17301300	N Engl J Med
+10701843	Prenat Diagn
+26666262	J Exp Med
+18326614	Am J Clin Nutr
+20233318	Oral Dis
+9709965	J Clin Endocrinol Metab
+20484936	Neonatology
+7275663	Hemoglobin
+12542743	Tissue Antigens
+11238515	J Clin Endocrinol Metab
+15921163	Hemoglobin
+5420592	Br J Haematol
+9620772	Nat Genet
+12684873	Hum Genet
+23268535	Dis Model Mech
+24295813	Neuromuscul Disord
+23453665	Am J Hum Genet
+5129592	Biochim Biophys Acta
+22968929	Genome Res
+25169130	Pathol Res Pract
+24265017	Invest Ophthalmol Vis Sci
+9366572	J Clin Invest
+25153393	Biol Chem
+12740691	J Hum Genet
+18687783	Endocrinology
+7739708	N Engl J Med
+24344610	Eur J Haematol
+11807902	Am J Med Genet
+17962469	Invest Ophthalmol Vis Sci
+9170407	Circulation
+1971748	Biochem Biophys Res Commun
+11297621	J Clin Endocrinol Metab
+21543988	Genet Med
+24934643	Hum Mutat
+14711609	Ann Biol Clin (Paris)
+13715995	Clin Chim Acta
+9179494	DNA Res
+15672406	Genes Chromosomes Cancer
+1634361	Hemoglobin
+9661653	J Clin Endocrinol Metab
+23571684	Blood Coagul Fibrinolysis
+2291578	Ann N Y Acad Sci
+18055910	J Med Genet
+15673802	N Engl J Med
+12930927	N Engl J Med
+897853	S Afr Med J
+25533962	Nature
+16598045	N Engl J Med
+25583493	Proc Natl Acad Sci U S A
+4753845	Isr J Med Sci
+17653899	Acta Oncol
+23551418	Respirology
+10037069	Thyroid
+11581183	Invest Ophthalmol Vis Sci
+7740487	Thromb Haemost
+9661611	J Clin Endocrinol Metab
+23303454	J Invest Dermatol
+26743950	Brain Dev
+25574751	Folia Neuropathol
+22310900	Genomics
+17940114	J Clin Endocrinol Metab
+9988267	Nat Genet
+21070332	Clin Exp Dermatol
+23950976	PLoS One
+8807322	Hum Hered
+23621221	Asian Pac J Cancer Prev
+12632087	Int J Oncol
+19142688	Clin Orthop Relat Res
+9056558	Am J Med Genet
+1349102	Lancet
+11020711	Genesis
+10084584	J Clin Endocrinol Metab
+23355523	J Dent Res
+21166801	Hereditas
+4165068	J Pediatr
+2177843	Mol Endocrinol
+24193343	Eur J Hum Genet
+16155192	J Med Genet
+22918376	Acta Neuropathol
+26184588	Fetal Diagn Ther
+20424135	Cancer Prev Res (Phila)
+10431248	Nat Genet
+15579781	J Clin Endocrinol Metab
+15269314	N Engl J Med
+9084927	Clin Genet
+26843521	Cancer Epidemiol Biomarkers Prev
+11242107	Nat Genet
+18029459	J Clin Endocrinol Metab
+10928898	N Engl J Med
+20618350	Clin Genet
+12123493	Clin Genet
+11570724	Hemoglobin
+15557430	Invest Ophthalmol Vis Sci
+11246459	Ann Hum Genet
+17392836	J Invest Dermatol
+25846608	Hum Mutat
+9856573	Am J Med Genet
+23779253	Oncol Rep
+12220459	Clin Genet
+23325900	Neurology
+8358043	Jpn J Hum Genet
+18381579	J Clin Endocrinol Metab
+2634671	Hemoglobin
+7786798	Br J Haematol
+1882937	Am J Ophthalmol
+15937078	J Med Genet
+17785355	J Clin Endocrinol Metab
+10522996	J Clin Endocrinol Metab
+26768518	Hum Mutat
+10932186	Nat Genet
+24552285	N Engl J Med
+15574347	Front Biosci
+15058760	Invest Clin
+9800905	Am J Med Genet
+11939522	Hemoglobin
+23802852	Arch Pathol Lab Med
+19212342	J Invest Dermatol
+25296579	J Hum Genet
+10973254	Nat Genet
+26102642	J Hypertens
+7593413	J Clin Endocrinol Metab
+24848981	N Engl J Med
+7714102	J Clin Endocrinol Metab
+22310900	Genomics
+21675912	N Engl J Med
+10945669	Clin Genet
+10467273	Am J Hematol
+7669672	Br J Haematol
+22796651	Neurosci Lett
+11155072	Vox Sang
+19211612	J Med Genet
+19625716	N Engl J Med
+7558876	Hemoglobin
+26802438	Muscle Nerve
+3382401	Biochem Biophys Res Commun
+12740761	Am J Hum Genet
+5710064	Br J Haematol
+22796651	Neurosci Lett
+25979592	Mol Cell Probes
+16297189	J Invest Dermatol
+10632111	Ann Neurol
+16297213	J Invest Dermatol
+3384706	Hemoglobin
+10982473	Am J Med Genet
+25479458	Inflamm Bowel Dis
+6199326	Hemoglobin
+15180491	Curr Drug Metab
+8240110	Arch Ophthalmol
+10798358	Hum Genet
+21756023	N Engl J Med
+23758206	N Engl J Med
+7832988	DNA Cell Biol
+24048372	Kidney Int
+5711079	Cesk Pediatr
+2606727	Hemoglobin
+15902656	Am J Hum Genet
+26222560	N Engl J Med
+7741145	Am J Hematol
+17341560	J Clin Endocrinol Metab
+9988270	Nat Genet
+9734642	Br J Haematol
+12413370	JAMA
+7928382	Hemoglobin
+2309863	Am J Ophthalmol
+9589634	J Clin Endocrinol Metab
+24105366	Eur J Hum Genet
+18572189	J Mol Cell Cardiol
+9851797	J Clin Endocrinol Metab
+22499344	J Med Genet
+10199792	J Clin Endocrinol Metab
+12519862	J Clin Endocrinol Metab
+11152147	Clin Dysmorphol
+26154720	N Engl J Med
+3839773	Hemoglobin
+20949528	Am J Med Genet A
+4744336	Biochim Biophys Acta
+26218636	Gen Physiol Biophys
+2052060	N Engl J Med
+26540125	Hamostaseologie
+10522997	J Clin Endocrinol Metab
+8696006	Acta Paediatr
+12791040	Clin Genet
+12788881	J Clin Endocrinol Metab
+10446808	J Neuropathol Exp Neurol
+2004020	Br J Haematol
+1802881	Hemoglobin
+2442122	Hemoglobin
+26915616	Ann Lab Med
+9695975	Br J Haematol
+18055821	Invest Ophthalmol Vis Sci
+18806880	Mol Vis
+7719345	Nat Genet
+6629826	Hemoglobin
+12522561	Hum Genet
+18413575	Neurology
+11788671	J Clin Endocrinol Metab
+15111592	Invest Ophthalmol Vis Sci
+20153673	Mol Genet Metab
+12522553	Hum Genet
+18397980	J Clin Endocrinol Metab
+8630118	Arthritis Rheum
+23750030	J Biochem
+10701843	Prenat Diagn
+16636127	J Clin Endocrinol Metab
+26616563	Nat Commun
+7570918	Transfusion
+20978018	J Med Genet
+23288988	Mol Vis
+1719174	J Pediatr
+9607189	Kidney Int
+21266381	J Med Genet
+1615486	Thromb Haemost
+1659948	Cell
+10634616	Invest Ophthalmol Vis Sci
+4728291	J Lab Clin Med
+1978914	Lancet
+23687350	J Med Genet
+14674915	Br J Dermatol
+25728762	Prenat Diagn
+10580072	N Engl J Med
+18521840	Am J Med Genet B Neuropsychiatr Genet
+2950269	Kidney Int
+6023921	Am J Surg
+17634448	N Engl J Med
+1825497	J Clin Endocrinol Metab
+20089971	N Engl J Med
+24429156	Lancet Respir Med
+1848370	Science
+6691995	Biochim Biophys Acta
+718348	Arch Intern Med
+12730828	Am J Hum Genet
+9661649	J Clin Endocrinol Metab
+25468195	J Allergy Clin Immunol
+10233323	Br J Dermatol
+9745452	J Clin Endocrinol Metab
+12974744	Clin Genet
+24449363	Mol Biol Rep
+22636603	J Med Genet
+10843194	J Clin Endocrinol Metab
+25168494	Kidney Int
+2861360	Lancet
+20489179	Proc Natl Acad Sci U S A
+5057941	Br J Haematol
+26426381	Am J Surg Pathol
+18049083	Clin Dysmorphol
+7570911	Transfusion
+4676910	Arch Biochem Biophys
+1458688	Clin Exp Immunol
+15699411	Neurology
+16303832	J Clin Endocrinol Metab
+9576180	Br J Haematol
+17550899	J Biol Chem
+1581963	Cell
+19125229	J Mol Neurosci
+15478601	Yi Chuan Xue Bao
+7977351	Am J Hum Genet
+21926187	Ann Rheum Dis
+14523231	Proc Natl Acad Sci U S A
+9450882	Am J Med Genet
+10420194	Ophthalmic Genet
+9322075	Hemoglobin
+10845569	Clin Genet
+23986113	Proc Biol Sci
+11381268	Nat Genet
+9535666	N Engl J Med
+17593395	Hum Genet
+25748484	J Med Genet
+10369266	Nat Genet
+16575393	J Invest Dermatol
+3454663	Hemoglobin
+4358183	Acta Paediatr Scand
+9525992	J Clin Invest
+19807691	Biochem J
+4455303	Br J Haematol
+7909436	Biochem Biophys Res Commun
+11531804	Br J Dermatol
+16051168	Curr Biol
+25059067	Vopr Pitan
+10615118	Nat Genet
+7662997	Jpn J Hum Genet
+4982774	Acta Haematol
+3775688	Thromb Haemost
+2233903	N Engl J Med
+21051419	Cardiovasc Res
+10508521	Nat Genet
+19542096	Hum Mol Genet
+7213661	Biochim Biophys Acta
+19648820	Clin Dysmorphol
+12138371	Blood Coagul Fibrinolysis
+10503584	Am J Otol
+2838754	N Engl J Med
+16596241	Int J Oncol
+2321910	Ann Hum Genet
+26139438	Horm Res Paediatr
+21415077	J Med Genet
+9255611	Hemoglobin
+22174698	PLoS Genet
+17652218	J Clin Endocrinol Metab
+6405779	Br J Haematol
+17118990	J Clin Endocrinol Metab
+14715834	J Clin Endocrinol Metab
+21173099	Haematologica
+26920370	J Mol Med (Berl)
+26077327	Hum Mutat
+12603092	Hemoglobin
+12629113	J Clin Endocrinol Metab
+24143106	Neuropsychiatr Dis Treat
+18243799	Lancet Neurol
+20066439	Hum Genet
+27022003	Br J Haematol
+2867271	Lancet
+21441262	J Med Genet
+19172513	Ophthalmic Genet
+16798638	Hemoglobin
+9662406	Nat Genet
+22036172	Am J Hum Genet
+22486320	Ophthalmic Genet
+1007	Biochem Med
+12110740	N Engl J Med
+14250395	Acta Endocrinol (Copenh)
+11397842	J Clin Endocrinol Metab
+22683713	Nat Genet
+9894833	Acta Paediatr
+9730366	Hemoglobin
+9021009	Am J Med Genet
+22772371	Nat Genet
+8497853	Thromb Haemost
+25642805	Neuropediatrics
+17220216	J Med Genet
+15827106	J Clin Endocrinol Metab
+1201235	Br J Haematol
+17566090	J Clin Endocrinol Metab
+12161499	J Clin Endocrinol Metab
+22577226	J Med Genet
+24971404	J Community Support Oncol
+11310631	Ann Neurol
+24747200	Bone
+8412645	Medicine (Baltimore)
+1635357	Kidney Int
+19525279	J Med Genet
+22114105	J Med Genet
+24737827	J Med Genet
+16464942	J Clin Endocrinol Metab
+15481889	Hemoglobin
+24564716	Ophthalmic Genet
+23188110	J Med Genet
+24319291	J Med Genet
+1593215	J Lab Clin Med
+9361308	Ophthalmic Genet
+15126514	J Clin Endocrinol Metab
+23215570	N Engl J Med
+24152280	N Engl J Med
+10569724	Hemoglobin
+11531972	Clin Genet
+7852085	Hemoglobin
+18937046	J Inherit Metab Dis
+18628313	J Med Genet
+10655055	Nat Genet
+18421701	Hum Mutat
+23018043	Gene
+10606881	Br J Haematol
+10398246	Am J Med Genet
+7190137	Hemoglobin
+12629076	J Clin Endocrinol Metab
+15317892	N Engl J Med
+13894830	Am J Med
+23907418	Rev Neurosci
+8550751	J Clin Endocrinol Metab
+24474090	Semin Thromb Hemost
+12028535	Tissue Antigens
+26382598	Cytogenet Genome Res
+15735604	Mol Vis
+11136233	Proc Natl Acad Sci U S A
+24120359	Immunity
+10398231	Am J Med Genet
+25411445	J Med Genet
+26099059	Optom Vis Sci
+9375914	Am J Med Genet
+10343207	Skin Pharmacol Appl Skin Physiol
+9718379	N Engl J Med
+2564457	Lancet
+14564154	Clin Dysmorphol
+24517233	Curr HIV Res
+11807148	N Engl J Med
+11320193	Neurology
+1998585	Br J Haematol
+8768837	J Clin Endocrinol Metab
+2843770	N Engl J Med
+1782747	Dis Markers
+9164812	N Engl J Med
+2468982	Lancet
+9824293	FEBS Lett
+7902972	Neurology
+10835628	Nat Genet
+11431692	Nat Genet
+9843049	Am J Med Genet
+17635943	J Clin Endocrinol Metab
+25722209	Invest Ophthalmol Vis Sci
+19181095	Adv Exp Med Biol
+1555650	FEBS Lett
+5031790	Clin Chim Acta
+15531480	J Clin Endocrinol Metab
+18784102	N Engl J Med
+25806921	N Engl J Med
+12890214	Br J Dermatol
+11506411	Ann Neurol
+19836010	Am J Hum Genet
+18231126	Eur J Hum Genet
+12466340	J Clin Endocrinol Metab
+1615485	Thromb Haemost
+19293170	J Med Genet
+1943692	Mol Biol Med
+6426235	Acta Haematol
+18187543	Endocrinology
+9620777	Nat Genet
+10694306	Eur J Dermatol
+9880225	Am J Med Genet
+3175983	Thromb Res
+23820096	J Affect Disord
+15797964	J Clin Endocrinol Metab
+22494134	N Engl J Med
+21691125	Kidney Blood Press Res
+12679463	J Clin Endocrinol Metab
+15937070	J Med Genet
+14649317	Hemoglobin
+15994862	J Med Genet
+24670168	N Engl J Med
+12161503	J Clin Endocrinol Metab
+8134127	Oncogene
+1122305	Biochim Biophys Acta
+5844610	J Lab Clin Med
+9380435	Pediatr Res
+17442906	N Engl J Med
+19923577	N Engl J Med
+6252122	Hemoglobin
+19965921	J Clin Endocrinol Metab
+8555060	Br J Haematol
+21493957	J Med Genet
+16916845	Brain
+8945633	DNA Cell Biol
+9475592	Am J Med Genet
+18465876	Biochemistry
+10192385	Nat Genet
+4673853	Nihon Ketsueki Gakkai Zasshi
+22397670	N Engl J Med
+3840697	Biochim Biophys Acta
+26138366	Nat Commun
+2155256	J Clin Endocrinol Metab
+16204371	J Clin Endocrinol Metab
+17065069	Nucleosides Nucleotides Nucleic Acids
+11198281	Ann Neurol
+15654962	J Invest Dermatol
+9490302	Hum Genet
+9101286	Hemoglobin
+9697692	Nat Genet
+21127961	Biochem Genet
+49161	Ann Allergy
+25567866	Yi Chuan
+22167768	J Med Genet
+26637975	Am J Hum Genet
+21682861	BMC Evol Biol
+25892123	Cancer Genet
+16825436	J Med Genet
+14532993	Int J Oncol
+15292296	J Clin Endocrinol Metab
+24691054	J Invest Dermatol
+16107876	EMBO J
+7558878	Hemoglobin
+7635196	FEBS Lett
+2435680	Hemoglobin
+26548558	Sci Rep
+20346435	Am J Hum Genet
+19684604	Nat Genet
+26287746	N Engl J Med
+9657428	Thromb Haemost
+9806482	Clin Chem Lab Med
+10398215	Muscle Nerve
+20158305	Twin Res Hum Genet
+25058881	Pancreas
+11788685	J Clin Endocrinol Metab
+23222957	Nat Genet
+21166801	Hereditas
+17906984	Acta Oncol
+17652713	Invest Ophthalmol Vis Sci
+6548205	Hemoglobin
+9084938	Clin Genet
+10852449	J Clin Endocrinol Metab
+27060168	Blood
+9401068	Br J Haematol
+17148568	J Clin Endocrinol Metab
+17351347	Clin Dysmorphol
+26684240	Oncotarget
+15928241	J Clin Endocrinol Metab
+16798637	Hemoglobin
+2363414	Am J Hematol
+11186258	Hemoglobin
+10729812	Vox Sang
+9702906	Pediatr Res
+14764776	J Clin Endocrinol Metab
+4834679	Biochim Biophys Acta
+1833732	Prenat Diagn
+9385128	N Engl J Med
+11242112	Nat Genet
+46025	Lancet
+1870106	J Med Genet
+15472221	J Clin Endocrinol Metab
+1635567	N Engl J Med
+20848652	Hum Mutat
+14638698	Invest Ophthalmol Vis Sci
+12519827	J Clin Endocrinol Metab
+16690980	Am J Respir Crit Care Med
+19643970	Invest Ophthalmol Vis Sci
+16123401	Invest Ophthalmol Vis Sci
+9236770	Mol Gen Genet
+20693550	J Med Genet
+9342192	Am J Med Genet
+22125647	PLoS One
+25732850	Biochim Biophys Acta
+9286457	Am J Med Genet
+2266579	Jpn Circ J
+10770987	N Engl J Med
+10494094	Am J Med Genet
+9384616	Hum Mol Genet
+18835861	J Med Genet
+25368964	Am J Respir Cell Mol Biol
+18434651	N Engl J Med
+9220536	Proc Assoc Am Physicians
+21896538	Eur J Heart Fail
+19473719	Lung Cancer
+17660612	Clin Calcium
+16114182	Hemoglobin
+26083206	N Engl J Med
+21954287	J Med Genet
+9571255	N Engl J Med
+10084575	J Clin Endocrinol Metab
+20090362	Kidney Blood Press Res
+11370629	J Med Genet
+11062474	Nat Genet
+16788318	Blood Coagul Fibrinolysis
+4886456	N Engl J Med
+8001137	Cell
+19650410	Genet Couns
+8956049	Hum Mutat
+17911170	J Clin Endocrinol Metab
+11549627	J Clin Endocrinol Metab
+9392697	N Engl J Med
+17989398	N Engl J Med
+18219278	J Invest Dermatol
+11150889	Horm Res
+9412782	Eur J Hum Genet
+17018562	J Med Genet
+10689634	J Pediatr Endocrinol Metab
+5774804	Can J Biochem
+11527934	Invest Ophthalmol Vis Sci
+22580498	Int J Oncol
+25706677	Am J Med Genet A
+15001620	J Clin Endocrinol Metab
+22047557	N Engl J Med
+15025427	Scand J Clin Lab Invest
+19793632	Brain Dev
+26458567	Int J Mol Med
+10080178	Nat Genet
+20130592	J Invest Dermatol
+22521361	Cell
+9814479	J Clin Endocrinol Metab
+17711925	J Clin Endocrinol Metab
+10466420	Clin Genet
+21765413	Nat Genet
+24333853	Gene
+15008265	Hemoglobin
+26044173	Acta Haematol
+10508506	Nat Genet
+15181077	J Clin Endocrinol Metab
+15955112	J Invest Dermatol
+21877133	Hum Genet
+22471352	Clin Exp Hypertens
+11308397	JAMA
+10523031	J Clin Endocrinol Metab
+9569179	Thromb Haemost
+16407236	J Biol Chem
+10655062	Nat Genet
+11715001	Genet Med
+16418210	J Clin Endocrinol Metab
+15618652	Drug Metab Pharmacokinet
+11703337	Br J Haematol
+24716661	N Engl J Med
+22237106	Nature
+26685327	J Lipid Res
+11889179	J Clin Endocrinol Metab
+21496632	Handb Clin Neurol
+17127620	Mol Membr Biol
+17085682	J Med Genet
+10073577	DNA Cell Biol
+26829730	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+1943686	Mol Biol Med
+9188658	Am J Med Genet
+23820096	J Affect Disord
+10746567	Hum Genet
+10651905	Genes Cells
+24367056	J Med Genet
+2322567	Biochemistry
+18566113	Endocrinology
+11835386	Ann Neurol
+23982283	Psychiatr Genet
+8855829	J Clin Endocrinol Metab
+26333019	Ophthalmic Genet
+10081983	Hemoglobin
+7666049	J Neuropathol Exp Neurol
+21127961	Biochem Genet
+25337070	Mol Syndromol
+15240615	J Clin Endocrinol Metab
+8422681	Cell
+22521702	J Dent
+9662399	Nat Genet
+14608369	EMBO Rep
+1714434	Hemoglobin
+2346729	Br J Haematol
+11753653	Oncogene
+10192386	Nat Genet
+9843036	Am J Med Genet
+10398437	Genes Chromosomes Cancer
+9626653	Mol Endocrinol
+10684912	N Engl J Med
+25448322	Autism Res
+10508515	Nat Genet
+15483078	J Clin Endocrinol Metab
+25803555	Klin Monbl Augenheilkd
+20660394	N Engl J Med
+10843173	J Clin Endocrinol Metab
+902765	FEBS Lett
+17390067	Oncol Rep
+12915623	J Clin Endocrinol Metab
+11332973	Genet Couns
+10487664	J Clin Endocrinol Metab
+18286824	Genet Couns
+6437698	Clin Chem
+2302219	Biochem Biophys Res Commun
+17557927	J Med Genet
+15570218	Mol Vis
+12618906	Immunogenetics
+9510125	Thyroid
+17655505	Biol Chem
+21152100	PLoS One
+23778016	Prog Neuropsychopharmacol Biol Psychiatry
+8294199	Hemoglobin
+24346170	Invest Ophthalmol Vis Sci
+1634357	Hemoglobin
+23539754	J Med Genet
+11137993	Nat Genet
+17392831	J Invest Dermatol
+9543136	J Clin Endocrinol Metab
+16135635	Am J Psychiatry
+18182448	J Clin Endocrinol Metab
+10372722	J Clin Endocrinol Metab
+10518281	J Inherit Metab Dis
+15001635	J Clin Endocrinol Metab
+9007315	Clin Genet
+11589680	Clin Endocrinol (Oxf)
+20577002	J Med Genet
+17304246	Nat Rev Genet
+6208738	Acta Haematol
+5639009	Biochim Biophys Acta
+1559571	Eur J Haematol
+22796651	Neurosci Lett
+12371955	Kidney Int
+7951471	Int J Obes Relat Metab Disord
+26102933	J Hypertens
+9731526	Nat Genet
+22310900	Genomics
+21572413	Nat Genet
+22045297	Eur J Hum Genet
+11146470	Am J Med Genet
+25068569	Biochemistry
+9585331	Muscle Nerve
+24053097	Rev Med Liege
+11875102	Mol Endocrinol
+25445274	Gene
+25450229	Mol Psychiatry
+23352163	Neuron
+18618993	Genet Couns
+12754175	J Appl Physiol (1985)
+23820096	J Affect Disord
+1325679	Thromb Haemost
+11788682	J Clin Endocrinol Metab
+12588351	Br J Haematol
+11746019	Am J Med Genet
+21166801	Hereditas
+25655794	Invest Ophthalmol Vis Sci
+10701132	Genome
+11251583	Br J Dermatol
+21753788	J Hum Hypertens
+3654264	Hemoglobin
+19890128	N Engl J Med
+9851774	J Clin Endocrinol Metab
+17982426	Mol Vis
+20961246	N Engl J Med
+1905636	Eur J Clin Invest
+8343162	Biochem Biophys Res Commun
+26151758	Nat Commun
+19074807	Invest Ophthalmol Vis Sci
+17183480	Genet Mol Res
+10528251	Am J Med Genet
+1276080	Br J Haematol
+22543779	None
+18779133	Yi Chuan
+12843189	J Clin Endocrinol Metab
+12161514	J Clin Endocrinol Metab
+9271224	FEBS Lett
+4650733	J Med Assoc Thai
+26680667	Physiol Res
+1883393	Biochem Biophys Res Commun
+22933840	Mol Vis
+3785322	N Engl J Med
+9332663	Am J Med Genet
+25406571	Zhongguo Dang Dai Er Ke Za Zhi
+3781866	Hemoglobin
+9520251	Clin Genet
+2448268	Hemoglobin
+3131627	Mol Biol Med
+10767000	Am J Med Genet
+3840039	Biochim Biophys Acta
+26849716	Blood Coagul Fibrinolysis
+9525984	J Clin Invest
+22521702	J Dent
+12028056	Br J Haematol
+16384941	Invest Ophthalmol Vis Sci
+7608290	J Clin Endocrinol Metab
+1627655	Biochim Biophys Acta
+9731533	Nat Genet
+25118028	Eur J Hum Genet
+604315	Hemoglobin
+9435441	J Clin Endocrinol Metab
+20679666	J Med Genet
+10839714	Exp Dermatol
+8863343	Proc Assoc Am Physicians
+22156540	Horm Res Paediatr
+12786759	Clin Genet
+25091525	Muscle Nerve
+19865094	J Invest Dermatol
+15776121	Can J Cardiol
+19357116	J Med Genet
+21179110	J Invest Dermatol
+26333736	J Bone Joint Surg Am
+1960624	J Pediatr
+15452067	Invest Ophthalmol Vis Sci
+23122324	Eur J Paediatr Neurol
+25551524	N Engl J Med
+12522553	Hum Genet
+18006477	Cardiovasc Res
+23573331	Int J Clin Exp Pathol
+9425897	Nat Genet
+15472169	J Clin Endocrinol Metab
+23656588	N Engl J Med
+15472209	J Clin Endocrinol Metab
+23979958	J Clin Endocrinol Metab
+25591676	Neurol India
+17901128	Mol Endocrinol
+10823953	Proc Natl Acad Sci U S A
+5816667	Nihon Seikeigeka Gakkai Zasshi
+8968716	Genet Epidemiol
+25749350	Cancer Genet
+11549695	J Clin Endocrinol Metab
+5122655	Biochim Biophys Acta
+8458085	Cell
+8446106	Mol Endocrinol
+22773737	J Med Genet
+9215316	J Clin Endocrinol Metab
+25322266	J Clin Endocrinol Metab
+14715855	J Clin Endocrinol Metab
+26218636	Gen Physiol Biophys
+26135620	Sci Rep
+23102448	Atherosclerosis
+10027711	Br J Haematol
+11939515	Hemoglobin
+14124079	Lancet
+21208123	N Engl J Med
+11381269	Nat Genet
+26077327	Hum Mutat
+20383146	Nat Genet
+26920370	J Mol Med (Berl)
+11991887	Am J Respir Crit Care Med
+16648378	J Med Genet
+9312167	J Clin Invest
+14671208	J Clin Endocrinol Metab
+10522989	J Clin Endocrinol Metab
+15355432	Clin Genet
+10665500	Ann Neurol
+8723686	Hum Mutat
+12446987	Hum Hered
+15169701	Am J Psychiatry
+8094489	Lancet
+26501044	Front Pediatr
+7914213	J Endocrinol Invest
+1174563	Biochim Biophys Acta
+20590677	Clin Transl Sci
+26483964	Acta Naturae
+11359471	Clin Genet
+144081	Genetika
+18765512	J Clin Endocrinol Metab
+19131948	J Invest Dermatol
+11173846	Cytogenet Cell Genet
+12215082	Arch Gen Psychiatry
+24798461	Am J Med Genet A
+8530621	J Clin Endocrinol Metab
+17632512	Nat Genet
+9268111	Am J Med Genet
+22414746	Cells Tissues Organs
+11062463	Nat Genet
+12402333	Hum Mutat
+9590282	Nat Genet
+20522431	J Med Genet
+17197532	Invest Ophthalmol Vis Sci
+26016288	Acta Ortop Mex
+9856855	J Invest Dermatol
+8004674	Cell
+16282977	Nat Genet
+11601507	Ann Neurol
+23497483	BMC Med Genet
+22886561	Hum Genet
+18953341	Nat Genet
+18055909	J Med Genet
+19036616	Osteoarthritis Cartilage
+18947330	Clin Infect Dis
+9489796	Am J Med Genet
+25740977	J Med Genet
+22801713	Arch Neurol
+12788864	J Clin Endocrinol Metab
+10566659	J Clin Endocrinol Metab
+10942114	Hum Genet
+15605950	Acta Myol
+25142429	Mov Disord
+11220745	Ann Neurol
+26729821	J Med Genet
+7096107	Hemoglobin
+17284634	J Clin Endocrinol Metab
+17264177	J Clin Endocrinol Metab
+9637725	J Clin Invest
+5775133	J Lab Clin Med
+19240061	Gut
+11932321	J Clin Endocrinol Metab
+12727991	J Clin Endocrinol Metab
+26725848	Sci Rep
+12484633	Hemoglobin
+26902268	Sci Rep
+2347082	Clin Chim Acta
+19934105	Ann Rheum Dis
+10583218	Br J Haematol
+23924526	Medicina (B Aires)
+21083385	N Engl J Med
+16021918	Nucleosides Nucleotides Nucleic Acids
+14764823	J Clin Endocrinol Metab
+10431237	Nat Genet
+24123876	J Med Genet
+19050407	Clin Dysmorphol
+12603095	Hemoglobin
+478975	Hemoglobin
+12764676	J Hum Genet
+16877416	Invest Ophthalmol Vis Sci
+1787096	Hemoglobin
+1259994	Biochim Biophys Acta
+15032975	Clin Genet
+15356014	J Clin Endocrinol Metab
+9679752	Int J Cancer
+19535802	N Engl J Med
+10398311	Am J Hematol
+12485468	Ann Hum Genet
+23401890	Mov Disord
+16849401	J Clin Endocrinol Metab
+7913883	Cell
+8855841	J Clin Endocrinol Metab
+15768556	Hemoglobin
+25445274	Gene
+23961660	Nihon Rinsho
+1568247	Cell
+12000816	N Engl J Med
+26539891	Neuron
+21753762	J Invest Dermatol
+10607842	Hum Mol Genet
+2079433	Hemoglobin
+8318993	Hum Mutat
+22716977	N Engl J Med
+23233260	Invest Ophthalmol Vis Sci
+2961848	J Neurochem
+4850239	Biochim Biophys Acta
+15070960	J Clin Endocrinol Metab
+10080186	Nat Genet
+15154116	Am J Hum Genet
+24308032	J Pathol
+10766984	Am J Med Genet
+18197198	Eur J Hum Genet
+8316268	N Engl J Med
+9488636	Br J Haematol
+10487696	J Clin Endocrinol Metab
+24934312	Mol Biol Rep
+12050235	J Clin Endocrinol Metab
+26829729	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+15863807	Am J Psychiatry
+26262888	Curr Opin Immunol
+25723554	Scand J Clin Lab Invest
+9182770	Am J Med Genet
+11683776	Clin Genet
+19429596	J Med Genet
+24712571	J Clin Endocrinol Metab
+21785361	Genet Med
+8552158	N Engl J Med
+9589691	J Clin Endocrinol Metab
+11529856	Br J Haematol
+10460600	Br J Haematol
+11568975	Mol Carcinog
+22635276	EMBO J
+16543896	J Invest Dermatol
+8439453	Biochem Med Metab Biol
+2161654	Biochem Biophys Res Commun
+21993463	Cornea
+8829654	Hum Mutat
+17554261	Nat Genet
+19026398	Am J Hum Genet
+3815525	Cell
+23884293	Sci Rep
+17519310	J Clin Endocrinol Metab
+6129204	Hemoglobin
+12060124	Br J Haematol
+11168024	Clin Genet
+7520022	Hum Hered
+16107487	J Med Genet
+11891681	Am J Med Genet
+19074801	Invest Ophthalmol Vis Sci
+15459302	N Engl J Med
+11173967	Hum Hered
+2146504	N Engl J Med
+10435508	Mov Disord
+9626141	J Clin Endocrinol Metab
+9508071	Am J Med Genet
+10852461	J Clin Endocrinol Metab
+11261505	Ann Neurol
+11297942	Neuromuscul Disord
+9834305	N Engl J Med
+26894450	Ophthalmic Genet
+2581919	Hemoglobin
+10090887	Am J Hum Genet
+23414566	Thromb Res
+23738510	N Engl J Med
+15666429	Hemoglobin
+12050215	J Clin Endocrinol Metab
+11207353	N Engl J Med
+11918623	Diabet Med
+8664897	Hum Mutat
+15191570	J Invest Dermatol
+20146806	BMC Med Genet
+1856263	J Clin Endocrinol Metab
+9360511	J Clin Endocrinol Metab
+10569725	Hemoglobin
+7554321	Clin Endocrinol (Oxf)
+10208170	Am J Med Genet
+12752122	Br J Dermatol
+9111992	Clin Genet
+8461023	Biochem Biophys Res Commun
+22870719	Lin Chung Er Bi Yan Hou Tou Jing Wai Ke Za Zhi
+10835631	Nat Genet
+12562389	Clin Exp Immunol
+21658138	Transfus Med
+11851982	Ann Hum Genet
+7054696	N Engl J Med
+13703570	Rev Neurol (Paris)
+27031371	Ophthalmic Genet
+12915654	J Clin Endocrinol Metab
+1678058	Lancet
+3087571	Brain
+10942115	Hum Genet
+1619028	J Clin Endocrinol Metab
+21310915	Invest Ophthalmol Vis Sci
+7839813	Acta Neurol Scand
+21860704	World J Cardiol
+24972470	Nutr Hosp
+6549130	Biochem Biophys Res Commun
+1398286	Haematologica
+25243380	Neuropediatrics
+11889220	J Clin Endocrinol Metab
+18852448	Neurology
+7338471	Hemoglobin
+20008220	Hematology Am Soc Hematol Educ Program
+9762610	J Inherit Metab Dis
+19474805	J Invest Dermatol
+15070970	J Clin Endocrinol Metab
+11062471	Nat Genet
+20007830	Invest Ophthalmol Vis Sci
+15507506	J Clin Endocrinol Metab
+17726072	J Clin Endocrinol Metab
+24203977	J Med Genet
+9253345	J Clin Endocrinol Metab
+21617257	J Med Genet
+9266371	J Inherit Metab Dis
+11359068	Hum Hered
+26689875	Acta Microbiol Immunol Hung
+8639621	Biochemistry
+11303514	J Med Genet
+4117593	Lancet
+15481891	Hemoglobin
+7528344	N Engl J Med
+9399946	J Clin Invest
+15827546	Mol Vis
+17299075	J Clin Endocrinol Metab
+3839106	Am J Hematol
+21166801	Hereditas
+22110750	PLoS One
+20558387	Arch Neurol
+21288095	N Engl J Med
+3384695	Hemoglobin
+23907418	Rev Neurosci
+18779879	Acta Derm Venereol
+9144943	J Forensic Sci
+15677729	J Appl Physiol (1985)
+25202984	J Clin Invest
+26841830	J Hum Genet
+22889673	Neurol Res
+1648430	Cancer
+9347800	J Invest Dermatol
+26215059	Turk J Gastroenterol
+10802655	Nat Genet
+18953341	Nat Genet
+20923750	Eur J Dermatol
+15623792	Invest Ophthalmol Vis Sci
+11134142	J Clin Endocrinol Metab
+16244493	Hum Hered
+17135589	N Engl J Med
+3411192	J Lab Clin Med
+7151327	Clin Exp Immunol
+23018043	Gene
+9003198	Biochemistry
+24913019	Int J Mol Med
+14756672	Clin Genet
+1191563	Br J Haematol
+10517255	Clin Genet
+16636119	J Clin Endocrinol Metab
+15044640	N Engl J Med
+9585002	Pediatr Res
+9217825	Br J Dermatol
+15735689	Oncogene
+9360549	J Clin Endocrinol Metab
+26578207	Orphanet J Rare Dis
+11737690	Pediatr Dermatol
+22592360	Neurology
+12208140	Mol Genet Metab
+9215303	J Clin Endocrinol Metab
+25296916	Hum Mol Genet
+12629128	J Clin Endocrinol Metab
+26088389	Ann Rheum Dis
+23865579	Traffic
+16033915	J Med Genet
+9663592	Int J Cancer
+1339401	Hum Hered
+23978819	Nutr Diabetes
+8626842	J Clin Endocrinol Metab
+5524089	Biochem Med
+8308926	J Natl Cancer Inst
+9767294	Br J Dermatol
+1356443	Biochim Biophys Acta
+24667120	J Med Genet
+21506748	N Engl J Med
+10231870	Pediatr Res
+13852872	Biochim Biophys Acta
+9390828	Audiol Neurootol
+26418379	Am J Med Sci
+23689399	Clin Dysmorphol
+10449641	Am J Med Genet
+9856571	Am J Med Genet
+14564153	Clin Dysmorphol
+15383933	Pediatr Dev Pathol
+7259990	Br J Haematol
+2283295	Hemoglobin
+1631957	Trends Genet
+1656975	Biochem Biophys Res Commun
+26966713	Genes Dis
+27032025	Cornea
+20140863	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+20106877	Dis Model Mech
+1972019	DNA Cell Biol
+19802581	Curr Top Microbiol Immunol
+20522431	J Med Genet
+458526	J Pediatr Ophthalmol Strabismus
+24896634	Pediatr Dev Pathol
+20435886	J Biol Chem
+23707711	Mol Genet Metab
+23907418	Rev Neurosci
+17041932	Am J Med Genet A
+12815595	Hum Mutat
+15240652	J Clin Endocrinol Metab
+11529858	Br J Haematol
+25437054	Epigenetics
+25824785	Asian Pac J Cancer Prev
+21980494	PLoS One
+27060316	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+2663347	Cornea
+22512483	N Engl J Med
+11479590	Nat Genet
+10615133	Nat Genet
+18367154	Biol Psychiatry
+16569739	J Clin Endocrinol Metab
+9432020	Br J Haematol
+25275363	Chest
+9843216	Nat Genet
+11009204	Mov Disord
+9009996	Brain
+25604658	Am J Med Genet A
+11026444	Ann Neurol
+1645537	Biochem Biophys Res Commun
+21480433	Hum Mutat
+1703139	Hemoglobin
+26843622	Oncotarget
+148984	Clin Genet
+23838702	Eur Spine J
+9670521	J Forensic Sci
+16217710	Neuropediatrics
+12679486	J Clin Endocrinol Metab
+22731640	Genet Test Mol Biomarkers
+22976394	Genes Genet Syst
+17898100	N Engl J Med
+17314340	N Engl J Med
+1845156	Trans Assoc Am Physicians
+21734494	Curr Opin Neurol
+10690282	Cardiovasc Res
+8956040	Hum Mutat
+2424301	Am J Hematol
+8902986	Thromb Haemost
+2725600	N Engl J Med
+22539951	PLoS One
+15531542	J Clin Endocrinol Metab
+23799614	Int J Oncol
+6687721	Hemoglobin
+19747392	BMC Evol Biol
+893142	Hemoglobin
+7095605	Haemostasis
+23456229	Neurogenetics
+24088043	N Engl J Med
+1424233	Clin Genet
+6211078	Am J Cardiol
+15292330	J Clin Endocrinol Metab
+24049096	J Med Genet
+26829731	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+19603065	Eur J Hum Genet
+10080186	Nat Genet
+19568270	Eur J Hum Genet
+25873735	J Med Genet
+1734866	Biochem Biophys Res Commun
+11101900	Nat Struct Biol
+12919135	Clin Genet
+12919132	Clin Genet
+15001631	J Clin Endocrinol Metab
+23393310	J Med Genet
+11479731	Hum Genet
+8103176	Lancet
+12161548	J Clin Endocrinol Metab
+9141561	J Clin Endocrinol Metab
+18373495	Biochem J
+24026985	J Med Genet
+8664899	Hum Mutat
+698096	Br J Dermatol
+3229002	Clin Genet
+26829730	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+24120361	Immunity
+9920108	J Clin Endocrinol Metab
+5910871	Arch Dermatol
+11602629	J Clin Invest
+15858187	N Engl J Med
+26157024	Hum Mol Genet
+17903304	BMC Med Genet
+23418344	Am J Respir Cell Mol Biol
+11939514	Hemoglobin
+22807295	Invest Ophthalmol Vis Sci
+24777453	Nat Genet
+11761473	Ann Neurol
+1678832	Lancet
+8865274	Pediatr Res
+9843043	Am J Med Genet
+8149649	Clin Genet
+10053004	Am J Hum Genet
+12694234	Clin Genet
+11238478	J Clin Endocrinol Metab
+26137247	Biomed Rep
+21181198	Hum Genet
+8507190	Biochem Biophys Res Commun
+9790667	Biochemistry
+11167681	Br J Dermatol
+23907418	Rev Neurosci
+24989451	Nat Commun
+15863676	J Med Genet
+19098224	Mol Endocrinol
+12709789	Hum Genet
+8302543	Ophthalmology
+15634722	J Clin Endocrinol Metab
+15470216	N Engl J Med
+11101832	Nat Genet
+9934985	Am J Med Genet
+12910435	Neuropediatrics
+19643772	J Med Genet
+2390095	Biochem Biophys Res Commun
+22791839	J Med Genet
+11281276	Ann Hum Genet
+4435794	Hum Hered
+8218861	Blood Coagul Fibrinolysis
+23656586	N Engl J Med
+23974772	Curr Opin Endocrinol Diabetes Obes
+9398726	J Clin Endocrinol Metab
+21495994	Br J Dermatol
+9386136	Circulation
+15728199	J Clin Endocrinol Metab
+15499177	Drug Metab Pharmacokinet
+7161110	Hemoglobin
+19011569	Clin Dysmorphol
+8954059	J Clin Endocrinol Metab
+11137992	Nat Genet
+9271826	Tissue Antigens
+18197198	Eur J Hum Genet
+9195222	Hum Mutat
+19864674	N Engl J Med
+11701741	J Clin Endocrinol Metab
+18420959	Am J Respir Crit Care Med
+19584064	J Med Genet
+16174717	J Clin Endocrinol Metab
+11091200	Br J Haematol
+17342728	Mol Reprod Dev
+12574234	J Clin Endocrinol Metab
+25345337	Neuropathol Appl Neurobiol
+18620679	An Pediatr (Barc)
+10935549	Mol Endocrinol
+11017079	Nat Genet
+11788646	J Clin Endocrinol Metab
+15623752	Invest Ophthalmol Vis Sci
+25111118	Gene
+15355432	Clin Genet
+1520326	Biochem Biophys Res Commun
+12081718	Clin Genet
+2344617	Cell
+25511235	J Inherit Metab Dis
+9934984	Am J Med Genet
+12915679	J Clin Endocrinol Metab
+14217223	Bull Johns Hopkins Hosp
+21567919	Am J Med Genet A
+15181070	J Clin Endocrinol Metab
+9916797	Nat Genet
+5048218	Arch Dermatol
+3408671	Br J Haematol
+23227268	PLoS One
+12124406	N Engl J Med
+23315542	J Med Genet
+15956286	Blood
+9768691	J Clin Endocrinol Metab
+12213873	J Clin Endocrinol Metab
+25837031	Eur Respir J
+1463768	Biochim Biophys Acta
+11170071	Am J Med Genet
+14671178	J Clin Endocrinol Metab
+1548332	J Clin Endocrinol Metab
+10581022	Nat Genet
+9177409	J Clin Endocrinol Metab
+25044745	Hum Mutat
+8422677	Cell
+24474090	Semin Thromb Hemost
+6783600	Hemoglobin
+17062770	J Clin Endocrinol Metab
+25730879	Proc Natl Acad Sci U S A
+17847002	Am J Hum Genet
+22865819	Hum Mutat
+24716670	Clin Genet
+23745724	Clin Genet
+23820096	J Affect Disord
+11251584	Br J Dermatol
+22884059	Chin Med J (Engl)
+19812674	Nature
+1683972	Lancet
+10973238	Nat Genet
+14617022	Br J Haematol
+2805381	Clin Genet
+24029420	J Am Soc Nephrol
+17148560	J Clin Endocrinol Metab
+23542699	Nat Genet
+12736803	Neurogenetics
+1471077	Thromb Res
+9626142	J Clin Endocrinol Metab
+25981758	N Engl J Med
+17997715	DNA Cell Biol
+10598803	Hum Genet
+6292136	Hemoglobin
+26157024	Hum Mol Genet
+9450854	Am J Med Genet
+1671440	Lancet
+22139084	Oncogene
+24941082	N Engl J Med
+7148122	Vestn Akad Med Nauk SSSR
+16575393	J Invest Dermatol
+10615129	Nat Genet
+25412741	J Med Genet
+1846005	J Clin Endocrinol Metab
+9128926	Am J Med Genet
+5964983	Biochim Biophys Acta
+12859411	Clin Genet
+18957847	Cardiology
+15240589	J Clin Endocrinol Metab
+15687339	J Clin Endocrinol Metab
+12603091	Hemoglobin
+24706189	Cancer Causes Control
+25787343	J Hum Genet
+12788852	J Clin Endocrinol Metab
+11061528	J Clin Endocrinol Metab
+25766404	J Natl Cancer Inst
+9253356	J Clin Endocrinol Metab
+15790869	Invest Ophthalmol Vis Sci
+10398241	Am J Med Genet
+12787275	Pediatr Dermatol
+12788880	J Clin Endocrinol Metab
+11426460	Am J Med Genet
+20183525	J Toxicol Environ Health B Crit Rev
+16582076	J Med Genet
+9494044	Hemoglobin
+17113756	J Dermatol Sci
+15715952	J Biochem Mol Biol
+24257369	Curr Opin Rheumatol
+24215395	Curr Eye Res
+7378457	Biochim Biophys Acta
+23042809	J Med Genet
+17017121	Gene Expr
+23315541	J Med Genet
+11196105	J Inherit Metab Dis
+17213252	Ann Rheum Dis
+15735645	Nat Genet
+2983203	N Engl J Med
+7772513	Br J Haematol
+11062460	Nat Genet
+3078962	Oncogene
+10820940	Indian Heart J
+16003110	Curr Opin Neurol
+16464940	J Clin Endocrinol Metab
+26632257	Sci Rep
+9813456	Hum Hered
+16531728	Clin Dysmorphol
+8598869	N Engl J Med
+15579795	J Clin Endocrinol Metab
+15537906	N Engl J Med
+23060141	Invest Ophthalmol Vis Sci
+25730879	Proc Natl Acad Sci U S A
+10580149	Gene
+1846223	N Engl J Med
+16449337	J Clin Endocrinol Metab
+23863864	J Invest Dermatol
+1761120	Eur J Haematol
+15814878	N Engl J Med
+12472587	Br J Haematol
+10490142	Hemoglobin
+16571645	J Med Genet
+11261514	Ann Neurol
+431680	N Engl J Med
+25029422	J Clin Endocrinol Metab
+11322952	FEBS Lett
+11600572	J Clin Endocrinol Metab
+12107248	J Clin Endocrinol Metab
+15658193	Hemoglobin
+19352772	Lung
+12545276	Hum Genet
+8530014	Hum Genet
+20853438	Ann Neurol
+22989186	Clin Genet
+22020124	EMBO J
+15486053	J Clin Endocrinol Metab
+1517376	J Clin Endocrinol Metab
+25364163	J Oral Maxillofac Pathol
+20577005	J Med Genet
+3623975	Hemoglobin
+20981447	Hum Genet
+22576636	Chest
+26544196	Sex Dev
+9486994	N Engl J Med
+2869009	Hemoglobin
+17463303	J Appl Physiol (1985)
+11140843	Clin Genet
+11359069	Hum Hered
+26151409	Nat Commun
+24085429	Genet Mol Res
+10400129	Pediatr Res
+8822581	Thromb Haemost
+12100044	Clin Exp Allergy
+26782526	Genet Mol Res
+25846608	Hum Mutat
+24707947	Leuk Lymphoma
+11385718	Hum Mutat
+1859405	Biochem Biophys Res Commun
+17928598	N Engl J Med
+25232744	Nat Commun
+8946173	Eur J Hum Genet
+22781209	Curr Opin Pulm Med
+9712537	Clin Genet
+23125440	J Anim Sci
+17634447	N Engl J Med
+11424921	J Med Genet
+16882753	J Clin Endocrinol Metab
+17965227	J Med Genet
+12161469	J Clin Endocrinol Metab
+25874828	J R Coll Physicians Edinb
+1802882	Hemoglobin
+8626836	J Clin Endocrinol Metab
+11746983	Genes Chromosomes Cancer
+11456298	Ann Neurol
+19725780	Thyroid
+19096106	Biofactors
+11932325	J Clin Endocrinol Metab
+9271483	N Engl J Med
+19441164	Melanoma Res
+23227268	PLoS One
+19420365	N Engl J Med
+4719147	Biochim Biophys Acta
+8530630	J Clin Endocrinol Metab
+8875752	Thyroid
+11549674	J Clin Endocrinol Metab
+22051515	J Med Genet
+9662407	Nat Genet
+11095479	J Clin Endocrinol Metab
+8912788	Ann Hum Genet
+9709973	J Clin Endocrinol Metab
+3417397	Invest Ophthalmol Vis Sci
+23453666	Am J Hum Genet
+24820270	Zhong Nan Da Xue Xue Bao Yi Xue Ban
+11370628	J Med Genet
+23721686	Eur J Med Genet
+46338	Lancet
+16368751	J Clin Endocrinol Metab
+20613772	J Invest Dermatol
+9514160	Mol Endocrinol
+23335707	Medicina (B Aires)
+11017088	Nat Genet
+8636380	J Clin Endocrinol Metab
+11061863	Transfusion
+7723794	N Engl J Med
+10431238	Nat Genet
+18391535	Sex Dev
+10878666	Eur J Hum Genet
+3676110	Br J Haematol
+5673160	Ann Hum Genet
+21785343	Clin Dysmorphol
+6434492	Hemoglobin
+19068277	Am J Hum Genet
+26831025	Intern Med
+9629504	Hemoglobin
+11471164	Am J Med Genet
+16804049	J Clin Endocrinol Metab
+24429156	Lancet Respir Med
+10431233	Nat Genet
+2634667	Hemoglobin
+24534407	Pediatrics
+10982474	Am J Med Genet
+11583302	Thromb Haemost
+12723467	Mol Biol (Mosk)
+9916796	Nat Genet
+12406098	Br J Haematol
+15448617	Mol Vis
+19690088	Hum Mol Genet
+15930898	Clin Dysmorphol
+22409502	COPD
+25033069	J Clin Endocrinol Metab
+2434123	Br J Dermatol
+9449683	J Clin Invest
+12788846	J Clin Endocrinol Metab
+11297942	Neuromuscul Disord
+11601501	Ann Neurol
+15643526	Oncol Rep
+11389907	FEBS Lett
+19246359	N Engl J Med
+10544935	Thromb Haemost
+22004009	Ophthalmic Genet
+15126519	J Clin Endocrinol Metab
+21483645	Prog Pediatr Cardiol
+21228624	Cell Cycle
+1961196	Mol Immunol
+22194935	PLoS One
+15654962	J Invest Dermatol
+15373769	J Invest Dermatol
+108887	Acta Haematol
+25810209	Clin Genet
+16804041	J Clin Endocrinol Metab
+10514107	Ann Neurol
+25480986	J Med Genet
+23099646	J Med Genet
+20435886	J Biol Chem
+8867660	Clin Dysmorphol
+1644201	FEBS Lett
+10835638	Nat Genet
+25953654	J Am Heart Assoc
+25355129	J Invest Dermatol
+11381254	Nat Genet
+12868480	Clin Dysmorphol
+24505276	PLoS One
+9674740	Br J Haematol
+20881245	Endocrinology
+12213892	J Clin Endocrinol Metab
+16752401	Hum Mutat
+12974743	Clin Genet
+16707754	N Engl J Med
+18779133	Yi Chuan
+15769976	J Clin Endocrinol Metab
+18728160	J Clin Endocrinol Metab
+10886756	Pediatr Dermatol
+8723688	Hum Mutat
+1665206	Mol Endocrinol
+12446270	Am J Respir Crit Care Med
+23204305	Genome Biol Evol
+8559204	N Engl J Med
+20558387	Arch Neurol
+17513018	Neurobiol Aging
+13911805	Nihon Ketsueki Gakkai Zasshi
+9359047	Eur J Hum Genet
+15481887	Hemoglobin
+24842372	J Exp Med
+9835960	Ann Dermatol Venereol
+18049072	Clin Dysmorphol
+9771712	Nat Genet
+17440044	Mol Endocrinol
+10051163	Am J Med Genet
+12711741	N Engl J Med
+16735993	Mol Vis
+24601692	J Clin Endocrinol Metab
+15930420	N Engl J Med
+9383031	Clin Genet
+18800149	J Invest Dermatol
+12024005	N Engl J Med
+10825362	Brain
+2215607	N Engl J Med
+25970010	N Engl J Med
+9771673	Muscle Nerve
+12694237	Clin Genet
+16738010	J Med Genet
+25998713	Nat Rev Cancer
+10999816	J Clin Endocrinol Metab
+10902795	J Clin Endocrinol Metab
+25130867	Hum Mutat
+24247621	Pathology
+17535800	J Biol Chem
+24275071	Prion
+8626869	J Clin Endocrinol Metab
+8664902	Hum Mutat
+10494086	Am J Med Genet
+12705872	Cell
+25920554	Eur J Hum Genet
+18401027	Neurology
+17614209	Neuroscience
+9449702	J Clin Invest
+2448269	Hemoglobin
+20890279	Nat Genet
+3024666	Biol Chem Hoppe Seyler
+14531788	Kidney Int
+21175599	Clin Genet
+16439973	J Invest Dermatol
+9398746	J Clin Endocrinol Metab
+16720658	J Clin Endocrinol Metab
+24001744	J Clin Endocrinol Metab
+15768552	Hemoglobin
+1419804	Br J Haematol
+14616762	Clin Genet
+27001897	Birth Defects Res A Clin Mol Teratol
+7225407	Biochim Biophys Acta
+23751782	Eur J Med Genet
+15086542	J Invest Dermatol
+3974805	Neuropediatrics
+8458232	Cornea
+26414	Biochim Biophys Acta
+19793632	Brain Dev
+24748105	Hum Genet
+18252794	J Clin Endocrinol Metab
+1360085	Lancet
+12970295	J Clin Endocrinol Metab
+24369075	N Engl J Med
+24031089	J Med Genet
+14715828	J Clin Endocrinol Metab
+17942876	N Engl J Med
+12466388	J Clin Endocrinol Metab
+10078749	Neurology
+22243242	Eur J Oral Sci
+12686700	N Engl J Med
+2215617	N Engl J Med
+18241037	Int J Cancer
+9814495	J Clin Endocrinol Metab
+11849445	Kidney Int
+11570729	Hemoglobin
+22592156	J Invest Dermatol
+20860463	Pharmacogenomics
+27086870	Brain
+24121792	Nat Genet
+21297076	Am J Respir Crit Care Med
+22893401	Methods Mol Biol
+4063166	Br J Dermatol
+23092983	Transl Psychiatry
+3284030	Thymus
+8112025	Clin Res
+26829738	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+23359319	Neoplasia
+11701667	J Clin Endocrinol Metab
+10706896	N Engl J Med
+25205112	Hum Mol Genet
+8825605	Clin Genet
+5116697	J Pediatr
+20409997	Eur J Dermatol
+12843182	J Clin Endocrinol Metab
+16464943	J Clin Endocrinol Metab
+11095460	J Clin Endocrinol Metab
+22047572	N Engl J Med
+18285427	J Med Genet
+15472171	J Clin Endocrinol Metab
+11333869	J Med Genet
+19955557	J Med Genet
+16702971	J Invest Dermatol
+4998085	Am J Ophthalmol
+4347947	Nouv Rev Fr Hematol
+6166590	Hemoglobin
+24744435	J Med Genet
+25300501	Horm Res Paediatr
+10762170	Ann Neurol
+16282702	Nephron Exp Nephrol
+20882040	J Invest Dermatol
+11146721	Arch Ophthalmol
+12794388	Alzheimer Dis Assoc Disord
+10190487	Am J Med Genet
+12888926	Int J Oncol
+8968850	Int J Obes Relat Metab Disord
+26950445	Cell Mol Biol (Noisy-le-grand)
+10615131	Nat Genet
+19508970	J Med Genet
+20110648	Cytogenet Genome Res
+17962451	Invest Ophthalmol Vis Sci
+21851090	Biochemistry
+18390553	J Biol Chem
+9024575	Am J Med Genet
+6012906	Acta Genet Stat Med
+10232754	Am J Med Genet
+16525031	J Med Genet
+26205622	Br J Haematol
+1348297	Lancet
+17088553	Proc Natl Acad Sci U S A
+16862070	Mol Vis
+23224974	Adv Exp Med Biol
+10782927	Clin Genet
+6382002	N Engl J Med
+893132	Hemoglobin
+5643522	Nature
+14557425	J Clin Endocrinol Metab
+7229751	J Pediatr
+2039493	Biochem Biophys Res Commun
+19430483	Nat Genet
+4728965	Clin Biochem
+24905064	J Clin Endocrinol Metab
+26239645	Nat Commun
+9551389	Kidney Int
+11050621	Am J Med Genet
+20144272	Clin Invest Med
+11017071	Nat Genet
+16611748	J Med Genet
+27078032	Ophthalmic Res
+16709599	Mol Endocrinol
+11117542	Ann Neurol
+9916809	Nat Genet
+23430506	JIMD Rep
+24368687	JIMD Rep
+1484692	Ophthalmic Paediatr Genet
+4228361	C R Seances Soc Biol Fil
+12522557	Hum Genet
+25651737	Clin Lab
+11579459	Genes Chromosomes Cancer
+10067911	J Neurosurg
+23700788	Pharmazie
+18252221	Am J Hum Genet
+8784093	J Clin Endocrinol Metab
+16787988	J Clin Endocrinol Metab
+9056557	Am J Med Genet
+9771715	Nat Genet
+5225441	Oral Surg Oral Med Oral Pathol
+16772349	J Clin Endocrinol Metab
+3651795	Brain
+2283297	Hemoglobin
+2240842	Am Rev Respir Dis
+10398436	Genes Chromosomes Cancer
+21496632	Handb Clin Neurol
+11137991	Nat Genet
+9662400	Nat Genet
+22724020	PLoS One
+23812912	J Med Genet
+16775239	N Engl J Med
+20090362	Kidney Blood Press Res
+11506076	Am J Reprod Immunol
+19304958	Neuro Oncol
+8900089	N Engl J Med
+8330979	Hemoglobin
+17513018	Neurobiol Aging
+2349939	Am J Hum Genet
+10355668	Brain
+17298217	Physiol Res
+24594201	Genet Res (Camb)
+20881296	Invest Ophthalmol Vis Sci
+10208578	Neuroreport
+15768557	Hemoglobin
+9556305	Am J Med Genet
+19072009	Eur J Paediatr Dent
+15978109	J Thromb Haemost
+7874129	Hum Mol Genet
+1301960	Hum Mutat
+1052170	Hemoglobin
+23721401	Hum Gene Ther Clin Dev
+2738044	J Biochem
+11220749	Ann Neurol
+18438405	Nat Genet
+10361991	Clin Genet
+18174396	Science
+11006213	Invest Ophthalmol Vis Sci
+15923275	J Med Genet
+15840743	J Clin Endocrinol Metab
+11231969	J Clin Endocrinol Metab
+15654748	Biochemistry
+16339849	J Med Genet
+27058611	PLoS Genet
+16371502	J Med Genet
+857849	Br J Haematol
+14141615	Br J Haematol
+8923827	J Clin Endocrinol Metab
+8550742	J Clin Endocrinol Metab
+25168514	Hum Mutat
+2017226	N Engl J Med
+21714643	N Engl J Med
+18758830	Neurogenetics
+17351359	Clin Dysmorphol
+11600516	J Clin Endocrinol Metab
+17148041	Ophthalmic Genet
+16030164	J Clin Endocrinol Metab
+8555062	Br J Haematol
+10340654	Am J Med Genet
+26774993	Reprod Biomed Online
+9806551	Nat Genet
+15531551	J Clin Endocrinol Metab
+18611979	J Med Genet
+8940268	Am J Hum Genet
+26936822	Hum Mol Genet
+95062	Trans Ophthalmol Soc U K
+9164051	Hum Biol
+16720667	J Clin Endocrinol Metab
+16740912	J Med Genet
+10994648	Psychiatr Genet
+4408431	Klin Wochenschr
+14674887	Br J Dermatol
+26476432	J Natl Cancer Inst
+22510445	J Med Genet
+17888206	Clin Exp Rheumatol
+20662904	Eur J Oral Sci
+10742093	Nat Genet
+3740052	Am J Hematol
+21487335	Retina
+12199804	Br J Haematol
+10553987	Ann Neurol
+11598368	Gynecol Obstet Invest
+7224095	Brain Dev
+12426103	Gene
+5830022	Br J Haematol
+5022448	Clin Biochem
+18948357	J Med Genet
+20198859	Mol Biol (Mosk)
+11186265	Hemoglobin
+10802645	Nat Genet
+18413574	Neurology
+27010584	J Am Coll Surg
+6181239	J Pediatr
+26112643	Cell Physiol Biochem
+24898286	Pathol Oncol Res
+10903929	Am J Hum Genet
+22686506	Ophthalmic Genet
+3191145	Biochim Biophys Acta
+22168587	N Engl J Med
+17712737	Neuropediatrics
+19239083	Genet Couns
+10598809	Hum Genet
+27035099	Mol Med Rep
+16187918	Thyroid
+16394081	J Clin Endocrinol Metab
+10802664	Nat Genet
+18178632	J Med Genet
+11589684	Clin Endocrinol (Oxf)
+11453975	Clin Genet
+10835624	Nat Genet
+20949630	J Bone Miner Res
+26627873	Neuromuscul Disord
+12607113	Hum Genet
+25914261	Mov Disord
+8338191	Am J Surg Pathol
+3951505	N Engl J Med
+20693979	Mod Pathol
+18178630	J Med Genet
+10053004	Am J Hum Genet
+12519826	J Clin Endocrinol Metab
+20950786	Am J Hum Genet
+14510823	Epilepsia
+17698911	J Clin Endocrinol Metab
+16030156	J Clin Endocrinol Metab
+18364377	J Clin Endocrinol Metab
+2590199	Biochem Biophys Res Commun
+2907841	Nihon Ketsueki Gakkai Zasshi
+25730042	Genet Mol Res
+25023003	Genet Res (Camb)
+17113756	J Dermatol Sci
+25728762	Prenat Diagn
+826083	Acta Haematol
+10973256	Nat Genet
+24289550	Asian Pac J Cancer Prev
+23355087	J Inherit Metab Dis
+23604097	Int J Mol Med
+620052	Biochim Biophys Acta
+10323405	J Clin Endocrinol Metab
+15482471	J Invest Dermatol
+2502220	BMJ
+8208911	Q J Med
+17726075	J Clin Endocrinol Metab
+747178	Am J Hematol
+6726521	J Pediatr
+1634355	Hemoglobin
+9452120	Hum Mutat
+21507891	J Med Genet
+26578207	Orphanet J Rare Dis
+25293953	J Med Genet
+9172170	Neuroreport
+12050212	J Clin Endocrinol Metab
+9546354	Am J Pathol
+26406308	PLoS One
+11891833	Ann Neurol
+478977	Hemoglobin
+10999818	J Clin Endocrinol Metab
+1682813	Nature
+9488633	Br J Haematol
+8069654	Eur J Hum Genet
+15356022	J Clin Endocrinol Metab
+12702168	Clin Genet
+26998897	Cancer
+10213047	Am J Med Genet
+8626825	J Clin Endocrinol Metab
+11403040	J Med Genet
+8537235	Hemoglobin
+20701824	Int J Neuropsychopharmacol
+24061513	Am J Surg Pathol
+11403047	J Med Genet
+7729014	Circulation
+25748484	J Med Genet
+11588017	Am J Respir Cell Mol Biol
+26638553	Klin Oczna
+4388268	J Lab Clin Med
+26887046	Oncotarget
+12725589	Genet Couns
+2060625	FEBS Lett
+26694549	Hum Mutat
+23165865	Drug Metab Pharmacokinet
+10700184	Nat Genet
+9734640	Br J Haematol
+26132940	N Engl J Med
+1550586	Biochem Biophys Res Commun
+26987485	Sci Rep
+18319074	Am J Hum Genet
+23778016	Prog Neuropsychopharmacol Biol Psychiatry
+15356023	J Clin Endocrinol Metab
+15292359	J Clin Endocrinol Metab
+10232404	Exp Dermatol
+12647205	Eur J Pediatr
+1390939	Biochim Biophys Acta
+14706637	Biochem Biophys Res Commun
+15292357	J Clin Endocrinol Metab
+1787103	Hemoglobin
+15181075	J Clin Endocrinol Metab
+9843042	Am J Med Genet
+12484635	Hemoglobin
+9859938	Hemoglobin
+2753736	Hemoglobin
+14671192	J Clin Endocrinol Metab
+11298688	Clin Genet
+2384314	Hemoglobin
+25279501	J Clin Endocrinol Metab
+18390553	J Biol Chem
+11331879	Nat Cell Biol
+12629077	J Clin Endocrinol Metab
+7811247	Biochem Biophys Res Commun
+12030897	Clin Genet
+18477613	J Cell Sci
+16371500	J Med Genet
+7338476	Hemoglobin
+11940090	Clin Genet
+15356046	J Clin Endocrinol Metab
+23801934	Mol Syndromol
+11251997	Am J Med Genet
+10471507	Nat Genet
+18235024	Invest Ophthalmol Vis Sci
+9409863	Am J Med Genet
+18390553	J Biol Chem
+8195004	Hemoglobin
+9662402	Nat Genet
+10208645	Pharmacogenetics
+19279021	J Med Genet
+9467595	J Clin Endocrinol Metab
+22723313	J Clin Endocrinol Metab
+12825073	Eur J Hum Genet
+18216574	Cornea
+21272798	J Crohns Colitis
+8574420	Clin Dysmorphol
+10700186	Nat Genet
+9415695	Am J Med Genet
+15981244	Hum Mutat
+24378291	Ear Hear
+9337379	N Engl J Med
+11359403	Br J Dermatol
+17405847	J Clin Endocrinol Metab
+19357118	J Med Genet
+17473068	J Clin Endocrinol Metab
+12786960	Eur J Oral Sci
+9415493	Int J Dev Biol
+9589637	J Clin Endocrinol Metab
+5710590	Mayo Clin Proc
+10496269	Neurology
+15981765	Acta Paediatr
+11372009	N Engl J Med
+22521702	J Dent
+16882747	J Clin Endocrinol Metab
+14556208	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+11506406	Ann Neurol
+26151409	Nat Commun
+10700474	Int Immunol
+9916847	Am J Med Genet
+10889018	Biochemistry
+15838506	Nat Genet
+19864672	N Engl J Med
+2332125	Dev Med Child Neurol
+15126534	J Clin Endocrinol Metab
+1138885	Biochim Biophys Acta
+16409463	J Thromb Haemost
+1899336	DNA Cell Biol
+8811318	Hemoglobin
+11724986	Transfusion
+19846852	N Engl J Med
+25525168	Invest Ophthalmol Vis Sci
+17412879	J Med Genet
+11385236	Dermatology
+9588494	Thyroid
+1458725	Rinsho Shinkeigaku
+24668509	Am J Med Genet A
+9177373	J Clin Endocrinol Metab
+12624725	J Hum Genet
+23708187	Nat Genet
+2339358	Thromb Haemost
+10583163	Br J Dermatol
+25652354	J Hum Genet
+16672702	N Engl J Med
+9626162	J Clin Endocrinol Metab
+23167938	Ophthalmic Genet
+22392858	J Bone Miner Res
+25575132	J Neuropathol Exp Neurol
+9140395	Nat Genet
+12746204	Ultrastruct Pathol
+22703652	J Endod
+10084571	J Clin Endocrinol Metab
+10487671	J Clin Endocrinol Metab
+16399879	J Med Genet
+9157604	Thromb Haemost
+1310898	Cell
+26458567	Int J Mol Med
+19441135	Mov Disord
+14764791	J Clin Endocrinol Metab
+10211478	Ann Neurol
+22622422	J Invest Dermatol
+7800007	N Engl J Med
+18434704	Respiration
+14339001	Biochem Biophys Res Commun
+10984565	N Engl J Med
+14675180	J Invest Dermatol
+21877133	Hum Genet
+20146806	BMC Med Genet
+1406709	Mol Endocrinol
+9686362	J Inherit Metab Dis
+8845463	Blood Coagul Fibrinolysis
+11074500	Am J Med Genet
+24684626	DNA Cell Biol
+8727306	Curr Opin Oncol
+8825598	Clin Genet
+23214077	Nihon Rinsho
+15452077	Invest Ophthalmol Vis Sci
+11231903	Am J Hum Genet
+849454	Biochim Biophys Acta
+9506831	FEBS Lett
+9831351	Clin Genet
+1718266	Biochem Biophys Res Commun
+4281476	Nouv Rev Fr Hematol
+25017831	Natl Med J India
+22159456	Thromb Haemost
+23524580	Oncogene
+3100754	J Pediatr
+10655063	Nat Genet
+12786762	Clin Genet
+5577460	Biochim Biophys Acta
+16116675	Hemoglobin
+21147908	J Med Genet
+10700180	Nat Genet
+11300355	Hemoglobin
+23364476	J Invest Dermatol
+9768672	J Clin Endocrinol Metab
+20377530	Biochem J
+11186260	Hemoglobin
+2775660	Br J Haematol
+11167791	Br J Haematol
+20435886	J Biol Chem
+14602880	N Engl J Med
+25137426	J Clin Endocrinol Metab
+16940445	J Clin Endocrinol Metab
+9472666	Clin Exp Immunol
+15886248	J Clin Endocrinol Metab
+16459341	J Med Genet
+15008267	Hemoglobin
+18272894	N Engl J Med
+8857020	N Engl J Med
+16816023	J Med Genet
+11134145	J Clin Endocrinol Metab
+12634868	Eur J Hum Genet
+2960371	Br J Dermatol
+20662725	Clin Exp Hypertens
+11570728	Hemoglobin
+15356038	J Clin Endocrinol Metab
+8985730	Genet Couns
+10523035	J Clin Endocrinol Metab
+25788562	Ann Otol Rhinol Laryngol
+8723681	Hum Mutat
+10545938	Nat Genet
+12220453	Clin Genet
+10514102	Ann Neurol
+23076869	Int J Oncol
+25082432	J Inherit Metab Dis
+16787985	J Clin Endocrinol Metab
+26559152	Sci Rep
+12768435	J Hum Genet
+18006672	J Med Genet
+9626144	J Clin Endocrinol Metab
+11453974	Clin Genet
+22125647	PLoS One
+10634411	J Clin Endocrinol Metab
+15562023	J Clin Endocrinol Metab
+2816924	Am J Hematol
+21348572	DNA Cell Biol
+4019538	J Bone Joint Surg Am
+22652534	J Med Genet
+18243799	Lancet Neurol
+12144065	Hemoglobin
+6629822	Hemoglobin
+20938016	Arch Ophthalmol
+10995508	Am J Med Genet
+26991897	Ann Neurol
+19858127	J Med Genet
+8408834	J Am Acad Dermatol
+25561519	Genome Res
+10102299	Invest Ophthalmol Vis Sci
+1677564	Biochem Biophys Res Commun
+15715952	J Biochem Mol Biol
+21192766	Ophthalmic Genet
+10391223	Nat Genet
+11298683	Clin Genet
+24325356	N Engl J Med
+3005800	Medicine (Baltimore)
+2133234	Blood Coagul Fibrinolysis
+1955520	J Clin Endocrinol Metab
+25894502	Nat Genet
+11007980	FEBS Lett
+11204559	Thromb Haemost
+21529451	Zhongguo Yi Xue Ke Xue Yuan Xue Bao
+25192045	Am J Hum Genet
+10982965	Am J Med Genet
+893139	Hemoglobin
+7437116	Ann Intern Med
+24286503	Br Poult Sci
+2843762	Mol Endocrinol
+17077513	Biol Pharm Bull
+21224848	EMBO J
+12679457	J Clin Endocrinol Metab
+2647812	J Am Coll Cardiol
+3839774	Hemoglobin
+619595	Am Heart J
+26660147	Horm Cancer
+20157724	J Neurol
+10369262	Nat Genet
+8900279	Nature
+20699607	Dermatology
+23551418	Respirology
+9354782	Nat Genet
+4702713	Arch Dermatol
+2689121	Diabetes Metab Rev
+9920104	J Clin Endocrinol Metab
+21031079	Mol Syndromol
+10581493	Am J Med Genet
+19196676	N Engl J Med
+19890349	J Invest Dermatol
+18252223	Am J Hum Genet
+22933543	J Clin Endocrinol Metab
+16027372	Proc Natl Acad Sci U S A
+6548207	Hemoglobin
+2423135	Biochim Biophys Acta
+10982191	Hum Genet
+10545950	Nat Genet
+26829730	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+24690100	Br J Haematol
+4212046	Acta Haematol
+7148944	Am J Ophthalmol
+20713646	Dis Model Mech
+15292341	J Clin Endocrinol Metab
+10208576	Neuroreport
+10365735	Thromb Haemost
+25299195	Genet Mol Res
+15998776	J Clin Endocrinol Metab
+16849412	J Clin Endocrinol Metab
+19181095	Adv Exp Med Biol
+18172690	Hum Genet
+18593870	J Med Genet
+10835634	Nat Genet
+4824923	Biochim Biophys Acta
+16740914	J Med Genet
+9674916	Am J Med Genet
+17893707	Mol Psychiatry
+11154146	Thromb Haemost
+10999801	J Clin Endocrinol Metab
+11062477	Nat Genet
+1655284	Cell
+25097247	Invest Ophthalmol Vis Sci
+3384708	Hemoglobin
+2562843	J Clin Endocrinol Metab
+10584247	Rev Neurol
+16672701	N Engl J Med
+26190982	Front Behav Neurosci
+26950094	Nat Genet
+9620774	Nat Genet
+10084596	J Clin Endocrinol Metab
+26218636	Gen Physiol Biophys
+23497483	BMC Med Genet
+13943409	N Engl J Med
+11096278	Hum Hered
+9382152	Am J Med Genet
+6857757	Hemoglobin
+14421678	Folia Haematol (Frankf)
+24123876	J Med Genet
+15770128	Clin Dysmorphol
+10482261	Ann Neurol
+11791870	Hemoglobin
+16429380	Neuropediatrics
+11062481	Nat Genet
+17614209	Neuroscience
+17804842	N Engl J Med
+11745998	Am J Med Genet
+10339581	Proc Natl Acad Sci U S A
+1799422	Genet Couns
+12574188	J Clin Endocrinol Metab
+14282069	Br J Haematol
+8912005	Immunol Cell Biol
+10036975	Genet Res
+11138005	Nat Genet
+25551525	N Engl J Med
+10319851	Nat Genet
+11095995	Am J Hum Genet
+10051160	Am J Med Genet
+9989622	Ann Neurol
+16418593	Genet Med
+6629824	Hemoglobin
+7554313	Clin Endocrinol (Oxf)
+8718692	Hemoglobin
+12124407	N Engl J Med
+23792176	Int J Biochem Cell Biol
+26720466	Invest Ophthalmol Vis Sci
+26902266	Sci Rep
+24618891	Nat Commun
+11175779	Nat Genet
+16798639	Hemoglobin
+11095433	J Clin Endocrinol Metab
+18211975	J Clin Endocrinol Metab
+11841440	Br J Haematol
+8664912	Hum Mutat
+9637425	Am J Med Genet
+20531442	Eur J Hum Genet
+8771990	Jpn J Hum Genet
+10665502	Ann Neurol
+25391453	J Med Genet
+6469695	Hemoglobin
+13774168	Am J Med
+3619918	Biochem Biophys Res Commun
+26725349	Rinsho Ketsueki
+23850727	Gene
+11782983	Ann Neurol
+2781509	Thromb Res
+22516700	Med Wieku Rozwoj
+12437656	Br J Haematol
+15768551	Hemoglobin
+12050210	J Clin Endocrinol Metab
+11843842	Br J Haematol
+9101280	Hemoglobin
+22659251	J Clin Endocrinol Metab
+23420520	Hum Mutat
+22930427	Genet Mol Res
+10932196	Nat Genet
+7794915	Biochemistry
+24972238	Eur J Med Genet
+1406699	Mol Endocrinol
+17992125	Melanoma Res
+9819448	N Engl J Med
+12384649	Int Angiol
+1975028	Lancet
+9449691	J Clin Invest
+23652376	Eur J Hum Genet
+14573733	N Engl J Med
+26849716	Blood Coagul Fibrinolysis
+25337070	Mol Syndromol
+4379606	J Lab Clin Med
+4995018	Biochim Biophys Acta
+25774666	Int Rev Immunol
+26566502	Diabetes Metab J
+10982477	Am J Med Genet
+22913934	Curr Opin Otolaryngol Head Neck Surg
+24747200	Bone
+9535665	N Engl J Med
+848857	Ann Hum Genet
+24996715	Ann Thorac Surg
+26636390	J Neurosurg
+8954053	J Clin Endocrinol Metab
+7910348	Lancet
+20942817	Br J Pharmacol
+6618888	Hemoglobin
+23874428	PLoS One
+19889647	J Med Genet
+4699574	Biochim Biophys Acta
+21873089	Eur J Paediatr Neurol
+10973247	Nat Genet
+5105366	Enzyme
+17873122	J Med Genet
+4261190	Nouv Rev Fr Hematol
+17692548	Mol Genet Metab
+12000365	Clin Genet
+22983010	Cell Cycle
+17713465	Kidney Int
+11553046	Clin Genet
+7923357	Cell
+6812368	Acta Haematol
+16757530	J Clin Endocrinol Metab
+6526652	Hemoglobin
+25873077	Cancer Discov
+17047091	J Med Genet
+12024004	N Engl J Med
+15834925	Cancer
+12142726	Pharmacogenetics
+22357859	J Neurosci
+9266390	J Inherit Metab Dis
+19443464	J Med Genet
+11442493	Br J Haematol
+25085631	Ophthalmology
+10494093	Am J Med Genet
+21191406	J Invest Dermatol
+21507892	J Med Genet
+3480783	Clin Nephrol
+11843825	Br J Haematol
+9276200	Eur Neurol
+3560758	Klin Monbl Augenheilkd
+23521701	Traffic
+3924410	Cell
+9851783	J Clin Endocrinol Metab
+6801514	N Engl J Med
+12471057	Hum Mol Genet
+11310633	Ann Neurol
+26218636	Gen Physiol Biophys
+6998928	Hemoglobin
+18354102	N Engl J Med
+10487710	J Clin Endocrinol Metab
+2293020	Mol Endocrinol
+10861678	Am J Med Genet
+14657428	N Engl J Med
+10870886	Hemoglobin
+15481896	Hemoglobin
+20664185	Dermatology
+20942659	N Engl J Med
+12081719	Clin Genet
+1281988	Biochem Biophys Res Commun
+8342560	Am J Hematol
+11017075	Nat Genet
+10069705	Am J Med Genet
+11232012	J Clin Endocrinol Metab
+21555372	Cancer Res
+20393116	Invest Ophthalmol Vis Sci
+16879338	Anim Genet
+8297359	Biochem Biophys Res Commun
+24667072	Cough
+2513289	Hemoglobin
+25941412	Proc Natl Acad Sci U S A
+10506086	Brain
+24465236	Genomics Inform
+1472057	Biochem Biophys Res Commun
+23348765	Hum Mutat
+18511571	J Med Genet
+3627182	N Engl J Med
+22683713	Nat Genet
+12644936	Hum Genet
+8792774	Arterioscler Thromb Vasc Biol
+5377176	Tidsskr Nor Laegeforen
+16679491	J Med Genet
+5011657	Vox Sang
+15590965	N Engl J Med
+17056637	J Med Genet
+22872156	Curr Opin Hematol
+7851014	Clin Exp Immunol
+12793612	J Pediatr Endocrinol Metab
+15572418	J Clin Endocrinol Metab
+20522427	J Med Genet
+16431939	Invest Ophthalmol Vis Sci
+22113475	J Invest Dermatol
+12546692	Biochem Soc Trans
+25297483	Rev Neurol
+10099885	Clin Nephrol
+23974994	Inflamm Bowel Dis
+2399911	Am J Hematol
+22301785	Mol Endocrinol
+16174715	J Clin Endocrinol Metab
+9697688	Nat Genet
+7682984	Hum Genet
+10384396	J Inherit Metab Dis
+8956035	Hum Mutat
+19890111	N Engl J Med
+8131299	Clin Genet
+16297213	J Invest Dermatol
+11251574	Br J Dermatol
+9332655	Am J Med Genet
+2594029	N Engl J Med
+10759702	Br J Haematol
+11101853	Nat Genet
+11502821	J Clin Endocrinol Metab
+9360557	J Clin Endocrinol Metab
+16932467	Nat Clin Pract Nephrol
+26283575	Clin Genet
+14236725	Blood
+8062435	Clin Genet
+25023003	Genet Res (Camb)
+15542288	J Am Coll Cardiol
+23645565	Mol Cancer Res
+17325136	Invest Ophthalmol Vis Sci
+24021960	J Affect Disord
+10862081	Hum Mutat
+12107202	J Clin Endocrinol Metab
+11545688	Genet Med
+19712804	J Am Coll Cardiol
+11380452	Br J Haematol
+2930724	Br J Haematol
+2615648	Mol Biol Med
+24242851	Electrophoresis
+27009151	Brain
+25288569	J Immunol
+16174718	J Clin Endocrinol Metab
+3369438	Am J Hematol
+8071745	J Pediatr
+3978039	Br J Dermatol
+15068978	Ann Intern Med
+26218636	Gen Physiol Biophys
+16484817	Dermatology
+20435886	J Biol Chem
+10604746	J Neuropathol Exp Neurol
+18849486	Blood
+11135494	Ophthalmic Genet
+5129589	Biochim Biophys Acta
+25342278	Circ J
+17285242	J Hum Genet
+20061430	J Clin Endocrinol Metab
+9040504	J Cereb Blood Flow Metab
+3170240	Hemoglobin
+12629116	J Clin Endocrinol Metab
+15008266	Hemoglobin
+22944128	Zhonghua Yi Xue Za Zhi
+24284334	Autophagy
+11666007	Clin Dysmorphol
+1164512	Biochim Biophys Acta
+22199023	Hum Mol Genet
+19861302	J Med Genet
+26188975	Ann Thorac Surg
+18611981	J Med Genet
+14216462	J Bone Joint Surg Br
+7714087	J Clin Endocrinol Metab
+18695058	Arch Neurol
+9329388	J Clin Endocrinol Metab
+21490620	J Invest Dermatol
+1517103	Hemoglobin
+4209752	Am J Dis Child
+22555292	Eur J Cell Biol
+11424925	J Med Genet
+12630959	Clin Genet
+26160902	Development
+20190752	Nat Genet
+25596800	Rev Mal Respir
+16222661	Am J Med Genet A
+18524835	J Med Genet
+22146942	Eur J Hum Genet
+24818805	Am J Med Genet A
+9843165	Thromb Haemost
+12002146	Clin Dysmorphol
+10502593	N Engl J Med
+23526554	Hum Mutat
+26141459	JIMD Rep
+22414746	Cells Tissues Organs
+11138003	Nat Genet
+11220739	Ann Neurol
+10690291	Cardiovasc Res
+439565	Johns Hopkins Med J
+10080174	Nat Genet
+12110737	N Engl J Med
+25636086	Nat Commun
+12714611	Invest Ophthalmol Vis Sci
+13699213	Acta Haematol
+11175783	Nat Genet
+19592390	J Med Genet
+17299070	J Clin Endocrinol Metab
+8402893	Cell
+17327381	J Clin Endocrinol Metab
+16554528	N Engl J Med
+19643772	J Med Genet
+25676610	J Med Genet
+9180938	Radiol Med
+24901824	Eur J Gastroenterol Hepatol
+7772529	Br J Haematol
+17652717	Invest Ophthalmol Vis Sci
+23940607	PLoS One
+26429597	Genome Biol
+11486912	J Inherit Metab Dis
+9731530	Nat Genet
+9731530	Nat Genet
+7554356	Clin Genet
+20104589	Hum Mutat
+8636263	J Clin Endocrinol Metab
+10751095	Am J Med Genet
+14069095	Pediatrics
+16505159	J Med Genet
+7521371	J Invest Dermatol
+9459313	Thromb Haemost
+4283789	J Lab Clin Med
+11231775	Arch Ophthalmol
+26908947	Eur Heart J
+25007323	Curr Opin Pediatr
+21357617	J Med Genet
+10599709	J Clin Endocrinol Metab
+21769101	Mol Psychiatry
+23188108	J Med Genet
+21226579	N Engl J Med
+10545951	Nat Genet
+9771710	Nat Genet
+3821796	N Engl J Med
+12121352	Clin Genet
+23636092	Sci Transl Med
+26918607	Oncotarget
+1778977	J Biochem
+25017102	Nat Genet
+18073297	J Clin Endocrinol Metab
+7200565	Metabolism
+18182455	J Clin Endocrinol Metab
+25390987	Retin Cases Brief Rep
+14616765	Clin Genet
+25742519	J Clin Endocrinol Metab
+19387015	N Engl J Med
+23009572	Genet Test Mol Biomarkers
+17646580	Circulation
+11703283	Br J Dermatol
+20938048	J Dent Res
+24505276	PLoS One
+23615310	Exp Anim
+9677066	Am J Med Genet
+1447668	J Pediatr
+22162401	Am J Med Genet B Neuropsychiatr Genet
+9823490	Clin Dysmorphol
+23339110	J Med Genet
+8946107	Clin Genet
+22368300	J Med Genet
+6150139	Lancet
+10569723	Hemoglobin
+20685856	J Clin Endocrinol Metab
+23709756	J Med Genet
+23086744	Hum Mutat
+18326614	Am J Clin Nutr
+25527630	J Med Genet
+17392831	J Invest Dermatol
+11502797	J Clin Endocrinol Metab
+26788535	Mol Genet Genomic Med
+10722118	Hemoglobin
+17535992	J Clin Endocrinol Metab
+3706292	Am J Hematol
+10598818	Hum Genet
+11241464	Am J Med Genet
+1943690	Mol Biol Med
+10477778	N Engl J Med
+11297590	J Clin Endocrinol Metab
+10528862	J Med Genet
+22378287	Eur J Hum Genet
+2283303	Hemoglobin
+21549340	Am J Hum Genet
+15851576	Invest Ophthalmol Vis Sci
+9697698	Nat Genet
+22187985	N Engl J Med
+10391222	Nat Genet
+18211978	J Clin Endocrinol Metab
+9771699	Nat Genet
+10905661	Clin Genet
+3676699	Brain
+19847927	Ann Hum Genet
+24941081	N Engl J Med
+1967768	Lancet
+11288717	J Med Genet
+18057081	J Med Genet
+9827908	Br J Haematol
+18990538	Presse Med
+13716853	Biochim Biophys Acta
+15015131	Am J Hum Genet
+5511487	Union Med Can
+11038443	Am J Med Genet
+12752578	Clin Genet
+6100724	Mol Biol Med
+7615399	Hemoglobin
+1303619	J Am Acad Dermatol
+21368769	J Invest Dermatol
+10999776	J Clin Endocrinol Metab
+25092550	Acta Neurol Belg
+9205497	Br J Dermatol
+8316249	Mol Endocrinol
+18843290	J Invest Dermatol
+15921162	Hemoglobin
+25527630	J Med Genet
+21087195	J Neurogenet
+10930571	FEBS Lett
+9856842	J Invest Dermatol
+10636740	J Med Genet
+18285423	J Med Genet
+2917133	Br J Haematol
+7904584	Hum Hered
+25860647	Fam Cancer
+10323394	J Clin Endocrinol Metab
+9671272	Hum Mutat
+11170288	Genes Chromosomes Cancer
+12414900	J Clin Endocrinol Metab
+9295084	Am J Med Genet
+3571851	J Endocrinol Invest
+8556303	Eur J Hum Genet
+7713741	Hemoglobin
+11076045	Clin Genet
+10610176	Nat Genet
+8954067	J Clin Endocrinol Metab
+21295948	Schizophr Res
+16541094	J Invest Dermatol
+21793738	N Engl J Med
+2623136	Q J Med
+1164511	Biochim Biophys Acta
+18413368	J Med Genet
+21848462	N Engl J Med
+6860428	Hemoglobin
+18243799	Lancet Neurol
+17356052	J Clin Endocrinol Metab
+1678049	Lancet
+10335979	Hemoglobin
+15965226	J Neurol Neurosurg Psychiatry
+22510444	J Med Genet
+12484634	Hemoglobin
+6198905	Am J Hematol
+21462283	Hum Mutat
+9360529	J Clin Endocrinol Metab
+11344206	J Clin Endocrinol Metab
+12358944	Br J Haematol
+17614209	Neuroscience
+26631918	Thromb Haemost
+26894450	Ophthalmic Genet
+25856206	Leuk Lymphoma
+16299064	J Med Genet
+3623977	Hemoglobin
+1349838	Int J Hematol
+25153393	Biol Chem
+22238410	Neurology
+12030893	Clin Genet
+12050257	J Clin Endocrinol Metab
+19181095	Adv Exp Med Biol
+9579893	Epilepsia
+15831593	J Med Genet
+25490274	J Clin Endocrinol Metab
+10982970	Am J Med Genet
+15531530	J Clin Endocrinol Metab
+11791874	Hemoglobin
+18614783	N Engl J Med
+9488635	Br J Haematol
+19302039	Annu Rev Immunol
+17267906	N Engl J Med
+24706940	J Med Genet
+22829427	Hum Mutat
+8829657	Hum Mutat
+2574033	Arteriosclerosis
+20618350	Clin Genet
+22993627	Exp Ther Med
+22555292	Eur J Cell Biol
+25565374	Genet Test Mol Biomarkers
+9233564	Br J Haematol
+23352163	Neuron
+17566086	J Clin Endocrinol Metab
+4514629	Nat New Biol
+2164769	Am J Gastroenterol
+12173321	Cancer
+18022865	Hum Mutat
+11703331	Br J Haematol
+25728762	Prenat Diagn
+4127713	Br J Haematol
+9814493	J Clin Endocrinol Metab
+10566658	J Clin Endocrinol Metab
+9266404	J Inherit Metab Dis
+9056564	Am J Med Genet
+8829660	Hum Mutat
+25650066	J Med Genet
+8964831	J Clin Endocrinol Metab
+22243242	Eur J Oral Sci
+24499211	N Engl J Med
+4366187	J Pediatr
+15958500	J Med Genet
+11232006	J Clin Endocrinol Metab
+12121354	Clin Genet
+15658189	Hemoglobin
+25539947	J Med Genet
+19070031	Pak J Biol Sci
+12970318	J Clin Endocrinol Metab
+9371856	N Engl J Med
+2634669	Hemoglobin
+8383511	Am J Respir Cell Mol Biol
+26692240	Am J Med Genet A
+17513018	Neurobiol Aging
+10852552	Ann Neurol
+23562982	Gene
+1530621	Biochem Biophys Res Commun
+15481894	Hemoglobin
+9608704	J Forensic Sci
+12786754	Clin Genet
+9412624	Stroke
+849451	Biochim Biophys Acta
+10742096	Nat Genet
+26885695	Ophthalmic Genet
+12904520	N Engl J Med
+2101840	Hemoglobin
+20805367	J Med Genet
+24263033	J Clin Neuromuscul Dis
+25058219	JAMA
+20221955	Neuropediatrics
+27064276	PLoS One
+17903304	BMC Med Genet
+12707225	Blood
+22482962	Taiwan J Obstet Gynecol
+16885183	J Med Genet
+25307056	Nature
+22194162	Genet Mol Res
+22668561	Eur J Dermatol
+11484898	Thyroid
+23621221	Asian Pac J Cancer Prev
+16382669	J Investig Dermatol Symp Proc
+21920918	Am J Respir Crit Care Med
+8558570	J Med Genet
+980079	N Engl J Med
+24993631	Acta Neurobiol Exp (Wars)
+12804991	Eur J Dermatol
+10625078	Pediatr Res
+10878478	Hum Hered
+8280608	Br J Haematol
+10742114	Nat Genet
+25164601	Ann Neurol
+26893765	Oncol Lett
+21746835	Vet Pathol
+22513199	Clin Exp Rheumatol
+26336158	J Mol Endocrinol
+26812887	Oncotarget
+20647552	J Med Genet
+1717157	Cell
+16306525	N Engl J Med
+26516065	Cancer Discov
+2599881	Hemoglobin
+10973263	Nat Genet
+15292329	J Clin Endocrinol Metab
+6019034	Br J Haematol
+12752120	Br J Dermatol
+7216225	Hum Hered
+9360556	J Clin Endocrinol Metab
+9406826	J Invest Dermatol
+3839772	Hemoglobin
+24686847	Nat Genet
+10323403	J Clin Endocrinol Metab
+8120281	J Allergy Clin Immunol
+25961943	Nat Genet
+10973318	Nat Med
+23871722	Am J Hum Genet
+22103680	BMC Med Genet
+9843084	Muscle Nerve
+4351905	Br J Haematol
+12629136	J Clin Endocrinol Metab
+23176824	Am J Hum Genet
+17711923	J Clin Endocrinol Metab
+21651393	N Engl J Med
+6148708	Neuropediatrics
+26957854	Middle East Afr J Ophthalmol
+25105228	Am J Hum Genet
+3022108	Mol Biol Med
+23982724	Oncol Rep
+15356057	J Clin Endocrinol Metab
+12072061	Br J Dermatol
+11173780	Cardiology
+6645961	Metabolism
+1727817	J Clin Endocrinol Metab
+17088553	Proc Natl Acad Sci U S A
+10566637	J Clin Endocrinol Metab
+12050193	J Clin Endocrinol Metab
+26274505	RNA Biol
+81926	Lancet
+9576175	Br J Haematol
+12519885	J Clin Endocrinol Metab
+11431687	Nat Genet
+17617514	J Med Genet
+11579211	Mol Endocrinol
+23445176	Clin Endocrinol (Oxf)
+11600548	J Clin Endocrinol Metab
+14557466	J Clin Endocrinol Metab
+14616767	Clin Genet
+22931316	N Engl J Med
+8793927	N Engl J Med
+24706189	Cancer Causes Control
+21969027	Klin Padiatr
+26917597	Brain
+11786058	Arch Ophthalmol
+17333281	Hum Genet
+25122610	Blood
+15599958	N Engl J Med
+15709052	Am J Respir Crit Care Med
+12788847	J Clin Endocrinol Metab
+22802285	Proc Am Thorac Soc
+16770573	Arch Dermatol Res
+22466463	Retina
+22539873	Mol Vis
+2719946	Biochemistry
+23625533	JIMD Rep
+11079536	Ann Neurol
+22102188	Semin Thromb Hemost
+9305618	Leukemia
+10395236	Endocr J
+14657427	N Engl J Med
+25082885	Invest Ophthalmol Vis Sci
+598011	Clin Endocrinol (Oxf)
+3828226	Br J Haematol
+7129931	Hemoglobin
+1923751	Nucleic Acids Res
+2272838	Hemoglobin
+23204305	Genome Biol Evol
+17088553	Proc Natl Acad Sci U S A
+1598234	Nucleic Acids Res
+4761994	Biochim Biophys Acta
+8347685	Biochim Biophys Acta
+24951542	Hum Mol Genet
+26043501	Genet Couns
+10071047	Brain
+7558872	Hemoglobin
+2736244	Br J Haematol
+9745427	J Clin Endocrinol Metab
+9890479	J Pediatr Gastroenterol Nutr
+10714950	J Pharm Pharmacol
+12213893	J Clin Endocrinol Metab
+819054	Birth Defects Orig Artic Ser
+4352099	Clin Endocrinol (Oxf)
+5011389	Am J Med
+22178801	Fetal Diagn Ther
+10678662	Am J Med Genet
+22409502	COPD
+2625626	J Genet Hum
+11137999	Nat Genet
+10580070	N Engl J Med
+1419803	Br J Haematol
+16088246	Ophthalmic Res
+9843038	Am J Med Genet
+4846278	Br J Haematol
+19685389	Fortschr Neurol Psychiatr
+5642385	Biochem Biophys Res Commun
+4214182	Acta Haematol
+16443854	J Med Genet
+14228003	Ann Hum Genet
+16968807	J Clin Endocrinol Metab
+11298551	Br J Dermatol
+10911008	N Engl J Med
+12779273	Hemoglobin
+24878828	Clin Dysmorphol
+25345081	Pediatr Endocrinol Rev
+21512271	Exp Anim
+25525169	Invest Ophthalmol Vis Sci
+1634363	Hemoglobin
+13646503	Riv Neurol
+15623806	J Clin Endocrinol Metab
+10590437	Prenat Diagn
+10545952	Nat Genet
+9500542	Nat Genet
+9486974	J Clin Invest
+18403758	N Engl J Med
+16609730	PLoS Pathog
+20489179	Proc Natl Acad Sci U S A
+27067213	G Ital Nefrol
+20375987	Kidney Int
+10053179	N Engl J Med
+25296579	J Hum Genet
+16227835	Cornea
+7669675	Br J Haematol
+6087811	Biochem Biophys Res Commun
+10843190	J Clin Endocrinol Metab
+26005868	Nat Genet
+12199801	Br J Haematol
+17496196	J Med Genet
+11437868	Diabet Med
+17990063	J Hum Genet
+24262145	J Med Genet
+18580685	Genet Med
+25806920	N Engl J Med
+1349106	Lancet
+7877648	N Engl J Med
+21166801	Hereditas
+8784083	J Clin Endocrinol Metab
+6636045	Thromb Res
+23222069	Bull Cancer
+23430903	JIMD Rep
+10465122	J Med Genet
+20147709	N Engl J Med
+1917532	Hemoglobin
+10722117	Hemoglobin
+26352407	PLoS Genet
+16569742	J Clin Endocrinol Metab
+3472589	Br J Haematol
+8664910	Hum Mutat
+21152100	PLoS One
+10852373	Clin Genet
+2101409	Jpn J Med
+22121204	J Med Genet
+12859414	Clin Genet
+6186636	Hemoglobin
+19420366	N Engl J Med
+15941866	J Clin Endocrinol Metab
+27087292	J Clin Res Pediatr Endocrinol
+24224623	N Engl J Med
+8308722	J Physiol
+24296552	Acta Haematol
+16968801	J Clin Endocrinol Metab
+25326555	J Med Genet
+18256392	N Engl J Med
+12694230	Clin Genet
+9383029	Clin Genet
+9843209	Nat Genet
+7097767	J Mol Biol
+9762612	J Inherit Metab Dis
+22496059	Am J Med Genet A
+16822823	J Clin Endocrinol Metab
+26991507	Mov Disord
+27086870	Brain
+13860532	Vox Sang
+24319333	Mol Vis
+9714430	Am J Med Genet
+20141359	Ophthalmic Genet
+26157024	Hum Mol Genet
+25806575	Platelets
+16249515	Invest Ophthalmol Vis Sci
+23883829	Spine (Phila Pa 1976)
+3438164	Nouv Rev Fr Hematol
+23018043	Gene
+10422803	Clin Genet
+18319307	J Clin Endocrinol Metab
+3384710	Hemoglobin
+23907418	Rev Neurosci
+11278002	FEBS Lett
+3838975	Hemoglobin
+17356054	J Clin Endocrinol Metab
+19125229	J Mol Neurosci
+24514002	J Invest Dermatol
+10780316	Thromb Haemost
+18559907	J Clin Endocrinol Metab
+21036787	J Med Genet
+1419785	Br J Haematol
+10797439	Am J Med Genet
+1671983	Lancet
+6197997	Biochim Biophys Acta
+26505335	Genet Mol Res
+11967536	Nat Genet
+15008260	Hemoglobin
+20220177	N Engl J Med
+11846737	Clin Genet
+3319294	Clin Genet
+18633438	J Invest Dermatol
+10487913	Muscle Nerve
+500370	Hemoglobin
+10607953	Am J Med Genet
+1726095	Hemoglobin
+12574942	Hum Genet
+21896847	Invest Ophthalmol Vis Sci
+11175785	Nat Genet
+6629823	Hemoglobin
+2511845	Biochem Biophys Res Commun
+8561894	DNA Cell Biol
+25224326	Hum Mutat
+11502816	J Clin Endocrinol Metab
+13679528	N Engl J Med
+17003099	J Clin Endocrinol Metab
+24772479	Genes Chromosomes Cancer
+15671297	Invest Ophthalmol Vis Sci
+8101305	Lancet
+10746562	Hum Genet
+7390865	Hemoglobin
+8323539	Biochem Biophys Res Commun
+26690675	BMC Med Genomics
+9154114	Cytogenet Cell Genet
+7628118	Clin Genet
+10440833	Am J Med Genet
+21931173	J Med Genet
+25364163	J Oral Maxillofac Pathol
+26218636	Gen Physiol Biophys
+7673400	J Clin Endocrinol Metab
+19092153	N Engl J Med
+23414566	Thromb Res
+15870131	J Clin Endocrinol Metab
+11409427	Ann Neurol
+7566022	N Engl J Med
+12950348	Clin Exp Dermatol
+15373768	J Invest Dermatol
+22736615	Invest Ophthalmol Vis Sci
+15182052	Hemoglobin
+9017939	N Engl J Med
+20664799	Mol Vis
+15790870	Invest Ophthalmol Vis Sci
+10797416	Am J Med Genet
+17903304	BMC Med Genet
+15517832	Genet Couns
+27022117	J Clin Oncol
+12788906	J Clin Endocrinol Metab
+9814483	J Clin Endocrinol Metab
+15942220	Dermatology
+10583927	Arch Pathol Lab Med
+3384707	Hemoglobin
+17785368	J Clin Endocrinol Metab
+22914617	Psychiatr Genet
+5452728	Can J Biochem
+24283224	N Engl J Med
+7161106	Hemoglobin
+13897827	Proc Natl Acad Sci U S A
+11471180	Am J Med Genet
+7624155	Oncogene
+10634415	J Clin Endocrinol Metab
+11370633	J Med Genet
+1438069	Prenat Diagn
+24954874	Curr Treat Options Gastroenterol
+12574213	J Clin Endocrinol Metab
+20577006	J Med Genet
+7577595	Br J Dermatol
+11433300	Nat Cell Biol
+12596049	Hum Genet
+22626039	Ophthalmic Genet
+16825429	J Med Genet
+7852088	Hemoglobin
+19125229	J Mol Neurosci
+25351951	J Med Genet
+16936105	Invest Ophthalmol Vis Sci
+19065339	Hemoglobin
+9133512	Circulation
+1138922	Biochim Biophys Acta
+486536	Biochim Biophys Acta
+20213768	Hum Mutat
+10391218	Nat Genet
+3527073	Arch Dermatol
+11932290	J Clin Endocrinol Metab
+8552211	Neuropediatrics
+10405441	Am J Med Genet
+12485195	Clin Genet
+9920051	Mutat Res
+237566	Biochim Biophys Acta
+25331754	Am J Med Genet A
+10678659	Am J Med Genet
+9806546	Nat Genet
+9632164	Am J Med Genet
+7918091	Br J Haematol
+17290818	Adv Biochem Eng Biotechnol
+6800349	Arteriosclerosis
+11857564	Am J Med Genet
+12030902	Clin Genet
+11921059	Ann Neurol
+20237166	J Clin Endocrinol Metab
+5436649	Biochim Biophys Acta
+19952732	Clin Dysmorphol
+20472657	J Med Genet
+12891677	Ann Neurol
+17660464	J Med Genet
+2441598	Am J Hematol
+26991507	Mov Disord
+17090634	J Clin Endocrinol Metab
+23791652	Gene
+27028480	Ophthalmic Genet
+1714544	N Engl J Med
+25636101	Zhonghua Yi Xue Yi Chuan Xue Za Zhi
+6700644	N Engl J Med
+11026449	Ann Neurol
+10102904	Clin Chem
+11006246	Invest Ophthalmol Vis Sci
+8218290	Biochemistry
+14762184	N Engl J Med
+19127048	Neurol India
+7915957	Eur J Hum Genet
+11456301	Ann Neurol
+25706677	Am J Med Genet A
+17164309	J Clin Endocrinol Metab
+22178625	Neurobiol Dis
+24694232	Curr Drug Metab
+23541344	Am J Hum Genet
+24375959	Am J Med Genet A
+7714098	J Clin Endocrinol Metab
+11213809	Immunol Rev
+16612642	Neurogenetics
+3841531	Hemoglobin
+15499177	Drug Metab Pharmacokinet
+13500096	Bull Johns Hopkins Hosp
+9295080	Am J Med Genet
+9398712	J Clin Endocrinol Metab
+16565358	Invest Ophthalmol Vis Sci
+9359046	Eur J Hum Genet
+21686757	BMJ Case Rep
+15354328	Genet Med
+14444243	Blood
+16291706	J Clin Endocrinol Metab
+8829635	Hum Mutat
+20144272	Clin Invest Med
+10581030	Nat Genet
+21931168	J Med Genet
+7980504	Biochem Biophys Res Commun
+23430938	JIMD Rep
+8889580	Hum Mutat
+10946885	J Clin Endocrinol Metab
+21378380	J Med Genet
+9516223	N Engl J Med
+26788535	Mol Genet Genomic Med
+10756427	Genet Couns
+11564077	Br J Haematol
+1430088	J Clin Endocrinol Metab
+26544196	Sex Dev
+11380399	Br J Haematol
+15579791	J Clin Endocrinol Metab
+16118333	J Clin Endocrinol Metab
+5457846	Acta Neurol Scand
+1627603	Biochim Biophys Acta
+24005975	BMJ Case Rep
+10925384	Am J Med Genet
+3998954	J Pediatr
+12955766	Am J Med Genet A
+3563970	Thromb Haemost
+12161552	J Clin Endocrinol Metab
+11558801	Ann Neurol
+18580052	Am J Nephrol
+24355923	J Clin Invest
+893129	Hemoglobin
+26350515	Eur J Hum Genet
+6985481	J Biol Chem
+3565372	Am J Hematol
+5667020	Klin Wochenschr
+1191675	Biochim Biophys Acta
+21956439	Neuropsychopharmacology
+26218914	Invest Ophthalmol Vis Sci
+25262651	Am J Hum Genet
+3909940	Annu Rev Genet
+26418379	Am J Med Sci
+17660617	Clin Calcium
+3265306	Ann Genet
+24497709	Indian J Hum Genet
+16061559	J Med Genet
+16021469	Hum Genet
+5633723	Am J Phys Anthropol
+18285426	J Med Genet
+20818502	Int J Mol Med
+12466376	J Clin Endocrinol Metab
+18349091	JAMA
+25036559	J Clin Rheumatol
+11935326	Hum Genet
+19961360	Mol Membr Biol
+25925082	Nephron
+8718700	Hemoglobin
+18854396	J Clin Endocrinol Metab
+21877133	Hum Genet
+8240372	Biochem Biophys Res Commun
+24886118	BMC Med Genet
+20618350	Clin Genet
+4344039	N Engl J Med
+10999800	J Clin Endocrinol Metab
+19064721	Blood
+12466368	J Clin Endocrinol Metab
+21787331	Biochem Soc Trans
+5705748	Biochem Biophys Res Commun
+6604220	N Engl J Med
+24989505	Proc Natl Acad Sci U S A
+903703	J Lab Clin Med
+19157930	Eur J Paediatr Neurol
+952968	Biochim Biophys Acta
+15399020	N Engl J Med
+16505043	Invest Ophthalmol Vis Sci
+3191134	Biochim Biophys Acta
+16156037	Hum Genet
+9007311	Clin Genet
+11807987	Genes Chromosomes Cancer
+22432041	PLoS One
+16642020	Nat Genet
+16737958	J Biol Chem
+10899310	FEBS Lett
+12522550	Hum Genet
+8811317	Hemoglobin
+11505412	Cancer
+11017065	Nat Genet
+23447684	J Immunol
+9562578	N Engl J Med
+16702971	J Invest Dermatol
+12919137	Clin Genet
+23237318	Biol Psychiatry
+1581238	Br J Haematol
+17387528	Neurogenetics
+12015390	N Engl J Med
+11242115	Nat Genet
+24195502	N Engl J Med
+17635946	J Clin Endocrinol Metab
+19944109	J Mol Cell Cardiol
+15811924	J Clin Endocrinol Metab
+1258954	Am J Ophthalmol
+22243262	Eur J Oral Sci
+26865696	G3 (Bethesda)
+13732753	Am J Med
+24597867	N Engl J Med
+3185623	N Engl J Med
+16384845	J Clin Endocrinol Metab
+22576155	Eur Spine J
+10870887	Hemoglobin
+23489661	Neuromuscul Disord
+8745430	Hemoglobin
+18445671	J Clin Endocrinol Metab
+21378754	EMBO J
+2459083	Hemoglobin
+10398279	Prostate
+10925378	Am J Med Genet
+18252791	J Clin Endocrinol Metab
+9921896	Hum Genet
+16278261	J Clin Endocrinol Metab
+26748104	Ann Clin Biochem
+21948757	Genet Mol Res
+9590147	Am J Hematol
+10946881	J Clin Endocrinol Metab
+26429099	Neuromuscul Disord
+18407210	Trends Endocrinol Metab
+7519821	Am J Ophthalmol
+19833601	J Med Genet
+9494052	Hemoglobin
+17505205	Genet Med
+2644560	Nephron
+19625727	N Engl J Med
+10700182	Nat Genet
+25424902	Br J Haematol
+16055928	J Med Genet
+17363247	Neuromuscul Disord
+5967288	J Mol Biol
+21166801	Hereditas
+9661634	J Clin Endocrinol Metab
+27014949	J Clin Endocrinol Metab
+23237192	Int J Audiol
+9329371	J Clin Endocrinol Metab
+2831865	Arteriosclerosis
+12679461	J Clin Endocrinol Metab
+5016372	N Engl J Med
+1978682	Atherosclerosis
+15768550	Hemoglobin
+5637049	Biochim Biophys Acta
+16788318	Blood Coagul Fibrinolysis
+24997715	JIMD Rep
+11443193	J Clin Endocrinol Metab
+2347891	J Clin Endocrinol Metab
+22515743	Curr Drug Targets
+10340649	Am J Med Genet
+25296916	Hum Mol Genet
+9233593	Br J Haematol
+5439677	J Lab Clin Med
+23685749	Nat Genet
+22047571	N Engl J Med
+24270797	Clin Chem
+5054319	Clin Genet
+20978018	J Med Genet
+9236408	Circulation
+4151903	Humangenetik
+1675710	Lancet
+10995512	Am J Med Genet
+10323741	Am J Med Genet
+26157024	Hum Mol Genet
+1802883	Hemoglobin
+10652351	J Biol Chem
+19710410	Invest Ophthalmol Vis Sci
+19494218	N Engl J Med
+23349227	J Med Genet
+8069911	Cell
+4953733	Hum Biol
+10827258	Transfusion
+15483090	J Clin Endocrinol Metab
+9298746	Clin Genet
+15240620	J Clin Endocrinol Metab
+23401890	Mov Disord
+10080183	Nat Genet
+9624193	N Engl J Med
+604316	Hemoglobin
+3132965	Br J Haematol
+14986832	Clin Genet
+26173648	Int J Dermatol
+10832746	Pediatr Res
+15618652	Drug Metab Pharmacokinet
+3954955	Br J Dermatol
+15286433	Am J Nephrol
+11470272	FEBS Lett
+9843207	Nat Genet
+10533030	Am J Med Genet
+8865541	Thromb Haemost
+5568155	Ann Intern Med
+5681484	Br J Haematol
+14617013	Br J Haematol
+11344241	J Clin Endocrinol Metab
+17804789	Proc Natl Acad Sci U S A
+16950813	J Med Genet
+17460227	N Engl J Med
+21515849	Diabetes
+24870779	Asian Pac J Cancer Prev
+9573526	Kidney Int
+17080221	Thromb Haemost
+20233318	Oral Dis
+20484391	N Engl J Med
+17710875	Genet Couns
+2634673	Hemoglobin
+25230004	Eur J Med Genet
+27058611	PLoS Genet
+7910885	Lancet
+7616657	Nihon Rinsho
+8961271	Mol Endocrinol
+10581029	Nat Genet
+11726611	Invest Ophthalmol Vis Sci
+1360590	Lancet
+1487420	Hemoglobin
+6629825	Hemoglobin
+19165156	Obesity (Silver Spring)
+24400638	Clin Genet
+15070940	J Clin Endocrinol Metab
+11972885	Tissue Antigens
+25529050	J Thromb Haemost
+10023327	Eur J Cancer
+10770181	J Clin Endocrinol Metab
+1115799	Biochim Biophys Acta
+18285410	J Clin Endocrinol Metab
+23841731	N Engl J Med
+2467893	Hemoglobin
+11570725	Hemoglobin
+9506724	J Clin Endocrinol Metab
+11713379	Acta Haematol
+10700188	Nat Genet
+22190596	Invest Ophthalmol Vis Sci
+1412186	Thromb Res
+21736673	Oral Dis
+26920370	J Mol Med (Berl)
+23861464	Cancer Discov
+10973259	Nat Genet
+19400537	Genet Couns
+15118073	N Engl J Med
+26077327	Hum Mutat
+16912710	Kidney Int
+9329382	J Clin Endocrinol Metab
+10233439	Br J Haematol
+2599880	Hemoglobin
+22577225	J Med Genet
+25670821	J Med Genet
+14282052	Blood
+10852464	J Clin Endocrinol Metab
+24708098	J Clin Endocrinol Metab
+7974346	Thromb Haemost
+8723682	Hum Mutat
+21832240	Sci Transl Med
+20004786	J Allergy Clin Immunol
+2584351	J Clin Endocrinol Metab
+10586248	Ann N Y Acad Sci
+17475917	J Med Genet
+9010868	Ophthalmic Genet
+3257661	Am Rev Respir Dis
+10391221	Nat Genet
+12213902	J Clin Endocrinol Metab
+12859413	Clin Genet
+22482962	Taiwan J Obstet Gynecol
+23883380	N Engl J Med
+22825317	Hum Genet
+1342861	Clin Dysmorphol
+15531515	J Clin Endocrinol Metab
+16916845	Brain
+18182452	J Clin Endocrinol Metab
+1703137	Hemoglobin
+1715688	Biochem Biophys Res Commun
+22842711	J Neurol Neurosurg Psychiatry
+20507925	J Med Genet
+11891837	Ann Neurol
+19125229	J Mol Neurosci
+21533135	PLoS One
+25966807	Int Urol Nephrol
+23752245	Mol Psychiatry
+22498896	Psychiatr Genet
+12574219	J Clin Endocrinol Metab
+19069162	Brain Nerve
+9384616	Hum Mol Genet
+20429426	Adv Exp Med Biol
+23321605	Thorax
+10340647	Am J Med Genet
+16840229	Hemoglobin
+3580562	Birth Defects Orig Artic Ser
+19213692	N Engl J Med
+3191036	Br J Haematol
+20215591	Circ Cardiovasc Genet
+2599879	Hemoglobin
+25311364	Mol Psychiatry
+23509818	Biomed Res Int
+2349545	Thromb Res
+10797427	Am J Med Genet
+10548319	Cancer Epidemiol Biomarkers Prev
+11784876	N Engl J Med
+8274222	DNA Cell Biol
+9327263	Genet Couns
+17914448	J Invest Dermatol
+11380450	Br J Haematol
+9066886	Am J Med Genet
+10361984	Clin Genet
+11687750	Med Sci Monit
+4101432	Lancet
+10742103	Nat Genet
+25929198	Am J Med Genet A
+10468877	Br J Haematol
+15067381	Int J Mol Med
+8175986	J Clin Endocrinol Metab
+11782991	Ann Neurol
+22343534	Proc Natl Acad Sci U S A
+22173670	Br J Cancer
+15481893	Hemoglobin
+24065355	J Med Genet
+9876352	Clin Endocrinol (Oxf)
+12660384	N Engl J Med
+14756671	Clin Genet
+10835642	Nat Genet
+20942817	Br J Pharmacol
+23968135	Genet Test Mol Biomarkers
+27073903	Sex Dev
+16403815	J Clin Endocrinol Metab
+10869113	Am J Med Genet
+19106041	Eur J Dermatol
+25249183	Hum Mol Genet
+18505993	Neurology
+24623232	Methods Mol Biol
+26111748	Audiol Neurootol
+3380115	N Engl J Med
+16804042	J Clin Endocrinol Metab
+849647	Clin Exp Immunol
+8675579	J Clin Endocrinol Metab
+23721686	Eur J Med Genet
+26016288	Acta Ortop Mex
+4513408	Nat New Biol
+15240653	J Clin Endocrinol Metab
+2779634	N Engl J Med
+6115727	Clin Genet
+10069709	Am J Med Genet
+12930399	Br J Haematol
+9377804	Clin Genet
+4252680	Nouv Rev Fr Hematol
+21208107	N Engl J Med
+10894222	Ann Neurol
+6031738	Klin Wochenschr
+3955657	Cell
+10403343	Am J Trop Med Hyg
+11549681	J Clin Endocrinol Metab
+18285827	Eur J Hum Genet
+11062483	Nat Genet
+21211617	Am J Hum Genet
+11746017	Am J Med Genet
+16628197	J Invest Dermatol
+16085695	J Med Genet
+21029264	Oral Dis
+2411679	Hemoglobin
+26715604	Brain
+24906858	Invest Ophthalmol Vis Sci
+2543925	N Engl J Med
+15914629	Invest Ophthalmol Vis Sci
+12362049	J Med Genet
+14078979	Blood
+2384309	Hemoglobin
+10523018	J Clin Endocrinol Metab
+22581936	J Med Genet
+8513440	Cancer Lett
+5653554	Rev Fr Etud Clin Biol
+10360587	Transplantation
+22966748	Bipolar Disord
+22243242	Eur J Oral Sci
+9024270	J Clin Endocrinol Metab
+23696935	Int J Clin Exp Pathol
+17389811	Horm Res
+3557994	Hemoglobin
+9494045	Hemoglobin
+2606724	Hemoglobin
+23687351	J Med Genet
+9814502	J Clin Endocrinol Metab
+9304843	J Forensic Sci
+16250206	J Investig Dermatol Symp Proc
+12679452	J Clin Endocrinol Metab
+24461634	J Affect Disord
+17220209	J Med Genet
+8000975	Can J Neurol Sci
+8096693	Biochem Biophys Res Commun
+15472205	J Clin Endocrinol Metab
+14649314	Hemoglobin
+23456229	Neurogenetics
+16525032	J Med Genet
+26381711	Anesth Analg
+9569177	Thromb Haemost
+16935814	Eur J Dermatol
+10888890	Nat Genet
+12144062	Hemoglobin
+19603065	Eur J Hum Genet
+10748407	Am J Med Genet
+19603065	Eur J Hum Genet
+8114	Biochim Biophys Acta
+25394726	Am J Med Genet A
+24729586	J Antimicrob Chemother
+12788845	J Clin Endocrinol Metab
+24705253	Nat Genet
+14764819	J Clin Endocrinol Metab
+17244780	J Clin Endocrinol Metab
+11121177	Am J Med Genet
+2477064	Biochim Biophys Acta
+10835629	Nat Genet
+22721650	J Allergy Clin Immunol
+24289550	Asian Pac J Cancer Prev
+7609752	N Engl J Med
+10735633	Clin Genet
+4238825	Am J Roentgenol Radium Ther Nucl Med
+22261526	J Crohns Colitis
+11772708	Am J Psychiatry
+1953713	Biochem Biophys Res Commun
+11300350	Hemoglobin
+12000366	Clin Genet
+20656880	J Med Genet
+8229524	J Pediatr
+26941285	Cancer Res
+20591883	J Med Genet
+9806549	Nat Genet
+7811722	Biochim Biophys Acta
+8128429	Thromb Haemost
+1355416	Clin Genet
+25533962	Nature
+10817656	Am J Med Genet
+18728071	J Med Genet
+23539898	Gene Expr
+14702425	N Engl J Med
+9100608	J Clin Endocrinol Metab
+15741269	J Clin Endocrinol Metab
+17614209	Neuroscience
+15975918	J Biol Chem
+17236128	Am J Hum Genet
+21752896	J Clin Endocrinol Metab
+21300955	Circulation
+11238516	J Clin Endocrinol Metab
+21725307	Nat Genet
+7627897	Can J Ophthalmol
+26986853	Mol Med Rep
+18484629	Hum Mutat
+21691125	Kidney Blood Press Res
+4644462	Arch Fr Pediatr
+11506414	Ann Neurol
+10720030	J Clin Endocrinol Metab
+8105280	Lancet
+11206059	Protein Sci
+22628607	J Clin Endocrinol Metab
+26188975	Ann Thorac Surg
+15829536	N Engl J Med
+26900472	Clin Transl Immunology
+18628520	J Clin Endocrinol Metab
+10195214	Nat Neurosci
+4407311	Biochim Biophys Acta
+21381282	Methods Find Exp Clin Pharmacol
+7670563	Endocr J
+12359690	Am J Psychiatry
+11479731	Hum Genet
+24421281	J Med Genet
+19494219	N Engl J Med
+3667255	Hawaii Med J
+1347608	Lancet
+21832240	Sci Transl Med
+10027709	Br J Haematol
+23402	J Lab Clin Med
+12601044	Invest Ophthalmol Vis Sci
+9771706	Nat Genet
+11788673	J Clin Endocrinol Metab
+22200994	J Med Genet
+10945658	Clin Genet
+9106537	Am J Hum Genet
+22010916	N Engl J Med
+14602780	J Clin Endocrinol Metab
+23934752	Semin Thromb Hemost
+48123	Lancet
+1859851	Biochim Biophys Acta
+9654207	Hum Genet
+7042734	J Clin Endocrinol Metab
+15621876	Ophthalmic Genet
+14986828	Clin Genet
+12630957	Clin Genet
+11407344	N Engl J Med
+9238519	Biochem Genet
+9874606	N Engl J Med

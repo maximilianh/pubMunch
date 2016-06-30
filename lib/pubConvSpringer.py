@@ -245,7 +245,10 @@ def getDiskData(diskDir, filename):
         return None, None
     pdfString = open(pdfFname).read()
 
-    logging.debug("Returning contents of %s and %s" % (xmlFname, pdfFname))
+    #print type(xmlFname), type(pdfFname)
+    logging.debug((u'Returning contents of XML ' + xmlFname))
+    logging.debug((u'Returning contents of PDF %s' % pdfFname))
+    #logging.debug((u'Returning contents of %s and %s' % (xmlFname, pdfFname)).decode("latin1", errors="ignore"))
     return xmlString, pdfString
 
 #lastZipFname = None
@@ -324,6 +327,10 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
         i+=1
         articleId = row.articleId
         zipFilename, filename = row.zipFilename, row.filename
+
+        if u'\xbf' in filename:
+            logging.info("Found weird character, skipping file")
+            continue
         
         articleData = pubStore.createEmptyArticleDict(publisher="springer")
         if zipFilename=="":
@@ -431,7 +438,10 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     assert(chunkSize!=None)
 
     finalOutDir= outDir
-    outDir     = tempfile.mktemp(dir = outDir, prefix = "springerUpdate.tmp.")
+    if updateId==0:
+        outDir     = tempfile.mktemp(dir = outDir, prefix = "springerUpdate.tmp.")
+    else:
+        outDir     = tempfile.mktemp(dir = outDir, prefix = "springerFirstConv")
     os.mkdir(outDir)
 
     # getting filenames from the disk

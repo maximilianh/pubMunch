@@ -39,7 +39,7 @@ conversion crashes at any point, what is left behind is a temporary directory,
 in the worst case.
 """)
 
-parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default. If there are already files in outDir, use the size of the first chunk in it instead", default=2000)
+parser.add_option("", "--chunkCount", dest="chunkCount", action="store", type="int", help="number of chunks to create, default %default. If there are already files in outDir, use the size of the first chunk in it instead", default=3000)
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["pmc"]) 
 parser.add_option("", "--dryRun", dest="dryRun", action="store_true", help="do not submit any cluster jobs, just print commands or create jobList file", default=False)
 #parser.add_option("", "--notCompress", dest="notCompress", action="store_true", help="do not use compression", default=False) 
@@ -698,6 +698,11 @@ def main(args, options):
     else:
         pmcDir, outDir = args
     maxCommon.mustExist(pmcDir)
+
+    #if options.finish:
+        #updateId, _, _ = pubStore.parseUpdatesTab(finalOutDir, minArticleId=minId)
+        #pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmcIds)
+        #sys.exit(0)
 
     # first clean old temp directories
     tmpMask = join(outDir, "update*.tmp*")

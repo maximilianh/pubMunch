@@ -33,7 +33,7 @@ Email dds_support@springer.com for details.
 XML documentation: see http://www.springeropen.com/get-published/indexing-archiving-and-access-to-data/xml-dtd
 """)
 
-parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=800) 
+parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=700) 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["springer"])
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None)
 parser.add_option("", "--auto", dest="auto", action="store_true", help="read from default input text dir, write to default output text dir")
