@@ -2439,6 +2439,8 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
         except pubGetError:
             writeDocIdStatus(srcDir, docId, "no meta", "")
             continue
+        except KeyboardInterrupt:
+            raise
         except:
             writeDocIdStatus(srcDir, docId, "exception in meta", "")
             continue
@@ -2481,6 +2483,8 @@ def crawlDocuments(docIds, skipDocIds, skipIssns):
 
             if DO_PAUSE:
                 raw_input("Press Enter to process next paper...")
+        except KeyboardInterrupt:
+            raise
         except:
             writeDocIdStatus(srcDir, docId, "exception general", "")
 
