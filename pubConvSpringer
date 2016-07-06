@@ -34,9 +34,10 @@ XML documentation: see http://www.springeropen.com/get-published/indexing-archiv
 """)
 
 parser.add_option("", "--chunkSize", dest="chunkSize", action="store", type="int", help="number of articles per chunk, adapt this to your cluster, default %default", default=700) 
-parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["springer"])
+#parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %s", default=pubConf.identifierStart["springer"])
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None)
 parser.add_option("", "--auto", dest="auto", action="store_true", help="read from default input text dir, write to default output text dir")
+parser.add_option("", "--finish", dest="finish", action="store_true", help="finish up after a cluster batch failed and was fixed")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
@@ -60,24 +61,24 @@ if args==[] and not options.auto:
     parser.print_help()
     exit(1)
 
+
 # normal operation
 if options.auto:
     inDir, outDir = pubConf.defaultInOutDirs("springer")
 else:
     inDir, outDir = args
 
+if options.finish:
+    pubConvSpringer.finishUp(outDir)
+    
 maxCommon.mustExist(inDir)
 
-minId = options.minId
+#minId = options.minId
+minId = pubConf.identifierStart["springer"]
 
 if not os.path.isdir(inDir):
     print "first parameter must be a directory"
     sys.exit(1)
 
 runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
-pubConvSpringer.createChunksSubmitJobs(inDir, outDir, minId, runner, options.chunkSize)
-pubStore.updateSqlite(outDir)
-
-#tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-#dbPath = join(outDir, "articles.db")
-#pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+pubConvSpringer.createChunksSubmitJobs(inDir, outDir, runner, options.chunkSize)

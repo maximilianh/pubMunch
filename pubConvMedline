@@ -44,8 +44,8 @@ Or alternatively with something like this:
 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
 parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserves space for x entries in numerical namespace, default %default", default=300000) 
-parser.add_option("-u", "--updateCrawler", metavar="CRAWLDIR", dest="crawlDir", action="store", help="go over all subdirs of crawlDir, update all pmids.txt with pmids of ISSNs in issns.tab") 
-parser.add_option("", "--parse", dest="parse", action="store", help="for debugging, just parse one single xml file", default=None) 
+#parser.add_option("-u", "--updateCrawler", metavar="CRAWLDIR", dest="crawlDir", action="store", help="go over all subdirs of crawlDir, update all pmids.txt with pmids of ISSNs in issns.tab") 
+parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("", "--auto", dest="auto", action="store_true", help="predefine in and out dir based on pubConf.py config file") 
 #parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
 pubGeneric.addGeneralOptions(parser)
@@ -72,6 +72,9 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
         logging.warn("Removing old flagfile %s" % flagFname)
         os.remove(flagFname)
 
+    # convert into a /build dir first and then move over files if the build was successful
+    buildDir = pubGeneric.makeBuildDir(outDir)
+
     updateId, firstArticleId, doneFiles = pubStore.parseUpdatesTab(outDir, minArticleId=minId)
 
     medlineFnames = glob.glob(join(inDir, "*.xml.gz"))
@@ -82,7 +85,7 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
         sys.exit(1)
 
     doneFiles = set(doneFiles)
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
 
     chunkArticleId = firstArticleId
     chunkId = 0
@@ -92,7 +95,7 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
         if basename(medlineFname) in doneFiles:
             continue
         fCount += 1
-        outFname = os.path.join(outDir, "%d_%05d.articles.gz" % (updateId, chunkId))
+        outFname = os.path.join(buildDir, "%d_%05d.articles.gz" % (updateId, chunkId))
         maxCommon.mustNotExist(outFname)
         command = "%s %s {check in exists %s} {check out exists+ %s} %d" % \
             (sys.executable, progFile, medlineFname, outFname, chunkArticleId)
@@ -106,7 +109,13 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
         return 
 
     runner.finish(wait=True)
+
+    pubStore.moveFiles(buildDir, outDir)
+
     pubStore.appendToUpdatesTxt(outDir, updateId, chunkArticleId, newFiles)
+
+    shutil.rmtree(buildDir)
+
     return updateId
 
 def convertOneChunk(fileMinId, inFile, outFile):
@@ -154,9 +163,7 @@ def debugParser(fname):
     
 def main(args,options):
     if options.parse!=None:
-        # only for debugging
-        fname = options.parse
-        debugParser(options)
+        debugParser(args[0])
 
     # normal operation
     inDir, outDir = pubGeneric.setInOutDirs(options.auto, args, "medline")
@@ -175,8 +182,8 @@ def main(args,options):
         pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)
         pubStore.updateSqlite(outDir)
 
-        if options.crawlDir:
-            pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)
+        #if options.crawlDir:
+            #pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)
 
     else:
         inFile = inDir

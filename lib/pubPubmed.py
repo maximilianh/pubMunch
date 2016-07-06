@@ -65,14 +65,16 @@ def parseMedline(xmlParser):
     data["doi"]           = artTree.getTextFirst("ELocationID", default="", reqAttrDict={"EIdType":"doi"})
 
     data["journalUniqueId"] = medlineData.getTextFirst("MedlineJournalInfo/NlmUniqueID")
-    linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking")
+    linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking", default="")
     
     journalTree = artTree.getXmlFirst("Journal")
     data["eIssn"]       = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Electronic'}, default="")
     data["printIssn"]   = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Print'}, default="")
-    if linkingIssn!=None:
-        data["eIssn"]       = linkingIssn
+    # keep the link ISSN when we have space, e.g. PNAS is not storing the print ISSN anymore, only as link Issn
+    if data["printIssn"]=="" and linkingIssn!="":
         data["printIssn"]   = linkingIssn
+    if data["eIssn"]=="" and linkingIssn!="":
+        data["eIssn"]   = linkingIssn
         
     data["vol"]         = journalTree.getTextFirst("JournalIssue/Volume", default="")
     data["issue"]       = journalTree.getTextFirst("JournalIssue/Issue", default="")

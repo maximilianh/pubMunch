@@ -30,50 +30,58 @@ example:
 pubConvCrawler /hive/data/outside/pubs/crawler /hive/data/inside/pubs/text/crawler/
 """)
 
-parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="only export meta data to sqlite db 'articles.db' in outDir")
 parser.add_option("", "--auto", dest="auto", action="store_true", help="set input and output dirs based on pubConf directories")
+parser.add_option("", "--finish", dest="finish", action="store_true", help="finish up after you fixed a failed cluster batch")
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
-def unicodeList(list):
-    " convert ints to unicode in list and return new list "
-    newL = []
-    for e in list:
-        if type(e)!=types.UnicodeType:
-            newL.append(unicode(e))
-        else:
-            newL.append(e)
-    return newL
+#def unicodeList(list):
+    #" convert ints to unicode in list and return new list "
+    #newL = []
+    #for e in list:
+        #if type(e)!=types.UnicodeType:
+            #newL.append(unicode(e))
+        #else:
+            #newL.append(e)
+    #return newL
             
-def iterArticleSubdirRows(inDir):
-    " search all subdirs of inDir for articleMeta.tab files and yield their rows "
-    if isfile(join(inDir, "articles.db")):
-        subDirs = [inDir]
-    else:
-        subDirs = [join(inDir, s) for s in os.listdir(inDir)]
+#def iterArticleSubdirRows(inDir):
+    #" search all subdirs of inDir for articleMeta.tab files and yield their rows "
+    #if isfile(join(inDir, "articles.db")):
+        #subDirs = [inDir]
+    #else:
+        #subDirs = [join(inDir, s) for s in os.listdir(inDir)]
 
-    procCount = 0
-    for subPath in subDirs:
-        # not using the sqlite files anymore, slurping them was too slow
-        fname = join(subPath, "articleMeta.tab")
-        if not isfile(fname):
-            continue
-        if pubCrawlLib.containsLockFile(subPath):
-            logging.info("%s contains a lock file, crawling is ongoing, skipping dir" % subPath)
-            continue
+    #procCount = 0
+    #for subPath in subDirs:
+        ## not using the sqlite files anymore, slurping them was too slow
+        #fname = join(subPath, "articleMeta.tab")
+        #if not isfile(fname):
+            #continue
+        #if isfile(pubCrawlLib.getLockFname(subPath)):
+            #logging.info("%s contains a lock file, crawling is ongoing, skipping dir" % subPath)
+            #continue
             
-        logging.info("Found %s" % fname)
-        for row in maxCommon.iterTsvRows(fname):
-            procCount += 1
-            yield subPath, row
+        #logging.info("Found %s" % fname)
+        #for row in maxCommon.iterTsvRows(fname):
+            #procCount += 1
+            #yield subPath, row
     #assert(procCount>0)
 
 def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, tabExt):
     """ 
     split crawler meta file into pieces of chunkSize lines, return filenames and PMIDs
-    Ignore articles with duplicte PMIDs
+    Ignore articles with duplicate PMIDs
     """
+    # headers for our output files
+    allFields = list(tuple(pubStore.articleFields)) # copy list
+    allFields.extend(pubCrawlLib.addHeaders)
+    # this is a special field required for the conversion
+    allFields.append("fileDir")
+
+    RowRec = collections.namedtuple("crawlRec", allFields)
+
     if isdir(jobDir):
         logging.info("Deleting temporary dir %s" % jobDir)
         shutil.rmtree(jobDir)
@@ -81,6 +89,7 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
     if not os.path.isdir(jobDir):
         logging.info("Creating directory %s" % jobDir)
         os.makedirs(jobDir)
+
     maxCommon.mustBeEmptyDir(jobDir)
 
     # split and add a field "fileDir" so that converter can find PDFs
@@ -89,44 +98,74 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
     pmids = set()
     chunkCount = 0
     chunkNames = []
-    headerLine = None
-    for subPath, row in iterArticleSubdirRows(crawlDir):
-        if headerLine==None:
-            headerLine = "\t".join(row._fields)+"\tfileDir\n"
-            #newFields = copy.copy(row._fields)
-            #newFields.append("fileDir")
-        # create unique article Id based on pmid
-        if int(row.pmid) in donePmids:
-            logging.log(5, "Skipping article %s, PMID is already done" % row.pmid)
+    subDirs = glob.glob(join(crawlDir, "*"))
+    artFh = None
+    for subPath in subDirs:
+        if ".tmp" in subPath or not isdir(subPath):
             continue
-        newArticleId = minId+int(row.pmid)
-        if newArticleId in usedArticleIds:
-            logging.warn("Skipping article %s, pmid seen before" % row.externalId)
+        artPath = join(subPath, "articleMeta.tab")
+        if not isfile(artPath):
+            logging.info("%s not found, skipping" % artPath)
             continue
-        usedArticleIds.add(newArticleId)
-        pmids.add(int(row.pmid))
-        row = row._replace(articleId=str(newArticleId))
+        logging.info("Found metadata in %s" % subPath)
 
-        # start new chunk if needed
-        if (i==0) or (i / chunkSize) > chunkCount:
-            chunkId = str(updateId)+"_%05d" % (chunkCount)
-            chunkFname = chunkId+tabExt
-            artFname = os.path.join(jobDir, chunkFname)
-            artFh = codecs.open(artFname, "w", encoding="utf8")
-            artFh.write(headerLine)
-            logging.debug("Writing to %s" % (artFname))
-            chunkCount+=1
-            chunkNames.append(chunkId)
+        for row in maxCommon.iterTsvRows(artPath):
+            rowDict = row._asdict()
 
-        # write data to files
-        assert(len(row)==len(pubStore.articleFields)+len(pubCrawlLib.addHeaders) or \
-         len(row)+1==len(pubStore.articleFields)+len(pubCrawlLib.addHeaders)) # publisher field is new
-        row = unicodeList(row)
-        fileDir = join(os.path.abspath(subPath), "files")
-        artFh.write(u"\t".join(row)+"\t%s\n" % fileDir)
-        i += 1
+            # keep directory of files
+            fileDir = join(os.path.abspath(subPath), "files")
+            rowDict["fileDir"] = fileDir
+            rowDict["size"] = ""
+            rowDict["offset"] = ""
 
-    # write to outDir
+            # make sure we have a publisher field, older crawlers didn't save this field
+            if "publisher" not in rowDict or rowDict["publisher"] == "":
+                rowDict["publisher"] = basename(subPath)
+
+            missFields = set(allFields) - set(rowDict.keys())
+            if len(missFields)!=0:
+                print "missing fields:", missFields
+                assert False
+
+            excessFields = set(rowDict.keys()) - set(allFields)
+            if len(excessFields)!=0:
+                print "excess fields:", missFields
+                assert False
+
+
+            # create unique article Id based on pmid
+            if int(row.pmid) in donePmids:
+                logging.log(5, "Skipping article %s, PMID is already done" % row.pmid)
+                continue
+            newArticleId = minId+int(row.pmid)
+            if newArticleId in usedArticleIds:
+                logging.warn("Skipping article %s, pmid seen before" % row.externalId)
+                continue
+            usedArticleIds.add(newArticleId)
+            pmids.add(int(row.pmid))
+            rowDict["articleId"] = str(newArticleId)
+
+            # start new chunk if needed
+            if (i==0) or (i / chunkSize) > chunkCount:
+                chunkId = str(updateId)+"_%05d" % (chunkCount)
+                chunkFname = chunkId+tabExt
+                artFname = os.path.join(jobDir, chunkFname)
+                if artFh!=None:
+                    artFh.close()
+                artFh = codecs.open(artFname, "w")
+                artFh.write("\t".join(allFields)+"\n")
+                logging.debug("Writing to chunk %s" % (artFname))
+                chunkCount+=1
+                chunkNames.append(chunkId)
+
+            newRow = RowRec(**rowDict)
+
+            # write data to files
+            newRow = [x.encode("utf8") for x in newRow]
+            artFh.write('\t'.join(newRow))
+            artFh.write("\n")
+            i += 1
+
     return chunkNames, pmids
 
 #def toUnicode(var):
@@ -145,12 +184,24 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
             #var = var.decode("latin1")
     #return var
 
+def finishUp(outDir):
+    " write indexes, move files over from build dir into final dir and update update sqlite "
+    buildDir = join(outDir, "build")
+    updateId, lastArticleId, newPmids = pubGeneric.loadUpdateInfo(buildDir)
+    pubStore.moveFiles(buildDir, outDir, nameList=["articles", "files"])
+    # mark PMIDs as done
+    newPmidsStrList = [str(x) for x in newPmids]
+    pubStore.updateSqlite(outDir)
+    pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmidsStrList)
+    shutil.rmtree(buildDir)
+
 def submitJobs(inDir, outDir, useCluster):
     " split crawler article info (article info + additional fields) into chunks"
     outDir = abspath(outDir)
+
     # write all results to a tmp dir first
-    tmpOutDir = pubGeneric.makeTempDir("pubConvCrawler", outDir)
-    maxCommon.delOnExit(tmpOutDir)
+    buildDir = join(outDir, "build")
+    #os.mkdir(buildDir) # if this fails, a previous run crashed
 
     # get already done PMIDs if we're not running for the first time
     logging.info("Looking for already converted files in %s", outDir)
@@ -159,36 +210,29 @@ def submitJobs(inDir, outDir, useCluster):
     donePmids = set([int(x) for x in pmids])
     logging.info("Found %d PMIDs that are already done" % (len(donePmids)))
 
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
 
-    tmpIndexDir = join(tmpOutDir, "jobfiles.tmp")
+    tmpIndexDir = join(buildDir, "jobfiles.tmp")
     tabExt = ".crawlArticles.tab"
     chunkIds, newPmids = splitCrawlerMeta(inDir, tmpIndexDir, minId, \
         updateId, pubConf.chunkArticleCount, donePmids, tabExt)
+    pubGeneric.saveUpdateInfo(buildDir, updateId, "0", newPmids ) # for the "finishUp" function
 
     newFnames = []
     for chunkId in chunkIds:
         # create .article.gz
         inChunkFname = join (tmpIndexDir, chunkId+tabExt)
-        outFname = join(tmpOutDir, "%s.files.gz" % (chunkId))
-        outArtFname = join(tmpOutDir, "%s.articles.gz" % (chunkId))
-        maxCommon.mustNotExist(outFname)
-        maxCommon.mustNotExist(outArtFname)
-        newFnames.extend((outFname, outArtFname))
+        outFname = join(buildDir, "%s.files.gz" % (chunkId))
+        outArtFname = join(buildDir, "%s.articles.gz" % (chunkId))
+        #maxCommon.mustNotExist(outFname)
+        #maxCommon.mustNotExist(outArtFname)
+        #newFnames.extend((outFname, outArtFname))
         command = "%s %s convertJob {check in exists %s} {check out exists+ %s} {check out exists+ %s}" % \
             (sys.executable, progFile, inChunkFname, outFname, outArtFname)
         runner.submit(command)
     logging.info("Now converting %d articles" % len(newPmids))
     runner.finish(wait=True)
 
-    # now move over files
-    logging.debug("Now moving files %s from temp to final %s" % (newFnames, outDir))
-    for fname in newFnames:
-        shutil.move(fname, outDir)
-    # and mark PMIDs as done
-    newPmidsStr = [str(x) for x in newPmids]
-    pubStore.appendToUpdatesTxt(outDir, updateId, "0", newPmidsStr)
-    # the temporary directory will get deleted upon program exit
 
 def findFiles(zipDir, eIssn, pmid):
     """ find files for pmid and sort into main and supp. Return dict main/supp -> list of paths """
@@ -334,19 +378,17 @@ def main(args):
     if len(args)==0 or args[0]!="convertJob":
 
         if options.auto:
-            inDir, outDir = join(pubConf.extDir, "crawler"), join(pubConf.textBaseDir, "crawler")
+            inDir, outDir = pubConf.defaultInOutDirs("crawler")
         else:
             inDir, outDir = args
 
         maxCommon.mustExistDir(outDir)
-        pubGeneric.setLockFile(outDir, "pubConvCrawler")
 
-        if not options.updateDb:
+        if options.finish:
+            finishUp(outDir)
+        else:
             submitJobs(inDir, outDir, options.cluster)
-
-        tsvFnames = glob.glob(join(outDir,"*.articles.gz"))
-        dbPath    = join(outDir, "articles.db")
-        pubStore.loadNewTsvFilesSqlite(dbPath, "articles", tsvFnames)
+            finishUp(outDir)
 
     else:
         # this is a cluster job -> just convert one chunk

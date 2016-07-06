@@ -76,8 +76,8 @@ varBuildDir = '/hive/data/inside/pubs/variants'
 omimUrl = "file:///hive/data/outside/omim/01122013/genemap2.txt"
 
 # CONVERTER SETTINGS ================================================
-# for auto mode: base data dir with raw input files from publishers or databases
-extDir = '/hive/data/outside/pubs'
+# for auto mode: base data dir with incoming input files from publishers or databases
+extDir = '/hive/data/outside/pubs/'
 
 # for auto mode: base dir of all publisher text files
 textDir = join(pubsDataDir, "text")
@@ -198,7 +198,7 @@ stepHosts = {"sortCdna" : "localhost", "sortProt" : "localhost", "sortGenome" : 
 
 # email for ncbi eutil requests and error email by pubCrawl
 # at UCSC: overriden by local .pubConf
-email = "YOUREMAIL"
+email = ""
 
 # how much to wait between two eutils requests
 eutilsDelaySecs = 3
@@ -245,9 +245,11 @@ CONVERTERS = {
     "xls":"xls2csv $in > $out",
     "xlsx":"ssconvert $in $out",
     "ppt":"catppt $in > $out",
-    "htm":"html2text -style pretty -nobs $in | tr -s ' ' > $out",
+    "htm":"html2text $in  --unicode-snob --images-to-alt --ignore-links --ignore-emphasis > $out",
+    "html":"html2text $in  --unicode-snob --images-to-alt --ignore-links --ignore-emphasis > $out",
+    #"htm":"html2text -style pretty -nobs $in | tr -s ' ' > $out",
     # 'pretty' avoids **** markup for <h3> section names
-    "html":"html2text -style pretty -nobs $in | tr -s ' ' > $out",
+    #"html":"html2text -style pretty -nobs $in | tr -s ' ' > $out",
     #"htm":"links -dump $in -dump-charset utf8 > $out",
     #"html":"links -dump $in -dump-charset utf8 > $out",
     "csv":"COPY",
@@ -622,11 +624,11 @@ def mayResolveTextDir(dataDir):
     """
     inName = dataDir
     dataDir2 = join(textBaseDir, dataDir)
-    if isdir(dataDir2):
+    if isdir(dataDir2) and not abspath(dataDir2)==abspath(textBaseDir):
         logging.debug("Resolved dataset name %s to global dataset directory %s" % (inName, dataDir))
         return abspath(dataDir2)
 
-    if isdir(dataDir):
+    if isdir(dataDir) and not abspath(dataDir)==abspath(textBaseDir):
         logging.debug("Resolved dataset name %s to directory %s" % (inName, dataDir))
         return abspath(dataDir)
 

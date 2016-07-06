@@ -426,23 +426,38 @@ def parseDiskFnames(diskDir):
             
 
     
-def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
+def finishUp(finalOutDir):
+    " do the final post-batch processing "
+    buildDir = pubGeneric.makeBuildDir(finalOutDir, mustExist=True)
+
+    minId = pubConf.identifierStart["springer"]
+
+    pubGeneric.concatDelIdFiles(buildDir, finalOutDir, "%d_ids.tab" % updateId)
+    pubGeneric.concatDelLogs(buildDir, finalOutDir, "%d.log" % updateId)
+
+    # cleanup, move over, remove whole temp dir
+    if isdir(indexSplitDir): # necessary? how could it not be there? 
+        logging.info("Deleting directory %s" % indexSplitDir)
+        shutil.rmtree(indexSplitDir) # got sometimes exception here...
+    pubStore.moveFiles(buildDir, finalOutDir)
+    shutil.rmtree(buildDir)
+
+    pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
+    pubStore.updateSqlite(finalOutDir)
+
+def createChunksSubmitJobs(inDir, finalOutDir, runner, chunkSize):
     """ submit jobs to convert zip and disk files from inDir to outDir
         split files into chunks and submit chunks to cluster system
         write first to temporary dir, and copy over at end of all jobs
         This is based on pubConvElsevier.py
     """
-    maxCommon.mustExistDir(outDir)
+    maxCommon.mustExistDir(finalOutDir)
+    minId = pubConf.identifierStart["springer"]
 
-    updateId, minId, alreadyDoneFiles = pubStore.parseUpdatesTab(outDir, minId)
+    buildDir = pubGeneric.makeBuildDir(finalOutDir)
+
+    updateId, minId, alreadyDoneFiles = pubStore.parseUpdatesTab(finalOutDir, minId)
     assert(chunkSize!=None)
-
-    finalOutDir= outDir
-    if updateId==0:
-        outDir     = tempfile.mktemp(dir = outDir, prefix = "springerUpdate.tmp.")
-    else:
-        outDir     = tempfile.mktemp(dir = outDir, prefix = "springerFirstConv")
-    os.mkdir(outDir)
 
     # getting filenames from the disk
     diskDir = join(inDir, "disk")
@@ -465,30 +480,21 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
 
     if len(processFiles)==0:
         logging.info("All updates done, not converting anything")
+        os.rmdir(buildDir)
         return None
     else:
         logging.info("Total number of files to convert: %d" % (len(processFiles)))
 
-    indexFilename = join(outDir, "%d_index.tab" % updateId)
+    indexFilename = join(buildDir, "%d_index.tab" % updateId)
     maxArticleId  = createIndexFile(zipDir, processFiles, indexFilename, updateId, minId, chunkSize)
 
-    indexSplitDir = join(outDir, "indexFiles")
+    indexSplitDir = join(buildDir, "indexFiles")
     pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
 
-    idFname = concatDois(finalOutDir, outDir, "doneArticles.tab")
-    submitJobs(runner, zipDir, indexSplitDir, idFname, outDir)
+    idFname = concatDois(finalOutDir, buildDir, "doneArticles.tab")
+    submitJobs(runner, zipDir, indexSplitDir, idFname, buildDir)
 
-    pubGeneric.concatDelIdFiles(outDir, finalOutDir, "%d_ids.tab" % updateId)
-    pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
-
-    # cleanup, move over, remove whole temp dir
-    if isdir(indexSplitDir): # necessary? how could it not be there? 
-        logging.info("Deleting directory %s" % indexSplitDir)
-        shutil.rmtree(indexSplitDir) # got sometimes exception here...
-    pubStore.moveFiles(outDir, finalOutDir)
-    shutil.rmtree(outDir)
-
-    pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
+    finishUp(buildDir, finalOutDir)
 
 # this is a job script, so it is calling itself via parasol/bsub/qsub
 if __name__=="__main__":

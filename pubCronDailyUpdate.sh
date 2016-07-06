@@ -29,13 +29,13 @@ cd $JOBDIR
 echo JOB DIRECTORY $JOBDIR
 echo DOWNLOAD 
 echo __DOWNLOADING MEDLINE__
-$PYTHON $BIN/pubGetMedline $DOWNBASE/medline
+time $PYTHON $BIN/pubGetMedline $DOWNBASE/medline
 echo __DOWNLOADING ELSEVIER__
-$PYTHON $BIN/pubGetElsevier $DOWNBASE/elsevier
+time $PYTHON $BIN/pubGetElsevier $DOWNBASE/elsevier
 echo __DOWNLOADING PUBMEDCENTRAL
-$PYTHON $BIN/pubGetPmc $DOWNBASE/pmc
+time $PYTHON $BIN/pubGetPmc $DOWNBASE/pmc
 echo __DOWNLOADING SPRINGER
-$PYTHON $BIN/pubGetSpringer $DOWNBASE/springer/updates
+time $PYTHON $BIN/pubGetSpringer $DOWNBASE/springer/updates
 
 # execute the rest only if there is no running job
 if [ -e "${FLAGFILE}" ]
@@ -48,7 +48,9 @@ touch $FLAGFILE
 
 echo
 echo __CONVERT MEDLINE and update DB__ 
-cd $JOBDIR; time $PYTHON $BIN/pubConvMedline --cluster=localhost $DOWNBASE/medline $TEXTBASE/medline
+cd $JOBDIR; time $PYTHON $BIN/pubConvMedline --cluster=localhost --auto
+echo __UPDATING MEDLINE PMIDS FOR CRAWLER
+time $PYTHON $BIN/pubPrepCrawler $DOWNBASE/crawler
 #echo __CONVERT ELSEVIER___
 #cd $JOBDIR; $PYTHON $BIN/pubConvElsevier --cluster=localhost $DOWNBASE/elsevier $TEXTBASE/elsevier
 #echo __CONVERT PMC___

@@ -64,7 +64,7 @@ def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSi
         i+=1
 
         # read index of .zip, keep the output in <zipFname>.txt, this makes all future updates a lot faster
-        zipIndexFname = join(inDir, fname, ".txt")
+        zipIndexFname = join(inDir, fname+".txt")
         # use the index if we have one
         if isfile(zipIndexFname):
             zipContentFnames = open(zipIndexFname).read().splitlines()
@@ -465,11 +465,12 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
         chunkSize  = pubStore.guessChunkSize(outDir)
     assert(chunkSize!=None)
 
-    # create temp dir
+    # build into temporary dir, fail if it exists
+    # it should not exist, otherwise something is wrong
     finalOutDir= outDir
-    outDir     = tempfile.mktemp(dir = outDir, prefix = "elsevierUpdate%s.tmp." % str(updateId))
-    os.mkdir(outDir)
-    #maxCommon.delOnExit(outDir)
+    #outDir     = tempfile.mktemp(dir = outDir, prefix = "elsevierUpdate%s.tmp." % str(updateId))
+    buildDir     = join(outDir, "build")
+    os.mkdir(buildDir)
 
     inFiles = os.listdir(inDir)
     inFiles = [x for x in inFiles if x.endswith(".ZIP")]
@@ -481,24 +482,25 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
 
     if len(processFiles)==0:
         logging.info("All updates done, not converting anything")
+        os.rmdir(buildDir)
         return None
 
-    indexFilename = join(outDir, "%d_index.tab" % updateId)
+    indexFilename = join(buildDir, "%d_index.tab" % updateId)
     maxArticleId  = createIndexFile(inDir, processFiles, indexFilename, updateId, minId, chunkSize)
     indexSplitDir = indexFilename+".tmp.split"
     chunkIds = pubStore.splitTabFileOnChunkId(indexFilename, indexSplitDir)
     idFname = pubGeneric.concatIdentifiers(finalOutDir, indexSplitDir, "doneArticles.tab")
 
-    submitJobs(runner, inDir, chunkIds, indexSplitDir, idFname, outDir)
+    submitJobs(runner, inDir, chunkIds, indexSplitDir, idFname, buildDir)
 
-    pubGeneric.concatDelIdFiles(outDir, finalOutDir, "%d_ids.tab" % updateId)
-    pubGeneric.concatDelLogs(outDir, finalOutDir, "%d.log" % updateId)
+    pubGeneric.concatDelIdFiles(buildDir, finalOutDir, "%d_ids.tab" % updateId)
+    pubGeneric.concatDelLogs(buildDir, finalOutDir, "%d.log" % updateId)
 
     if isdir(indexSplitDir): # necessary? how could it not be there? 
         logging.info("Deleting directory %s" % indexSplitDir)
         shutil.rmtree(indexSplitDir) # got sometimes exception here...
-    pubStore.moveFiles(outDir, finalOutDir)
-    shutil.rmtree(outDir)
+    pubStore.moveFiles(buildDir, finalOutDir)
+    shutil.rmtree(buildDir)
 
     pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
 

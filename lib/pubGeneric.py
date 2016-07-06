@@ -2,7 +2,7 @@
 # ascii-conversion, section splitting etc
 
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
-    glob, operator, doctest, ftplib, random, shutil, atexit
+    glob, operator, doctest, ftplib, random, shutil, atexit, pickle
 import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables, pubKeyVal
 from os.path import *
 
@@ -28,7 +28,7 @@ control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 def getFastUniqueTempFname():
     " create unique tempdir on ramdisk, delete on exit "
-    tempFname = tempfile.mktemp(dir=pubConf.getFastTempDir)
+    tempFname = tempfile.mktemp(dir=pubConf.getFastTempDir())
     maxCommon.delOnExit(tempFname)
     return tempFname
 
@@ -286,7 +286,7 @@ def runConverter(cmdLine, fileContent, fileExt, tempDir):
 
     asciiData = None
 
-    if ret==2 and "docx2text" not in cmdLine: # docx2text returns exit code 2 in same cases
+    if ret==2 and "docx2txt" not in cmdLine: # docx2text returns exit code 2 in some cases
         logging.error("stopped on errno 2: looks like you pressed ctrl-c")
         sys.exit(2)
 
@@ -710,14 +710,20 @@ def concatDelLogs(inDir, outDir, outFname):
     outPath = join(outDir, outFname)
     inMask = join(inDir, "*_*.log")
     logFnames = glob.glob(inMask)
-    ofh = open(outPath, "w")
     logging.info("Concatting %d logfiles from %s to %s" % (len(logFnames), inMask, outPath))
-    for inFname in logFnames:
-        ofh.write("---- LOGFILE %s ------\n" % inFname)
-        ofh.write(open(inFname).read())
-        ofh.write("\n")
-        os.remove(inFname)
-    ofh.close()
+    delFnames = []
+
+    if not isfile(outPath):
+        ofh = open(outPath, "w")
+        for inFname in logFnames:
+            ofh.write("---- LOGFILE %s ------\n" % inFname)
+            ofh.write(open(inFname).read())
+            ofh.write("\n")
+            delFnames.append(inFname)
+        ofh.close()
+
+    for fname in delFnames:
+        os.remove(fname)
 
 def concatIdentifiers(inDir, outDir, outFname):
     " concat all identifiers of *_ids.tab files in inDir to outFname, append if exists "
@@ -804,6 +810,40 @@ def setInOutDirs(useDefault, args, pubName):
     else:
         inDir, outDir = args[:2]
     return inDir, outDir
+
+def makeBuildDir(outDir, mustExist=False):
+    ' create a dir outDir/build and error abort if it already exists '
+    outDir     = join(outDir, "build")
+    if not mustExist and isdir(outDir):
+        raise Exception("Directory %s already exists. Looks like a previous conversion run "
+            "crashed or is ongoing. Delete the directory and re-run if needed or complete the batch "
+            "and use pubConvXXX with the --finish option" % outDir)
+    if mustExist and not isdir(outDir):
+        raise Exception("Directory %s does not exist." % outDir)
+
+    if not mustExist:
+        os.mkdir(outDir)
+    return outDir
+
+def saveUpdateInfo(buildDir, updateId, lastArticleId, newIds):
+    " save often-needed data to a pickle file in buildDir "
+    updInfo = {'updateId' : updateId, 'lastArticleId' : lastArticleId, 'newIds' : newIds}
+    updInfoFh = open(join(buildDir, "updateInfo.pickle"), "w")
+    logging.info("Saving update info to %s" % updInfoFh.name)
+    pickle.dump(updInfo, updInfoFh)
+
+def loadUpdateInfo(buildDir):
+    " save often-needed data to a pickle file in buildDir "
+    updFname = join(buildDir, "updateInfo.pickle")
+    logging.info("loading update info from %s" % updFname)
+    updInfoFh = open(updFname)
+    updInfo = pickle.load(updInfoFh)
+    return updInfo["updateId"], updInfo['lastArticleId'], updInfo['newIds']
+
+def removeUpdateInfo(buildDir):
+    updFname = join(buildDir, "updateInfo.pickle")
+    logging.debug("Removing %s" % updFname)
+    os.remove(updFname)
 
 if __name__=="__main__":
     setupLoggingOptions(None)

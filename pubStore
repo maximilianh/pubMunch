@@ -109,6 +109,7 @@ def main(args, options):
 
     elif cmd=="index":
         inDir = args[1]
+        inDir = pubConf.resolveTextDir(inDir)
         pubStore.updateSqlite(inDir)
 
     elif cmd=="show":

@@ -1,7 +1,7 @@
 # per-publisher configuration for pubCrawl.py
 from os.path import *
 import logging, urllib2, urlparse, urllib, re
-import pubConf, pubGeneric, maxCommon, html, maxCommon
+import pubConf, pubGeneric, maxCommon, maxCommon
 from collections import OrderedDict
 
 # this file mostly is dealing with the problem that we need to figure out which journals 

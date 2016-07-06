@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
-import logging, optparse, sys, os
+import logging, optparse, sys, os, traceback
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -9,7 +9,7 @@ from os.path import *
 if not getattr(sys, 'frozen', False):
     sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
-import pubGeneric, pubConf
+import pubGeneric, pubConf, maxCommon
 import pubCrawlLib as scrapeLib
 
 def setOptions(options):
@@ -49,12 +49,22 @@ def testDownload(docId):
     paperData = scrapeLib.crawlOneDoc(artMeta, None, forceCrawlers=crawlers)
     scrapeLib.printPaperData(paperData)
 
+def sendEmail(outDirs):
+    logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)
+    outDirs = [abspath(d) for d in outDirs]
+    subject = 'pubCrawl error: %s' % ",".join(outDirs)
+    text = traceback.format_exc()
+    maxCommon.sendEmail(pubConf.email, subject, text)
+
 def main(args, options):
     pubGeneric.setupLogging("", options)
     outDirs = args
     if options.report:
         scrapeLib.writeReport(outDirs[0], options.report)
         sys.exit(0)
+
+    if options.sendEmail:
+        assert(pubConf.email!="" and pubConf.email!=None)
 
     setOptions(options)
 
@@ -65,8 +75,14 @@ def main(args, options):
         testDownload(outDirs[0])
         sys.exit(0)
 
-    docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
-    scrapeLib.crawlDocuments(docIds, skipIssns)
+    try:
+        docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
+        scrapeLib.crawlDocuments(docIds, skipIssns)
+    except:
+        logging.info("Fatal error: %s" % (sys.exc_info()[0]))
+        if options.sendEmail:
+            sendEmail(outDirs)
+        raise
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of hosters. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 

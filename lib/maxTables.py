@@ -585,14 +585,13 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], \
         return
     if isinstance(tsvFnames, basestring):
         tsvFnames = [tsvFnames]
+
     if os.path.isfile(dbFname):
         lockDb = False
         finalDbFname = None
     else:
         lockDb = True
         finalDbFname = dbFname
-        dbFname = pubGeneric.getFastUniqueTempFname()
-        logging.info("writing first to db on ramdisk %s" % dbFname)
     con, cur = openSqlite(dbFname, lockDb=lockDb)
 
     # drop old table 

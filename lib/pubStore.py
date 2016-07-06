@@ -308,11 +308,13 @@ class PubWriterFile:
         # setup file and article table handles
         # in temporary directory, so we do not leave behind half-written
         # chunks. Temp files are moved over to final on self.close()
-        self.tmpFileFname = os.path.join(self.tempDir, self.fileBaseName)
+        #self.tmpFileFname = os.path.join(self.tempDir, self.fileBaseName)
+        self.tmpFileFname = tempfile.mktemp(prefix="pubStore.files.")
         self.fileFh = openFunc(self.tmpFileFname, "w")
         self.fileFh.write("#"+"\t".join(fileDataFields)+"\n")
 
-        self.tmpArticleFname = os.path.join(self.tempDir, articleBaseName)
+        #self.tmpArticleFname = os.path.join(self.tempDir, articleBaseName)
+        self.tmpArticleFname = tempfile.mktemp(prefix="pubStore.article.")
         self.articleFh = openFunc(self.tmpArticleFname, "w")
         self.articleFh.write("#"+"\t".join(articleFields)+"\n")
 
@@ -409,7 +411,7 @@ class PubWriterFile:
         missingFields = mustHaveFields - gotFields
         logging.log(5, "PubStore Writer: Adding empty strings for: %s" % missingFields)
         for key in missingFields:
-            articleDict[key] = ""
+            inDict[key] = ""
         return inDict
 
 
@@ -905,12 +907,13 @@ def parseUpdatesTab(outDir, minArticleId):
     if not isfile(inFname):
         logging.info("could not find %s, this seems to be the first run in this dir" % inFname)
         return 0, minArticleId, []
+    logging.info("Reading IDs of files that are already done from %s" % inFname)
 
     doneFiles = set()
     row = None
     logging.debug("Parsing %s" % inFname)
-    for row in maxTables.TableParser(inFname).lines():
-        rowFiles = row.files.split(",")
+    for row in maxCommon.iterTsvRows(inFname, encoding="utf8"):
+        rowFiles = row.files.split("|")
         doneFiles.update(rowFiles)
 
     if row==None:
@@ -966,18 +969,22 @@ def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     else:
         outFh = open(outFname, "a")
 
-    row = [str(updateId), str(maxArticleId), time.asctime(), ",".join(files)]
+    row = [str(updateId), str(maxArticleId), time.asctime(), "|".join(files)]
     outFh.write("\t".join(row))
     outFh.write("\n")
     outFh.close()
 
-def moveFiles(srcDir, trgDir):
-    " move all files from src to target dir, and also a given list of subDirs, but not any other subDirs "
+def moveFiles(srcDir, trgDir, nameList=None):
+    """ move all files from src to target dir, prefix is typically sth like ["articles", "files"] """
+    logging.info("Moving files from %s to %s" % (srcDir, trgDir))
     if not isdir(trgDir):
         logging.info("Creating directory %s" % trgDir)
         os.makedirs(trgDir)
 
     for fname in os.listdir(srcDir):
+        if nameList and not basename(fname).split(".")[1] in nameList:
+            logging.log(5, "Not moving %s" % fname)
+            continue
         infname = join(srcDir, fname)
         outfname = join(trgDir, fname)
         #if isdir(infname) and not basename(infname) in subDirs:
@@ -1162,9 +1169,26 @@ def updateSqlite(textDir):
     """
     artFnames = getAllArticleFnames(textDir)
     assert(len(artFnames)!=0)
-    con, cur = openArticleDb(textDir)
+    dbPath = getArtDbPath(textDir)
+    if isfile(dbPath):
+        con, cur = openArticleDb(textDir)
+        copyBack = False
+    else:
+        # if db does not exist yet, use max speed: write to ramdisk and copy back.
+        ramDbPath = pubGeneric.getFastUniqueTempFname()
+        logging.info("First load. Creating temporary sqlite db on ramdisk %s" % ramDbPath)
+        copyBack = True
+        con, cur = maxTables.openSqlite(ramDbPath, lockDb=True)
+        
     toLoadFnames = getUnloadedFnames(con, cur, artFnames)
-    addToDatabase(con, cur, toLoadFnames)
+    toLoadPaths = [join(textDir, fname) for fname in toLoadFnames]
+
+    addToDatabase(con, cur, toLoadPaths)
+    con.close()
+
+    if copyBack:
+        shutil.copy(ramDbPath, dbPath)
+        os.remove(ramDbPath)
 
 datasetRanges = None
 
@@ -1204,7 +1228,7 @@ def getArtDbPath(datasetName):
 
 conCache = {}
 
-def openArticleDb(datasetName, mustOpen=False):
+def openArticleDb(datasetName, mustOpen=False, useRamdisk=False):
     " open an article sqlite DB, return (conn, cur) tuple "
     if datasetName in conCache:
         con, cur = conCache[datasetName]
@@ -1215,6 +1239,13 @@ def openArticleDb(datasetName, mustOpen=False):
             if mustOpen:
                 raise Exception("Could not open dataset %s" % datasetName)
             #return None, None
+        if useRamdisk:
+                ramDbPath = pubGeneric.getFastUniqueTempFname()
+                logging.info("Copying %s to %s for faster access" % (path, ramDbPath))
+                maxCommon.delOnExit(ramDbPath)
+                shutil.copy(path, ramDbPath)
+                path = ramDbPath
+
         logging.debug("Opening db %s" % path)
         con, cur = maxTables.openSqlite(path, asDict=True)
         conCache[datasetName] = (con,cur)
