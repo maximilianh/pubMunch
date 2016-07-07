@@ -89,8 +89,9 @@ def main(args, options):
             sendErrorEmail(outDirs)
         raise
 
-    outDirs = [abspath(d) for d in outDirs]
-    maxCommon.sendEmail(pubConf.email, "crawl %s completed" % ",".join(outDirs), "done")
+    if options.sendEmail:
+        outDirs = [abspath(d) for d in outDirs]
+        maxCommon.sendEmail(pubConf.email, "crawl %s completed" % ",".join(outDirs), "done")
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of hosters. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 
