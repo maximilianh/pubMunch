@@ -82,6 +82,7 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
         medlineFnames = glob.glob(join(inDir, "*.xml"))
     if len(medlineFnames)==0:
         logging.error("No gz or xml files found in %s" % inDir)
+        os.rmdir(buildDir)
         sys.exit(1)
 
     doneFiles = set(doneFiles)
@@ -106,6 +107,7 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
 
     if fCount==0:
         logging.info("All files were already converted, nothing done")
+        os.rmdir(buildDir)
         return 
 
     runner.finish(wait=True)

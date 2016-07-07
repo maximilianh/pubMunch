@@ -38,6 +38,8 @@ def setOptions(options):
 
 def testDownload(docId):
     " test crawler on docId, don't write anything to disk. docId can have format <docId>/<crawler> "
+    artMeta = scrapeLib.getArticleMeta(docId)
+
     scrapeLib.globalForceDelay = 0
     if "/" in docId:
         docId, crawlerStr = docId.split("/")
@@ -45,11 +47,10 @@ def testDownload(docId):
     else:
         crawlers = None
 
-    artMeta = scrapeLib.getArticleMeta(docId)
     paperData = scrapeLib.crawlOneDoc(artMeta, None, forceCrawlers=crawlers)
-    scrapeLib.printPaperData(paperData)
+    scrapeLib.printPaperData(paperData, artMeta)
 
-def sendEmail(outDirs):
+def sendErrorEmail(outDirs):
     logging.info("Exception thrown during crawl. Sending error email to %s" % pubConf.email)
     outDirs = [abspath(d) for d in outDirs]
     subject = 'pubCrawl error: %s' % ",".join(outDirs)
@@ -65,6 +66,8 @@ def main(args, options):
 
     if options.sendEmail:
         assert(pubConf.email!="" and pubConf.email!=None)
+    if options.scihub:
+        scrapeLib.addCrawler("scihub")
 
     setOptions(options)
 
@@ -78,11 +81,16 @@ def main(args, options):
     try:
         docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
         scrapeLib.crawlDocuments(docIds, skipIssns)
+    except KeyboardInterrupt:
+        logging.info("Got Keyboard interrupt")
     except:
         logging.info("Fatal error: %s" % (sys.exc_info()[0]))
         if options.sendEmail:
-            sendEmail(outDirs)
+            sendErrorEmail(outDirs)
         raise
+
+    outDirs = [abspath(d) for d in outDirs]
+    maxCommon.sendEmail(pubConf.email, "crawl %s completed" % ",".join(outDirs), "done")
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] outDir - crawl articles with supp files from websites of hosters. Reads a file docIds.txt in outDir. If not found, checks all subdirectories of outDir for files names docIds.txt and processes their content in random order. 
@@ -111,7 +119,7 @@ Examples:
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
-    help="show more debug messages") 
+    help="show more debug messages")
 
 parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
     type="int", help="number of seconds to wait between http requests, overrides"
@@ -119,9 +127,13 @@ parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
 
 parser.add_option("", "--test", dest="testDoc", action="store_true", \
     help="test mode, outDir is not a directory but a PMID."
-    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format number/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Legal crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
+    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format number/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Allowed crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
+
+#parser.add_option("", "--testOut", metavar="DIRECTORY", dest="OuttestDoc", action="store", \
+    #help="like --test, but write files to directory")
 
 parser.add_option("-p", "--pause", dest="pause", action="store_true", help="wait for keypress after each download")
+parser.add_option("-S", "--scihub", dest="scihub", action="store_true", help="activate the scihub crawler. This may be not legal in all countries but Russia.")
 
 parser.add_option("", "--hash", dest="outputHash", action="store_true", help="don't write files to disk, just output their SHA1 values. Used for automated testing.")
 

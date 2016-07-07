@@ -192,6 +192,11 @@ The re2 library will make it at least 10 times faster. It is a regular expressio
 "make;make install" (by default to /usr/local), then install the python wrapper
 with "pip install re2". (If you don't have write access to /usr/local, install the re2 library with "make install prefix=<dir>", then hack setup.py in the python re2 install package, by replacing "/usr" with your <dir>)
 
+# Thanks
+
+* Mark Sanders, author of incapsula-cracker on github, for changing his module, just for me
+* User "zaytoun" on github for his/her scihub API
+
 # Windows
 
 To run the tools on Windows, you need to have Cygwin installed, and at least the packages python and curl.
