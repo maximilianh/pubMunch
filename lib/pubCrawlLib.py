@@ -3143,6 +3143,10 @@ def crawlDocuments(docIds, skipIssns):
         except pubGetError:
             writeDocIdStatus(srcDir, docId, "no meta", "")
             continue
+        except KeyboardInterrupt:
+            raise
+        except:
+            writeDocIdStatus(srcDir, docId, "exception in meta", "")
 
         logging.info("Got Metadata: %s, %s, %s" % (artMeta["journal"], artMeta["year"], artMeta["title"]))
 
@@ -3183,8 +3187,10 @@ def crawlDocuments(docIds, skipIssns):
 
             if DO_PAUSE:
                 raw_input("Press Enter to process next paper...")
-        except:
+        except KeyboardInterrupt:
             raise
+        except:
+            writeDocIdStatus(srcDir, docId, "exception in general", "")
 
     logging.info("Downloaded %d articles" % (successCount))
 
