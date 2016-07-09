@@ -73,15 +73,15 @@ def getEIssnToPIssn(journalFname):
                 ret[eIs] = pIs
     return ret
         
-def getPmidsForIssns(con, cur, issns):
+def getPmidsForIssns(con, cur, issns, minYear):
     " retrieve PMIDs for an ISSN, use fieldName as the ISSN field  "
-    logging.info("Getting PMIDs for %d ISSNs" % len(issns))
+    logging.info("Getting PMIDs for %d ISSNs with year >= %s" % (len(issns), minYear))
     pmids = []
     issnStrs = ["'"+s+"'" for s in issns]
     issnStr = ",".join(issnStrs)
     cur.execute("PRAGMA cache_size=10000000") # 10GB of RAM
     con.commit()
-    query = "SELECT pmid FROM articles WHERE printIssn in (%s) or eIssn in (%s)" % (issnStr, issnStr)
+    query = "SELECT pmid FROM articles WHERE year>=%s and printIssn in (%s) or eIssn in (%s)" % (str(minYear), issnStr, issnStr)
     #i = 0
     for row in cur.execute(query):
         #print row[0], i
@@ -120,7 +120,7 @@ def updatePmids(medlineDir, crawlDir, updateIds, minYear=None):
         oldPmids = set([int(line.rstrip()) for line in open(pmidFname)])
         #newPmids = set()
         # add new pmids, for each issn
-        newPmids = getPmidsForIssns(con, cur, issns)
+        newPmids = getPmidsForIssns(con, cur, issns, minYear)
 
         logging.debug("%d PMIDs" % (len(newPmids)))
         oldCount = len(oldPmids)

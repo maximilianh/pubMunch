@@ -14,6 +14,7 @@ import logging, os, shutil, tempfile, codecs, re, types, \
 from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
+from socket import timeout
 
 # load our own libraries
 import pubConf, pubGeneric, pubStore, pubCrossRef, pubPubmed
@@ -36,6 +37,7 @@ except:
 try:
     from selenium import webdriver
     from selenium.webdriver.common.proxy import *
+    from selenium.webdriver.common.by import By
     from pyvirtualdisplay import Display
     seleniumLoaded = True
 except:
@@ -108,7 +110,7 @@ SKIPLOCALMEDLINE = False
 crawlDelays = {
     "onlinelibrary.wiley.com" : 1,
     "dx.doi.org"              : 1,
-    "ucelinks.cdlib.org"      : 20,
+    "ucelinks.cdlib.org"      : 10,
     "eutils.ncbi.nlm.nih.gov"      : 3,
     "www.ncbi.nlm.nih.gov"      : 10, # fulltext crawled from PMC
     "lww" : 10,
@@ -118,7 +120,8 @@ crawlDelays = {
     "wiley" : 10,
     "springer" : 10,
     "tandf" : 5,
-    "karger" : 5,
+    "karger" : 10,
+    "generic" : 5,
     "silverchair" : 10
 }
 
@@ -126,7 +129,7 @@ crawlDelays = {
 crawlDelays.update(pubConf.crawlDelays)
 
 # default delay secs if nothing else is found
-defaultDelay = 20
+defaultDelay = 10
 # can be set from outside to force all delays to one fixed number of secs
 globalForceDelay = None
 
@@ -356,7 +359,7 @@ def findDownloader():
 browser = None
 display = None
 
-def getPageSelenium(url, delaySecs):
+def httpGetSelenium(url, delaySecs, mustGet=False):
     " use selenium to download a page "
     logging.info("Downloading %s using Selenium/Firefox" % url)
     host = urlparse.urlsplit(url)[1]
@@ -364,18 +367,19 @@ def getPageSelenium(url, delaySecs):
     wait(delaySecs, host)
 
     if not seleniumLoaded:
-        logging.warn("Cannot get page, selenium is not installed on this machine")
-        return None
+        raise pubGetError("Cannot get page, selenium is not installed on this machine", "noSelenium")
 
     page = {}
 
     global browser, display
 
     if not display:
-        display = Display(visible=0, size=(800, 600))
+        logging.info("Starting pseudo-display")
+        display = Display(visible=0, size=(1024, 768))
         display.start()
 
     if not browser:
+        logging.info("Starting firefox on pseudo-display")
         proxy = None
         if pubConf.httpProxy:
             proxy = Proxy({
@@ -386,7 +390,22 @@ def getPageSelenium(url, delaySecs):
                 })
         browser = webdriver.Firefox(proxy=proxy)
 
-    browser.get(url)
+    count = 0
+    while count < 5:
+        try:
+            browser.get(url)
+            break
+        except (requests.Timeout, timeout): # parens needed in py3
+            logging.warn("timeout from selenium")
+            count += 1
+
+    if count >= 5:
+        logging.warn("too many timeouts from selenium")
+        if mustGet:
+            raise pubGetError("too many timeouts", "httpTimeout")
+        return None
+        
+    page["seleniumDriver"] = browser
     page["url"] = browser.current_url
     page["data"] = browser.page_source
     page["mimeType"] = "unknown"
@@ -398,7 +417,7 @@ def getPageSelenium(url, delaySecs):
 
     return page
 
-def httpGetDelay(url, forceDelaySecs=None, mustGet=False):
+def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None):
     """ download with curl or wget and make sure that delaySecs (global var)
     secs have passed between two calls special cases for highwire hosts and
     some hosts configured in config file.
@@ -428,16 +447,17 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False):
         userAgent = pubConf.httpUserAgent
     userAgent = userAgent.replace("'", "")
 
-    #if useSelenium:
-        #page = getPageSelenium(url)
+    if blockFlash:
+        userAgent = "Mozilla/5.0(iPad; U; CPU iPhone OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10"
+
     if "wget" in DOWNLOADER:
         page = runWget(url, userAgent)
     elif "curl" in DOWNLOADER:
         page = runCurl(url, userAgent)
     elif requestsLoaded:
-        page = downloadBuiltIn(url, userAgent)
+        page = downloadBuiltIn(url, userAgent, cookies)
     else:
-        raise Exception("illegal value of DOWNLOADER")
+        raise Exception("illegal value of DOWNLOADER and/or requests module not present")
         
     if mustGet and page==None:
         raise pubGetError("Could not get URL %s" % url, "illegalUrl")
@@ -446,25 +466,31 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False):
 
 curlCookieFile = None
 
-def downloadBuiltIn(url, userAgent):
+session = None
+
+def downloadBuiltIn(url, userAgent, cookies):
     """
     download a url with the requests module, return a dict with the keys
     url, mimeType, charset and data
     """
     headers = {"user-agent" : userAgent}
 
-    proxies = None
-    if pubConf.httpProxy!=None:
-        proxies = {
-          'http':  pubConf.httpProxy,
-          'https': pubConf.httpProxy,
-        }
+
+    global session
+    if session is None:
+        session = requests.Session()
+        if pubConf.httpProxy!=None:
+            proxies = {
+              'http':  pubConf.httpProxy,
+              'https': pubConf.httpProxy,
+            }
+            session.proxies.update(proxies)
 
     tryCount = 0
     r = None
     while tryCount < 10:
         try:
-            r = requests.get(url, headers=headers, proxies=proxies)
+            r = session.get(url, headers=headers, cookies=cookies)
             break
         except requests.exceptions.ConnectionError:
             tryCount += 1
@@ -628,6 +654,7 @@ def htmlParsePage(page):
         html = html.replace(' xmlns="http://www.w3.org/1999/xhtml"', '')
         html = html.replace("&#x1D6C4;", "gamma") # narrow python build cannot do 3-byte utf8
         html = html.replace("&#x1d6c4;", "gamma")
+        html = html.replace("&#x1D6C9;", "theta")
         page["parsedHtml"] = BeautifulSoup(html)
 
 def htmlExtractPart(page, tag, attrs):
@@ -665,6 +692,42 @@ def htmlFindLinkUrls(page, attrs={}):
         urls.append(url)
     return urls
 
+def parseLinksSelenium(page):
+    """
+    like parseHtmlLinks but for a page in selenium. 
+    Queries DOM to find links
+    """
+    logging.debug("Parsing links with Selenium")
+    driver = page["seleniumDriver"]
+
+    links = OrderedDict()
+    for el in driver.find_elements(By.TAG_NAME, "a"):
+        if el.get_attribute("href") is not None:
+            links[el.get_attribute("href")] = el.text
+    page["links"] = links
+
+    metas = OrderedDict()
+    for el in driver.find_elements(By.TAG_NAME, "meta"):
+        if el.get_attribute("name") is not None:
+            links[el.get_attribute("name")] = el.get_attribute("content")
+    page["metas"] = metas
+
+    frames = OrderedDict()
+    for el in driver.find_elements(By.TAG_NAME, "frame"):
+        if el.get_attribute("src") is not None:
+            links[el.get_attribute("id", "pdfDocument")] = el.get_attribute("src")
+    page["frames"] = frames
+
+    iframes = OrderedDict()
+    for el in driver.find_elements(By.TAG_NAME, "iframe"):
+        if el.get_attribute("src") is not None:
+            idName = el.get_attribute("id")
+            if idName==None:
+                idName = "pdfDocument"
+            links[idName] = el.get_attribute("src")
+    page["iframes"] = iframes
+
+    return page
 
 def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     """ 
@@ -677,6 +740,9 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
         #logging.debug("Using cached parsing results")
         return page
 
+    if "seleniumDriver" in page:
+        return parseLinksSelenium(page)
+
     logging.debug("Parsing HTML links")
     htmlString = page["data"]
     baseUrl = page["url"]
@@ -685,7 +751,7 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     baseLoc = urlParts[1]
 
     logging.log(5, "Parsing %s with bs3" % page["url"])
-    linkStrainer = SoupStrainer(['a', 'meta', 'iframe']) # to speed up parsing
+    linkStrainer = SoupStrainer(['a', 'meta', 'iframe', 'frame']) # to speed up parsing
     try:
         fulltextLinks = BeautifulSoup(htmlString, smartQuotesTo=None, \
             convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=linkStrainer)
@@ -696,6 +762,7 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     linkDict = OrderedDict()
     metaDict = OrderedDict()
     iframeDict = OrderedDict()
+    frameDict = OrderedDict()
 
     for l in fulltextLinks:
         logging.log(5, "got link %s" % l)
@@ -705,6 +772,13 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
                 continue
             id = l.get("id", "pdfDocument")
             iframeDict[id] = src
+
+        if l.name=="frame":
+            src = l.get("src")
+            if src==None or "pdf" not in src:
+                continue
+            id = l.get("id", "pdfDocument")
+            frameDict[id] = src
 
         elif l.name=="a":
             text = l.getText() # used to be: soupToText(l)
@@ -731,7 +805,6 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
                 continue
             parts.append("")
             fullUrlNoFrag = urlparse.urlunsplit(parts)
-            #logging.debug("Checking link against %s" % landingPage_ignoreUrlREs)
             if anyMatch(landingPage_ignoreUrlREs, fullUrlNoFrag):
                 logging.log(5, "skipping link %s, because of ignore REs" % url)
                 continue
@@ -751,10 +824,12 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     logging.log(5, "Meta tags: %s" % metaDict)
     logging.log(5, "Links: %s" % linkDict)
     logging.log(5, "iframes: %s" % iframeDict)
+    logging.log(5, "frames: %s" % frameDict)
 
     page["links"] = linkDict
     page["metas"] = metaDict
     page["iframes"] = iframeDict
+    page["frames"] = frameDict
     logging.log(5, "HTML parsing finished")
     return page
 
@@ -786,8 +861,16 @@ def parseDocIdStatus(outDir):
     donePmids = set()
     statusFname = join(outDir, PMIDSTATNAME)
     logging.info("Parsing %s" % statusFname)
-    if not isfile(statusFname):
-        statusFname = join(outDir, "pmidStatus.tab")
+
+    # copy pasted code from below
+    statusFname2 = join(outDir, "pmidStatus.tab")
+    if isfile(statusFname2):
+        for l in open(statusFname2):
+            docId = l.strip().split("#")[0].split("\t")[0]
+            if docId=="":
+                continue
+            donePmids.add(docId)
+        logging.info("Found %d PMIDs that have some status in %s" % (len(donePmids), statusFname2))
 
     if isfile(statusFname):
         for l in open(statusFname):
@@ -814,16 +897,13 @@ def parseIssnStatus(outDir):
 lastCallSec = {}
 
 def wait(delaySec, host="default"):
-    " make sure that delaySec seconds have passed between two calls"
+    " make sure that delaySec seconds have passed between two calls with the same value of 'host' "
     global lastCallSec
     delaySec = float(delaySec)
     nowSec = time.time()
-    sinceLastCallSec = nowSec - lastCallSec.get(host, 0)
-    #print "host", host, "now", nowSec, "lastCallSecs", lastCallSec
-    #print "sinceLastCallSec", sinceLastCallSec
-    #logging.debug("sinceLastCall %f" % float(sinceLastCallSec))
+    sinceLastCallSec = nowSec - lastCallSec.get(host, nowSec)
     if sinceLastCallSec > 0.1 and sinceLastCallSec < delaySec :
-        waitSec = delaySec - sinceLastCallSec
+        waitSec = max(0.0, delaySec - sinceLastCallSec)
         logging.info("Waiting for %f seconds before downloading from host %s" % (waitSec, host))
         time.sleep(waitSec)
 
@@ -1119,9 +1199,13 @@ def printPaperData(paperData, artMeta):
 
     printFileHash(paperData, artMeta)
 
+def isPdf(page):
+    " true if page is really a PDF file "
+    return page["data"][:4]=="%PDF"
+
 def checkIfPdf(pageDict, metaData):
     " bail out if pageDict is not a PDF file "
-    if pageDict["data"][:4]=="%PDF":
+    if isPdf(pageDict):
         pageDict["mimeType"] = "application/pdf"
 
     # check mime type
@@ -1213,7 +1297,7 @@ def printFileHash(fulltextData, artMeta):
 def writePaperData(docId, pubmedMeta, fulltextData, outDir):
     " write all paper data to status and fulltext output files in outDir "
     if TEST_OUTPUT:
-        printFileHash(fulltextData)
+        printFileHash(fulltextData, pubmedMeta)
         return
 
     pubmedMeta, warnMsgs = storeFilesNoZip(docId, pubmedMeta, fulltextData, outDir)
@@ -1476,7 +1560,7 @@ def findLinksByText(page, searchRe):
     page = parseHtmlLinks(page)
     for linkUrl, linkText in page["links"].iteritems():
         dbgStr = "Checking linkText %s (url %s) against %s" % \
-            (unidecode.unidecode(linkText), linkUrl, searchRe.pattern)
+            (repr(unidecode.unidecode(linkText)), linkUrl, searchRe.pattern)
         logging.log(5, dbgStr)
         if searchRe.match(linkText):
             urls.append(linkUrl)
@@ -1491,13 +1575,16 @@ def findLinksWithUrlPart(page, searchText, canBeOffsite=False):
     urls = []
     page = parseHtmlLinks(page, canBeOffsite=canBeOffsite)
     for linkUrl, linkText in page["links"].iteritems():
-        dbgStr = "Checking linkText %s (url %s) against %s" % \
+        dbgStr = "Checking link Url '%s', url %s, against %s" % \
             (unidecode.unidecode(linkText), linkUrl, searchText)
         logging.log(5, dbgStr)
         if searchText in linkUrl:
             urls.append(linkUrl)
             logging.debug(u'Found link: %s -> %s' % (repr(linkText.decode("utf8")), repr(linkUrl.decode('utf8'))))
-    logging.debug("Found links with %s in URL: %s" % (repr(searchText), urls))
+    if len(urls)!=0:
+        logging.debug("Found links with %s in URL: %s" % (repr(searchText), urls))
+    else:
+        logging.debug("Found no links with %s in URL" % searchText)
     return urls
 
 def downloadSuppFiles(urls, paperData, delayTime, httpGetFunc=httpGetDelay):
@@ -1880,8 +1967,8 @@ class HighwireCrawler(Crawler):
     name = "highwire"
 
     # little hard coded list of top highwire sites, to avoid some DNS lookups
-    highwireHosts = set(["asm.org", "rupress.org", "jcb.org", "cshlp.org", \
-        "aspetjournals.org", "fasebj.org", "jleukbio.org"])
+    manualHosts = set(["asm.org", "rupress.org", "jcb.org", "cshlp.org", \
+        "aspetjournals.org", "fasebj.org", "jleukbio.org", "oxfordjournals.org"])
     # cache of IP lookups, to avoid some DNS lookups which tend to fail in python
     hostCache = {}
 
@@ -1920,6 +2007,7 @@ class HighwireCrawler(Crawler):
         " parse the ISSNs that this crawler can do "
         if self.highwireIssns is None:
             self.highwireIssns, self.highwireHosts = getHosterIssns("HIGHWIRE")
+        self.highwireHosts.update(self.manualHosts)
 
     def canDo_article(self, artMeta):
         " return true if ISSN is known to be hosted by highwire "
@@ -1930,7 +2018,7 @@ class HighwireCrawler(Crawler):
         if artMeta["eIssn"] in self.highwireIssns:
             return True
 
-        return False
+        return None
 
     def canDo_url(self, url):
         "return true if a hostname is hosted by highwire at stanford "
@@ -1939,6 +2027,7 @@ class HighwireCrawler(Crawler):
             if hostname.endswith(hostEnd):
                 logging.log(5, "url hostname %s ends with %s -> highwire" % (hostname, hostEnd))
                 return True
+
         if hostname in self.hostCache:
             ipAddr = self.hostCache[hostname]
         else:
@@ -2126,7 +2215,7 @@ class WileyCrawler(Crawler):
         # DOI prefixes for wiley and the old blackwell prefix
         if artMeta["doi"].startswith("10.1002") or artMeta["doi"].startswith("10.1111"):
             return True
-        return False
+        return None # = not sure, maybe
 
     def canDo_url(self, url):
         if "onlinelibrary.wiley.com" in url:
@@ -2224,7 +2313,7 @@ class SpringerCrawler(Crawler):
     def canDo_article(self, artMeta):
         if artMeta["doi"].split("/")[0] in ["10.1007", "10.1023", "10.1134"]:
             return True
-        return False
+        return None # = not sure
 
     def canDo_url(self, url):
         if "link.springer.com" in url:
@@ -2276,7 +2365,7 @@ class LwwCrawler(Crawler):
             return True
         if artMeta["doi"].startswith("10.1097"):
             return True
-        return False
+        return None # = not sure
 
     def canDo_url(self, url):
         if "wkhealth.com" in url or "lww.com" in url:
@@ -2411,7 +2500,7 @@ class TandfCrawler(Crawler):
                 logging.log(5, "TandF: ISSN match")
                 return True
 
-        return False
+        return None # not sure
 
     def canDo_url(self, url):
         if "tandfonline.com" in url:
@@ -2499,20 +2588,38 @@ class KargerCrawler(Crawler):
         wait(delaySecs, "karger.com")
 
         if self.useSelenium:
-            page = getPageSelenium(url, delaySecs)
+            page = httpGetSelenium(url, delaySecs)
             if "Incapsula incident" in page["data"]:
                 raise pubGetError("Got blocked by Incapsula", "incapsulaBlock")
             return page
 
+        count = 0
         if self.session is None:
             if not requestsLoaded:
                 raise pubGetError("Karger.com requires the requests python module. Install it with 'pip install requests' and retry", \
                     "noRequestsKarger")
             self.session = requests.Session()
-            response = self.session.get(url)
-            response = crack(self.session, response)  # url is no longer blocked by incapsula
+
+            while count < 5:
+                try:
+                    response = self.session.get(url)
+                    response = crack(self.session, response)  # url is no longer blocked by incapsula
+                    #response = self.session.get(url)
+                    break
+                except requests.exceptions.ConnectionError:
+                    count +=1
+                    logging.warn("Got connection error when trying to get Karger page, retrying...")
         else:
-            response = self.session.get(url)
+            while count < 5:
+                try:
+                    response = self.session.get(url)
+                    break
+                except requests.exceptions.ConnectionError:
+                    count +=1
+                    logging.warn("Got connection error when trying to get Karger page, retrying...")
+
+        if count >= 5:
+            raise pubGetError("Too many Karger connection errors", "KargerConnErrors")
 
         page = {}
         page["data"] = response.content
@@ -2521,7 +2628,7 @@ class KargerCrawler(Crawler):
 
         if "Incapsula incident" in page["data"]:
             self.useSelenium = True
-            page = getPageSelenium(url, delaySecs)
+            page = httpGetSelenium(url, delaySecs)
 
         if "Incapsula incident" in page["data"]:
             raise pubGetError("Got blocked by Incapsula even with selenium", "incapsulaBlockFirefox")
@@ -2529,8 +2636,11 @@ class KargerCrawler(Crawler):
         return page
 
     def crawl(self, url):
+        if "karger.com" not in url:
+            raise pubGetError("not a karger URL", "notKarger")
+
         paperData = OrderedDict()
-        delayTime = crawlDelays["karger"]
+        delayTime = getDelaySecs("karger", None)
 
         url = url.replace("/Abstract/", "/FullText/")
 
@@ -2549,16 +2659,19 @@ class KargerCrawler(Crawler):
         paperData["main.html"] = fullPage
 
         # PDF 
-        pdfUrl = fullPage["url"].replace("/Abstract/", "/FullText/").replace("/FullText/", "/Pdf/")
+        pdfUrl = fullPage["url"].replace("/FullText/", "/Fulltext/")
+        pdfUrl = pdfUrl.replace("/Abstract/", "/Fulltext/").replace("/Fulltext/", "/Pdf/")
         pdfPage = self._httpGetKarger(pdfUrl, delayTime)
-        paperData["main.pdf"] = pdfPage
+        if pdfPage["data"][:4] == "%PDF":
+            paperData["main.pdf"] = pdfPage
+        else:
+            logging.warn("Could not get PDF from Karger")
 
         # most suppl files are hosted by karger
         suppListUrls = findLinksWithUrlPart(fullPage, "/ProdukteDB/miscArchiv/")
-        assert(len(suppListUrls)<=1)
         if len(suppListUrls)==1:
             if suppListUrls[0].lower().endswith(".pdf"):
-                # some articles have only a single PDF file
+                # some articles have only a single PDF file linked directly from the article
                 suppFile = self._httpGetKarger(suppListUrls[0], delayTime)
                 paperData["S1.pdf"] = suppFile
             else:
@@ -2569,8 +2682,14 @@ class KargerCrawler(Crawler):
                     logging.warn("Karger suppl page %s has no links on it" % ",".join(suppUrls))
                 else:
                     downloadSuppFiles(suppUrls, paperData, delayTime, httpGetFunc=self._httpGetKarger)
+        # some suppl files are linked directly from the article page
+        elif len(suppListUrls)>1:
+            downloadSuppFiles(suppListUrls, paperData, delayTime, httpGetFunc=self._httpGetKarger)
+        else:
+            logging.debug("Karger: no suppl files found")
 
         # some suppl files are hosted at figshare ?
+        # how many way to link supplements did Karger invent??
         suppListUrls = findLinksWithUrlPart(fullPage, "figshare.com")
         assert(len(suppListUrls)<=1)
         if len(suppListUrls)==1:
@@ -2584,7 +2703,7 @@ class ScihubCrawler(Crawler):
     """
     Can only get the PDF, nothing else.
     using a scihub scraper found on github. Will get blocked after a while
-    by captchas. Maybe not legal to use, except in Russia. Not used at UCSC,
+    by captchas. Not legal to use, except in Russia. Certainly not used at UCSC,
     just an experiment and as a sample how to write crawlers.
     Captchas seem to be from http://www.flogocloud.com/pricing/contact-files/captcha/words/words.txt
     The captcha URL is http://sci-hub.cc/captcha/securimage_show.php?<randomNumer>
@@ -2628,16 +2747,276 @@ class ScihubCrawler(Crawler):
         paperData["main.pdf"] = pdfPage
         return paperData
 
+class GenericCrawler(Crawler):
+    """
+    Crawler that tries to get the files with rules. Not specific to any publisher.
+    Uses a few rules to find links to the PDF.
+    Will usually only the get main PDF, sometimes the supplement.
+
+    Test: 
+    - ACS: 25867541
+    - RCS: 24577138 (with suppl.)
+    - IEEE: 25861092
+    - Jstage: 26567999
+    - yiigle: 24685044 (selenium)
+    - scitation: 25096102
+    - osapublishing: 24281500
+    - koreascience: 26625779
+    - thieme: 26397852, should work, uses meta url, but UCSC has no access
+    - mary ann liebert: 26789706
+    - IOP: 26020697 (requires requests module for cookies)
+    - journals.cambridge.org: 22717054
+    - aps.org: no way, has captcha 22463183
+    - psycnet: no, we have no license, 25419911
+    - ebsco: no, too much .js, 20136062
+    - ingentaconnect/ingenta.com: no, requires onclick, 23975508
+    - koreamed.org: 26907485
+    - bmj: 23657193
+    - impactjournals: 26431498
+    - spandidos: 19639195
+    - jstor: no, 16999195 redirects to splash page and click
+    - mitpressjournals: 24479543
+    - medicalletter.org: 22869291 (selenium. PDF download requires the cookies)
+    - funpecrp.com: 25867385
+    - degruyter: 25867385 (selenium)
+    - wangfangdata.com.cn: no, requires login, 27095733
+    - healio.com: 26821222 (selenium, actually incapsulate)
+    - minervamedica: no, captcha, 26771917
+    - thejns.org: 26828890
+    - magonlinelibrary: don't no, UCSC has no license, 26926349
+    - dovepress.com: 27330308
+    - mdpi.com: 26867192
+    - futuremedicine: no, UCSC has no license, 26638726
+    - bioone.org: 27010308
+    - iucr.org: 26894534 (meta tag)
+    - humankinetics: no, 26218309, UCSC has no license
+    - hogrefe: yes, 27167488, but UCSC has no license
+    - annualreviews: 26768245
+    - pieronline: no, UCSC has no license, 27306822
+    - turkjournalgastroenterol: 27210792
+
+    """
+    name = "generic"
+    useSelenium = False
+
+    def canDo_article(self, artMeta):
+        return True
+    
+    def _httpGetDelay(self, url, waitSecs, mustGet=False, noFlash=False, useSelCookies=False):
+        " generic http get request, uses selenium if needed "
+        page = None
+        if self.useSelenium:
+            page = httpGetSelenium(url, waitSecs, mustGet=mustGet)
+            time.sleep(5)
+        else:
+            # copy over the cookies from selenium
+            cookies = None
+            if useSelCookies:
+                logging.debug("Importing cookies from selenium")
+                all_cookies = browser.get_cookies()
+                cookies = {}
+                for s_cookie in all_cookies:
+                    cookies[s_cookie["name"]]=s_cookie["value"]
+
+            if noFlash:
+                # cambridge.org will use a fancy flash PDF viewer instead of 
+                # it is nice, but we really want the PDF
+                page = httpGetDelay(url, waitSecs, mustGet=mustGet, blockFlash=True, cookies=cookies)
+            else:
+                page = httpGetDelay(url, waitSecs, mustGet=mustGet, cookies=cookies)
+        return page
+            
+        
+    def _findRedirect(self, page):
+        " search for URLs on page and reload the page "
+        htmlRes = [
+            ("koreascience", re.compile(r"<script>location.href='(.+)'</script>")) # for koreascience.or.kr
+        ]
+        for domainTag, htmlRe in htmlRes:
+            if not domainTag in page["url"]:
+                continue
+            logging.debug("redirect: domain match")
+            match = htmlRe.search(page["data"])
+            if match!=None:
+                url = match.group(1)
+                url = urlparse.urljoin(page["url"], url)
+                logging.debug("redirect: found URL %s" % url)
+                page = self._httpGetDelay(url, 1)
+                page = parseHtmlLinks(page)
+        return page
+        
+    def _findPdfLink(self, landPage):
+        " return first link to PDF on landing page "
+        #pdfUrls = findLinksByText(landPage, {"class" : "linkPDF"})
+        #pdfUrls = htmlFindLinkUrls(fullPage, {"class" : "linkPDF"})
+
+        # some domains need a redirect first to get the landing page
+        logging.debug("Looking for link to PDF on landing page")
+
+        landPage = parseHtmlLinks(landPage)
+
+        metaUrl = getMetaPdfUrl(landPage)
+
+        # some hosts do not have PDF links into the citation_pdf_url meta attribute
+        if metaUrl is not None:
+            isInvalidMeta = False
+            ignoreMetaHosts = ["cambridge.org", "degruyter.com"]
+            for ignoreHost in ignoreMetaHosts:
+                if ignoreHost in metaUrl:
+                    isInvalidMeta = True
+            if not isInvalidMeta:
+                return metaUrl
+
+        # most domains: recognize PDFs by some tag in their URL linked from the article page
+        urlTags = [
+        "/pdf/",  # ACS
+        "/articlepdf/",  # RCS
+        "/_pdf",  # jstage
+        "mimeType=pdf",  # scitation
+        "viewmedia.cfm", # osapublishing
+        "/PDFData/", # koreamed.org
+        "attachment.jspx?", # yiigle - requires selenium
+        "/stable/pdf/",  # jstor
+        "/pdfplus/", # rcni.com
+        ":pdfeventlink", # degruyter
+        "getfile.php?fileID", # dovepress
+        "/TML-article" # medicalletter.org
+        ]
+
+        for urlPart in urlTags:
+            pdfUrls = findLinksWithUrlPart(landPage, urlPart)
+            if len(pdfUrls)>0:
+                logging.debug("Found tag %s in link" % urlPart)
+                return pdfUrls[0]
+
+        # search by name of class
+        classNames = [
+            "typePDF",
+            "full_text_pdf",  # hindawi
+            "pdf" # healio
+        ]
+        for className in classNames:
+            pdfUrls = htmlFindLinkUrls(landPage, {"class":className})
+            if len(pdfUrls)>0:
+                logging.debug("Found className %s in link" % className)
+                return pdfUrls[0]
+
+        # search by text in link
+        textTags = [
+        re.compile(r"^Full Text \(PDF\)$")
+        ]
+        for textRe in textTags:
+            pdfUrls = findLinksByText(landPage, textRe)
+            if len(pdfUrls)>0:
+                logging.debug("Found text pattern %s in link text" % (textRe.pattern))
+                return pdfUrls[0]
+
+        return None
+
+    def _findSupplUrls(self, landPage):
+        " return list of supp data URLs "
+        # if linked from the landing page
+        urlParts = ["/suppdata/"]
+        for urlPart in urlParts:
+            suppUrls = findLinksWithUrlPart(landPage, urlPart)
+            if len(suppUrls)>0:
+                return suppUrls
+        return []
+
+    def _wrapPdfUrl(self, url):
+        " wrap a url to a PDF into a paperdata dict and return it "
+        pdfPage = httpGetDelay(url)
+        paperData = {}
+        paperData["main.pdf"] = pdfPage
+        return paperData
+
+    def crawl(self, url):
+        if url.endswith(".pdf"):
+            logging.debug("Landing URL is already a PDF")
+            return self._wrapPdfUrl(url)
+
+        paperData = OrderedDict()
+        delayTime = crawlDelays["generic"]
+
+        # for these hosts, use the Selenium firefox driver instead
+        # of the requests module
+        useSeleniumHosts = [
+        "yiigle",
+        "medicalletter.org",
+        "degruyter.com",
+        "healio.com"
+        ]
+        self.useSelenium = False
+        for tag in useSeleniumHosts:
+            if tag in url:
+                self.useSelenium = True
+                break
+
+        landPage = self._httpGetDelay(url, delayTime, mustGet=True)
+
+        noLicenseTags = ["Purchase a Subscription", "Purchase This Content",
+            "to gain access to this content", "Purchase Full Text",
+            "please verify that the link is correct",
+            #"Buy Article", # does not work for http://journals.iucr.org/a/issues/2016/04/00/mq5044/index.html
+            "Online access to the content you have requested requires one of the following", #futuremedicine
+            "Online access to the content you have requested requires one of the following", #rcni.com
+            "DOI cannot be found in the DOI System"]
+        if pageContains(landPage, noLicenseTags):
+            logging.info("generic crawler: 'No license' or other error text")
+            return None
+
+        #open("temp.txt", "w").write(landPage["data"])
+        #sdf
+
+        landPage = self._findRedirect(landPage)
+
+        pdfUrl = self._findPdfLink(landPage)
+        if pdfUrl==None:
+            logging.info("generic: could not find link to PDF")
+            return None
+
+        logging.debug("Found link to PDF %s" % pdfUrl)
+
+        self.useSelenium = False
+
+
+        useSelCookies = False
+        if "seleniumDriver" in landPage:
+            useSelCookies = True
+
+        pdfPage = self._httpGetDelay(pdfUrl, delayTime, noFlash=True, useSelCookies=useSelCookies)
+
+        if "Verification Required" in pdfPage["data"]:
+            # aps.org
+            raise pubGetError("captcha page prevents us from downloading", "captcha")
+
+        if not isPdf(pdfPage):
+            logging.debug("PDF may be in a frame, trying to resolve it to final PDF")
+            pdfPage = parseHtmlLinks(pdfPage)
+            if "pdfDocument" in pdfPage["frames"]:
+                pdfUrl = pdfPage["frames"]["pdfDocument"]
+                pdfPage = self._httpGetDelay(pdfUrl, delayTime)
+            else:
+                logging.warn("PDF-link is not a PDF and not framed")
+                return None
+                
+        paperData["main.pdf"] = pdfPage
+
+        suppUrls = self._findSupplUrls(landPage)
+        paperData = downloadSuppFiles(suppUrls, paperData, delayTime, httpGetFunc=self._httpGetDelay)
+        return paperData
+
 # the list of all crawlers
 # order is important: the most specific crawlers come first
 allCrawlers = [
     ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
     WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), TandfCrawler(),\
-    KargerCrawler(), PmcCrawler() ]
+    KargerCrawler(), PmcCrawler(), GenericCrawler() ]
 
 allCrawlerNames = [c.name for c in allCrawlers]
 
 def addCrawler(name):
+    " add an custom crawler to global list "
     global allCrawlers, allCrawlerNames
     if name=="scihub":
         allCrawlers.append(ScihubCrawler())
@@ -2671,25 +3050,29 @@ def selectCrawlers(artMeta, srcDir):
             crawlerName = open(crawlerSpecFname).read().strip()
             crawlers = [c for c in allCrawlers if c.name==crawlerName]
             # give the crawlers the metadata. only useful for scihub right now.
+            cNames = []
             for c in crawlers:
                 c.canDo_article(artMeta)
+                cNames.append(c.name)
+
+            logging.debug("Keeping only these crawlers: %s" % (",".join(cNames)))
             return crawlers, None
 
-    # find crawlers that agree to crawl, based on the article meta
+    # find custom crawlers that agree to crawl, based on the article meta
     okCrawlers = findCrawlers_article(artMeta)
     landingUrl = None
     crawlerNames = [c.name for c in okCrawlers]
+    customCrawlers = set(crawlerNames) - set(["pmc", "generic"])
 
-    if len(okCrawlers)==0 or crawlerNames==["pmc"]:
+    if len(customCrawlers)==0:
         # get the landing URL from a search engine like pubmed or crossref
         # and ask the crawlers again
-        logging.debug("No crawler or only PMC accepted paper based on meta data, getting landing URL")
+        logging.debug("No custom crawler accepted paper based on meta data, getting landing URL")
         landingUrl = getLandingUrlSearchEngine(artMeta)
+
         okCrawlers.extend(findCrawlers_url(landingUrl))
 
     if len(okCrawlers)==0:
-        #logging.info("No crawler found on either article metadata or URL. Using generic crawler")
-        #return [genericCrawler]
         logging.info("No crawler found on either article metadata or URL.")
         return [], landingUrl
 
@@ -2709,6 +3092,7 @@ def crawlOneDoc(artMeta, srcDir, forceCrawlers=None):
         crawlers, landingUrl = selectCrawlers(artMeta, srcDir)
     else:
         # just use the crawlers we got
+        logging.debug("Crawlers were fixed externally: %s" % ",".join(forceCrawlers))
         cByName = {}
         for c in allCrawlers:
             cByName[c.name] = c
@@ -2726,7 +3110,6 @@ def crawlOneDoc(artMeta, srcDir, forceCrawlers=None):
         artMeta["landingUrl"] = landingUrl
 
     for crawler in crawlers:
-
         logging.info("Trying crawler %s" % crawler.name)
 
         # only needed for scihub: send the meta data to the crawler
@@ -2742,7 +3125,7 @@ def crawlOneDoc(artMeta, srcDir, forceCrawlers=None):
                 url = getLandingUrlSearchEngine(artMeta)
 
         # now run the crawler on the landing URL
-        logging.info("Crawling base URL %s" % url)
+        logging.info("Crawling base URL %s" % str(url))
         paperData = crawler.crawl(url)
         if paperData is None:
             logging.warn("Crawler was unable to crawl in the end")
