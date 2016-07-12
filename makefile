@@ -7,8 +7,7 @@ all:
 
 install:
 	mkdir -p $(BIN)
-	#rm $(BIN)/*
-	cp -R * $(BIN)/
+	rsync --delete -avp ./ $(BIN)/ --exclude test/ --cvs-exclude
 	# most other hgwdev users don't have the correct python
 	# in their path, so I have to force it
 	sed -i 's|/usr/bin/env python|$(PYTHON)|' $(BIN)/pub*
