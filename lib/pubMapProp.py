@@ -1,4 +1,4 @@
-import os, logging, time
+import os, logging, time, json
 from os.path import join, isfile, isdir, basename
 import pubGeneric, maxTables, pubStore, pubConf, maxCommon
 
@@ -16,7 +16,6 @@ def readList(path):
         identifiers.append( line.strip())
     return identifiers
 
-
 def writeList(path, identifiers):
     " write list of identifiers to file "
     logging.info("Writing %d identifiers to %s" % (len(identifiers), path))
@@ -25,41 +24,88 @@ def writeList(path, identifiers):
         outFh.write(basename(identifier)+"\n")
     outFh.close()
 
-class PipelineConfig:
-    """ a class with tons of properties to hold all directories for the pipeline 
-        Most of these are relative to a BATCH (=one full run of the pipeline)
+def getAllUpdateIds(datasets):
+    " collect all available text dataset updateIds for all datasets "
+    textUpdateIds = {}
+    for dataset in datasets:
+        textDir = pubConf.resolveTextDir(dataset)
+        updateFname = join(textDir, "updates.tab")
+        logging.debug("Reading %s" % updateFname)
+        updateIds = []
+        for row in maxCommon.iterTsvRows(updateFname):
+            updateIds.append(row.updateId)
+        textUpdateIds[dataset] = updateIds
+    return textUpdateIds
+
+    # also save to file, so we don't have to do this again
+    outFname = join(batchDir, "updateIds.json")
+    json.dumps(textUpdateIds, open(outFname, "w"), sort_keys=True, indent=4, )
+    return textUpdateIds
+         
+def readUpdateIds(batchDir):
+    """ read text-dataset names and update IDs from all existing batches 
+    returns a dict textDataset -> list of updateIds
     """
-    def __init__(self, dataset, outDir):
-        self.markerCountsBase   = MARKERCOUNTSBASE
-        self.markerDirBase      = MARKERDIRBASE
+    ret = defaultdict(list)
+    inFname = join(batchDir, "updateIds.json")
+    logging.info("Reading text update IDs from %s" % inFname)
+    if not isfile(inFname):
+        return None
+    return json.load(open(inFname))
+    
+class PipelineConfig:
+    """ a simple class with attributes = all directories used by the pipeline 
+        Most of these are relative to a BATCH (=one full run of the pipeline)
+
+        When you create the object, you only supply the main output directory outDir/bundle.
+        __init__ will search for the first incomplete batch under this directory
+        or create a new batch directory, if all batches are complete.
+    """
+    def newBatch(self, outDir, bundle):
+        " create a new batch directory and save ourselves as JSON into it "
+        # define the dir
+        if self.batchId is None:
+            self.batchId = 0
+        else:
+            self.batchId = self.batchId+1
+            logging.debug("Increasing batchId, new batchId is %s" % self.batchId)
+        self.batchDir = join(self.baseDirBatches, str(self.batchId))
+
+        # create the dir
+        if isdir(self.batchDir):
+            if not len(os.listdir(self.batchDir))==0:
+                raise Exception("%s contains files, is this really a new run?" % self.batchDir)
+        else:
+            logging.debug("Creating dir %s" % self.batchDir)
+            os.makedirs(self.batchDir)
+
         assert(outDir!=None and outDir!="")
+        maxCommon.mustExistDir(outDir, makeDir=True)
         self.pubMapBaseDir = outDir
-        maxCommon.mustExistDir(self.pubMapBaseDir, makeDir=True)
         logging.debug("Main pipeline outdir is %s" % outDir)
 
-        self.dataset = dataset
-        if "," in dataset:
-            logging.debug("comma in dataset description, deferring config")
-            return
+        self.bundleName = bundle
+        self.datasets = pubConf.bundleToText[dataset]
 
-        self.textDir = pubConf.resolveTextDir(dataset)
-        if self.textDir==None:
-            raise Exception("dataset %s can not be resolved to a directory" % dataset)
+        self.markerCountsBase   = MARKERCOUNTSBASE
+        self.markerDirBase      = MARKERDIRBASE
 
-        # base dir for dataset
-        self.baseDir = join(self.pubMapBaseDir, self.dataset)
+        # base working directory for dataset
+        self.baseDir = join(self.pubMapBaseDir, self.bundleName)
 
         self.batchId = self._findCurrentBatchDir()
         self.batchDir = join(self.baseDirBatches, str(self.batchId))
         self._defineBatchDirectories()
 
-    def _findCurrentBatchDir(self):
+        # populate text input updateIds
+        self.updateIds = readUpdateIds(self.batchDir, self.datasets)
+
+    def _findCurrentBatchId(self):
         """ find the directory of the highest batchId that is not at "tables" yet """
         # mkdir if there is no batch dir and return "None"
         if not self._anyBatchSetup() and not isdir(self.baseDirBatches):
             logging.debug("Creating batchDir")
             os.makedirs(self.baseDirBatches)
-            return None
 
         batchId = 0
         for nextBatchId in self._batchIds():
@@ -69,6 +115,7 @@ class PipelineConfig:
                 batchId = nextBatchId
             else:
                 break
+
         batchId = int(batchId)
         logging.info("First valid batchId is %d" % (batchId))
         return batchId
@@ -77,13 +124,7 @@ class PipelineConfig:
         """ 
         Set attributes for all input and output directories relative to self.batchDir 
         """
-        if "," in self.dataset:
-            logging.debug("comma in dataset description, deferring config")
-            return
-
         logging.debug("Defining batch directories for %s" % self.pubMapBaseDir)
-        #global baseDir
-        #baseDir = self.baseDir
 
         # define current batch id by searching for:
         # first batch that is not at tables yet
@@ -99,17 +140,13 @@ class PipelineConfig:
         # pipeline progress table file
         self.progressDir = join(self.batchDir, "progress")
 
-        # updateIds as part of this batch
-        self.updateIdFile = join(self.batchDir, "updateIds.txt")
-        self.updateIds = readList(self.updateIdFile)
-        logging.debug("Batch is linked to these text update IDs: %s" % self.updateIds)
-
+        # text-datasets and updateIds that are part of this batch
         # list of textfiles that were processed in batch
-        self.chunkListFname = join(batchDir, "annotatedTextChunks.tab")
-        self.chunkNames =  readList(self.chunkListFname)
+        #self.chunkListFname = join(batchDir, "annotatedTextChunks.tab")
+        #self.chunkNames =  readList(self.chunkListFname)
 
         # directories for text annotations
-        # all sequences on all articles, includes tiny seqs&duplicates
+        # all sequences found in all articles, includes tiny seqs&duplicates
         self.dnaAnnotDir    = join(batchDir, "annots", "dna")
         self.protAnnotDir   = join(batchDir, "annots", "prot") # same for proteins
         self.markerAnnotDir = join(batchDir, "annots", "markers") # same for markers
@@ -125,9 +162,9 @@ class PipelineConfig:
         # number of articles per marker, for base and all updates
         self.markerCountFile    = join(batchDir, MARKERCOUNTSBASE)
         # filtered marker beds, annotated with article count
-        self.markerDir          = join(batchDir, MARKERDIRBASE)
+        #self.markerDir          = join(batchDir, MARKERDIRBASE)
 
-        self.textConfigFname = join(batchDir, "textDir.conf") # directory where text files are stored
+        #self.textConfigFname = join(batchDir, "textDir.conf") # directory where text files are stored
 
         # files for filter step
 
@@ -168,29 +205,14 @@ class PipelineConfig:
     def writeChunkNames(self, chunkNames):
         writeList(self.chunkListFname, chunkNames)
 
-    def writeUpdateIds(self):
-        writeList(self.updateIdFile, self.updateIds)
-
     def createNewBatch(self):
         " increment batch id and update the current batch id file"
-        # define the dir
-        if self.batchId is None:
-            self.batchId = 0
-        else:
-            self.batchId = self.batchId+1
-            logging.debug("Increasing batchId, new batchId is %s" % self.batchId)
-        self.batchDir = join(self.baseDirBatches, str(self.batchId))
-
-        # create the dir
-        if isdir(self.batchDir):
-            if not len(os.listdir(self.batchDir))==0:
-                raise Exception("%s contains files, is this really a new run?" % self.batchDir)
-        else:
-            logging.debug("Creating dir %s" % self.batchDir)
-            os.makedirs(self.batchDir)
-
+        self.updateIds = getAllUpdateIds(self.datasets, self.batchDir)
         # define all other dirs
         self._defineBatchDirectories()
+        self.save()
+        #self.updateIds = readUpdateIds(self.batchDir, self.datasets)
+        #if self.updateIds is None:
 
     def _batchIds(self):
         " return sorted list of all possible batchIds "

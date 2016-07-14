@@ -738,6 +738,8 @@ def readLocalMedline(pmid):
     # convert sqlite results to dict
     result = {}
     for key, val in zip(lastRow.keys(), lastRow):
+        if val is None:
+            val=""
         result[key] = unicode(val)
 
     result["source"] = ""

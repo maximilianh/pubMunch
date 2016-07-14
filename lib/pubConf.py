@@ -157,7 +157,13 @@ springerPass = ""
 # GENERAL PUBLICATION FILE CONFIG SETTINGS ============================
 
 # which dataset should be loaded by the "load" step in pubMap ?
-loadDatasets = ["elsevier", "pmc", "crawler"]
+# loadDatasets = ["elsevier", "pmc", "crawler", "springer"]
+
+# bundles are set of datasets and annotations run regularily over them
+bundleToText = {
+    "pubsTrack" : ["pmc", "springer", "elsevier", "crawler"],
+}
+
 
 TEMPDIR = "/tmp/pubTools" # local filesystem on cluster nodes
 FASTTEMPDIR = TEMPDIR

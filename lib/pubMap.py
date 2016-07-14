@@ -1816,13 +1816,12 @@ def runAnnotStep(d, onlyMarkers=False, onlySeq=False):
                 (d.progressDir, d.batchDir))
 
     d.createNewBatch()
-    # the new batch must not be over annot yet
-    if d.batchIsPastStep("annot"):
-        raise Exception("Annot was already run on this batch, see %s. Stopping." % \
-            d.progressDir)
+    # paranoia: the new batch must not be over annot yet
+    #if d.batchIsPastStep("annot"):
+        #raise Exception("Annot was already run on this batch, see %s. Stopping." % \
+            #d.progressDir)
 
     # find text updates to annotate
-    d.findUnannotatedUpdateIds()
     if d.updateIds==None or len(d.updateIds)==0:
         maxCommon.errAbort("All data files have been processed. Skipping all steps.")
 
@@ -1863,7 +1862,6 @@ def runAnnotStep(d, onlyMarkers=False, onlySeq=False):
         cleanUp=True, runNow=True, runner=runner)
 
     d.writeChunkNames(chunkNames)
-    d.writeUpdateIds()
     d.appendBatchProgress("annot")
 
     # re-read the list of chunks just annotated
@@ -2061,8 +2059,8 @@ def findLociForBeds(bedFname, db):
     #print annotIdToGene["44000210370000000"]
     return annotIdToGene
 
-def runStep(dataset, command, d, options):
-    " run one step of the pubMap pipeline with pipeline directories in d "
+def runStep(command, d, options):
+    """ run one step of the pubMap pipeline with pipeline directories in 'd' (=short variable as it's used all the time) """
 
     logging.info("Running step %s" % command)
 

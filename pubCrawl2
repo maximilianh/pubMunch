@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
-import logging, optparse, sys, os, traceback
+import logging, optparse, sys, os, traceback, random
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
@@ -80,6 +80,8 @@ def main(args, options):
 
     try:
         docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
+        if len(outDirs) > 1: # only randomize if we're doing multiple publishers
+            random.shuffle(docIds)
         scrapeLib.crawlDocuments(docIds, skipIssns)
     except KeyboardInterrupt:
         logging.info("Got Keyboard interrupt")

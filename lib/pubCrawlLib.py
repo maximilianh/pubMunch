@@ -8,7 +8,7 @@
 # information as we can from local sources and cache as aggressively as possible,
 # to avoid sending any http query twice.
 
-import logging, os, shutil, tempfile, codecs, re, types, \
+import logging, os, shutil, tempfile, codecs, re, types, datetime, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
     sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib
 from os.path import *
@@ -69,6 +69,10 @@ SUPPFILEMAXSIZE = 30000000
 # max number of consecutive errors
 # will abort if exceeded
 MAXCONSECERR = 50
+
+# number of consecutive errors that will trigger 
+# a pause of 15 minutes
+BIGWAITCONSECERR = 20
 
 # maximum number of errors per issn and year
 # after this number of errors per ISSN, an ISSN will be ignored
@@ -178,6 +182,8 @@ class pubGetError(Exception):
         self.detailMsg = detailMsg
     def __str__(self):
         return unidecode.unidecode(self.longMsg+"/"+self.logMsg+"/"+self.detailMsg)
+    def __repr__(self):
+        return str(self)
 
 # ===== FUNCTIONS =======
 
@@ -258,7 +264,7 @@ def getLandingUrlSearchEngine(articleData):
         landingUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData["pmid"])
 
     if landingUrl==None:
-        raise pubGetError("No fulltext for this article", "noOutlinkOrDoi") 
+        raise pubGetError("No fulltext for this article", "noOutlinkOrDoi")
 
     return landingUrl
 
@@ -323,19 +329,12 @@ def getDelaySecs(host, forceDelaySecs):
 browser = None
 display = None
 
-def httpGetSelenium(url, delaySecs, mustGet=False):
-    " use selenium to download a page "
+def startFirefox(force=False):
+    " start firefox on a pseudo-X11-display, return a webdriver object  "
     global display
     global browser
-    logging.info("Downloading %s using Selenium/Firefox" % url)
-    host = urlparse.urlsplit(url)[1]
-    delaySecs = getDelaySecs(host, delaySecs)
-    wait(delaySecs, host)
-
     if not seleniumLoaded:
         raise pubGetError("Cannot get page, selenium is not installed on this machine", "noSelenium")
-
-    page = {}
 
     if not display:
         logging.info("Starting pseudo-display")
@@ -349,38 +348,54 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
          'httpProxy': pubConf.httpProxy,
          'ftpProxy': pubConf.httpProxy,
          'sslProxy': pubConf.httpProxy})
-    if not browser:
+
+    if not browser or force:
         logging.info('Starting firefox on pseudo-display')
         browser = webdriver.Firefox(proxy=proxy)
+
+    return browser
+
+def httpGetSelenium(url, delaySecs, mustGet=False):
+    " use selenium to download a page "
+    logging.info("Downloading %s using Selenium/Firefox" % url)
+    host = urlparse.urlsplit(url)[1]
+    delaySecs = getDelaySecs(host, delaySecs)
+    wait(delaySecs, host)
+
+    browser = startFirefox()
+
+    page = {}
+
     count = 0
     while count < 5:
         try:
+
             browser.get(url)
+            page['seleniumDriver'] = browser
+            page['url'] = browser.current_url  # these calls can throw http errors, too
+            page['data'] = browser.page_source # these calls can throw http errors, too
+            page['mimeType'] = 'unknown'
             break
+
         except (requests.Timeout, timeout):
             logging.warn('timeout from selenium')
             count += 1
         except httplib.CannotSendRequest:
-            logging.warn("selenium's firefox died, restarting")
+            logging.warn("Selenium's firefox died, restarting")
             count += 1
-            browser = webdriver.Firefox(proxy=proxy)
+            browser = startFirefox(force=True)
 
     if count >= 5:
         logging.warn('too many timeouts/errors from selenium')
         if mustGet:
             raise pubGetError('too many timeouts', 'httpTimeout')
         return
-    else:
-        page['seleniumDriver'] = browser
-        page['url'] = browser.current_url
-        page['data'] = browser.page_source
-        page['mimeType'] = 'unknown'
 
-        # html is transmitted as unicode, but we do bytes strings
-        # so cast back to bytes
-        if type(page['data']) == types.UnicodeType:
-            page['data'] = page['data'].encode('utf8')
-        return page
+    # html is transmitted as unicode, but we do bytes strings
+    # so cast back to bytes
+    if type(page['data']) == types.UnicodeType:
+        page['data'] = page['data'].encode('utf8')
+    return page
 
 def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None):
     """ download with curl or wget and make sure that delaySecs (global var)
@@ -573,7 +588,16 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
         return page
 
     if "seleniumDriver" in page:
-        return parseLinksSelenium(page)
+        try:
+            page = parseLinksSelenium(page)
+        except httplib.CannotSendRequest:
+            # restart firefox and retry
+            startFirefox(force=True)
+            try:
+                page = parseLinksSelenium(page)
+            except httplib.CannotSendRequest:
+                raise pubGetError("Cannot communicate with Firefox/Selenium", "firefoxDied")
+        return page
 
     logging.debug("Parsing HTML links")
     htmlString = page["data"]
@@ -589,6 +613,8 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
             convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=linkStrainer)
     except ValueError, e:
         raise pubGetError("Exception during bs html parse", "htmlParseException", e.message)
+    except TypeError, e:
+        raise pubGetError("Exception during bs html parse", "BeautifulSoupError", page["url"])
     logging.log(5, "bs parsing finished")
 
     linkDict = OrderedDict()
@@ -745,20 +771,20 @@ def wait(delaySec, host="default"):
 
     lastCallSec[host] = time.time()
 
-def iterateNewPmids(pmids, ignorePmids):
-    """ yield all pmids that are not in ignorePmids """
-    ignorePmidCount = 0
-
-    ignorePmids = set([int(p) for p in ignorePmids])
-    pmids = set([int(p) for p in pmids])
-    todoPmids = pmids - ignorePmids
-    #todoPmids = list(todoPmids)
+#def iterateNewPmids(pmids, ignorePmids):
+    #""" yield all pmids that are not in ignorePmids """
+    #ignorePmidCount = 0
+#
+    #ignorePmids = set([int(p) for p in ignorePmids])
+    #pmids = set([int(p) for p in pmids])
+    #todoPmids = pmids - ignorePmids
+    ##todoPmids = list(todoPmids)
     #random.shuffle(todoPmids) # to distribute error messages
 
-    logging.debug("Skipped %d PMIDs" % (len(pmids)-len(todoPmids)))
-    for pmidPos, pmid in enumerate(todoPmids):
-        logging.debug("%d more PMIDs to go" % (len(todoPmids)-pmidPos))
-        yield str(pmid)
+    #logging.debug("Skipped %d PMIDs" % (len(pmids)-len(todoPmids)))
+    #for pmidPos, pmid in enumerate(todoPmids):
+        #logging.debug("%d more PMIDs to go" % (len(todoPmids)-pmidPos))
+        #yield str(pmid)
 
     #if ignorePmidCount!=0:
         #logging.debug("Skipped %d PMIDs" % ignorePmidCount)
@@ -1026,16 +1052,21 @@ def isPdf(page):
     " true if page is really a PDF file "
     return page["data"][:4]=="%PDF"
 
-def checkIfPdf(pageDict, metaData):
-    " bail out if pageDict is not a PDF file "
+def mustBePdf(pageDict, metaData):
+    " bail out if pageDict is not a PDF file and has correct mime type "
     if isPdf(pageDict):
         pageDict["mimeType"] = "application/pdf"
-
-    # check mime type
-    if pageDict["mimeType"]!="application/pdf":
-        raise pubGetError("not a PDF and not PDF mimetype, docId %s, " \
+    else:
+        raise pubGetError("not a PDF, docId %s, " \
           "title %s, url %s, mimeType %s" % \
           (metaData["pmid"], metaData["title"], pageDict["url"], pageDict["mimeType"]), "invalidPdf")
+
+def pdfIsCorrectFormat(fulltextData):
+    " return True if data has a PDF and it is in the right format "
+    if not "main.pdf" in fulltextData:
+        return True
+
+    return isPdf(fulltextData["main.pdf"])
 
 def writeFilesToDisk(pmid, metaData, fulltextData, outDir):
     """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
@@ -1074,7 +1105,7 @@ def writeFilesToDisk(pmid, metaData, fulltextData, outDir):
             # tandf and some others send two content-types but the requests module
             # and curl return only the first type. Accept anything that looks like a PDF
             # file
-            checkIfPdf(pageDict, metaData)
+            mustBePdf(pageDict, metaData)
 
             metaData["mainPdfFile"] = filename
             metaData["mainPdfUrl"] = pageDict["url"]
@@ -1112,7 +1143,7 @@ def printFileHash(fulltextData, artMeta):
         if ext in ["crawlerName", "status"]:
             continue
         if ext=="main.pdf":
-            checkIfPdf(page, artMeta)
+            mustBePdf(page, artMeta)
         sha1 = hashlib.sha1(page["data"]).hexdigest() # pylint: disable=E1101
         row = [crawlerName, ext, page["url"], str(len(page["data"])), sha1]
         print "\t".join(row)
@@ -2377,7 +2408,8 @@ class TandfCrawler(Crawler):
         paperData["main.html"] = fullPage
 
         # PDF 
-        pdfUrl = url.replace("/full/", "/pdf/")
+        pdfUrl = fullPage["url"].replace("/full/", "/pdf/").replace("/abs/", "/pdf/")
+        logging.debug("TandF PDF should be at %s" % pdfUrl)
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
@@ -2430,7 +2462,7 @@ class KargerCrawler(Crawler):
         wait(delaySecs, "karger.com")
 
         if self.useSelenium:
-            page = httpGetSelenium(url, delaySecs)
+            page = httpGetSelenium(url, delaySecs, mustGet=True)
             if "Incapsula incident" in page["data"]:
                 raise pubGetError("Got blocked by Incapsula", "incapsulaBlock")
             return page
@@ -2471,6 +2503,9 @@ class KargerCrawler(Crawler):
 
         if "Incapsula incident" in page["data"]:
             raise pubGetError("Got blocked by Incapsula even with selenium", "incapsulaBlockFirefox")
+
+        if "Sorry no product could be found for issn" in page["data"]:
+            raise pubGetError("Not a karger journal", "notKargerJournal")
 
         return page
 
@@ -3035,6 +3070,11 @@ def crawlOneDoc(artMeta, srcDir, forceCrawlers=None):
 
         try:
             paperData = crawler.crawl(url)
+
+            # make sure that the PDF data is really in PDF format
+            if paperData is not None and "main.pdf" in paperData:
+                mustBePdf(paperData["main.pdf"], artMeta)
+
         except pubGetError as ex:
             lastException = ex
 
@@ -3091,7 +3131,9 @@ def crawlDocuments(docIds, skipIssns):
         fileLogHandler = pubGeneric.logToFile(join(srcDir, "crawler.log"))
 
         todoCount = len(docIds)-i
-        logging.info("--- Crawling document with ID %s, dir %s (%d IDs left)" % (docId, srcDir, todoCount))
+        timeStr = datetime.datetime.strftime(datetime.datetime.now(), '%Y-%m-%d %H:%M:%S')
+        logging.info("--- %s Crawl start: docId %s, dir %s, %d IDs to crawl" % \
+            (timeStr, docId, srcDir, todoCount))
 
         global webCache
         webCache.clear()
@@ -3128,10 +3170,15 @@ def crawlDocuments(docIds, skipIssns):
                 logging.debug("Sleeping for %d secs after error" % waitSec)
                 time.sleep(waitSec)
 
+            # if many errors in a row, wait for 10 minutes
+            if consecErrorCount > BIGWAITCONSECERR:
+                logging.warn("Many consecutive errors, pausing a bit")
+                time.sleep(900)
+
             # if too many errors in a row, bail out
             if consecErrorCount > MAXCONSECERR:
                 logging.error("Too many consecutive errors, stopping crawl")
-                e.longMsg = "Crawl stopped after too many consecutive errors / "+e.longMsg
+                e.longMsg = "Crawl stopped after too many consecutive errors: "+e.longMsg
                 raise
 
             if DO_PAUSE:
