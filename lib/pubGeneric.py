@@ -5,6 +5,7 @@ import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, tra
     glob, operator, doctest, ftplib, random, shutil, atexit, pickle
 import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables, pubKeyVal
 from os.path import *
+from distutils.spawn import find_executable
 
 import sqlite3 as sqlite
 
@@ -598,6 +599,9 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
             locNames.append(locName)
         pm.taskCompleted()
     lFile.close()
+
+    if find_executable("lftp") is None:
+        raise Exception("the command lftp is not in your PATH. Install it wit apt-get install lftp or yum install lftp")
 
     cmd = ["lftp", "-f", scriptPath]
     logging.debug("Launching lftp for download, cmd %s" % " ".join(cmd))
