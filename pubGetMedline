@@ -57,7 +57,10 @@ def ftpBaselineEqLocal(outDir):
     baselineFnames = pubGeneric.getFtpDir(medlineSrv, baselinePath)
     ftpVer = baselineFnames[0][:prefixLen]
     ftpVer = ftpVer.replace("medline","")
-    localVer = basename(glob.glob(outDir+"/*.gz")[0])[:prefixLen]
+    existFnames = glob.glob(outDir+"/*.gz")
+    if len(existFnames)==0:
+        return None, None
+    localVer = basename(existFnames[0])[:prefixLen]
     localVer = localVer.replace("medline","")
     logging.debug("%s %s", ftpVer, localVer)
     return ftpVer, localVer
