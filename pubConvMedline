@@ -94,12 +94,14 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
     fCount = 0
     for medlineFname in medlineFnames:
         if basename(medlineFname) in doneFiles:
+            logging.debug("file %s marker as done in updates.tab" % medlineFname)
             continue
         fCount += 1
         outFname = os.path.join(buildDir, "%d_%05d.articles.gz" % (updateId, chunkId))
         maxCommon.mustNotExist(outFname)
         command = "%s %s {check in exists %s} {check out exists+ %s} %d" % \
             (sys.executable, progFile, medlineFname, outFname, chunkArticleId)
+        logging.debug("submitting command: %s" % command)
         runner.submit(command)
         chunkArticleId += idStep
         chunkId += 1
