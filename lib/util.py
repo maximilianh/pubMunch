@@ -272,10 +272,16 @@ def getFtpDir(ftp, dir, onlySubdirs=False):
 
 def ftpDownload(ftp, filename, locPath):
     logging.debug("Downloading %s via ftp to %s" % (filename, locPath))
+    tmpPath = locPath+".download"
+    ofh = open(tmpPath, "wb")
+
     try:
-        ftp.retrbinary("RETR "+filename, open(locPath, "wb").write)
+        ftp.retrbinary("RETR "+filename, ofh.write)
     except ftplib.error_perm:
         return False
+
+    ofh.close()
+    shutil.move(tmpPath, locPath)
     return True
 
 # -- for httpGet, helper class for redirects ---
