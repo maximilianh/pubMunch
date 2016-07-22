@@ -46,6 +46,9 @@ parser.add_option("", "--auto", dest="auto", action="store_true", \
 
 def parseFileList(path):
     " parse pmc file_list.csv into dict PMCID -> filename "
+    if not isfile(path):
+        logging.info("Could not find %s, probably first download" % path)
+        return {}
     logging.debug("Parsing %s" % path)
     data = {}
     ifh = open(path)
@@ -129,7 +132,7 @@ def updatePmc(outDir, checkOnDisk):
     """
 
     # download from server to .current.txt
-    logging.debug("Inferring missing PMC-IDs by comparing file_list.txt")
+    logging.info("Inferring missing PMC-IDs by comparing file_list.txt")
     newListFname = "file_list.current.txt"
     newListPath = join(outDir, newListFname)
     pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
@@ -189,7 +192,7 @@ def main(args, options):
         outDir = args[0]
 
     if not isdir(outDir):
-        logging.info("%s does not exist" % outDir)
+        print("%s does not exist" % outDir)
         sys.exit(1)
     pubGeneric.setupLogging(progFile, options)
     pubGeneric.setLockFile(outDir, "pubGetPmc")
