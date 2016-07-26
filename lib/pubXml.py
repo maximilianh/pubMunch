@@ -98,7 +98,7 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
     if namespace==None: # all namespaces                               
         for elem in etree.getiterator():
             tagname = elem.tag
-            if not isinstance(elem.tag, basestring):
+            if not isinstance(elem.tag, str):
                 continue
             if tagname[0]=='{':
                 elem.tag = tagname[ tagname.index('}',1)+1:]

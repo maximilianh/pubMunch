@@ -152,7 +152,7 @@ class Coords(list):
 
     def findContained(self, coord):
         "find index of first range containing coord, or None"
-        for i in xrange(len(self)):
+        for i in range(len(self)):
             if self[i].contains(coord):
                 return i
         return None

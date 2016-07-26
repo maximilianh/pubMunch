@@ -326,10 +326,10 @@ def parseElsevier(tree, data):
     cleanMetaDict = {}
 
     # XX do we need this? 
-    for key, val in data.iteritems():
+    for key, val in data.items():
         if val==None:
             val="NotFound"
-        elif type(val) is not types.UnicodeType:
+        elif type(val) is not str:
             val = val.decode("utf8")
         val = val.replace("\t", " ")
         val = val.replace("\n", " ")

@@ -1,7 +1,7 @@
 import sys
 import os
 import unittest
-import cStringIO
+import io
 import warnings
 import re
 
@@ -10,7 +10,7 @@ try:
 except ImportError:
     import simplejson as json
 
-from support import html5lib_test_files
+from .support import html5lib_test_files
 from html5lib.tokenizer import HTMLTokenizer
 from html5lib import constants
 
@@ -29,44 +29,44 @@ class TokenizerTestParser(object):
             tokenizer.currentToken = {"type": "startTag", 
                                       "name":self._lastStartTag}
 
-        types = dict((v,k) for k,v in constants.tokenTypes.iteritems())
+        types = dict((v,k) for k,v in constants.tokenTypes.items())
         for token in tokenizer:
             getattr(self, 'process%s' % types[token["type"]])(token)
 
         return self.outputTokens
 
     def processDoctype(self, token):
-        self.outputTokens.append([u"DOCTYPE", token["name"], token["publicId"],
+        self.outputTokens.append(["DOCTYPE", token["name"], token["publicId"],
                                   token["systemId"], token["correct"]])
 
     def processStartTag(self, token):
-        self.outputTokens.append([u"StartTag", token["name"], 
+        self.outputTokens.append(["StartTag", token["name"], 
                                   dict(token["data"][::-1]), token["selfClosing"]])
 
     def processEmptyTag(self, token):
         if token["name"] not in constants.voidElements:
-            self.outputTokens.append(u"ParseError")
-        self.outputTokens.append([u"StartTag", token["name"], dict(token["data"][::-1])])
+            self.outputTokens.append("ParseError")
+        self.outputTokens.append(["StartTag", token["name"], dict(token["data"][::-1])])
 
     def processEndTag(self, token):
-        self.outputTokens.append([u"EndTag", token["name"], 
+        self.outputTokens.append(["EndTag", token["name"], 
                                   token["selfClosing"]])
 
     def processComment(self, token):
-        self.outputTokens.append([u"Comment", token["data"]])
+        self.outputTokens.append(["Comment", token["data"]])
 
     def processSpaceCharacters(self, token):
-        self.outputTokens.append([u"Character", token["data"]])
+        self.outputTokens.append(["Character", token["data"]])
         self.processSpaceCharacters = self.processCharacters
 
     def processCharacters(self, token):
-        self.outputTokens.append([u"Character", token["data"]])
+        self.outputTokens.append(["Character", token["data"]])
 
     def processEOF(self, token):
         pass
 
     def processParseError(self, token):
-        self.outputTokens.append([u"ParseError", token["data"]])
+        self.outputTokens.append(["ParseError", token["data"]])
 
 def concatenateCharacterTokens(tokens):
     outputTokens = []
@@ -84,7 +84,7 @@ def concatenateCharacterTokens(tokens):
 def normalizeTokens(tokens):
     # TODO: convert tests to reflect arrays
     for i, token in enumerate(tokens):
-        if token[0] == u'ParseError':
+        if token[0] == 'ParseError':
             tokens[i] = token[0]
     return tokens
 
@@ -112,7 +112,7 @@ def tokensMatch(expectedTokens, receivedTokens, ignoreErrorOrder,
     else:
         #Sort the tokens into two groups; non-parse errors and parse errors
         tokens = {"expected":[[],[]], "received":[[],[]]}
-        for tokenType, tokenList in zip(tokens.keys(),
+        for tokenType, tokenList in zip(list(tokens.keys()),
                                          (expectedTokens, receivedTokens)):
             for token in tokenList:
                 if token != "ParseError":
@@ -148,7 +148,7 @@ def runTokenizerTest(test):
     expected = concatenateCharacterTokens(test['output'])            
     if 'lastStartTag' not in test:
         test['lastStartTag'] = None
-    outBuffer = cStringIO.StringIO()
+    outBuffer = io.StringIO()
     stdout = sys.stdout
     sys.stdout = outBuffer
     parser = TokenizerTestParser(test['initialState'], 
@@ -156,11 +156,11 @@ def runTokenizerTest(test):
     tokens = parser.parse(test['input'])
     tokens = concatenateCharacterTokens(tokens)
     received = normalizeTokens(tokens)
-    errorMsg = u"\n".join(["\n\nInitial state:",
+    errorMsg = "\n".join(["\n\nInitial state:",
                           test['initialState'] ,
-                          "\nInput:", unicode(test['input']),
-                          "\nExpected:", unicode(expected),
-                          "\nreceived:", unicode(tokens)])
+                          "\nInput:", str(test['input']),
+                          "\nExpected:", str(expected),
+                          "\nreceived:", str(tokens)])
     errorMsg = errorMsg.encode("utf-8")
     ignoreErrorOrder = test.get('ignoreErrorOrder', False)
     assert tokensMatch(expected, received, ignoreErrorOrder), errorMsg

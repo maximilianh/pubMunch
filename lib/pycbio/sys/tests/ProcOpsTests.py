@@ -18,7 +18,7 @@ class ProcRunTests(TestCaseBase):
         ex = None
         try:
             procOps.callProc(["false"])
-        except Exception, ex:
+        except Exception as ex:
             pass
         self.failUnless(isinstance(ex, Pipeline.ProcException))
         self.failUnlessEqual(str(ex), 'process exited 1: false')
@@ -43,7 +43,7 @@ class ProcRunTests(TestCaseBase):
         ex = None
         try:
             procOps.runProc(["false"], stdin=self.getInputFile("simple1.txt"))
-        except Exception, ex:
+        except Exception as ex:
             pass
         self.failUnless(isinstance(ex, Pipeline.ProcException))
         self.failUnlessEqual(str(ex), 'process exited 1: false')
@@ -53,7 +53,7 @@ class ShellQuoteTests(TestCaseBase):
     testData = (
         (["a", "b"], "a b"),
         (["a b", "c$d", "e\\tf"], "a b c$d e\\tf"),
-        (["a{b", "c	d", "(ef)", "${hi}", "j<k"], "a{b c	d (ef) ${hi} j<k"),
+        (["a{b", "c        d", "(ef)", "${hi}", "j<k"], "a{b c        d (ef) ${hi} j<k"),
         )
 
     def testQuotesBash(self):

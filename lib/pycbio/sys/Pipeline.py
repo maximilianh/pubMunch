@@ -20,7 +20,7 @@ except:
 def _getSigName(num):
     "get name for a signal number"
     # find name in signal namespace
-    for key in signal.__dict__.iterkeys():
+    for key in signal.__dict__.keys():
         if (signal.__dict__[key] == num) and key.startswith("SIG") and (key.find("_") < 0):
             return key
     return "signal"+str(num)
@@ -33,11 +33,11 @@ def _setPgid(pid, pgid):
     # or EPERM.  To handle this is a straight-forward way, just check that the
     # change has been made.  However, in some cases the change didn't take,
     # retrying seems to make the problem go away.
-    for i in xrange(0,5):
+    for i in range(0,5):
         try:
             os.setpgid(pid, pgid)
             return
-        except OSError, e:
+        except OSError as e:
             if os.getpgid(pid) == pgid:
                 return
             time.sleep(0.25) # sleep for retry
@@ -410,7 +410,7 @@ class DataWriter(Dev):
         try:
             self.fifo.getWfh().write(self.data)
             self.fifo.wclose()
-        except IOError, e:
+        except IOError as e:
             if e.errno != errno.EPIPE:
                 raise
 
@@ -512,9 +512,9 @@ class File(Dev):
             if isinstance(pio, PIn):
                 self.fd = os.open(self.path, os.O_RDONLY)
             elif self.append:
-                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_APPEND, 0666)
+                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_APPEND, 0o666)
             else:
-                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
+                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0o666)
         return self.fd
         
     def getPath(self, pio):
@@ -593,7 +593,7 @@ class Proc(object):
             return spec  # passed unchanged
 
         # make spec into PInOut object if needed
-        if isinstance(spec, str) or isinstance(spec, unicode):
+        if isinstance(spec, str) or isinstance(spec, str):
             spec = File(spec)
         if isinstance(spec, Dev):
             if mode == "r":
@@ -647,7 +647,7 @@ class Proc(object):
             if stdfd == 0:  # stdin?
                 fd = os.open(spec, os.O_RDONLY)
             else:
-                fd = os.open(spec, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
+                fd = os.open(spec, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0o666)
         elif isinstance(spec, int):
             fd = spec
         if (fd != None) and (fd != stdfd):
@@ -657,7 +657,7 @@ class Proc(object):
     def __closeFiles(self):
         "clone non-stdio files"
         keepOpen = set([self.statusPipe.wfd]) | Trace.getActiveTraceFds()
-        for fd in xrange(3, MAXFD+1):
+        for fd in range(3, MAXFD+1):
             try:
                 if not fd in keepOpen:
                     os.close(fd)
@@ -679,7 +679,7 @@ class Proc(object):
         "start in child process"
         try:
             self.__doChildStart()
-        except Exception, ex:
+        except Exception as ex:
             # FIXME: use isinstance(ex, ProcException) causes error in python
             if type(ex) != ProcException:
                 ex = ProcException(str(self), cause=ex)
@@ -746,7 +746,7 @@ class Proc(object):
     def raiseIfExcept(self):
         """raise exception if one is saved, otherwise do nothing"""
         if self.exceptInfo != None:
-            raise self.exceptInfo[0], self.exceptInfo[1], self.exceptInfo[2]
+            raise self.exceptInfo[0](self.exceptInfo[1]).with_traceback(self.exceptInfo[2])
 
     def __handleErrExit(self):
         # get saved stderr, if possible
@@ -1043,7 +1043,7 @@ class ProcDag(object):
     def __cleanupDev(self, dev):
         try:
             dev.finish()
-        except Exception, e:
+        except Exception as e:
             # FIXME: make optional, or record, or something
             exi = sys.exc_info()
             stack = "" if exi == None else "".join(traceback.format_list(traceback.extract_tb(exi[2])))+"\n"
@@ -1052,7 +1052,7 @@ class ProcDag(object):
     def __cleanupProc(self, proc):
         try:
             proc._forceFinish()
-        except Exception, e:
+        except Exception as e:
             # FIXME: make optional
             sys.stderr.write("ProcDag proc cleanup exception: " +str(e)+"\n")
         
@@ -1103,7 +1103,7 @@ class ProcDag(object):
         "wait on the next process in group to complete, return False if no more"
         try:
             w = os.waitpid(-self.pgid, 0)
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ECHILD:
                 return False
             raise
@@ -1248,8 +1248,8 @@ class Pipeline(Procline):
         "iter over contents of file"
         return self.fh.__iter__()
 
-    def next(self):
-        return self.fh.next()
+    def __next__(self):
+        return next(self.fh)
   
     def flush(self):
         "Flush the internal I/O buffer."

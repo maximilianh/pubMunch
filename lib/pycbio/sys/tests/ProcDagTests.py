@@ -38,7 +38,7 @@ class ProcDagTests(TestCaseBase):
         err = None
         try:
             pd.wait()
-        except Exception,err:
+        except Exception as err:
             pass
         self.failUnless(isinstance(err, ProcException))
         self.commonChecks(nopen, pd, "false")
@@ -61,7 +61,7 @@ class ProcDagTests(TestCaseBase):
         err = None
         try:
             pd.wait()
-        except Exception,err:
+        except Exception as err:
             pass
         self.failUnless(isinstance(err, ProcException))
         self.commonChecks(nopen, pd, "false | true")
@@ -75,7 +75,7 @@ class ProcDagTests(TestCaseBase):
         ex = None
         try:
             pd.wait()
-        except Exception, ex:
+        except Exception as ex:
             pass
         expect = "exec failed: procDoesNotExist -r,\n    caused by: OSError: [Errno 2] No such file or directory"
         msg = str(ex)
@@ -286,7 +286,7 @@ class ProcDagTests(TestCaseBase):
         ex = None
         try:
             pd.wait()
-        except ProcDagException, ex:
+        except ProcDagException as ex:
              pass
         msg = str(ex)
         expect = "cycle detected: entering: cat /dev/stdin <([Pipe])"

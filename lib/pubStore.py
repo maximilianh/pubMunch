@@ -179,7 +179,7 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
     # write to outDir
     logging.info("Splitting file data, Writing to %d files in %s/xxxx.tgz" % (len(data), outDir))
     pm = maxCommon.ProgressMeter(len(data))
-    for chunkIdString, lines in data.iteritems():
+    for chunkIdString, lines in data.items():
         outfname = os.path.join(outDir, chunkIdString)
         logging.debug("Writing to %s" % outfname)
         fh = open(outfname, "w")
@@ -189,22 +189,22 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
         fh.close()
         pm.taskCompleted()
 
-    return data.keys()
+    return list(data.keys())
 
 def toUnicode(var):
     """ 
     if string is not already a unicode strin (can happen due to upstream programming error):
     force variable to a unicode string, by decoding from utf8 first, then latin1 """
-    if isinstance(var, unicode):
+    if isinstance(var, str):
         return var
     elif type(var)==type(1):
-        var = unicode(var)
+        var = str(var)
     elif var==None:
         var = "NotSpecified"
     elif isinstance(var, str):
         try:
             var = var.decode("utf8")
-        except UnicodeDecodeError, msg:
+        except UnicodeDecodeError as msg:
             logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
             var = var.decode("latin1")
     return var
@@ -226,7 +226,7 @@ def dictToUtf8Escape(dict):
     if dict==None:
         return None
     utf8Dict={}
-    for key, var in dict.iteritems():
+    for key, var in dict.items():
         var = toUnicode(var)
         var = replaceSpecialChars(var)
         utf8Dict[key]=var
@@ -240,7 +240,7 @@ def removeTabNl(var):
     # there are more newlines than just \n and \m when one is using the 
     # 'for line in file' construct in python
     # so we do this
-    if type(var)==types.IntType:
+    if type(var)==int:
         return str(var)
     cleanString = " ".join(var.splitlines()).replace("\t", " ")
     #logging.debug("cleaned string is %s" % repr(newStr))
@@ -328,7 +328,7 @@ class PubWriterFile:
     def _removeSpecChar(self, lineDict):
         " remove tab and NL chars from values of dict "
         newDict = {}
-        for key, val in lineDict.iteritems():
+        for key, val in lineDict.items():
             newDict[key] = removeTabNl(val)
         return newDict
         
@@ -368,7 +368,7 @@ class PubWriterFile:
             self.refFh.write(srcPrefix.encode("utf8"))
 
             # output the reference article fields
-            self.refFh.write(u'\t'.join(ref).encode("utf8"))
+            self.refFh.write('\t'.join(ref).encode("utf8"))
             self.refFh.write("\n")
 
     def writeFile(self, articleId, fileId, fileDict, externalId=""):
@@ -574,7 +574,7 @@ class PubReaderFile:
             return newFiles
 
         if len(mainFiles)==1:
-            newFiles.insert(0, mainFiles.values()[0])
+            newFiles.insert(0, list(mainFiles.values())[0])
             return newFiles
 
         # remove the pdf if there are better files
@@ -601,7 +601,7 @@ class PubReaderFile:
             logging.error("no main file: in %s out %s " % (files, mainFiles))
             raise Exception("no main file left")
 
-        newFiles.insert(0, mainFiles.values()[0])
+        newFiles.insert(0, list(mainFiles.values())[0])
         return newFiles
 
     def iterArticlesFileList(self, algPrefs):
@@ -845,15 +845,15 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
             assert(False) # illegal type parameter
         pm.taskCompleted()
 
-all_chars = (unichr(i) for i in xrange(0x110000))
-control_chars = ''.join(map(unichr, range(0,7) + range(8,32) + range(127,160)))
+all_chars = (chr(i) for i in range(0x110000))
+control_chars = ''.join(map(chr, list(range(0,7)) + list(range(8,32)) + list(range(127,160))))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 def replaceSpecialChars(string):
     " replace all special characters with space and linebreaks to \a = ASCII 7 = BELL"
     if string==None:
         return ""
-    string = string.replace(u'\u2028', '\n') # one of the crazy unicode linebreaks
+    string = string.replace('\u2028', '\n') # one of the crazy unicode linebreaks
     string = "\n".join(string.splitlines()) # get rid of other crazy unicode linebreaks
     string = string.replace("\m", "\a") # old mac text files
     string = string.replace("\n", "\a")
@@ -928,10 +928,10 @@ def listAllUpdateIds(textDir):
     inFname = join(textDir, "updates.tab")
     updateIds = set()
     if not isfile(inFname):
-	logging.info("Could not find %s, using filenames to get updates" % inFname)
+        logging.info("Could not find %s, using filenames to get updates" % inFname)
         inNames = glob.glob(join(textDir, "*.articles.gz"))
         updateIds = set([basename(x).split("_")[0] for x in inNames])
-	logging.info("Found text update ids from filenames: %s" % updateIds)
+        logging.info("Found text update ids from filenames: %s" % updateIds)
         return updateIds
 
     for row in maxTables.TableParser(inFname).lines():
@@ -1006,7 +1006,7 @@ def articleIdToDataset(articleId):
     """
     articleId = int(articleId)
     restList = []
-    for datasetName, artIdStart in pubConf.identifierStart.iteritems():
+    for datasetName, artIdStart in pubConf.identifierStart.items():
         rest = articleId - artIdStart
         if rest>0:
             restList.append( (datasetName, rest) )
@@ -1197,7 +1197,7 @@ def setupDatasetRanges():
     if datasetRanges!=None:
         return
 
-    datasetStarts = pubConf.identifierStart.items()
+    datasetStarts = list(pubConf.identifierStart.items())
     datasetStarts.sort(key=operator.itemgetter(1))
     assert(datasetStarts[-1][0]=="free")
 
@@ -1314,7 +1314,7 @@ def iterArticlesWhere(con, cur, whereExpr):
     for row in rows:
         # convert sqlite object to normal dict with strings
         rowDict = {}
-        for key, val in zip(row.keys(), row):
+        for key, val in zip(list(row.keys()), row):
             rowDict[key] = val
         yield rowDict
 
@@ -1412,10 +1412,10 @@ def iterPubReaders(inDir):
 def dictToMarkLines(d):
     """ convert a dict to newline-sep strings like '||key: value' and return long string """
     lines = []
-    keys = d.keys()
+    keys = list(d.keys())
     for key in sorted(keys):
         val = d[key]
-        if type(val)==types.IntType:
+        if type(val)==int:
             val = str(val)
         if val=="":
             continue

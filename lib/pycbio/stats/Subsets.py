@@ -62,7 +62,7 @@ class Subsets(object):
         # build as lists for sorting
         nSubsets = (1 << len(elements))-1
         subsets = list()
-        for bitSet in xrange(1, nSubsets+1):
+        for bitSet in range(1, nSubsets+1):
             subsets.append(self.__makeSubset(bitSet, elements))
         # sort and constructs sets
         subsets.sort(cmp=Subsets.__subListCmp)

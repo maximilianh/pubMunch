@@ -49,7 +49,7 @@ class Bed(object):
             sizes = intArraySplit(row[10])
             relStarts = intArraySplit(row[11])
             self.blocks = []
-            for i in xrange(len(relStarts)):
+            for i in range(len(relStarts)):
                 self.blocks.append(Bed.Block(relStarts[i], sizes[i], self.chromStart+relStarts[i]))
         else:
             self.blocks = None

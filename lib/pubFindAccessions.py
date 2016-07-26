@@ -313,7 +313,7 @@ def iterGenbankRows(markerRe, markerType, text):
         if let1!=let2 or digits1!=digits2:
             continue
         if (num2-num1) > MAXGBLISTCOUNT:
-            print "too big"
+            print("too big")
             logging.debug("genbank list range too big")
             continue
         for num in range(num1, num2+1):
@@ -400,7 +400,7 @@ class AccsFinder():
         """
         rows = []
         textLower = text.lower()
-        for accType, accRe in self.reDict.iteritems():
+        for accType, accRe in self.reDict.items():
             logging.log(5, "Looking for markers of type %s" % accType)
             # special case list of genbank identifiers like AF0000-AF0010  
             if accType=="genbankList":
@@ -454,7 +454,7 @@ class AccsFinder():
 if __name__ == "__main__":
     #logging.basicConfig(level=logging.DEBUG)
     # just output current list of accession types
-    print ", ".join(sorted(compileREs().keys()))
+    print(", ".join(sorted(compileREs().keys())))
     logging.basicConfig(level=logging.INFO)
     import doctest
     doctest.testmod()

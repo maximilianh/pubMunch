@@ -68,7 +68,7 @@ class ReadTests(TestCaseBase):
     def chkFeatures(self, gene, expect):
         feats = gene.getFeatures()
         self.failUnlessEqual(len(feats), len(expect))
-        for i in xrange(len(feats)):
+        for i in range(len(feats)):
             self.failUnless(featureEq(feats[i], expect[i]))
         
     def testLoadMin(self):

@@ -230,7 +230,7 @@ class TableParser:
                 return 
             yield self.parseLine(line)
 
-    def column(self, columnName, dataType=types.StringType):
+    def column(self, columnName, dataType=bytes):
         """ Generator: return values of a given column (name) """
         for row in self.lines():
             yield dataType(row._asdict()[columnName])
@@ -313,7 +313,7 @@ def writeRow(db, table, columnData, keys=None):
     """ write row to table, columData can be a dict or a namedtuple, keys are the keys of values that are to be written from the dict/namedtuple """
     if keys==None:
         if type(columnData)==type({}):
-            keys=columnData.keys()
+            keys=list(columnData.keys())
         else:
             keys=columnData._fields
             columnData = columnData._asdict()
@@ -363,7 +363,7 @@ class SqlTableReader_BigTable(SqlTableReaderGeneric):
             except _mysql_exceptions.OperationalError:
                     errCount+=1
                     if errCount==100:
-                        raise Exception, "mysql connection error, even after retrials"
+                        raise Exception("mysql connection error, even after retrials")
                         break
                     else:
                         logging.info("Mysql connection problems, will reconnect in 10 secs")
@@ -426,7 +426,7 @@ def concatHeaderTabFiles(filenames, outFilename, keyColumn=None, progressDots=No
             lno+=1
             count+=1
             if progressDots!=None and count% progressDots==0:
-                print ".",
+                print(".", end=' ')
                 sys.stdout.flush()
         fno+=1
 
@@ -446,7 +446,7 @@ def samToBed(row):
 
     cigarLengths = [int(x) for x in splitReOp.split(row.cigar) if x!=""]
     cigarOps     = [x for x in splitReNumbers.split(row.cigar) if x!=""]
-    cigarLine    = zip(cigarOps, cigarLengths)
+    cigarLine    = list(zip(cigarOps, cigarLengths))
     assert(len(cigarLengths)==len(cigarOps)==len(cigarLine))
 
     featLength = 0
@@ -583,7 +583,7 @@ def loadTsvSqlite(dbFname, tableName, tsvFnames, headers=None, intFields=[], \
     if len(tsvFnames)==0:
         logging.debug("No filenames to load")
         return
-    if isinstance(tsvFnames, basestring):
+    if isinstance(tsvFnames, str):
         tsvFnames = [tsvFnames]
 
     if os.path.isfile(dbFname):

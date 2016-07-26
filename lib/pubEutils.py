@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import logging, sys, optparse
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import xml.etree.ElementTree as et
 import time
 
@@ -25,11 +25,11 @@ def eSearch(db, query, retMax):
     url = BASEURL+'/esearch.fcgi';
     params = {"db":db, "term":query, "retMax" : retMax}
     logging.debug("Running esearch with %s" % params)
-    data = urllib.urlencode(params)
-    req  = urllib2.Request(url, data)
+    data = urllib.parse.urlencode(params)
+    req  = urllib.request.Request(url, data)
     try:
-        xmlStr = urllib2.urlopen(req).read()
-    except urllib2.HTTPError:
+        xmlStr = urllib.request.urlopen(req).read()
+    except urllib.error.HTTPError:
         logging.error("Error when searching")
         raise
     logging.debug("XML reply: %s" % xmlStr)
@@ -106,12 +106,12 @@ def eFetch(db, gis, outFh, retType="fasta", retMax=500):
         partGis = gis[retStart:retStart+retMax]
         logging.info("Retrieving %d records, start %d..." % (len(partGis), retStart))
         params = {"db":db, "id":",".join(partGis), "rettype":retType, "retmode" : retMode}
-        data = urllib.urlencode(params)
+        data = urllib.parse.urlencode(params)
 
         # issue http request
         logging.debug("HTTP post Data: %s" % data)
-        req  = urllib2.Request(url, data)
-        resp = urllib2.urlopen(req).read()
+        req  = urllib.request.Request(url, data)
+        resp = urllib.request.urlopen(req).read()
         outFh.write(resp)
         wait(DELAY)
     

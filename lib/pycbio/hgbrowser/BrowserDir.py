@@ -93,7 +93,7 @@ class Entry(object):
         h.append("</tr>\n")
 
         # remaining rows
-        for iRow in xrange(1, numSubRowRows):
+        for iRow in range(1, numSubRowRows):
             h.append("<tr>\n")
             for subRows in self.subRowGroups:
                 h.append(subRows.toTdRow(iRow))
@@ -207,7 +207,7 @@ class BrowserDir(object):
 
         # page number links
         if inclPageLinks:
-            for p in xrange(1, numPages+1):
+            for p in range(1, numPages+1):
                 if p != pageNum:
                     html.append("<a href=\"dir%d.html\">%d</a>" % (p, p))
                 else:
@@ -225,7 +225,7 @@ class BrowserDir(object):
             pr = "<tr colspan=\"" + numColumns + "\"></tr>"
         else:
             pr = "<tr></tr>"
-        for i in xrange(numPadRows):
+        for i in range(numPadRows):
             pg.add(pr)
 
     def __addPageRows(self, pg, pgEntries, numPadRows):
@@ -248,7 +248,7 @@ class BrowserDir(object):
         rowsPerCol = nEnts/self.numColumns
         iEnt = 0
         pg.add("<tr>")
-        for icol in xrange(self.numColumns):
+        for icol in range(self.numColumns):
             pg.add("<td>")
             if iEnt < nEnts-rowsPerCol:
                 n = rowsPerCol
@@ -294,7 +294,7 @@ class BrowserDir(object):
         else:
             # split
             numPages = (len(self.entries)+self.pageSize-1)/self.pageSize
-            for pageNum in xrange(1,numPages+1):
+            for pageNum in range(1,numPages+1):
                 first = (pageNum-1) * self.pageSize
                 last = first+(self.pageSize-1)
                 pgEntries = self.entries[first:last]

@@ -4,8 +4,8 @@ import time
 import requests
 from BeautifulSoup import BeautifulSoup
 
-from methods import *
-from config import endpoints
+from .methods import *
+from .config import endpoints
 
 logger = logging.getLogger('incapsula')
 
@@ -23,7 +23,7 @@ def _load_encapsula_resource(sess, response):
     timing.append('c:{}'.format(now_in_seconds() - start))
     time.sleep(0.02)  # simulate page refresh time
     timing.append('r:{}'.format(now_in_seconds() - start))
-    sess.get(resource2 + urllib.quote('complete ({})'.format(",".join(timing))))
+    sess.get(resource2 + urllib.parse.quote('complete ({})'.format(",".join(timing))))
 
 
 def incap_blocked(response):
@@ -59,7 +59,7 @@ def crack(sess, response):
     # If it is, use the pre-configured endpoint to get the obfuscated code,
     # otherwise use the default resource
     params = endpoints.get(host, {'SWJIYLWA': '2977d8d74f63d7f8fedbea018b7a1d05', 'ns': '1'})
-    url_params = urllib.urlencode(params)
+    url_params = urllib.parse.urlencode(params)
     logger.debug('url_params={}'.format(url_params))
     # Get the obfuscated code
     r = sess.get('{scheme}://{host}/_IncapsulaResource?{url_params}'.format(scheme=scheme, host=host, url_params=url_params), headers={'Referer': response.url})
@@ -73,7 +73,7 @@ def crack(sess, response):
 
 def _get_session_cookies(sess):
     cookies_ = []
-    for cookie_key, cookie_value in sess.cookies.items():
+    for cookie_key, cookie_value in list(sess.cookies.items()):
         if 'incap_ses_' in cookie_key:
             cookies_.append(cookie_value)
     return cookies_

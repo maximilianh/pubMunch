@@ -31,12 +31,12 @@ class MultiDict(dict):
                 for val in vals:
                     yield val
         else:
-            for key in self.iterkeys():
+            for key in self.keys():
                 vals = self.get(key)
                 for val in vals:
                     yield val
 
     def iterentries(self):
         """get iter over entries for each key """
-        for key in self.iterkeys():
+        for key in self.keys():
             yield self.get(key)

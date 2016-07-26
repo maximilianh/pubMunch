@@ -308,7 +308,7 @@ def fasta_iter(fasta_name):
         # drop the ">"
         header = header.next()[1:].strip()
         # join all sequence lines to one.
-        seq = "".join(s.strip() for s in faiter.next())
+        seq = "".join(s.strip() for s in next(faiter))
         yield header, seq
 
 def doChain(target, outDir):

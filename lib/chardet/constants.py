@@ -38,10 +38,10 @@ eItsMe = 2
 
 SHORTCUT_THRESHOLD = 0.95
 
-import __builtin__
+import builtins
 if not hasattr(__builtin__, 'False'):
     False = 0
     True = 1
 else:
-    False = __builtin__.False
-    True = __builtin__.True
+    False = builtins.False
+    True = builtins.True

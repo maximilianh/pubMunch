@@ -213,7 +213,7 @@ def main():
             logger.debug('%s', results['err'])
         else:
             logger.debug('Successfully completed search with query %s', args.search)
-        print results
+        print(results)
     elif args.search_download:
         results = sh.search(args.search, args.limit)
         if 'err' in results:

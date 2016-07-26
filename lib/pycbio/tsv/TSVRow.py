@@ -17,11 +17,11 @@ class TSVRow(object):
         if self._colTypes_:
             self.__parse(row)
         else:
-            for i in xrange(len(self._columns_)):
+            for i in range(len(self._columns_)):
                 self.__dict__[self._columns_[i]] = row[i]
 
     def __parse(self, row):
-        for i in xrange(len(self._columns_)):
+        for i in range(len(self._columns_)):
             col = row[i]
             ct = self._colTypes_[i]
             if type(ct) == tuple:
@@ -56,7 +56,7 @@ class TSVRow(object):
 
     def __fmtWithTypes(self):
         row = []
-        for i in xrange(len(self._columns_)):
+        for i in range(len(self._columns_)):
             col = self.__dict__[self._columns_[i]]
             ct = self._colTypes_[i]
             if col == None:

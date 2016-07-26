@@ -46,7 +46,7 @@ def writeIssnPmids(issnToPmid, issnToJournal, outFname):
 
     ofh = open(outFname, "w")
     ofh.write("#issn\tjournal\tpmids\n")
-    for issn, pmidList in issnToPmid.iteritems():
+    for issn, pmidList in issnToPmid.items():
         journal = issnToJournal[issn]
         pmidList = [str(x) for x in pmidList]
         ofh.write("%s\t%s\t%s\n" % (issn, journal, ",".join(pmidList)))

@@ -1,6 +1,6 @@
 # per-publisher configuration for pubCrawl.py
 from os.path import *
-import logging, urllib2, urlparse, urllib, re
+import logging, urllib.request, urllib.error, urllib.parse, urllib.parse, urllib.request, urllib.parse, urllib.error, re
 import pubConf, pubGeneric, maxCommon, maxCommon
 from collections import OrderedDict
 
@@ -135,10 +135,10 @@ def highwireConfigs():
 
     # for each publisher, create a config that includes its hostnames and
     # all templates
-    for pubName, domains in pubDomains.iteritems():
+    for pubName, domains in pubDomains.items():
         #print pubName, domains
         templates = {}
-        for issn, templUrl in issnTemplates.iteritems():
+        for issn, templUrl in issnTemplates.items():
             for domain in domains:
                 if domain in templUrl:
                     templates[issn]=templUrl
@@ -563,9 +563,9 @@ def defineConfDict():
 def compileRegexes():
     " compile regexes in confDict "
     ret = {}
-    for pubId, crawlConfig in confDict.iteritems():
+    for pubId, crawlConfig in confDict.items():
         newDict = {}
-        for key, values in crawlConfig.iteritems():
+        for key, values in crawlConfig.items():
             if key.endswith("REs"):
                 newValues = []
                 for regex in values:
@@ -593,7 +593,7 @@ def prepConfigIndexByHost():
     byHost = {}
     # make sure that the last defined ones overwrite the default highwire ones
     # e.g. for aaas which deviates from the hw standard
-    for pubId, crawlConfig in reversed(compCfg.items()):
+    for pubId, crawlConfig in reversed(list(compCfg.items())):
     #for pubId, crawlConfig in compCfg.items():
         for host in crawlConfig.get("hostnames", []):
             byHost[host] = pubId
@@ -602,12 +602,12 @@ def prepConfigIndexByHost():
 
 def printConfig():
     print ("== PUBLISHER CONFIGS ==")
-    for pubName, pubConf in confDict.iteritems():
-        print pubName, pubConf
+    for pubName, pubConf in confDict.items():
+        print(pubName, pubConf)
         
     print ("== HOST TO PUBLISHER ASSIGNMENTS ==")
-    for host, pubId in hostToPubId.iteritems():
-        print("%s\t%s" % (host, pubId)) 
+    for host, pubId in hostToPubId.items():
+        print(("%s\t%s" % (host, pubId))) 
     
 if __name__=="__main__":
     import doctest

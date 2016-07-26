@@ -37,7 +37,7 @@ threeToOne = \
      }
 
 # same but lower case
-threeToOneLower = dict([[k.lower(),v] for k,v in threeToOne.items()])
+threeToOneLower = dict([[k.lower(),v] for k,v in list(threeToOne.items())])
 # one-letter -> three-letter conversion table for amino acids
 oneToThree = \
     {'C':'Cys', 'D':'Asp', 'S':'Ser', 'Q':'Gln', 'K':'Lys',

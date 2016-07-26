@@ -8,7 +8,7 @@ encoding; that's the tree builder's job.
 """
 
 import codecs
-from htmlentitydefs import codepoint2name
+from html.entities import codepoint2name
 import re
 import warnings
 
@@ -43,7 +43,7 @@ class EntitySubstitution(object):
         reverse_lookup = {}
         characters_for_re = []
         for codepoint, name in list(codepoint2name.items()):
-            character = unichr(codepoint)
+            character = chr(codepoint)
             if codepoint != 34:
                 # There's no point in turning the quotation mark into
                 # &quot;, unless it happens within an attribute value, which
@@ -181,9 +181,9 @@ class UnicodeDammit:
         self.tried_encodings = []
         self.contains_replacement_characters = False
 
-        if markup == '' or isinstance(markup, unicode):
+        if markup == '' or isinstance(markup, str):
             self.markup = markup
-            self.unicode_markup = unicode(markup)
+            self.unicode_markup = str(markup)
             self.original_encoding = None
             return
 
@@ -207,7 +207,7 @@ class UnicodeDammit:
                         break
 
         # If no luck and we have auto-detection library, try that:
-        if not u and chardet and not isinstance(self.markup, unicode):
+        if not u and chardet and not isinstance(self.markup, str):
             u = self._convert_from(chardet.detect(self.markup)['encoding'])
 
         # As a last resort, try utf-8 and windows-1252:
@@ -306,7 +306,7 @@ class UnicodeDammit:
         elif data[:4] == '\xff\xfe\x00\x00':
             encoding = 'utf-32le'
             data = data[4:]
-        newdata = unicode(data, encoding, errors)
+        newdata = str(data, encoding, errors)
         return newdata
 
     def _detectEncoding(self, xml_data, is_html=False):
@@ -319,41 +319,41 @@ class UnicodeDammit:
             elif xml_data[:4] == b'\x00\x3c\x00\x3f':
                 # UTF-16BE
                 sniffed_xml_encoding = 'utf-16be'
-                xml_data = unicode(xml_data, 'utf-16be').encode('utf-8')
+                xml_data = str(xml_data, 'utf-16be').encode('utf-8')
             elif (len(xml_data) >= 4) and (xml_data[:2] == b'\xfe\xff') \
                      and (xml_data[2:4] != b'\x00\x00'):
                 # UTF-16BE with BOM
                 sniffed_xml_encoding = 'utf-16be'
-                xml_data = unicode(xml_data[2:], 'utf-16be').encode('utf-8')
+                xml_data = str(xml_data[2:], 'utf-16be').encode('utf-8')
             elif xml_data[:4] == b'\x3c\x00\x3f\x00':
                 # UTF-16LE
                 sniffed_xml_encoding = 'utf-16le'
-                xml_data = unicode(xml_data, 'utf-16le').encode('utf-8')
+                xml_data = str(xml_data, 'utf-16le').encode('utf-8')
             elif (len(xml_data) >= 4) and (xml_data[:2] == b'\xff\xfe') and \
                      (xml_data[2:4] != b'\x00\x00'):
                 # UTF-16LE with BOM
                 sniffed_xml_encoding = 'utf-16le'
-                xml_data = unicode(xml_data[2:], 'utf-16le').encode('utf-8')
+                xml_data = str(xml_data[2:], 'utf-16le').encode('utf-8')
             elif xml_data[:4] == b'\x00\x00\x00\x3c':
                 # UTF-32BE
                 sniffed_xml_encoding = 'utf-32be'
-                xml_data = unicode(xml_data, 'utf-32be').encode('utf-8')
+                xml_data = str(xml_data, 'utf-32be').encode('utf-8')
             elif xml_data[:4] == b'\x3c\x00\x00\x00':
                 # UTF-32LE
                 sniffed_xml_encoding = 'utf-32le'
-                xml_data = unicode(xml_data, 'utf-32le').encode('utf-8')
+                xml_data = str(xml_data, 'utf-32le').encode('utf-8')
             elif xml_data[:4] == b'\x00\x00\xfe\xff':
                 # UTF-32BE with BOM
                 sniffed_xml_encoding = 'utf-32be'
-                xml_data = unicode(xml_data[4:], 'utf-32be').encode('utf-8')
+                xml_data = str(xml_data[4:], 'utf-32be').encode('utf-8')
             elif xml_data[:4] == b'\xff\xfe\x00\x00':
                 # UTF-32LE with BOM
                 sniffed_xml_encoding = 'utf-32le'
-                xml_data = unicode(xml_data[4:], 'utf-32le').encode('utf-8')
+                xml_data = str(xml_data[4:], 'utf-32le').encode('utf-8')
             elif xml_data[:3] == b'\xef\xbb\xbf':
                 # UTF-8 with BOM
                 sniffed_xml_encoding = 'utf-8'
-                xml_data = unicode(xml_data[3:], 'utf-8').encode('utf-8')
+                xml_data = str(xml_data[3:], 'utf-8').encode('utf-8')
             else:
                 sniffed_xml_encoding = 'ascii'
                 pass

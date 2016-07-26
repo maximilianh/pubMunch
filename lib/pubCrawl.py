@@ -9,8 +9,8 @@ import unidecode
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
 import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
-    traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, copy, random
+    traceback, urllib.request, urllib.error, urllib.parse, re, zipfile, collections, urllib.parse, time, atexit, socket, signal, \
+    sqlite3, doctest, urllib.request, urllib.parse, urllib.error, copy, random
 from os.path import *
 
 # ===== GLOBALS ======
@@ -226,7 +226,7 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
             raise pubGetError("pubmed outlinks http error", "PubmedOutlinkHttpError")
 
         if len(outlinks)!=0:
-            landingUrl =  outlinks.values()[0]
+            landingUrl =  list(outlinks.values())[0]
             logging.debug("landing page based on first outlink of Pubmed, URL %s" % landingUrl)
 
     # try SFX
@@ -261,13 +261,13 @@ def parseWgetLog(logFile, origUrl):
         elif l.lower().startswith("location:"):
             logging.log(5, "wget location line: %s" % l)
             url = l.split(": ")[1].split(" ")[0]
-            scheme, netloc = urlparse.urlsplit(url)[0:2]
+            scheme, netloc = urllib.parse.urlsplit(url)[0:2]
             if netloc=="":
                 #assert(lastUrl!=None)
                 if lastUrl==None:
                     lastUrl = origUrl
                 logging.log(5, "joined parts are %s, %s" % (lastUrl, url))
-                url = urlparse.urljoin(lastUrl, url)
+                url = urllib.parse.urljoin(lastUrl, url)
                 logging.log(5, "URL did not contain server, using previous server, corrected URL is %s" % url)
             else:
                 lastUrl = url
@@ -310,7 +310,7 @@ def delayedWget(url, forceDelaySecs=None):
         logging.log(5, "Using cached wget results")
         return wgetCache[url]
 
-    host = urlparse.urlsplit(url)[1]
+    host = urllib.parse.urlsplit(url)[1]
     delaySecs = getDelaySecs(host, forceDelaySecs)
     wait(delaySecs, host)
     page = runWget(url)
@@ -400,7 +400,7 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
 
     suppFnames = []
     suppUrls = []
-    for suffix, pageDict in fulltextData.iteritems():
+    for suffix, pageDict in fulltextData.items():
         if pageDict==None or len(pageDict)==0:
             continue
         if suffix=="status":
@@ -447,7 +447,7 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
     #global dataZipFile
     suppFnames = []
     suppUrls = []
-    for suffix, pageDict in fulltextData.iteritems():
+    for suffix, pageDict in fulltextData.items():
         if suffix=="status":
             continue
         if suffix=="landingPage":
@@ -528,7 +528,7 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
 
     htmlString = page["data"]
     baseUrl = page["url"]
-    urlParts = urlparse.urlsplit(baseUrl)
+    urlParts = urllib.parse.urlsplit(baseUrl)
     basePath = urlParts[2]
     baseLoc = urlParts[1]
 
@@ -537,7 +537,7 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     try:
         fulltextLinks = BeautifulSoup(htmlString, smartQuotesTo=None, \
             convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=linkStrainer)
-    except ValueError, e:
+    except ValueError as e:
         raise pubGetError("Exception during bs html parse", "htmlParseException", e.message)
     logging.log(5, "bs parsing finished")
 
@@ -562,8 +562,8 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
                 logging.log(5, "url is None")
                 continue
             try:
-                linkLoc = urlparse.urlsplit(url)[1]
-                linkPath = urlparse.urlsplit(url)[2]
+                linkLoc = urllib.parse.urlsplit(url)[1]
+                linkPath = urllib.parse.urlsplit(url)[2]
             except ValueError:
                 raise pubGetError("Value error on url split %s" % url, "urlSplitError", url)
             # skip links that point to a different server
@@ -572,13 +572,13 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
                 continue
 
             # remove #xxxx fragment identifiers from link URL
-            fullUrl = urlparse.urljoin(baseUrl, url)
-            parts = list(urlparse.urlsplit(fullUrl)[:4])
+            fullUrl = urllib.parse.urljoin(baseUrl, url)
+            parts = list(urllib.parse.urlsplit(fullUrl)[:4])
             if parts[0]=="javascript":
                 logging.log(5, "skipping link %s, is javascript" % url)
                 continue
             parts.append("")
-            fullUrlNoFrag = urlparse.urlunsplit(parts)
+            fullUrlNoFrag = urllib.parse.urlunsplit(parts)
             #logging.debug("Checking link against %s" % landingPage_ignoreUrlREs)
             if anyMatch(landingPage_ignoreUrlREs, fullUrlNoFrag):
                 logging.log(5, "skipping link %s, because of ignore REs" % url)
@@ -737,10 +737,10 @@ def readLocalMedline(pmid):
 
     # convert sqlite results to dict
     result = {}
-    for key, val in zip(lastRow.keys(), lastRow):
+    for key, val in zip(list(lastRow.keys()), lastRow):
         if val is None:
             val=""
-        result[key] = unicode(val)
+        result[key] = str(val)
 
     result["source"] = ""
     result["origFile"] = ""
@@ -751,9 +751,9 @@ def downloadPubmedMeta(pmid):
     try:
         wait(3, "eutils.ncbi.nlm.nih.gov")
         ret = pubPubmed.getOnePmid(pmid)
-    except urllib2.HTTPError, e:
+    except urllib.error.HTTPError as e:
         raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError" , str(e.code))
-    except pubPubmed.PubmedError, e:
+    except pubPubmed.PubmedError as e:
         raise pubGetError(e.longMsg, e.logMsg)
         
     if ret==None:
@@ -781,7 +781,7 @@ def writeMeta(outDir, metaData, fulltextData):
             
     # write to tab file
     if not isfile(filename):
-        codecs.open(filename, "w", encoding="utf8").write(u"\t".join(metaHeaders)+"\n")
+        codecs.open(filename, "w", encoding="utf8").write("\t".join(metaHeaders)+"\n")
     maxCommon.appendTsvDict(filename, metaData, metaHeaders)
 
     # write to sqlite db
@@ -819,7 +819,7 @@ def detFileExt(page):
     if fileExt!=None:
         logging.debug("Determined filetype as %s based on mime type" % fileExt)
     else:
-        urlPath = urlparse.urlparse(linkUrl)[2]
+        urlPath = urllib.parse.urlparse(linkUrl)[2]
         fileExt = os.path.splitext(urlPath)[1]
         logging.debug("Using extension %s based on URL %s" % (fileExt, linkUrl))
     fileExt = fileExt.strip(".")
@@ -829,7 +829,7 @@ def urlHasExt(linkUrl, linkText, searchFileExts, pattern):
     " return True if url ends with one of a list of extensions "
     if searchFileExts==None:
         return True
-    urlPath = urlparse.urlparse(linkUrl)[2]
+    urlPath = urllib.parse.urlparse(linkUrl)[2]
     urlExt = os.path.splitext(urlPath)[1].strip(".")
     for searchFileExt in searchFileExts:
         if urlExt==searchFileExt:
@@ -856,7 +856,7 @@ def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTex
 
     doneUrls = set()
 
-    for linkText, linkUrl in links.iteritems():
+    for linkText, linkUrl in links.items():
         if containsAnyWord(linkText, ignTextWords):
             logging.debug("Ignoring link text %s, url %s" % (repr(linkText), repr(linkUrl)))
             continue
@@ -928,7 +928,7 @@ def replaceUrl(landingUrl, landingUrl_pdfUrl_replace):
     " try to find link to PDF/suppInfo based on just the landing URL alone "
     replaceCount = 0
     newUrl = landingUrl
-    for word, replacement in landingUrl_pdfUrl_replace.iteritems():
+    for word, replacement in landingUrl_pdfUrl_replace.items():
         if word in newUrl:
             replaceCount+=1
             newUrl = newUrl.replace(word, replacement)
@@ -987,7 +987,7 @@ def findFulltextHtmlUrl(landingPage, crawlConfig):
     links = landingPage["links"]
     #logging.debug("Found putative fulltext links %s" % links)
     for mainLinkNameRe in mainLinkNameREs:
-        for linkText, linkUrl in links.iteritems():
+        for linkText, linkUrl in links.items():
             dbgStr = "Checking %s, %s against %s" % (unidecode.unidecode(linkText), linkUrl, mainLinkNameRe.pattern)
             logging.log(5, dbgStr)
             if mainLinkNameRe.match(linkText):
@@ -1013,7 +1013,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
             pdfUrl = htmlMetas["citation_pdf_url"]
             logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
             if not pdfUrl.startswith("http://"):
-                pdfUrl = urlparse.urljoin(landingPage["url"], pdfUrl)
+                pdfUrl = urllib.parse.urljoin(landingPage["url"], pdfUrl)
         else:
             logging.debug("No citation_pdf_url on landing page %s" % landingPage["url"])
         #if "wkhealth_pdf_url" in htmlMetas:
@@ -1030,7 +1030,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
 
     # some others can be derived by replacing strings in the landing url
     if "landingUrl_pdfUrl_replace" in crawlConfig:
-        print crawlConfig["landingUrl_pdfUrl_replace"]
+        print(crawlConfig["landingUrl_pdfUrl_replace"])
         pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_pdfUrl_replace"])
         logging.debug("Replacing strings in URL yields new URL %s" % (pdfUrl))
         return pdfUrl
@@ -1039,7 +1039,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
     if pdfUrl == None and "landingPage_pdfLinkTextREs" in crawlConfig:
         pdfLinkNames = crawlConfig["landingPage_pdfLinkTextREs"]
         for pdfLinkName in pdfLinkNames:
-            for linkText, linkUrl in links.iteritems():
+            for linkText, linkUrl in links.items():
                 if pdfLinkName.match(linkText):
                     pdfUrl = linkUrl
                     logging.debug("Found link to main PDF: %s -> %s" % (pdfLinkName.pattern, pdfUrl))
@@ -1236,7 +1236,7 @@ def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
     one of the search strings. if searchUrls is True, searches URLs of links, otherwise their text.
     """
     for searchLinkRe in searchLinkRes:
-        for linkName, linkUrl in links.iteritems():
+        for linkName, linkUrl in links.items():
             logging.log(5, "checking link %s, linkUrl %s for %s, (searchUrls:%s)" %
             (repr(linkName), repr(linkUrl), searchLinkRe.pattern, searchUrls))
             if (not searchUrls and searchLinkRe.match(linkName)) or \
@@ -1303,12 +1303,12 @@ def checkForOngoingMaintenanceUrl(url):
 def getConfig(url):
     """ based on the url or IP of the landing page, return a crawl configuration dict 
     """
-    hostname = urlparse.urlparse(url).netloc
+    hostname = urllib.parse.urlparse(url).netloc
     hostname = hostname.replace("www.","")
     thisConfig = None
     logging.debug("Looking for config for url %s, hostname %s" % (url, hostname))
     hostToPubId = pubCrawlConf.hostToPubId
-    for cfgHost, pubId in hostToPubId.iteritems():
+    for cfgHost, pubId in hostToPubId.items():
         #logging.debug("Cmp %s with %s" % (repr(hostname), repr(cfgHost)))
         if hostname.endswith(cfgHost.replace("www.", "")):
             logging.debug("Found config for host %s: %s, %s" % (hostname, cfgHost, pubId))
@@ -1346,7 +1346,7 @@ def highwireDelay(host):
     """ return current delay for highwire, get current time at east coast
         can be overriden in pubConf per host-keyword
     """
-    for hostKey, delaySec in pubConf.highwireDelayOverride.iteritems():
+    for hostKey, delaySec in pubConf.highwireDelayOverride.items():
         if hostKey in host:
             logging.debug("Overriding normal Highwire delay with %d secs as specified in conf" % delaySec)
             return delaySec
@@ -1370,7 +1370,7 @@ def ignoreCtrlc(signum, frame):
 def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig, testMode):
     " write all paper data to status and fulltext output files in outDir "
     if testMode:
-        for suffix, pageDict in fulltextData.iteritems():
+        for suffix, pageDict in fulltextData.items():
             logging.info("Got file: Suffix %s, url %s, mime %s, content %s" % \
                 (suffix, pageDict["url"], pageDict["mimeType"], repr(pageDict["data"][:10])))
         return
@@ -1414,7 +1414,7 @@ def writeReport(baseDir, htmlFname):
     h.startBody("Crawler status as of %s" % time.asctime())
 
     publDesc = {}
-    for key, value in pubCrawlConf.crawlPubIds.iteritems():
+    for key, value in pubCrawlConf.crawlPubIds.items():
         publDesc[value] = key
 
     totalPmidCount = 0
@@ -1437,7 +1437,7 @@ def writeReport(baseDir, htmlFname):
         isActive = isfile(join(dirName, "_pubCrawl.lock"))
         totalPmidCount += pmidCount
         totalOkCount  += len(statusPmids.get("OK", []))
-        totalDownCount  += len(statusPmids.values())
+        totalDownCount  += len(list(statusPmids.values()))
 
         if publisher in publDesc:
             h.h4("Publisher: %s (%s)" % (publDesc[publisher], publisher))
@@ -1449,7 +1449,7 @@ def writeReport(baseDir, htmlFname):
         h.li("Total PMIDs scheduled: %d" % pmidCount)
         h.li("Crawler progress rate: %0.2f %%" % (100*len(statusPmids.get("OK", ""))/float(pmidCount)))
         h.startUl()
-        for status, pmidList in statusPmids.iteritems():
+        for status, pmidList in statusPmids.items():
             exampleLinks = [html.pubmedLink(pmid) for pmid in pmidList[:10]]
             #if status=="OK":
                 #exampleLinkStr = ""
@@ -1488,7 +1488,7 @@ def stringRewrite(origString, crawlConfig, configKey):
         return origString
 
     string = origString
-    for pat, repl in crawlConfig[configKey].iteritems():
+    for pat, repl in crawlConfig[configKey].items():
         string = re.sub(pat, repl, string)
 
     logging.debug("string %s was rewritten to %s" % (origString, string))
@@ -1501,7 +1501,7 @@ def resolveDoi(doi):
     >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x")
     """
     logging.debug("Resolving DOI %s" % doi)
-    doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
+    doiUrl = "http://dx.doi.org/" + urllib.parse.quote(doi.encode("utf8"))
     resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
     if resp==None:
         return None
@@ -1628,13 +1628,13 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
 
             # always do this after each round
             if pause:
-                raw_input("Press Enter...")
+                input("Press Enter...")
             consecErrorCount = 0
             if not restrictPublisher:
                 crawlConfig = None
             okCount += 1
 
-        except pubGetError, e:
+        except pubGetError as e:
             if e.logMsg!="issnErrorExceed":
                 consecErrorCount += 1
             logging.error("PMID %s, error: %s, code: %s, details: %s" % (pmid, e.longMsg, e.logMsg, e.detailMsg))
@@ -1651,7 +1651,7 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
 
             # always do this after each round
             if pause:
-                raw_input("Press Enter...")
+                input("Press Enter...")
             if not restrictPublisher:
                 crawlConfig = None
         except:

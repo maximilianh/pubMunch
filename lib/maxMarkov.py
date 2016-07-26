@@ -1,5 +1,5 @@
 # markov model for sequences and a classifier that is using them
-import gc, math, cPickle, operator, logging, itertools, re
+import gc, math, pickle, operator, logging, itertools, re
 from os.path import basename, splitext
 from collections import defaultdict
 from maxbio import openFile
@@ -59,10 +59,10 @@ class Markov():
         del self.counts
 
     def printProbs(self):
-        seqProbs = self.logProbs.items()
+        seqProbs = list(self.logProbs.items())
         seqProbs.sort(key=operator.itemgetter(1), reverse=True)
         for seq, prob in seqProbs:
-            print seq, prob
+            print(seq, prob)
 
     def train(self, seqs):
         logging.info("Training of %d seqs..." % len(seqs))
@@ -89,7 +89,7 @@ class Markov():
         fileObj = openFile(fname, "w")
         logging.info("writing dimers to file...")
         gc.disable()
-        cPickle.dump(self.logProbs, fileObj)
+        pickle.dump(self.logProbs, fileObj)
         gc.enable()
 
     def load(self, fname):
@@ -97,7 +97,7 @@ class Markov():
         fileObj = openFile(fname)
         logging.info("reading dimers from file...")
         gc.disable()
-        self.logProbs = cPickle.load(fileObj)
+        self.logProbs = pickle.load(fileObj)
         gc.enable()
 
 class MarkovClassifier(object):
@@ -156,7 +156,7 @@ class MarkovClassifier(object):
         models = []
         for modelFname in modelFnames:
             m = Markov(modelFname, markovLen=markovLen)
-            assert(len(m.logProbs.keys()[0])==markovLen) # set -l to correct length when you load a file
+            assert(len(list(m.logProbs.keys())[0])==markovLen) # set -l to correct length when you load a file
             models.append(m)
         return models
 
@@ -193,12 +193,12 @@ class MarkovClassifier(object):
 
         # otherwise run markov models
         fgScores = self._scoreSeq(self.fgModels, seq)
-        fgScores = fgScores.items()
+        fgScores = list(fgScores.items())
         fgScores.sort(key=operator.itemgetter(-1), reverse=True)
         self.fgScores = fgScores
 
         bgScores = self._scoreSeq(self.bgModels, seq)
-        bgScores = bgScores.items()
+        bgScores = list(bgScores.items())
         bgScores.sort(key=operator.itemgetter(-1), reverse=True)
         self.bgScores = bgScores
 

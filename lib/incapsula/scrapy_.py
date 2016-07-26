@@ -4,7 +4,7 @@ import time
 from scrapy import Request
 from BeautifulSoup import BeautifulSoup
 
-from methods import *
+from .methods import *
 
 
 class IncapsulaMiddleware(object):
@@ -18,7 +18,7 @@ class IncapsulaMiddleware(object):
 
     def _get_session_cookies(self, request):
         cookies_ = []
-        for cookie_key, cookie_value in request.cookies.items():
+        for cookie_key, cookie_value in list(request.cookies.items()):
             if 'incap_ses_' in cookie_key:
                 cookies_.append(cookie_value)
         return cookies_
@@ -80,7 +80,7 @@ class IncapsulaMiddleware(object):
             timing.append('r:{}'.format(now_in_seconds() - start))
             cpy = request.copy()
             cpy.meta['completed_incap'] = True
-            cpy._url = str(resource2) + urllib.quote('complete ({})'.format(",".join(timing)))
+            cpy._url = str(resource2) + urllib.parse.quote('complete ({})'.format(",".join(timing)))
             cpy.priority = request.priority + self.priority_adjust
             return cpy
         self.crawler.stats.inc_value('incap_cracked')

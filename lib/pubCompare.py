@@ -3,7 +3,7 @@
 # Try to find PMID for an article by comparing fingerprints of article data against medline
 # fingerprints. 
 
-import logging, optparse, sys, os, marshal, unicodedata, gdbm, unidecode, gzip
+import logging, optparse, sys, os, marshal, unicodedata, dbm.gnu, unidecode, gzip
 import pubGeneric, pubConf, maxCommon, pubStore, pubKeyVal
 from os.path import isfile, join
 
@@ -174,7 +174,7 @@ def writeDicts(mapList, outFname, articleIds):
         
         logging.info("Writing %d fingerprints, type %s" % (len(fprints), typeDesc[fprintType]))
         pm = maxCommon.ProgressMeter(len(fprints))
-        for fprint, artId in fprints.iteritems():
+        for fprint, artId in fprints.items():
             artData = articleIds[int(artId)]
             pmid = str(artData[-1])
             ofh.write("%s\t%s\n" % (fprint, pmid))
@@ -191,7 +191,7 @@ def addDictsToDbms(mapList, dbmList, articleIds):
     for fprints, dbm in zip(mapList, dbmList):
         logging.info("Writing fingerprint %d (0=doi, 1=issn/vol/page, 2=author/year/title)" % fprintType)
         pm = maxCommon.ProgressMeter(len(fprints))
-        for fprint, artId in fprints.iteritems():
+        for fprint, artId in fprints.items():
             artData = articleIds[int(artId)]
             pmid = str(artData[-1])
             dbm[str(fprint)] = pmid

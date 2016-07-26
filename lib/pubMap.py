@@ -107,8 +107,8 @@ def appendAsFasta(inFilename, outObjects, maxSizes, seqLenCutoff, forceDbs=None,
             outObj.lastArticleId=articleId
     
 def closeOutFiles(outDict):
-    for typeDict in outDict.values():
-        for fileObject in typeDict.values():
+    for typeDict in list(outDict.values()):
+        for fileObject in list(typeDict.values()):
             logging.debug("Closing %s" % fileObject.file.name)
             fileObject.file.close()
 
@@ -192,8 +192,8 @@ def submitBlatJobs(runner, faDir, pslDir, onlyDbs, cdnaDir=None, \
 
     # shred genomes/cdna and blat fasta onto these
     dbFaFiles = indexFilesByTypeDb(faDir, blatOptions)
-    for seqType, dbFiles in dbFaFiles.iteritems():
-        for db, faNames in dbFiles.iteritems():
+    for seqType, dbFiles in dbFaFiles.items():
+        for db, faNames in dbFiles.items():
             if (onlyDbs!=None and len(onlyDbs)!=0) and db not in onlyDbs:
                 continue
             logging.debug("seqtype %s, db %s, query file file count %d" % (seqType, db, len(faNames)))
@@ -360,7 +360,7 @@ def chainPsls(pslList, maxDistDict):
     chromPsls = indexByDbChrom(pslList)
 
     chains = {}
-    for dbChrom, chromPslList in chromPsls.iteritems():
+    for dbChrom, chromPslList in chromPsls.items():
         db, chrom = dbChrom
         logging.log(5, "db %s, chrom %s, %d features" % (db, chrom, len(chromPslList)))
         if "_hap" in chrom:
@@ -398,7 +398,7 @@ def chainPsls(pslList, maxDistDict):
     # index all chains by qName to create a nested dict chainId -> seqId -> pslList
     # chainId looks like hg19,chr1,123456
     idxChains = {}
-    for chainId, pslList in chains.iteritems():
+    for chainId, pslList in chains.items():
         pslDict = {}
         for psl in pslList:
             pslDict.setdefault(psl.qName, []).append(psl)
@@ -422,7 +422,7 @@ def getBestElements(dict):
     """ 
     maxScore = max(dict.values())
     result = []
-    for key, value in dict.iteritems():
+    for key, value in dict.items():
         if value == maxScore:
             result.append(key)
     return result
@@ -461,8 +461,8 @@ def onlyLongestChains(chains):
         # create score for chains: number of qNames, e.g. chain1->1, chain2->3
         logging.log(5, "Starting chain balancing with %d chains" % len(chains))
         chainScores = {}
-        for chainId, qNameDict in chains.iteritems():
-            chainScores[chainId] = len(qNameDict.keys())
+        for chainId, qNameDict in chains.items():
+            chainScores[chainId] = len(list(qNameDict.keys()))
         logging.log(5, "chainScores are: %s" % chainScores)
 
         # keep only chains with best scores, create list with their chainIds
@@ -474,7 +474,7 @@ def onlyLongestChains(chains):
             db = bestChainId.split(",")[0]
             bestChain = chains[bestChainId]
             bestChains.setdefault(db, []).append(maxbio.flattenValues(bestChain))
-            for pslList in bestChain.values():
+            for pslList in list(bestChain.values()):
                 for psl in pslList:
                     chainQNames.add(psl.qName)
         logging.log(5, "Best chain contains %d sequences, removing these from other chains" % \
@@ -482,9 +482,9 @@ def onlyLongestChains(chains):
 
         # keep only psls with names not in chainQNames 
         newChains = {}
-        for chainId, chainDict in chains.iteritems():
+        for chainId, chainDict in chains.items():
             newChainDict = {}
-            for qName, pslList in chainDict.iteritems():
+            for qName, pslList in chainDict.items():
                 if qName not in chainQNames:
                     newChainDict[qName]=pslList
             if len(newChainDict)!=0:
@@ -498,7 +498,7 @@ def chainsToBeds(chains):
     Return dict db -> tuple (list of chain-beds, list of all psls for beds) otherwise
     """
     dbBeds = {}
-    for db, chains in chains.iteritems():
+    for db, chains in chains.items():
         logging.debug("Converting %d chains on db %s to bedx" % (len(chains), db))
         dbPsls = []
         # convert all chains to bedx, filtering out chains with too many features
@@ -540,7 +540,7 @@ def writePslsFuseOverlaps(pslList, outFh):
         pslSeqTypes.setdefault(pslLine, set())
         pslSeqTypes[pslLine].add(tSeqType)
 
-    for pslLine, seqTypes in pslSeqTypes.iteritems():
+    for pslLine, seqTypes in pslSeqTypes.items():
         psl = pslLine.split("\t")
         psl.append("".join(seqTypes))
         outFh.write("\t".join(psl))
@@ -577,7 +577,7 @@ def chainPslToBed(tmpPslFname, oneOutFile, pipeSep=False, onlyFields=None):
         dbBeds    = chainsToBeds(chains)
 
         if dbBeds!=None:
-            for db, bedPslPair in dbBeds.iteritems():
+            for db, bedPslPair in dbBeds.items():
                 bedxList, pslList = bedPslPair
                 for bedx in bedxList:
                     # lazily open file here, to avoid 0-len files
@@ -806,7 +806,7 @@ def writeSeqTables(articleDbs, seqDirs, tableDir, fileDescs, annotLinks):
             if fileDesc == "" or fileDesc==None:
                 logging.debug("Cannot find file description for file id %d" % articleFileId)
                 noDescCount += 1
-            newRow = [ unicode(articleId), unicode(fileId), unicode(seqId), annot.annotId, pubStore.prepSqlString(fileDesc), pubStore.prepSqlString(fileUrl), annot.seq, snippet, annotLinkString]
+            newRow = [ str(articleId), str(fileId), str(seqId), annot.annotId, pubStore.prepSqlString(fileDesc), pubStore.prepSqlString(fileUrl), annot.seq, snippet, annotLinkString]
 
             # write new sequence row
             seqFh.write(string.join(newRow, "\t"))
@@ -930,8 +930,8 @@ def writeArticleTables(articleDbs, textDir, tableDir, updateIds):
                        prepSql(articleData.abstract, maxLen=32000), \
                        prepSql(articleData.fulltextUrl, maxLen=1000), \
                        dbString)
-        articleFh.write(u'\t'.join(articleRow))
-        articleFh.write(u'\n')
+        articleFh.write('\t'.join(articleRow))
+        articleFh.write('\n')
         articleCount+=1
     logging.info("Written info on %d articles to %s" % (articleCount, tableDir))
 
@@ -1143,7 +1143,7 @@ def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impact
         bedLines = readReformatBed(bedFname, artDescs, artClasses, impacts, dataset, annotLoci)
         articleIds = set()
         outFh   = outBed[db]
-        for articleId, bedLines in bedLines.iteritems():
+        for articleId, bedLines in bedLines.items():
             for lineNew in bedLines:
                 outFh.write(lineNew)
                 outFh.write("\n")
@@ -1154,12 +1154,12 @@ def rewriteFilterBedFiles(bedDir, tableDir, dbList, artDescs, artClasses, impact
         pm.taskCompleted()
 
     logging.info("features that were retained")
-    for db, count in featCounts.iteritems():
+    for db, count in featCounts.items():
         logging.info("Db %s: %d features kept, %d feats (%d articles) dropped" % \
             (db, count, dropCounts[db], dropArtCounts[db]))
     logging.info("bed output written to directory %s" % (tableDir))
-    closeAllFiles(outBed.values())
-    closeAllFiles(outPsl.values())
+    closeAllFiles(list(outBed.values()))
+    closeAllFiles(list(outPsl.values()))
     
 def mustLoadTable(db, tableName, tabFname, sqlName, append=False):
     if append:
@@ -1342,19 +1342,19 @@ def loadTableFiles(dbTablePrefix, fileDict, dbList, sqlDir, appendMode, \
     if dropFirst:
         logging.info("Before appending to marker bed tracks, dropping the old ones first")
         dropTables = {}
-        for (tableBaseName, fileType), dbFnames in fileDict.iteritems():
+        for (tableBaseName, fileType), dbFnames in fileDict.items():
             upTableBase = upcaseFirstLetter(tableBaseName)
-            for db, fnames in dbFnames.iteritems():
+            for db, fnames in dbFnames.items():
                 dbTableName = dbTablePrefix + upTableBase
                 dropTables.setdefault(db, set()).add(dbTableName)
-        for db, tableNames in dropTables.iteritems():
+        for db, tableNames in dropTables.items():
             maxMysql.dropTables(db, tableNames )
 
     sqlFilePrefix = "pubs"
     dbTables = set()
-    for (tableBaseName, fileType), dbFnames in fileDict.iteritems():
+    for (tableBaseName, fileType), dbFnames in fileDict.items():
         upTableBase = upcaseFirstLetter(tableBaseName)
-        for db, fnames in dbFnames.iteritems():
+        for db, fnames in dbFnames.items():
             if db.startswith("nonUcsc_"):
                 continue
             for fname in fnames:
@@ -1416,8 +1416,8 @@ def appendFilenamesToSqlTable(fileDicts, trackDb, trackingTable, ignoreDir):
     # /blat/pmc/batches/1_0/tables/xenTro2.blatPsl.psl']}}]
     logging.debug("FileDicts is %s, appending these to tracking table %s" % (fileDicts, trackingTable))
     for fileDict in fileDicts:
-        for dbFnames in fileDict.values():
-            for db, fileNameList in dbFnames.iteritems():
+        for dbFnames in list(fileDict.values()):
+            for db, fileNameList in dbFnames.items():
                 for fname in fileNameList:
                     if ignoreDir in fname:
                         logging.debug("not appending %s, is in temporary dir" % fname)
@@ -1433,7 +1433,7 @@ def isIdenticalOnDisk(loadedFiles):
     if len(loadedFiles)==0:
         return True
 
-    for fname, sizeDate in loadedFiles.iteritems():
+    for fname, sizeDate in loadedFiles.items():
         size, date = sizeDate
         size = int(size)
         if not isfile(fname):
@@ -1559,7 +1559,7 @@ def filterSeqFile(inFname, outFname, isProt=False):
         if len(row.seq) > maxLen:
             continue
         alreadySeenSeq[articleId].add(row.seq)
-        outFh.write(u"\t".join(row))
+        outFh.write("\t".join(row))
         outFh.write("\n")
     outFh.close()
 
@@ -1644,15 +1644,15 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
             #if row.type not in ["band", "snp", "symbol"]:
                 #continue
             newRow = [articleId, fileId, annotId, fileDesc, fileUrl, \
-                row.type, row.markerId, row.recogType, row.recogId, row.section, unicode(snippet)]
+                row.type, row.markerId, row.recogType, row.recogId, row.section, str(snippet)]
             fileMarkerArticles[row.markerId].add(articleId)
 
-            outFile.write(u'\t'.join(newRow))
+            outFile.write('\t'.join(newRow))
             outFile.write('\n')
             outRowCount+=1
 
         articleIds = set()
-        for markerId, articleIdSet in fileMarkerArticles.iteritems():
+        for markerId, articleIdSet in fileMarkerArticles.items():
             markerCounts[markerId]+= len(articleIdSet)
             articleIds.update(articleIdSet)
 
@@ -1666,7 +1666,7 @@ def rewriteMarkerAnnots(markerAnnotDir, db, tableDir, fileDescs, markerArticleFi
     os.remove(tmpFname)
 
     logging.info("Writing marker counts")
-    for markerId, count in markerCounts.iteritems():
+    for markerId, count in markerCounts.items():
         markerCountFh.write("%s\t%d\n" % (markerId, count))
         
 def switchOver():
@@ -1728,7 +1728,7 @@ def annotToCdr3(dataset):
                 if row.prefixFilterAccept!="Y" or row.suffixFilterAccept!="Y" or \
                     row.markovFilterAccept!="Y":
                     continue
-                tabFh.write(u'\t'.join(row).encode("utf8"))
+                tabFh.write('\t'.join(row).encode("utf8"))
                 tabFh.write('\n')
                 faFh.write(">"+row.annotId+"\n")
                 faFh.write(row.seq+"\n")
@@ -1958,7 +1958,7 @@ def dropAllTables(userTablePrefix):
     " remove all tables with current prefix "
     tablePrefix = "pubs"
     tablePrefix = tablePrefix + userTablePrefix
-    dbs = pubConf.speciesNames.keys()
+    dbs = list(pubConf.speciesNames.keys())
     dbs = [d for d in dbs if not d.startswith("nonUcsc_")]
     dbs.append("hgFixed")
     logging.info("Removing all tables with prefix %s in dbs %s" % (tablePrefix, dbs))
@@ -2037,7 +2037,7 @@ def findLociBedDir(bedDir):
         dbAnnotToGene = findLociForBeds(tmpFname, db)
         tmpFh.close() # deletes the file
 
-        for annot, genes in dbAnnotToGene.iteritems():
+        for annot, genes in dbAnnotToGene.items():
             for g in genes:
                 annotToGene[annot].add(g)
     return annotToGene
@@ -2052,7 +2052,7 @@ def findLociForBeds(bedFname, db):
     nameToGenes = overlapBeds(lociFname, bedFname)
 
     annotIdToGene = {}
-    for name, genes in nameToGenes.iteritems():
+    for name, genes in nameToGenes.items():
         annotIds = name.split(",")
         for annotId in annotIds:
             annotIdToGene[annotId] = genes
@@ -2123,7 +2123,7 @@ def runStep(command, d, options):
         maxCommon.mustBeEmptyDir(d.sortBaseDir, makeDir=True)
         runner = d.getRunner(command)
         runner.maxRam = "8g"
-        submitSortPslJobs(runner, "g", d.pslDir, d.pslSortedDir, pubConf.speciesNames.keys())
+        submitSortPslJobs(runner, "g", d.pslDir, d.pslSortedDir, list(pubConf.speciesNames.keys()))
         cdnaDbs = [basename(path) for path in glob.glob(join(pubConf.cdnaDir, "*"))]
         submitSortPslJobs(runner, "p", d.protPslDir, d.protPslSortedDir, cdnaDbs)
         submitSortPslJobs(runner, "c", d.cdnaPslDir, d.cdnaPslSortedDir, cdnaDbs)
@@ -2134,7 +2134,7 @@ def runStep(command, d, options):
         # join all psl files from each db into one big one for all dbs, filter and re-split
         runner = d.getRunner(command)
         pslDirs = [d.pslSortedDir, d.cdnaPslSortedDir, d.protPslSortedDir]
-        dbs = pubConf.speciesNames.keys()
+        dbs = list(pubConf.speciesNames.keys())
         submitMergeSplitChain(runner, d.textDir, pslDirs, \
             d.pslSplitDir, d.bedDir, pubConf.maxDbMatchCount, dbs, d.updateIds)
         d.appendBatchProgress("chain")

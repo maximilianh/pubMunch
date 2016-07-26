@@ -3,7 +3,7 @@ __all__ = [
     'LXMLTreeBuilder',
     ]
 
-from StringIO import StringIO
+from io import StringIO
 import collections
 from lxml import etree
 from bs4.element import Comment, Doctype, NamespacedAttribute
@@ -61,7 +61,7 @@ class LXMLTreeBuilderForXML(TreeBuilder):
         :return: A 3-tuple (markup, original encoding, encoding
         declared within markup).
         """
-        if isinstance(markup, unicode):
+        if isinstance(markup, str):
             return markup, None, None, False
 
         try_encodings = [user_specified_encoding, document_declared_encoding]
@@ -71,7 +71,7 @@ class LXMLTreeBuilderForXML(TreeBuilder):
                 dammit.contains_replacement_characters)
 
     def feed(self, markup):
-        if isinstance(markup, basestring):
+        if isinstance(markup, str):
             markup = StringIO(markup)
         # Call feed() at least once, even if the markup is empty,
         # or the parser won't be initialized.
@@ -102,12 +102,12 @@ class LXMLTreeBuilderForXML(TreeBuilder):
             # A new namespace mapping has come into play.
             if self.nsmaps is None:
                 self.nsmaps = []
-            inverted_nsmap = dict((value, key) for key, value in nsmap.items())
+            inverted_nsmap = dict((value, key) for key, value in list(nsmap.items()))
             self.nsmaps.append(inverted_nsmap)
             # Also treat the namespace mapping as a set of attributes on the
             # tag, so we can recreate it later.
             attrs = attrs.copy()
-            for prefix, namespace in nsmap.items():
+            for prefix, namespace in list(nsmap.items()):
                 attribute = NamespacedAttribute(
                     "xmlns", prefix, "http://www.w3.org/2000/xmlns/")
                 attrs[attribute] = namespace
@@ -158,7 +158,7 @@ class LXMLTreeBuilderForXML(TreeBuilder):
 
     def test_fragment_to_document(self, fragment):
         """See `TreeBuilder`."""
-        return u'<?xml version="1.0" encoding="utf-8"?>\n%s' % fragment
+        return '<?xml version="1.0" encoding="utf-8"?>\n%s' % fragment
 
 
 class LXMLTreeBuilder(HTMLTreeBuilder, LXMLTreeBuilderForXML):
@@ -176,4 +176,4 @@ class LXMLTreeBuilder(HTMLTreeBuilder, LXMLTreeBuilderForXML):
 
     def test_fragment_to_document(self, fragment):
         """See `TreeBuilder`."""
-        return u'<html><body>%s</body></html>' % fragment
+        return '<html><body>%s</body></html>' % fragment

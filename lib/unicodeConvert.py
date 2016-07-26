@@ -67,9 +67,9 @@ def ucn_to_python(ucn):
     """Convert a Unicode Universal Character Number (e.g. "U+4E00" or "4E00") to Python unicode (u'\\u4e00')"""
     ucn = ucn.strip("U+")
     if len(ucn) > 4:
-        return eval("u'\U%08x'" % int(ucn, 16)) #this would be a security hole if we didn't use `int` to make the input safe
+        return eval("u'\\U%08x'" % int(ucn, 16)) #this would be a security hole if we didn't use `int` to make the input safe
     else:
-        return eval("u'\u%s'" % ucn) #4 characters isn't enough room to do damage with the eval
+        return eval("u'\\u%s'" % ucn) #4 characters isn't enough room to do damage with the eval
         #TODO: this dies on decimal input (e.g. ucn_to_python("100")
 
 def euc_to_python(hexstr):
@@ -114,7 +114,7 @@ def python_to_ncr(uni_char, **options):
      * decimal=True - output the decimal value instead of hex
      * hex=False - (same as decimal=True)
      * xml=False - just display the decimal or hex value, i.e. strip off the '&#', '&x', and ';'"""
-    hexflag, decflag, xmlflag = map(options.get, ["hex", "decimal", "xml"], [True, False, True])
+    hexflag, decflag, xmlflag = list(map(options.get, ["hex", "decimal", "xml"], [True, False, True]))
     if decflag:
         out = int(repr(uni_char)[4:-1], 16)
         if xmlflag:

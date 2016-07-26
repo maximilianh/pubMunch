@@ -1,6 +1,6 @@
 # module to parse config files
 
-import sys, os, ConfigParser, logging
+import sys, os, configparser, logging
 
 logger = logging.getLogger("maxConfig")
 
@@ -15,7 +15,7 @@ def parse(filename):
     global config
     global configname
     configname=filename
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read([filename, os.path.expanduser('~/.'+filename)])
 
 def initFromString(section, strings):
@@ -77,7 +77,7 @@ def get(section, key, default):
             val = config.get(section, key)
             logger.debug("Config %s/%s=%s" %(section, key, val))
             return val
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             logger.debug("Config value %s/%s not found: returning %s" %(section, key, default))
             return default
     else:

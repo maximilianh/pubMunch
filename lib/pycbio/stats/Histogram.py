@@ -158,7 +158,7 @@ class Histogram(object):
 
     def __mkBins(self):
         self.bins = []
-        for i in xrange(self.numBinsUse):
+        for i in range(self.numBinsUse):
             self.bins.append(Bin(self, i, self.binFloorUse+(i*self.binSizeUse), self.binSizeUse))
 
     def __binTupleData(self):

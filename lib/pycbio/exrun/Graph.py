@@ -1,7 +1,7 @@
 # Copyright 2006-2012 Mark Diekhans
 """Graph (DAG) of productions and rules.  This also manages 
 of production and rule state flags."""
-from __future__ import with_statement
+
 import os.path, threading
 from pycbio.sys import typeOps
 from pycbio.sys.Enumeration import Enumeration

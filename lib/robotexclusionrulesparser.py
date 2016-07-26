@@ -82,9 +82,9 @@ import sys
 PY_MAJOR_VERSION = sys.version_info[0]
 
 if PY_MAJOR_VERSION < 3:
-    from urlparse import urlparse as urllib_urlparse
-    from urlparse import urlunparse as urllib_urlunparse
-    from urllib import unquote as urllib_unquote
+    from urllib.parse import urlparse as urllib_urlparse
+    from urllib.parse import urlunparse as urllib_urlunparse
+    from urllib.parse import unquote as urllib_unquote
     import urllib2 as urllib_request
     import urllib2 as urllib_error
 else:
@@ -141,7 +141,7 @@ _charset_extraction_regex = re.compile(r"""charset=['"]?(?P<encoding>[^'"]*)['"]
 def _raise_error(error, message):
     # I have to exec() this code because the Python 2 syntax is invalid
     # under Python 3 and vice-versa.
-    raise error, message
+    raise error(message)
     #s = "raise error, message"
     #else:
     #raise error(message)
@@ -375,9 +375,9 @@ class RobotExclusionRulesParser(object):
             # Converting the strings to Unicode here doesn't make the problem
             # go away but it does make the conversion explicit so that 
             # failures are easier to understand. 
-            if not isinstance(user_agent, unicode):
+            if not isinstance(user_agent, str):
                 user_agent = user_agent.decode()
-            if not isinstance(url, unicode):
+            if not isinstance(url, str):
                 url = url.decode()
         
         if syntax not in (MK1996, GYM2008):
@@ -395,7 +395,7 @@ class RobotExclusionRulesParser(object):
         user agent, or None if the crawl delay was unspecified or not a float.
         """
         # See is_allowed() comment about the explicit unicode conversion.
-        if (PY_MAJOR_VERSION < 3) and (not isinstance(user_agent, unicode)):
+        if (PY_MAJOR_VERSION < 3) and (not isinstance(user_agent, str)):
             user_agent = user_agent.decode()
     
         for ruleset in self.__rulesets:
@@ -543,7 +543,7 @@ class RobotExclusionRulesParser(object):
         self.__rulesets = [ ]
         
         if (PY_MAJOR_VERSION > 2) and (isinstance(s, bytes) or isinstance(s, bytearray)) or \
-           (PY_MAJOR_VERSION == 2) and (not isinstance(s, unicode)):            
+           (PY_MAJOR_VERSION == 2) and (not isinstance(s, str)):            
             s = s.decode("iso-8859-1")
     
         # Normalize newlines.

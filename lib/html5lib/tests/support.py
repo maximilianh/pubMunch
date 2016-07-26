@@ -106,7 +106,7 @@ class TestData(object):
     
     def normaliseOutput(self, data):
         #Remove trailing newlines
-        for key,value in data.iteritems():
+        for key,value in data.items():
             if value.endswith("\n"):
                 data[key] = value[:-1]
         return data

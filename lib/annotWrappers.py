@@ -1,6 +1,6 @@
 # functions to annotate text or use external algorithms (webservices,perlscripts) to annotate text
 
-import logging, subprocess, urllib, urllib2, re, shlex, os, sys, types
+import logging, subprocess, urllib.request, urllib.parse, urllib.error, urllib.request, urllib.error, urllib.parse, re, shlex, os, sys, types
 
 # matches for these are removed from the file (=replaced by spaces) 
 xmlTagsRe  = re.compile('<.*?>')     # an xml tag 
@@ -66,7 +66,7 @@ class HttpRunner(TextAnnotator):
 
     def run(self, metaInfo, text):
         httpParams = {}
-        for key, value in self.paramTemplate.iteritems():
+        for key, value in self.paramTemplate.items():
             if value=="$text":
                 httpParams[key] = text
             elif value.startswith("$"):
@@ -75,9 +75,9 @@ class HttpRunner(TextAnnotator):
                 httpParams[key] = value
 
         logging.log(5, "HTTP POST to %s with parameters %s" % (self.url, str(httpParams)))
-        dataEncoded = urllib.urlencode (httpParams)
-        req = urllib2.Request(self.url, dataEncoded)
-        response = urllib2.urlopen(req)
+        dataEncoded = urllib.parse.urlencode (httpParams)
+        req = urllib.request.Request(self.url, dataEncoded)
+        response = urllib.request.urlopen(req)
         data =  response.read()
 
         lines = data.split("\n")
@@ -180,7 +180,7 @@ class PythonRunner(TextAnnotator):
             logging.error("Could not find the function %s in %s" % (moduleFilename, algFuncName))
             sys.exit(1)
 
-        for key, val in parameters.iteritems():
+        for key, val in parameters.items():
             setattr(modParameters, key, val)
 
     def getHeaders(self):

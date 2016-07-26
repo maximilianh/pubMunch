@@ -15,8 +15,8 @@ Tasks are not preemptive, once started, they only pause when being switch
 between scheduling groups.  A task is not equivalent to a thread, they
 are something run by a thread.
 """
-from __future__ import with_statement
-import sys, os, threading, Queue, traceback
+
+import sys, os, threading, queue, traceback
 from pycbio.sys import PycbioException
 
 # Notes:
@@ -70,7 +70,7 @@ class Task(threading.Thread):
         self.runFunc = runFunc
         self.pri = pri  # smaller is higher
         self.group = None
-        self.msgQ = Queue.Queue()
+        self.msgQ = queue.Queue()
         threading.Thread.__init__(self)
         self.start()
 
@@ -92,7 +92,7 @@ class Task(threading.Thread):
             try:
                 self.__receive()
                 self.runFunc(self)
-            except Exception, e:
+            except Exception as e:
                 sys.stderr.write("Fatal error: unhandled exception in task:\n")
                 traceback.print_exc(sys.stderr)
                 os._exit(1)
@@ -149,7 +149,7 @@ class Sched(object):
 
     def __init__(self):
         self.lock = threading.RLock()
-        self.msgQ = Queue.Queue()
+        self.msgQ = queue.Queue()
         self.numTasks = 0
         self.groups = {}
 
@@ -179,7 +179,7 @@ class Sched(object):
 
     def __startTasks(self):
         "start tasks ready to run"
-        for grp in self.groups.itervalues():
+        for grp in self.groups.values():
             grp._startTasks()
 
     def __taskEnd(self, task):

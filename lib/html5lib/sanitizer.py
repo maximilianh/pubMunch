@@ -1,8 +1,8 @@
 import re
 from xml.sax.saxutils import escape, unescape
 
-from tokenizer import HTMLTokenizer
-from constants import tokenTypes
+from .tokenizer import HTMLTokenizer
+from .constants import tokenTypes
 
 class HTMLSanitizerMixin(object):
     """ sanitization of XHTML+MathML+SVG and of inline style attributes."""
@@ -160,23 +160,23 @@ class HTMLSanitizerMixin(object):
 
         # accommodate filters which use token_type differently
         token_type = token["type"]
-        if token_type in tokenTypes.keys():
+        if token_type in list(tokenTypes.keys()):
           token_type = tokenTypes[token_type]
 
         if token_type in (tokenTypes["StartTag"], tokenTypes["EndTag"], 
                              tokenTypes["EmptyTag"]):
             if token["name"] in self.allowed_elements:
-                if token.has_key("data"):
+                if "data" in token:
                     attrs = dict([(name,val) for name,val in
                                   token["data"][::-1] 
                                   if name in self.allowed_attributes])
                     for attr in self.attr_val_is_uri:
-                        if not attrs.has_key(attr):
+                        if attr not in attrs:
                             continue
                         val_unescaped = re.sub("[`\000-\040\177-\240\s]+", '',
                                                unescape(attrs[attr])).lower()
                         #remove replacement characters from unescaped characters
-                        val_unescaped = val_unescaped.replace(u"\ufffd", "")
+                        val_unescaped = val_unescaped.replace("\ufffd", "")
                         if (re.match("^[a-z0-9][-+.a-z0-9]*:",val_unescaped) and
                             (val_unescaped.split(':')[0] not in 
                              self.allowed_protocols)):
@@ -190,9 +190,9 @@ class HTMLSanitizerMixin(object):
                         'xlink:href' in attrs and re.search('^\s*[^#\s].*',
                                                             attrs['xlink:href'])):
                         del attrs['xlink:href']
-                    if attrs.has_key('style'):
+                    if 'style' in attrs:
                         attrs['style'] = self.sanitize_css(attrs['style'])
-                    token["data"] = [[name,val] for name,val in attrs.items()]
+                    token["data"] = [[name,val] for name,val in list(attrs.items())]
                 return token
             else:
                 if token_type == tokenTypes["EndTag"]:
@@ -205,7 +205,7 @@ class HTMLSanitizerMixin(object):
                 if token.get("selfClosing"):
                     token["data"]=token["data"][:-1] + "/>"
 
-                if token["type"] in tokenTypes.keys():
+                if token["type"] in list(tokenTypes.keys()):
                     token["type"] = "Characters"
                 else:
                     token["type"] = tokenTypes["Characters"]

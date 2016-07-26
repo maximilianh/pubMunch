@@ -63,7 +63,7 @@ Frame = Enumeration("FrameStat",
                     ["ok", "bad", "mismatch", "discontig", "noCDS"])
 
 
-#acc	chr	chrStart	chrEnd	strand	stat	frame	start	stop	orfStop	cdsGap	cdsMult3Gap	utrGap	cdsUnknownSplice	utrUnknownSplice	cdsNonCanonSplice	utrNonCanonSplice	numExons	numCds	numUtr5	numUtr3	numCdsIntrons	numUtrIntrons	nmd	causes
+#acc        chr        chrStart        chrEnd        strand        stat        frame        start        stop        orfStop        cdsGap        cdsMult3Gap        utrGap        cdsUnknownSplice        utrUnknownSplice        cdsNonCanonSplice        utrNonCanonSplice        numExons        numCds        numUtr5        numUtr3        numCdsIntrons        numUtrIntrons        nmd        causes
 typeMap = {"acc": intern,
            "chrStart": int,
            "chrEnd": int,

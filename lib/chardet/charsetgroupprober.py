@@ -26,7 +26,7 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from charsetprober import CharSetProber
+from .charsetprober import CharSetProber
 
 class CharSetGroupProber(CharSetProber):
     def __init__(self):

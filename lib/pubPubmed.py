@@ -1,7 +1,7 @@
 # package to download and parse xml files from pubmed/medline
 # + some functions to query eutils
 
-import logging, urllib2, pubConf, maxXml, pubStore, re, time, urllib, traceback, httplib, maxCommon
+import logging, urllib.request, urllib.error, urllib.parse, pubConf, maxXml, pubStore, re, time, urllib.request, urllib.parse, urllib.error, traceback, http.client, maxCommon
 import socket
 
 from xml.etree.ElementTree import ParseError
@@ -145,8 +145,8 @@ def parseMedline(xmlParser):
 
     # remove these annoying linebreaks!
     filtData = {}
-    for key, val in data.iteritems():
-        filtData[key] = val.replace(u'\u2028', ' ')
+    for key, val in data.items():
+        filtData[key] = val.replace('\u2028', ' ')
     return filtData
 
 def parsePubmedFields(xmlEl, dataDict):
@@ -223,7 +223,7 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
         while tryCount < 10 and xml == None:
             try:
                 tryCount += 1
-                xml = urllib2.urlopen(url.strip()).read()
+                xml = urllib.request.urlopen(url.strip()).read()
                 if xml == None:
                     raise Exception("Could not connect to Eutils")
 
@@ -235,16 +235,16 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
                 ##I sometimes see "HTTP Error 502: Bad Gateway"
                 #logging.info("HTTP Error on eutils, pausing for 120 secs")
                 #time.sleep(120)
-            except urllib2.URLError: # this should handle HTTPError, too
+            except urllib.error.URLError: # this should handle HTTPError, too
                 logging.info("HTTP Error on eutils, pausing for 120 secs")
                 time.sleep(120)
             except socket.timeout:
                 logging.info("Socket timeout on eutils, pausing for 120 secs")
                 time.sleep(120)
-            except httplib.BadStatusLine:
+            except http.client.BadStatusLine:
                 logging.info("Bad status line on eutils, pausing 120 secs")
                 time.sleep(120)
-            except httplib.IncompleteRead: # this happened only once in three years
+            except http.client.IncompleteRead: # this happened only once in three years
                 logging.info("IncompleteRead Error on eutils, pausing for 120 secs")
                 time.sleep(120)
             except ParseError:
@@ -262,7 +262,7 @@ def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", 
 
     retmax=100000
     addString=""
-    query = urllib.quote(query)
+    query = urllib.parse.quote(query)
 
     idsLeft = None
     allPmids = []
@@ -270,8 +270,8 @@ def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", 
     while idsLeft>0 or idsLeft==None:
         logging.debug( "PMIDs left %s, PMIDs downloaded %d" % (str(idsLeft), len(allPmids)))
         url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=%s&tool=retrPubmed&tool=%s&email=%s&term=%s&retstart=%d&retmax=%d%s' % (dbName, tool, email, query, len(allPmids), retmax, addString)
-        req = urllib2.Request(url)
-        html = urllib2.urlopen(req)
+        req = urllib.request.Request(url)
+        html = urllib.request.urlopen(req)
         logging.debug("Getting "+url+"\n")
         
         pmids = []

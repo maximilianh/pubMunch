@@ -1,7 +1,7 @@
 # Routines for handling fasta sequences and tab sep files
 
 # std packages
-import sys, textwrap, operator, types, doctest,logging, gzip, struct, cPickle, gc, itertools, math
+import sys, textwrap, operator, types, doctest,logging, gzip, struct, pickle, gc, itertools, math
 from collections import defaultdict
 from types import *
 from os.path import basename, splitext
@@ -37,7 +37,7 @@ def openFile(fname, mode="r"):
 def flattenValues(dict):
     """ return all values in dictionary (key -> list) as one long flat list """
     list = []
-    for value in dict.values():
+    for value in list(dict.values()):
         list.extend(value)
     return list
 
@@ -56,8 +56,8 @@ def parseFastaAsDict(fname, inDict=None):
     fr = FastaReader(fname)
     for (id, seq) in fr.parse():
         if id in inDict:
-            print inDict
-            print inDict[id]
+            print(inDict)
+            print(inDict[id])
             raise Exception("%s already seen before" % id)
         inDict[id]=seq
     return inDict
@@ -139,7 +139,7 @@ def outputFastaFile(id, seq, fname, width=80):
 
 def _makeGetter(var):
     """ returns the right getter, depending on the type of var """
-    if type(var)==types.StringType:
+    if type(var)==bytes:
         getter = operator.attrgetter(var) # to get elements from records with named fields
     else:
         getter = operator.itemgetter(var) # to get elements from lists
@@ -198,7 +198,7 @@ def bestTuples(list, idField, scoreField):
     """
     map = indexByField(list, idField)
     filteredList = []
-    for id, idList in map.iteritems():
+    for id, idList in map.items():
         bestElements = bestScoreElements(idList, scoreField)
         filteredList.extend(bestElements)
     return filteredList
@@ -236,7 +236,7 @@ def benchmark(predDict, refDict):
     predCount = 0 
 
     # iterate over objects and update counters
-    for obj, predSet in predDict.iteritems():
+    for obj, predSet in predDict.items():
         if obj not in refDict:
             logging.debug("%s not in reference, skipping" % obj)
             continue
@@ -280,19 +280,19 @@ def benchmark(predDict, refDict):
     if TP+FP > 0:
         Prec    = float(TP) / (TP + FP)
     else:
-        print "Warning: Cannot calculate Prec because TP+FP = 0"
+        print("Warning: Cannot calculate Prec because TP+FP = 0")
         Prec = 0
 
     if TP+FN > 0:
         Recall  = float(TP) / (TP + FN)
     else:
-        print "Warning: Cannot calculate Recall because TP+FN = 0"
+        print("Warning: Cannot calculate Recall because TP+FN = 0")
         Recall = 0
         
     if Recall>0 and Prec>0:
         F       = 2 * (Prec * Recall) / (Prec + Recall)
     else:
-        print "Warning: Cannot calculate F because Recall and Prec = 0"
+        print("Warning: Cannot calculate F because Recall and Prec = 0")
         F = 0
 
     return BenchmarkResult(TP=TP, FN=FN, FP=FP, Prec=Prec, Recall=Recall, F=F, errList=errDetails, objCount=objCount)
@@ -303,7 +303,7 @@ def allToString(list):
     newList = []
     s = set()
     for e in list:
-        if type(e)==types.ListType or type(e)==type(s):
+        if type(e)==list or type(e)==type(s):
             newList.append(",".join(e))
         else:
             newList.append(str(e))
@@ -311,8 +311,8 @@ def allToString(list):
 
 def prettyPrintDict(dict):
     """ print dict to stdout """
-    for key, value in dict.iteritems():
-        print key, value
+    for key, value in dict.items():
+        print(key, value)
 
 def calcBinomScore(background, foreground, genes, backgroundProb):
     TP = len(genes.intersection(foreground))

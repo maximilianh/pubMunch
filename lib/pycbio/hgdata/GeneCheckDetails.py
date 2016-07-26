@@ -3,15 +3,16 @@ from pycbio.tsv.TSVRow import TSVRow
 from pycbio.tsv.TSVTable import TSVTable
 from pycbio.tsv.TSVReader import TSVReader
 from pycbio.sys.Enumeration import Enumeration
+import sys
 
 def strOrNone(val):
     "return None if val is zero length otherwise val"
     if len(val) == 0:
         return None
     else:
-        return intern(val)
+        return sys.intern(val)
 
-#acc	problem	info	chr	chrStart	chrEnd
+#acc        problem        info        chr        chrStart        chrEnd
 typeMap = {"acc": intern,
            "problem": intern,
            "info": strOrNone,

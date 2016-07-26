@@ -181,12 +181,12 @@ def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
     outFh = open(outFname, openMode)
     if headers==None:
         #headers = journals[0]._fields
-        headers = pubGroups.values()[0][0]._fields
+        headers = list(pubGroups.values())[0][0]._fields
     if not append:
         outFh.write("\t".join(headers)+"\n")
     skipCount = 0
     Rec = collections.namedtuple("JRec", headers)
-    for pubGroup, journals in pubGroups.iteritems():
+    for pubGroup, journals in pubGroups.items():
         for rec in journals:
             #if rec.eIssn=="":
                 #skipCount+=1
@@ -206,7 +206,7 @@ def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
                 if source:
                     filtRecDict["source"] = source
                 rec = Rec(**filtRecDict)
-            outFh.write((u"\t".join(rec)).encode("utf8")+"\n")
+            outFh.write(("\t".join(rec)).encode("utf8")+"\n")
 
     return rec._fields
     #logging.info("Skipped %d journals without eIssn" % skipCount)
@@ -224,7 +224,7 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
     logging.info("Writing %s" % outFname)
     if not append:
         ofh.write("journalCount\tpubName\tpubSynonyms\ttitles\twebservers\tjournalEIssns\tjournalIssns\tuid\tcountries\tlanguages\n")
-    for pubGroup, journals in pubGroups.iteritems():
+    for pubGroup, journals in pubGroups.items():
         jIds = []
         jIssns = []
         syns = []
@@ -254,7 +254,7 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
         journalCount = len(journals)
         if prefix:
             pubGroup=prefix+" "+pubGroup
-        row = [str(journalCount), pubGroup, u"|".join(syns), "|".join(titles), "|".join(servers), \
+        row = [str(journalCount), pubGroup, "|".join(syns), "|".join(titles), "|".join(servers), \
             "|".join(jIds), "|".join(jIssns), "|".join(uids), "|".join(countries), "|".join(languages)]
         ofh.write("%s\n" % "\t".join(row))
 
@@ -262,7 +262,7 @@ def findBestGroupForServer(pubGroups):
     " create mapping server -> best publisher (best= most journals)"
     # mapping server -> set of groups
     serverToGroups = collections.defaultdict(set)
-    for groupName, journals in pubGroups.iteritems():
+    for groupName, journals in pubGroups.items():
         for journal in journals:
             if journal.urls=="":
                 continue
@@ -273,10 +273,10 @@ def findBestGroupForServer(pubGroups):
     # for each server, create list of (group, journalCount)
     # rank groups by group counts
     serverToBestGroup = {}
-    for server, serverPubGroups in serverToGroups.iteritems():
+    for server, serverPubGroups in serverToGroups.items():
         # we have some manual mappings from server -> publisher
         manualFound = False
-        for serverKeyword, publisher in serverAssignDict.iteritems():
+        for serverKeyword, publisher in serverAssignDict.items():
             if serverKeyword in server:
                 bestGroup = publisher
                 manualFound = True
@@ -297,14 +297,14 @@ def findBestGroupForServer(pubGroups):
             continue
         serverToBestGroup[server] = bestGroup
 
-    for server, bestGroup in serverToBestGroup.iteritems():
+    for server, bestGroup in serverToBestGroup.items():
         logging.debug("%s --> %s" % (server, bestGroup))
     return serverToBestGroup
         
 def regroupByServer(pubGroups, serverToBestGroup):
     " if a publisher has only one server, then assign it to the biggest group for this server "
     newGroups = {}
-    for pubGroup, journals in pubGroups.iteritems():
+    for pubGroup, journals in pubGroups.items():
         # get all servers of all journals
         servers = set()
         for j in journals:
@@ -379,7 +379,7 @@ def groupPublishersByServer(journals):
             jServerCounts.append((server, serverCounts[server]))
         jServerCounts.sort(key=operator.itemgetter(1), reverse=True)
         topServer = jServerCounts[0][0]
-        for replFrom, replTo in replaceServerDict.iteritems():
+        for replFrom, replTo in replaceServerDict.items():
             if replFrom in topServer:
                 topServer = replTo
                 break
@@ -387,7 +387,7 @@ def groupPublishersByServer(journals):
 
     # count and return
     ret = {}
-    for server, pubList in journalGroups.iteritems():
+    for server, pubList in journalGroups.items():
         count = len(pubList)
         pubSet = set(pubList)
         ret[server] = (count, pubSet)
@@ -489,7 +489,7 @@ def groupPublishersByName(journals):
         jServers = urlStringToServers(journal.urls)
         #print journal.publisher, jServers
         for jServer in jServers:
-            for server, serverPub in serverAssignDict.iteritems():
+            for server, serverPub in serverAssignDict.items():
                 #print jServer, server, serverPub
                 if server in jServer:
                     #print "found", server, serverPub
@@ -501,7 +501,7 @@ def groupPublishersByName(journals):
 
         # then try the issn prefix
         if not resolved:
-            for issnPrefix, issnPub in pubIssnPrefix.iteritems():
+            for issnPrefix, issnPub in pubIssnPrefix.items():
                 if (hasattr(journal, "pIssn")) and journal.pIssn.startswith(issnPrefix) \
                         or journal.eIssn.startswith(issnPrefix):
                     pubGroup = issnPub
@@ -520,7 +520,7 @@ def groupPublishersByName(journals):
             pubGroup = pubGroup.replace('"', "")
 
             # first try with manual groupings
-            for pubShort, pubName in pubReplaceDict.iteritems():
+            for pubShort, pubName in pubReplaceDict.items():
                 if pubShort.lower() in pubGroup.lower():
                     pubGroup = pubName
                     resolved = True
@@ -532,7 +532,7 @@ def groupPublishersByName(journals):
                     pubGroup = re.sub("(^| )%s($| )" % word, " ", pubGroup)
                     pubGroup = pubGroup.strip(" ,.;[]()")
 
-                for pubShort, pubName in pubReplaceDict.iteritems():
+                for pubShort, pubName in pubReplaceDict.items():
                     if pubShort.lower() in pubGroup.lower():
                         pubGroup = pubName
                         break
@@ -581,7 +581,7 @@ def journalToBestWebserver(journals):
             jServerCounts.append((server, serverCounts[server]))
         jServerCounts.sort(key=operator.itemgetter(1), reverse=True)
         topServer = jServerCounts[0][0]
-        for replFrom, replTo in replaceServerDict.iteritems():
+        for replFrom, replTo in replaceServerDict.items():
             if replFrom in topServer:
                 topServer = replTo
                 break

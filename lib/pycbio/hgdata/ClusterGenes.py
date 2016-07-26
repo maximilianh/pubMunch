@@ -22,8 +22,8 @@ def cgBoolFormat(val):
         raise ValueError("expected bool type, got: " + type(val))
 cgBoolSpec = (cgBoolParse, cgBoolFormat)
 
-#cluster	table	gene	chrom	txStart	txEnd	strand	hasExonConflicts	hasCdsConflicts	exonConflicts	cdsConflicts
-#cluster	table	gene	chrom	txStart	txEnd	strand
+#cluster        table        gene        chrom        txStart        txEnd        strand        hasExonConflicts        hasCdsConflicts        exonConflicts        cdsConflicts
+#cluster        table        gene        chrom        txStart        txEnd        strand
 typeMap = {
     "cluster": int,
     "chrom": intern,
@@ -51,7 +51,7 @@ class Cluster(list):
 
         # set to None if conflicts were not collected
         self.hasExonConflicts = None
-	self.hasCdsConflicts = None
+        self.hasCdsConflicts = None
 
     def add(self, row):
         self.append(row)

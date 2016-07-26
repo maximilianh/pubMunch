@@ -204,7 +204,7 @@ def sectionRangesKeyword(text, minDist=MINSECLEN, doRefs=True):
 
     # convert to list with section -> (best start)
     bestSecStarts = []
-    for section, starts in sectionStartDict.iteritems():
+    for section, starts in sectionStartDict.items():
         if len(starts)>2:
             logging.log(5, "Section %s appears more than twice, aborting sectioning" % section)
             return None

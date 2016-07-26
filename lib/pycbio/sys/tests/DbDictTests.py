@@ -9,7 +9,7 @@ class DbDictTests(TestCaseBase):
 
     def __assertKeyValues(self, dbd, expect):
         "gets sort tuple of (key values) and compare"
-        keyValues = [(k, dbd[k]) for k in dbd.keys()]
+        keyValues = [(k, dbd[k]) for k in list(dbd.keys())]
         keyValues.sort(key=lambda kv: kv[0])
         keyValues = tuple(keyValues)
         self.failUnlessEqual(keyValues, expect)
@@ -20,7 +20,7 @@ class DbDictTests(TestCaseBase):
         dbd["one"] = "value 1" 
         dbd["two"] = "value 2" 
         dbd["three"] = "value 3" 
-        keys = dbd.keys()
+        keys = list(dbd.keys())
         keys.sort()
         self.__assertKeyValues(dbd, (('one', 'value 1'), ('three', 'value 3'), ('two', 'value 2')))
 

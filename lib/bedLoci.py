@@ -30,7 +30,7 @@ def writeFeats(chrom, feats, outf, nameRewriteDict):
         outf.write("\n")
 
 def writeDictFeats(chromFeats, outf):
-    for chrom, feats in chromFeats.iteritems():
+    for chrom, feats in chromFeats.items():
             for feat in feats:
                 row = (str(x) for x in feat)
                 outf.write(chrom+"\t")
@@ -48,7 +48,7 @@ def removeOverlaps(chromFeats):
     """
     logging.info("Flattening overlapping features")
     fts = {}
-    for chrom, featList in chromFeats.iteritems():
+    for chrom, featList in chromFeats.items():
         logging.debug("flattening chrom %s" % chrom)
         assert(len(featList)<65536)
 
@@ -128,7 +128,7 @@ def parseBedMids(lines):
     #writeDictFeats(chromFts, open("flat.bed", "w"))
 
     ftMids = defaultdict(list)
-    for chrom, featList in chromFts.iteritems():
+    for chrom, featList in chromFts.items():
         for start, end, name in featList:
             mid = start + (end-start)/2
             ftMids[chrom].append( (mid, name) )
@@ -140,7 +140,7 @@ def slurpdict(fname):
     for l in open(fname, "r"):
         l = l.strip("\n")
         fs = l.split("\t")
-	if not len(fs)>1:
+        if not len(fs)>1:
             continue
         key = fs[0]
         val = int(fs[1])
@@ -174,7 +174,7 @@ def outputLoci(mids, chromSizes, outf, flankSize=100000, nameRewriteDict=None):
     """
     flankSize = 100000
     # iterate over all midpoints per chrom
-    for chrom, midTuples in mids.iteritems():
+    for chrom, midTuples in mids.items():
         feats = []
         # special case for first feature
         firstMid, firstName = midTuples[0]

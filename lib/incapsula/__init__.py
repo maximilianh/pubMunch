@@ -1,4 +1,4 @@
-from requests_ import crack, IncapSession
+from .requests_ import crack, IncapSession
 #try:
     #from scrapy_ import IncapsulaMiddleware
 #except ImportError as e:

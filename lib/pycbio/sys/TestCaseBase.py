@@ -95,7 +95,7 @@ class TestCaseBase(unittest.TestCase):
         diff = difflib.unified_diff(expLines, outLines, expFile, outFile)
         cnt = 0
         for l in diff:
-            print l,
+            print(l, end=' ')
             cnt += 1
         self.failUnless(cnt == 0)
 
@@ -140,7 +140,7 @@ class TestCaseBase(unittest.TestCase):
         e = None
         try:
             s = os.waitpid(0, os.WNOHANG)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.ECHILD:
                 raise
         if e == None:
@@ -150,7 +150,7 @@ class TestCaseBase(unittest.TestCase):
     def numOpenFiles():
         "count the number of open files"
         n = 0
-        for fd in xrange(0, MAXFD):
+        for fd in range(0, MAXFD):
             try:
                 os.fstat(fd)
             except:
@@ -168,8 +168,7 @@ class TestCaseBase(unittest.TestCase):
            operator.
         """
         if not re.match(expectRe, str(obj), re.DOTALL):
-            raise self.failureException, \
-                  (msg or "'%s' does not match '%s'" % (str(obj), expectRe))
+            raise self.failureException(msg or "'%s' does not match '%s'" % (str(obj), expectRe))
 
     def __logCmd(self, cmd):
         cmdStrs = [quote(a) for a in cmd]

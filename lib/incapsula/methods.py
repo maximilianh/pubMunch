@@ -3,10 +3,10 @@ import re
 import os
 import logging
 import json
-import urllib
-import urlparse
+import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 
-from config import config
+from .config import config
 
 logger = logging.getLogger('incapsula')
 
@@ -19,72 +19,72 @@ with open(_nav_fp, 'r') as f:
 
 def load_plugin_extensions(plugins):
     _extensions = []
-    for k, v in plugins.items():
+    for k, v in list(plugins.items()):
         logger.debug('calculating plugin_extension key={}'.format(k))
         if not isinstance(v, dict):
             continue
         filename = v.get('filename')
         if not filename:
-            _extensions.append(urllib.quote('plugin_ext=plugins[i] is undefined'))
+            _extensions.append(urllib.parse.quote('plugin_ext=plugins[i] is undefined'))
             break
         if len(filename.split('.')) == 2:
             extension = filename.split('.')[-1]
             if extension not in _extensions:
                 _extensions.append(extension)
-    return [urllib.quote('plugin_ext={}'.format(x)) for x in _extensions]
+    return [urllib.parse.quote('plugin_ext={}'.format(x)) for x in _extensions]
 
 
 def load_plugin(plugins):
-    for k, v in plugins.items():
+    for k, v in list(plugins.items()):
         logger.debug('calculating plugin key={}'.format(k))
         if '.' in v.get('filename', ''):
             filename, extension = v['filename'].split('.')
-            return urllib.quote('plugin={}'.format(extension))
+            return urllib.parse.quote('plugin={}'.format(extension))
 
 
 def load_config(conf=None):
     conf = config if not conf else conf
     data = []
     if conf['navigator']['exists']:
-        data.append(urllib.quote('navigator=true'))
+        data.append(urllib.parse.quote('navigator=true'))
     else:
-        data.append(urllib.quote('navigator=false'))
-    data.append(urllib.quote('navigator.vendor=' + conf['navigator']['vendor']))
+        data.append(urllib.parse.quote('navigator=false'))
+    data.append(urllib.parse.quote('navigator.vendor=' + conf['navigator']['vendor']))
     if conf['navigator']['vendor'] is None:
-        data.append(urllib.quote('navigator.vendor=nil'))
+        data.append(urllib.parse.quote('navigator.vendor=nil'))
     else:
-        data.append(urllib.quote('navigator.vendor=' + conf['navigator']['vendor']))
+        data.append(urllib.parse.quote('navigator.vendor=' + conf['navigator']['vendor']))
     if conf['opera']['exists']:
-        data.append(urllib.quote('opera=true'))
+        data.append(urllib.parse.quote('opera=true'))
     else:
-        data.append(urllib.quote('opera=false'))
+        data.append(urllib.parse.quote('opera=false'))
     if conf['ActiveXObject']['exists']:
-        data.append(urllib.quote('ActiveXObject=true'))
+        data.append(urllib.parse.quote('ActiveXObject=true'))
     else:
-        data.append(urllib.quote('ActiveXObject=false'))
-    data.append(urllib.quote('navigator.appName=' + conf['navigator']['appName']))
+        data.append(urllib.parse.quote('ActiveXObject=false'))
+    data.append(urllib.parse.quote('navigator.appName=' + conf['navigator']['appName']))
     if conf['navigator']['appName'] is None:
-        data.append(urllib.quote('navigator.appName=nil'))
+        data.append(urllib.parse.quote('navigator.appName=nil'))
     else:
-        data.append(urllib.quote('navigator.appName=' + conf['navigator']['appName']))
+        data.append(urllib.parse.quote('navigator.appName=' + conf['navigator']['appName']))
     if conf['webkitURL']['exists']:
-        data.append(urllib.quote('webkitURL=true'))
+        data.append(urllib.parse.quote('webkitURL=true'))
     else:
-        data.append(urllib.quote('webkitURL=false'))
+        data.append(urllib.parse.quote('webkitURL=false'))
     if len(navigator.get('plugins', {})) == 0:
-        data.append(urllib.quote('navigator.plugins.length==0=false'))
+        data.append(urllib.parse.quote('navigator.plugins.length==0=false'))
     else:
-        data.append(urllib.quote('navigator.plugins.length==0=true'))
+        data.append(urllib.parse.quote('navigator.plugins.length==0=true'))
     if not navigator.get('plugins'):
-        data.append(urllib.quote('navigator.plugins.length==0=nil'))
+        data.append(urllib.parse.quote('navigator.plugins.length==0=nil'))
     else:
         data.append(
-            urllib.quote(
+            urllib.parse.quote(
                 'navigator.plugins.length==0=' + 'false' if len(navigator.get('plugins', {})) == 0 else 'true'))
     if conf['_phantom']['exists']:
-        data.append(urllib.quote('_phantom=true'))
+        data.append(urllib.parse.quote('_phantom=true'))
     else:
-        data.append(urllib.quote('_phantom=false'))
+        data.append(urllib.parse.quote('_phantom=false'))
     return data
 
 
@@ -101,7 +101,7 @@ def create_cookie(name, value, seconds, url):
         'name': name,
         'value': value,
         'port': None,
-        'domain': urlparse.urlsplit(url).netloc,
+        'domain': urllib.parse.urlsplit(url).netloc,
         'path': '/',
         'secure': False,
         'expires': now_in_seconds() + seconds,
@@ -119,7 +119,7 @@ def now_in_seconds():
 
 
 def get_resources(code, url):
-    scheme, host = urlparse.urlsplit(url)[:2]
+    scheme, host = urllib.parse.urlsplit(url)[:2]
     resources = re.findall('(/_Incapsula_Resource.*?)\"', code)
     logger.debug('resources found: {}'.format(resources))
     return [scheme + '://' + host + r for r in resources]
@@ -140,7 +140,7 @@ def parse_obfuscated_code(code):
     data = []
     for chunk in chunks(code, 2):
         data.append(int("".join(chunk), 16))
-    code = [unichr(x) for x in data]
+    code = [chr(x) for x in data]
     deobfuscated_code = ''.join(code)
     logger.debug('deobfuscated_code={}'.format(deobfuscated_code))
     return deobfuscated_code

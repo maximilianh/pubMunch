@@ -67,7 +67,7 @@ class Trace(object):
             msg.append("\n")
             self.fh.write("".join(msg))
             self.fh.flush()
-        except IOError, e:
+        except IOError as e:
             pass
 
     __indentStrs = {} # cache of spaces for identation, indexed by depth

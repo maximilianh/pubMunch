@@ -25,7 +25,7 @@
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-import constants
+from . import constants
 
 # 255: Control characters that usually does not exist in any text
 # 254: Carriage/Return

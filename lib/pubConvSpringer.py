@@ -246,8 +246,8 @@ def getDiskData(diskDir, filename):
     pdfString = open(pdfFname).read()
 
     #print type(xmlFname), type(pdfFname)
-    logging.debug((u'Returning contents of XML ' + xmlFname))
-    logging.debug((u'Returning contents of PDF %s' % pdfFname))
+    logging.debug(('Returning contents of XML ' + xmlFname))
+    logging.debug(('Returning contents of PDF %s' % pdfFname))
     #logging.debug((u'Returning contents of %s and %s' % (xmlFname, pdfFname)).decode("latin1", errors="ignore"))
     return xmlString, pdfString
 
@@ -328,7 +328,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
         articleId = row.articleId
         zipFilename, filename = row.zipFilename, row.filename
 
-        if u'\xbf' in filename:
+        if '\xbf' in filename:
             logging.info("Found weird character, skipping file")
             continue
         

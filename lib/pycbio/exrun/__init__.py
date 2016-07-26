@@ -20,13 +20,13 @@ class Verb(object):
     """
     
     # flag values
-    error = intern("error")     # output errors
-    trace = intern("trace")     # basic tracing
-    details = intern("details") # detailed tracing
-    debug = intern("debug")     # debugging
-    dumpIn = intern("dumpIn")   # dump graph input graph before complete()
-    dumpStart = intern("dumpStart")   # dump graph at start
-    dumpEnd = intern("dumpEnd")     # dump graph after finish
+    error = sys.intern("error")     # output errors
+    trace = sys.intern("trace")     # basic tracing
+    details = sys.intern("details") # detailed tracing
+    debug = sys.intern("debug")     # debugging
+    dumpIn = sys.intern("dumpIn")   # dump graph input graph before complete()
+    dumpStart = sys.intern("dumpStart")   # dump graph at start
+    dumpEnd = sys.intern("dumpEnd")     # dump graph after finish
     all = set([error, trace, details, debug, dumpIn, dumpStart, dumpEnd])
 
     def __init__(self, flags=None, fh=sys.stderr):

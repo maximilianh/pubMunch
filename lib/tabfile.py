@@ -210,8 +210,8 @@ def parseTsv(fname, columnNames = None, asListOfDicts=False):
         if c not in headers:
             sys.stderr.write("error tabfile.py: columnName %s (out of %s) not found in headers %s\n" % (c,str(columnNames), str(headers)))
             sys.exit(1)
-    noList = range(0, len(headers))
-    headerToNum = dict(zip(headers,noList))
+    noList = list(range(0, len(headers)))
+    headerToNum = dict(list(zip(headers,noList)))
 
     data = []
     #lno=0
@@ -297,8 +297,8 @@ def parseBlast(fname):
             continue
         fs = l.split("\t")
         if len(fs)!=12:
-            print l
-            print len(fs)
+            print(l)
+            print(len(fs))
             sys.stderr.write("error: blast output does not have 12 fields. Make sure that you ran blast with -m 9 or -D T (for bl2seq)\n")
             sys.exit(1)
         h = hit()
@@ -364,7 +364,7 @@ def openParseInparanoidTable(dir, srcOrg, targetOrg, only1To1Homologs=False, rev
                 continue
         for srcId in srcIds:
             #print srcId
-            srcToTargetList[srcId]=zip(targetIds, [clust]*len(targetIds))
+            srcToTargetList[srcId]=list(zip(targetIds, [clust]*len(targetIds)))
             #if srcId in srcToClust:
                 #sys.stderr.write("program error: gene on source with TWO clusters??\n")
                 #sys.exit(1)
@@ -393,7 +393,7 @@ def parsePhylipMatrix(filename):
             data[last].append(f)
 
     newdata = {}
-    for org, values in data.iteritems():
+    for org, values in data.items():
         dict = {}
         i = 0
         for v in values:
@@ -456,7 +456,7 @@ def parseInparanoid(dir, srcOrg, targetOrg, only1To1Homologs=False, reverse=Fals
             trgIdSet.add(targetId)
         for srcId in srcIds:
             #print srcId
-            srcToTargetList[srcId]=zip(targetIds, [clust]*len(targetIds))
+            srcToTargetList[srcId]=list(zip(targetIds, [clust]*len(targetIds)))
             #if srcId in srcToClust:
                 #sys.stderr.write("program error: gene on source with TWO clusters??\n")
                 #sys.exit(1)

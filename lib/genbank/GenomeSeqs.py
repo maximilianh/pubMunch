@@ -37,7 +37,7 @@ class GenomeSeqs(dict):
 
     def __addNibs(self, paths):
         "add nib sequences to object"
-        # /cluster/data/hg17/nib/chrX.nib	chrX	154824264
+        # /cluster/data/hg17/nib/chrX.nib        chrX        154824264
         lines = procOps.callProcLines(["nibSize"] + paths)
         for line in lines:
             row = line.split("\t")
@@ -46,7 +46,7 @@ class GenomeSeqs(dict):
     def __addTwoBit(self, path):
         "add twoBit sequences to object"
         self.genomeDb = path[0]
-        # chrX	154824264
+        # chrX        154824264
         lines = procOps.callProcLines(["twoBitInfo", path, "stdout"])
         for line in lines:
             row = line.split("\t")
@@ -66,7 +66,7 @@ class GenomeSeqs(dict):
                     lifts[row[3]] = []
                 lifts[row[3]].append((start, end))
         fh.close
-        for l in lifts.itervalues():
+        for l in lifts.values():
             l.sort()
         return lifts
 
@@ -86,12 +86,12 @@ class GenomeSeqs(dict):
         """define regions without gaps from a lift file.  If a sequence
         is flagged as unplaced, adjacent lift entries are not joined"""
         lifts = self.__loadLift(liftFile)
-        for id in lifts.iterkeys():
+        for id in lifts.keys():
             self.__addSeqRegionsFromLifts(self[id], lifts[id])
     
     def dump(self, fh):
         "print contents for debugging purposes"
-        ids = self.keys()
+        ids = list(self.keys())
         ids.sort()
         for id in ids:
             seq = self[id]

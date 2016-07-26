@@ -55,7 +55,7 @@ class HtmlPage(list):
     def h5(self, text): self.header("h5", text)
 
     def br(self, numBr=1):
-        for i in xrange(numBr):
+        for i in range(numBr):
             self.append("<br>")
 
     def hr(self): self.append("<hr>")

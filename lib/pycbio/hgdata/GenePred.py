@@ -162,7 +162,7 @@ class GenePred(object):
         frame = None
         self.cdsStartIExon = None
         self.cdsEndIExon = None
-        for i in xrange(len(exonStarts)):
+        for i in range(len(exonStarts)):
             if exonFrames != None:
                 frame = exonFrames[i]
             self.addExon(exonStarts[i], exonEnds[i], frame)
@@ -327,7 +327,7 @@ class GenePred(object):
             iEnd = -1
             iDir = -1
         cdsOff = 0
-        for i in xrange(iStart, iEnd, iDir):
+        for i in range(iStart, iEnd, iDir):
             e = self.exons[i]
             c = e.getCds()
             if c != None:
@@ -362,7 +362,7 @@ class GenePred(object):
         # check each exon
         checkFrame = self.hasExonFrames and gene2.hasExonFrames
         iCds2 = 0
-        for iCds1 in xrange(nCds1):
+        for iCds1 in range(nCds1):
             exon1 = self.getCdsExon(iCds1)
             exon2 = gene2.getCdsExon(iCds2)
             if exon1.getCds() != exon2.getCds():
@@ -426,9 +426,9 @@ class GenePred(object):
         """generator to step through exon indexes in direction of
         transcription"""
         if self.inDirectionOfTranscription():
-            return xrange(0, len(self.exons), 1)
+            return range(0, len(self.exons), 1)
         else:
-            return xrange(len(self.exons)-1, -1, -1)
+            return range(len(self.exons)-1, -1, -1)
 
     def getRow(self):
         row = [self.name, self.chrom, self.strand, str(self.txStart), str(self.txEnd), str(self.cdsStart), str(self.cdsEnd)]
@@ -563,7 +563,7 @@ class GenePredReader(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         "GPR next"
         while True:
             line = self.fh.readline()
@@ -582,7 +582,7 @@ class GenePredFhReader(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         "GPR next"
         while True:
             line = self.fh.readline()
@@ -609,7 +609,7 @@ class GenePredDbReader(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         "GPR next"
         while True:
             row = self.cur.fetchone()

@@ -22,4 +22,4 @@ class PseudoGeneLink(TSVTabl):
 
     def getNameIter(self, name):
         """get iter over rows for name"""
-        return self.indices.name.iterkeys()
+        return iter(self.indices.name.keys())

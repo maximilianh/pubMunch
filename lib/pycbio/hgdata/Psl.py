@@ -96,7 +96,7 @@ class Psl(object):
         if haveSeqs:
             qSeqs = strArraySplit(qSeqsStr)
             tSeqs = strArraySplit(tSeqsStr)
-        for i in xrange(self.blockCount):
+        for i in range(self.blockCount):
             self.blocks.append(PslBlock(self, qStarts[i], tStarts[i], blockSizes[i],
                                         (qSeqs[i] if haveSeqs else None),
                                         (tSeqs[i] if haveSeqs else None)))
@@ -318,7 +318,7 @@ class Psl(object):
             or (self.tEnd != other.tEnd)
             or (self.blockCount != other.blockCount)):
             return False
-        for i in xrange(self.blockCount):
+        for i in range(self.blockCount):
             if not self.blocks[i].sameAlign(other.blocks[i]):
                 return False
         return True
@@ -361,7 +361,7 @@ class Psl(object):
         rc.tEnd = self.tEnd
         rc.blockCount = self.blockCount
         rc.blocks = []
-        for i in xrange(self.blockCount-1,-1,-1):
+        for i in range(self.blockCount-1,-1,-1):
             rc.blocks.append(self.blocks[i].reverseComplement(rc))
         return rc
 
@@ -409,10 +409,10 @@ class Psl(object):
         swap.blocks = []
 
         if doRc:
-            for i in xrange(self.blockCount-1,-1,-1):
+            for i in range(self.blockCount-1,-1,-1):
                 swap.blocks.append(self.blocks[i].swapSidesReverseComplement(swap))
         else:
-            for i in xrange(self.blockCount):
+            for i in range(self.blockCount):
                 swap.blocks.append(self.blocks[i].swapSides(swap))
         return swap
 
@@ -430,7 +430,7 @@ class PslReader(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         "read next PSL"
         while True:
             line = self.fh.readline()
@@ -472,7 +472,7 @@ class PslDbReader(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         "read next PSL"
         while True:
             row = self.cur.fetchone()
@@ -517,7 +517,7 @@ class PslTbl(list):
             self.__mkTNameIdx()
 
     def getQNameIter(self):
-        return self.qNameMap.iterkeys()
+        return iter(self.qNameMap.keys())
 
     def haveQName(self, qName):
         return (self.qNameMap.get(qName) != None)
@@ -533,7 +533,7 @@ class PslTbl(list):
                 yield ent
 
     def getTNameIter(self):
-        return self.tNameMap.iterkeys()
+        return iter(self.tNameMap.keys())
 
     def haveTName(self, tName):
         return (self.tNameMap.get(qName) != None)

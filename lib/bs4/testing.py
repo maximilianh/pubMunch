@@ -206,13 +206,13 @@ class HTMLTreeBuilderSmokeTest(object):
         self.assertSoupEquals('<a b="<a>"></a>', '<a b="&lt;a&gt;"></a>')
 
     def test_entities_in_attributes_converted_to_unicode(self):
-        expect = u'<p id="pi\N{LATIN SMALL LETTER N WITH TILDE}ata"></p>'
+        expect = '<p id="pi\N{LATIN SMALL LETTER N WITH TILDE}ata"></p>'
         self.assertSoupEquals('<p id="pi&#241;ata"></p>', expect)
         self.assertSoupEquals('<p id="pi&#xf1;ata"></p>', expect)
         self.assertSoupEquals('<p id="pi&ntilde;ata"></p>', expect)
 
     def test_entities_in_text_converted_to_unicode(self):
-        expect = u'<p>pi\N{LATIN SMALL LETTER N WITH TILDE}ata</p>'
+        expect = '<p>pi\N{LATIN SMALL LETTER N WITH TILDE}ata</p>'
         self.assertSoupEquals("<p>pi&#241;ata</p>", expect)
         self.assertSoupEquals("<p>pi&#xf1;ata</p>", expect)
         self.assertSoupEquals("<p>pi&ntilde;ata</p>", expect)
@@ -222,7 +222,7 @@ class HTMLTreeBuilderSmokeTest(object):
                               '<p>I said "good day!"</p>')
 
     def test_out_of_range_entity(self):
-        expect = u"\N{REPLACEMENT CHARACTER}"
+        expect = "\N{REPLACEMENT CHARACTER}"
         self.assertSoupEquals("&#10000000000000;", expect)
         self.assertSoupEquals("&#x10000000000000;", expect)
         self.assertSoupEquals("&#1000000000;", expect)
@@ -292,7 +292,7 @@ class HTMLTreeBuilderSmokeTest(object):
         # Both XML and HTML entities are converted to Unicode characters
         # during parsing.
         text = "<p>&lt;&lt;sacr&eacute;&#32;bleu!&gt;&gt;</p>"
-        expected = u"<p>&lt;&lt;sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</p>"
+        expected = "<p>&lt;&lt;sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</p>"
         self.assertSoupEquals(text, expected)
 
     def test_smart_quotes_converted_on_the_way_in(self):
@@ -302,15 +302,15 @@ class HTMLTreeBuilderSmokeTest(object):
         soup = self.soup(quote)
         self.assertEqual(
             soup.p.string,
-            u"\N{LEFT SINGLE QUOTATION MARK}Foo\N{RIGHT SINGLE QUOTATION MARK}")
+            "\N{LEFT SINGLE QUOTATION MARK}Foo\N{RIGHT SINGLE QUOTATION MARK}")
 
     def test_non_breaking_spaces_converted_on_the_way_in(self):
         soup = self.soup("<a>&nbsp;&nbsp;</a>")
-        self.assertEqual(soup.a.string, u"\N{NO-BREAK SPACE}" * 2)
+        self.assertEqual(soup.a.string, "\N{NO-BREAK SPACE}" * 2)
 
     def test_entities_converted_on_the_way_out(self):
         text = "<p>&lt;&lt;sacr&eacute;&#32;bleu!&gt;&gt;</p>"
-        expected = u"<p>&lt;&lt;sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</p>".encode("utf-8")
+        expected = "<p>&lt;&lt;sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!&gt;&gt;</p>".encode("utf-8")
         soup = self.soup(text)
         self.assertEqual(soup.p.encode("utf-8"), expected)
 
@@ -319,7 +319,7 @@ class HTMLTreeBuilderSmokeTest(object):
         # easy-to-understand document.
 
         # Here it is in Unicode. Note that it claims to be in ISO-Latin-1.
-        unicode_html = u'<html><head><meta content="text/html; charset=ISO-Latin-1" http-equiv="Content-type"/></head><body><p>Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!</p></body></html>'
+        unicode_html = '<html><head><meta content="text/html; charset=ISO-Latin-1" http-equiv="Content-type"/></head><body><p>Sacr\N{LATIN SMALL LETTER E WITH ACUTE} bleu!</p></body></html>'
 
         # That's because we're going to encode it into ISO-Latin-1, and use
         # that to test.

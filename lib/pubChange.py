@@ -132,7 +132,7 @@ def addPmids(datasetString):
     fnames = glob.glob(join(textDir, "*.articles.gz"))
     logging.info("Running on %d article files" % len(fnames))
     pm = maxCommon.ProgressMeter(len(fnames), stepCount=100)
-    updateSqliteIds(textDir, artToPmid.items())
+    updateSqliteIds(textDir, list(artToPmid.items()))
     #sys.exit(0)
 
     logging.info("Updating tab sep files")
@@ -148,7 +148,7 @@ def addPmids(datasetString):
             artId = int(row.articleId)
             if int(row.articleId) in artToPmid:
                 row = row._replace(pmid=artToPmid[artId])
-            newF.write((u'\t'.join(row)).encode("utf8"))
+            newF.write(('\t'.join(row)).encode("utf8"))
             newF.write("\n")
         newF.close()
 

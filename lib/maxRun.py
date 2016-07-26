@@ -139,7 +139,7 @@ class Runner:
         else:
             logging.info("Dry-run, not executing: %s" % cmdLine)
             ret = 0
-            print cmdLine
+            print(cmdLine)
 
         if ret!=0:
             logging.error("Error %d when executing command: %s" % (ret, cmdLine))
@@ -160,7 +160,7 @@ class Runner:
 
         self.jobCount += 1
 
-        if type(command)==types.ListType:
+        if type(command)==list:
             command = " ".join(command)
 
         if self.clusterType != "parasol":
@@ -341,7 +341,7 @@ def testCall(text):
     """ to test this run:
     python maxRun.py maxRun.py testCall hallo
     """
-    print "success, text was: ", text
+    print("success, text was: ", text)
 
 def main():
     " this is the wrapper called by the submitPythonFunc() function "

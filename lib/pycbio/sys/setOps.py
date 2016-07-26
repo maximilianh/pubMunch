@@ -3,7 +3,7 @@
 
 # FIXME: should not need `set' as part of function names, since qualified by
 # module. move mkset from typeOps. 
-import typeOps
+from . import typeOps
 
 def setJoin(s, sep=" "):
     "join a set into a sorted string, converting each element to a string"

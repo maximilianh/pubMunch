@@ -27,7 +27,7 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from charsetprober import CharSetProber
+from .charsetprober import CharSetProber
 
 SAMPLE_SIZE = 64
 SB_ENOUGH_REL_THRESHOLD = 1024

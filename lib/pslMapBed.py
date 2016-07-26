@@ -146,4 +146,4 @@ if __name__ == '__main__':
                 ofh.write("\t".join(newBed)+"\n")
             mapper.clear()
 
-    print("output written to %s" % outBedFname)
+    print(("output written to %s" % outBedFname))

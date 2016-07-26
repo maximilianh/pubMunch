@@ -1,5 +1,5 @@
 # Copyright 2006-2012 Mark Diekhans
-import unittest, sys, cPickle
+import unittest, sys, pickle
 if __name__ == '__main__':
     sys.path.append("../../..")
 from pycbio.sys.Enumeration import Enumeration
@@ -8,7 +8,7 @@ from pycbio.sys.TestCaseBase import TestCaseBase
 class EnumerationTests(TestCaseBase):
 
     def __getColors(self):
-	return Enumeration("Colors", ["red", "green", "blue"])
+        return Enumeration("Colors", ["red", "green", "blue"])
 
     def __checkColors(self, Colors):
         self.failUnlessEqual(Colors.red.name, "red")
@@ -105,15 +105,15 @@ class EnumerationTests(TestCaseBase):
         stuff = {}
         stuff[Colors.red] = "red one"
         stuff[Colors.green] = "green one"
-        world = cPickle.dumps((Colors, stuff), prot)
-        Color2, stuff2 = cPickle.loads(world)
+        world = pickle.dumps((Colors, stuff), prot)
+        Color2, stuff2 = pickle.loads(world)
 
         self.failUnless(Color2.red in stuff2)
         self.failUnless(Color2.green in stuff2)
         self.__checkColors(Color2)
 
     def testPickle2(self):
-        self.failUnless(cPickle.HIGHEST_PROTOCOL == 2)
+        self.failUnless(pickle.HIGHEST_PROTOCOL == 2)
         self.__testPickleProt(2)
     def testPickle1(self):
         self.__testPickleProt(1)

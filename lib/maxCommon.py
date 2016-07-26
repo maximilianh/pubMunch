@@ -1,5 +1,5 @@
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil, atexit
+    os.path, re, glob, time, urllib.request, urllib.error, urllib.parse, doctest, http.client, socket, io, subprocess, shutil, atexit
 from types import *
 from os.path import isfile, isdir, getsize, abspath, join, realpath, dirname
 from collections import defaultdict
@@ -98,7 +98,7 @@ def deleteFiles(fnames):
 
 def mustBeEmptyDir(path, makeDir=False):
     " exit if path does not exist or it not empty. do an mkdir if makeDir==True "
-    if type(path)==types.ListType:
+    if type(path)==list:
         for i in path:
             notEmptyDirs = []
             notExistDirs = []
@@ -246,8 +246,8 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
     """
 
     if noHeaderCount:
-        numbers = range(0, noHeaderCount)
-        headers = ["col" + unicode(x) for x in numbers]
+        numbers = list(range(0, noHeaderCount))
+        headers = ["col" + str(x) for x in numbers]
 
     if format=="psl":
         headers =      ["score", "misMatches", "repMatches", "nCount", "qNumInsert", "qBaseInsert", "tNumInsert", "tBaseInsert", "strand",    "qName",    "qSize", "qStart", "qEnd", "tName",    "tSize", "tStart", "tEnd", "blockCount", "blockSizes", "qStarts", "tStarts"]
@@ -311,7 +311,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             fields = [f(x) for f, x in zip(fieldTypes, fields)]
         try:
             rec = Record(*fields)
-        except Exception, msg:
+        except Exception as msg:
             logging.error("Exception occured while parsing line, %s" % msg)
             logging.error("Filename %s" % fh.name)
             logging.error("Line was: %s" % line)
@@ -387,18 +387,18 @@ def iterTsvJoin(files, **kwargs):
     f1, f2 = files
     iter1 = iterTsvGroups(f1, **kwargs)
     iter2 = iterTsvGroups(f2, **kwargs)
-    groupId1, recs1 = iter1.next()
-    groupId2, recs2 = iter2.next()
+    groupId1, recs1 = next(iter1)
+    groupId2, recs2 = next(iter2)
     while True:
         groupId1, groupId2 = int(groupId1), int(groupId2)
         if groupId1 < groupId2:
-            groupId1, recs1 = iter1.next()
+            groupId1, recs1 = next(iter1)
         elif groupId1 > groupId2:
-            groupId2, recs2 = iter2.next()
+            groupId2, recs2 = next(iter2)
         else:
             yield groupId1, [recs1, recs2]
-            groupId1, recs1 = iter1.next()
-            groupId2, recs2 = iter2.next()
+            groupId1, recs1 = next(iter1)
+            groupId2, recs2 = next(iter2)
 
 def runCommand(cmd, ignoreErrors=False, verbose=False):
     """ run command in shell, exit if not successful """
@@ -409,9 +409,9 @@ def runCommand(cmd, ignoreErrors=False, verbose=False):
     if verbose:
         logging.info(msg)
 
-    if type(cmd)==types.StringType:
+    if type(cmd)==bytes:
         ret = os.system(cmd)
-    elif type(cmd)==types.ListType:
+    elif type(cmd)==list:
         ret = subprocess.call(cmd)
         cmd = " ".join(cmd) # for debug output
     else:
@@ -446,7 +446,7 @@ def appendTsvDict(filename, inDict, headers):
     " append a dict to a file in the order of headers"
     values = []
     if headers==None:
-        headers = inDict.keys()
+        headers = list(inDict.keys())
 
     for head in headers:
         values.append(inDict.get(head, ""))
@@ -459,7 +459,7 @@ def appendTsvDict(filename, inDict, headers):
     else:
        outFh = codecs.open(filename, "a", encoding="utf8")
     logging.log(5, "values are: %s" % values)
-    outFh.write(u"\t".join(values)+"\n")
+    outFh.write("\t".join(values)+"\n")
 
 def appendTsvOrderedDict(filename, orderedDict):
     appendTsvDict(filename, orderedDict, None)
@@ -486,7 +486,7 @@ class ProgressMeter:
             sys.stderr.flush()
         self.i += count
         if self.i==self.taskCount:
-            print ""
+            print("")
 
 def test():
     pm = ProgressMeter(2000)
@@ -513,9 +513,9 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
     #>>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
     """
     
-    class HeadRequest(urllib2.Request):
+    class HeadRequest(urllib.request.Request):
         def get_method(self):
-            return u'HEAD'
+            return 'HEAD'
 
     def handleEx(ex, count):
         logging.info("Got Exception %s, %s on urlopen of %s, %s. Waiting %d seconds before retry..." % \
@@ -532,17 +532,17 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
             if onlyHead:
                 req = HeadRequest(url, params)
             else:
-                req = urllib2.Request(url, params)
+                req = urllib.request.Request(url, params)
             if userAgent != None:
                 req.add_header('User-Agent', userAgent)
-            opener = urllib2.build_opener()
+            opener = urllib.request.build_opener()
             ret = opener.open(req, timeout=20)
             #ret = urllib2.urlopen(url, params, 20)
-        except urllib2.HTTPError as ex:
+        except urllib.error.HTTPError as ex:
             count = handleEx(ex, count)
-        except httplib.HTTPException as ex:
+        except http.client.HTTPException as ex:
             count = handleEx(ex, count)
-        except urllib2.URLError as ex:
+        except urllib.error.URLError as ex:
             count = handleEx(ex, count)
         except socket.timeout as ex:
             count = handleEx(ex, count)

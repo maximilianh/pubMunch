@@ -11,7 +11,7 @@ import pubConf, pubGeneric, pubStore, maxCommon, maxRun, pubAlg, tabfile
 
 # ===== GLOBALS ======
 def chunkMatrix(inChunk, outName):
-    print inChunk, outName
+    print(inChunk, outName)
 
 # ===== FUNCTIONS ====
 def parsePmids(fname):
@@ -43,7 +43,7 @@ def runMatrixJobs(outFname, datasets, wordListFname, posPmidFname, negPmidFname,
 
     assert (outFormat in ["svml", "arff", "pmidsvml"])
 
-    if isinstance(datasets, basestring):
+    if isinstance(datasets, str):
         datasets = [datasets]
 
     if runner==None:
@@ -182,7 +182,7 @@ class WordCounter:
     def end(self, results):
         " called once per cluster node after job has ended. convert dict to word -> count "
         newResults = {}
-        for key, valList in results.iteritems():
+        for key, valList in results.items():
             newResults[key] = len(valList)
         return newResults
 

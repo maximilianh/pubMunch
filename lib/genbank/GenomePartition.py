@@ -34,7 +34,7 @@ class UnplacedChroms(object):
 
     def flagSeqs(self, seqs):
         "flag unplaced sequences in the genome"
-        for seq in seqs.itervalues():
+        for seq in seqs.values():
             if seq.id in self:
                 seq.unplaced = True
 
@@ -89,7 +89,7 @@ class GenomeWindows(list):
         if (self.winSize <= self.overlap):
             raise Exception("window size must be > overlap")
 
-        for seq in genomeSeqs.itervalues():
+        for seq in genomeSeqs.values():
             if seq.unplaced:
                 self.__partitionUnplaced(seq)
             else:

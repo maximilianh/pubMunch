@@ -87,14 +87,14 @@ class ReadTests(TestCaseBase):
 
         tStarts = (4222,4832,5658,5766,6469,6719,7095,7355,7777,8130,14600,19183)
         self.failUnlessEqual(len(r.tStarts), len(tStarts))
-        for i in xrange(len(tStarts)):
+        for i in range(len(tStarts)):
             self.failUnlessEqual(r.tStarts[i], tStarts[i])
 
     def testMissingIdxCol(self):
         err = None
         try:
             tsv = TSVTable(self.getInputFile("mrna1.tsv"), multiKeyCols=("noCol",))
-        except TSVError,e:
+        except TSVError as e:
             err = e
         self.failIfEqual(err, None)
         # should have chained exception
@@ -162,7 +162,7 @@ class ReadTests(TestCaseBase):
         err = None
         try:
             tsv = TSVTable(self.getInputFile("dupCol.tsv"))
-        except TSVError,e:
+        except TSVError as e:
             err = e
         self.failIfEqual(err, None)
         self.failUnlessEqual(str(err), "Duplicate column name: col1")

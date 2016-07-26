@@ -124,10 +124,10 @@ class BigTests(ExRunTestCaseBase):
         previous level"""
         reqs = []
         if level != maxLevel:
-            for ir in xrange(level+1):
+            for ir in range(level+1):
                 reqs.append(self.mkRule(level+1, maxLevel, numLeaves, rname + "#"+str(level) + "."+str(ir), rules))
         else:
-            for ip in xrange(numLeaves):
+            for ip in range(numLeaves):
                 reqs.append(rname+"#leaf"+str(ip))
         prod = rname + "#prod"+str(level)
         rules.append(RuleDef(rname, reqs, prod))

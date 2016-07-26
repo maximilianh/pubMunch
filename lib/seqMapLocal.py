@@ -125,7 +125,7 @@ class DnaMapper():
         pslDir = pubGeneric.makeTempDir(prefix="geneFinderPsls")
         # create tuples (seqId, seq)
         dbPslFnames = self.blatClient.blatSeqs(dbList, seqs, pslDir)
-        for db, fname in dbPslFnames.iteritems():
+        for db, fname in dbPslFnames.items():
             oneBed = join(outDir, "chained.%s.bed" % db)
             pslFname = join(pslDir, db+".psl")
             dbBedNames = pubMap.chainPslToBed(pslFname, oneBed, pipeSep=True, onlyFields=12)
@@ -156,10 +156,10 @@ class DnaMapper():
         bedDir = pubGeneric.makeTempDir(prefix="geneFinderBeds")
         dbBedNames = self.mapDnaToBed(seqs, docId, dbList, bedDir)
         dbAnnotGenes = {}
-        for db, bedName in dbBedNames.iteritems():
+        for db, bedName in dbBedNames.items():
             annotToGenes = pubMap.findLoci(bedName, dbList)
             seqIdToGenes = {}
-            for annotId, genes in annotToGenes.iteritems():
+            for annotId, genes in annotToGenes.items():
                 seqId, seqRange = annotId.split(":")
                 logging.debug("Found match for %s (%s) for genes %s" % (seqId, seqRange, genes))
                 seq = seqIdToSeq[seqId]

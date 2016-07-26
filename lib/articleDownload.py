@@ -1,6 +1,6 @@
 from optparse import OptionParser
 import util, maxXml
-import urllib2, cookielib, urllib, re, time, sgmllib, os, sys, glob, urlparse,\
+import urllib.request, urllib.error, urllib.parse, http.cookiejar, urllib.request, urllib.parse, urllib.error, re, time, sgmllib, os, sys, glob, urllib.parse,\
 socket, tempfile, time, subprocess, fcntl, logging
 
 SLEEPSECONDS = 5 # how long to sleep between two http requests
@@ -113,7 +113,7 @@ class HtmlParser(sgmllib.SGMLParser):
         self.title = ""
         self.completeUrl = docUrl
         self.baseUrl = "/".join(docUrl.split("/")[:-1])+"/"
-        self.host = "http://" + urlparse.urlparse(self.baseUrl)[1]
+        self.host = "http://" + urllib.parse.urlparse(self.baseUrl)[1]
         self.foundAccess=False
         if htmlData:
             self.parseLines(htmlData)
@@ -165,8 +165,8 @@ class HtmlParser(sgmllib.SGMLParser):
                 if url.endswith("+html"): # for oxf journals, e.g. pmid 17032682
                     url = url.replace("+html","")
                 if not url.startswith("http"): # adding base url to url 
-                    url = urlparse.urljoin(self.baseUrl, url)
-                if url==self.baseUrl or not urlparse.urlparse(url)[1]==urlparse.urlparse(self.baseUrl)[1]: # has to be on same server
+                    url = urllib.parse.urljoin(self.baseUrl, url)
+                if url==self.baseUrl or not urllib.parse.urlparse(url)[1]==urllib.parse.urlparse(self.baseUrl)[1]: # has to be on same server
                     logging.log(5, "Ignoring link: %s" % url)
                     self.element=None
                     continue
@@ -195,7 +195,7 @@ class HtmlParser(sgmllib.SGMLParser):
                             else:
                                 val= value.strip()
                                 val = "=".join(val.split("=")[1:]) # split off part before =
-                                url = urlparse.urljoin(self.baseUrl, val)
+                                url = urllib.parse.urljoin(self.baseUrl, val)
                                 self.metaInfo["httpRefresh"]=url
                                 logging.debug("htmlParser: found content %s for httpRefresh attribute" % url)
                 if key=="http-equiv" and value=="refresh":
@@ -211,7 +211,7 @@ class HtmlParser(sgmllib.SGMLParser):
         if self.element=="title":
             self.title = data.strip()
 
-class HTTPSpecialErrorHandler(urllib2.HTTPDefaultErrorHandler):
+class HTTPSpecialErrorHandler(urllib.request.HTTPDefaultErrorHandler):
     """ for urrlib2 error catching """
     def http_error_403(self, req, fp, code, msg, headers):
         logging.debug("HTTP ERROR 403: MaryAnnLiebert-anti-crawler technique")
@@ -238,7 +238,7 @@ class FulltextLinkTable:
             lines.append("%s\t%s" % (self.pmid, self.notDownloadReason))
         else:
             # write one line per URL
-            for url, extSuppData in self.urlInfo.iteritems():
+            for url, extSuppData in self.urlInfo.items():
                 fileType, isSuppData = extSuppData
                 fields = [self.pmid, self.baseUrl, url, fileType, isSuppData]
                 fields = [str(x) for x in fields]
@@ -248,7 +248,7 @@ class FulltextLinkTable:
 
     def getData(self, onlyFileType=None):
         """ retrieve table as a generator in format url, fileType, isSuppData, httpData """
-        for url, extSuppData in self.urlInfo.iteritems():
+        for url, extSuppData in self.urlInfo.items():
             fileType, isSuppData = extSuppData
             if onlyFileType and onlyFileType!=fileType:
                 continue
@@ -316,18 +316,18 @@ class HttpRequester:
         time.sleep(SLEEPSECONDS)
         logging.debug("Retrieving %s" % url)
         if data!=None:
-            data = urllib.urlencode(data)
-        request = urllib2.Request(url, data)
+            data = urllib.parse.urlencode(data)
+        request = urllib.request.Request(url, data)
         request.add_header('User-Agent', 'User-Agent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13')
         try:
-            resp = urllib2.urlopen(request)
+            resp = urllib.request.urlopen(request)
             info = {}
             url = resp.geturl()
             contentType = resp.info()["Content-type"].strip().split(";")[0]
             httpData = resp.read()
             self.httpData[url] = (contentType, httpData)
             return url, contentType, httpData
-        except urllib2.HTTPError:
+        except urllib.error.HTTPError:
             return None, None, None
 
 class FulltextDownloader:
@@ -381,7 +381,7 @@ class FulltextDownloader:
                       logging.debug("Could not find PDF link")
 
             else:
-                pdfurl = urlparse.urljoin(parser.baseUrl, pdfurl)
+                pdfurl = urllib.parse.urljoin(parser.baseUrl, pdfurl)
                 fulltextLinkTable.add(pdfurl, isSupp, self.httpRequester)
                 
         
@@ -565,4 +565,4 @@ if __name__ == "__main__":
     pmids = [2583107, 20419150, 17439641, 10022128, 18271954, 17032682, 15124226, 9808786]
     for pmid in pmids:
         ft = browser.downloadFulltext(pmid)
-        print ft.toString()
+        print(ft.toString())

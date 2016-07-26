@@ -1,5 +1,5 @@
 # library for convenience functionc related to html ouput
-import sys, codecs, urllib2, urllib, cgi, doctest, logging, re, os
+import sys, codecs, urllib.request, urllib.error, urllib.parse, urllib.request, urllib.parse, urllib.error, cgi, doctest, logging, re, os
 try:
     from BeautifulSoup import BeautifulStoneSoup
 except:
@@ -92,7 +92,7 @@ def ucscHgsid(db, server="http://genome.ucsc.edu"):
     """ get a new hgsid from ucsc """
     """ db is a ucsc database as a string, e.g. hg18"""
     #print("Requesting a new hgsid from UCSC")
-    data = urllib2.urlopen(server+"/cgi-bin/hgCustom?db=%s" % db)
+    data = urllib.request.urlopen(server+"/cgi-bin/hgCustom?db=%s" % db)
     for line in data:
         if line.startswith('<INPUT TYPE=HIDDEN NAME="hgsid" VALUE="') or line.startswith("<INPUT TYPE=HIDDEN NAME='hgsid' VALUE=") :
             line = line.strip()
@@ -123,16 +123,16 @@ def ucscUpload(db, data, hgsid=None, server="http://genome.ucsc.edu", name="User
     vars["db"]=db
     vars["hgct_customText"]=data
     vars["Submit"]="Submit"
-    html = urllib2.urlopen(server+"/cgi-bin/hgCustom", urllib.urlencode(vars))
+    html = urllib.request.urlopen(server+"/cgi-bin/hgCustom", urllib.parse.urlencode(vars))
     html = html.readlines()
     for l in html:
         if l.find("Manage Custom Tracks")!=-1:
             return hgsid
-    print "ERROR: Could not upload custom track into UCSC server at %s<br>\n" % server
-    print "Offending data was:<br>\n"
-    print data
-    print "Error Message was:<br>\n"
-    print "\n".join(html)
+    print("ERROR: Could not upload custom track into UCSC server at %s<br>\n" % server)
+    print("Offending data was:<br>\n")
+    print(data)
+    print("Error Message was:<br>\n")
+    print("\n".join(html))
     return None
 
 def getStylesheet(name):
@@ -304,23 +304,23 @@ Released for free under a Creative Commons Attribution 2.5 License
 /* Elements */
 
 body {
-	/* background: #6E6E6E url(img1.jpg) repeat-x; */
-	background: #EEEEEE; 
-	margin: 0px;
+        /* background: #6E6E6E url(img1.jpg) repeat-x; */
+        background: #EEEEEE; 
+        margin: 0px;
     margin-left: 190px; 
-	text-align: left;
-	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-	font-size: smaller; 
-	color: #333333;
+        text-align: left;
+        font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+        font-size: smaller; 
+        color: #333333;
     width: 800px;
 }
 
 h1 {
-	color: #FFFFFF;
+        color: #FFFFFF;
 }
 
 h2, h3 {
-	margin-top: 10px;
+        margin-top: 10px;
 }
 
 h4, h5, h6 {
@@ -344,164 +344,164 @@ tr { background : #DDDDDD;
 }
 
 a:link {
-	color: #000099;
-	text-decoration: none;
+        color: #000099;
+        text-decoration: none;
 }
 
 a:hover {
-	cursor: hand;
-	color: #990099;
-	text-decoration: none;
+        cursor: hand;
+        color: #990099;
+        text-decoration: none;
 }
 a:visited {
-	color: #551a8b;
-	text-decoration: none;
+        color: #551a8b;
+        text-decoration: none;
 }
 
 
 /* Header */
 
 #header {
-	width: 600px;
-	height: 200px;
-	margin: 0px auto;
-	/* background: url(img2.jpg); */
+        width: 600px;
+        height: 200px;
+        margin: 0px auto;
+        /* background: url(img2.jpg); */
 }
 
 #header h1 {
-	margin: 0px;
-	padding: 100px 0 0 60px;
-	font-size: 42px;
-	letter-spacing: -2px;
+        margin: 0px;
+        padding: 100px 0 0 60px;
+        font-size: 42px;
+        letter-spacing: -2px;
 }
 
 #header h2 {
-	margin: 0;
-	padding: .1em 0 0 60px;
-	font-size: 16px;
-	letter-spacing: -1px;
-	color: #666666;
+        margin: 0;
+        padding: .1em 0 0 60px;
+        font-size: 16px;
+        letter-spacing: -1px;
+        color: #666666;
 }
 
 #header a {
-	text-decoration: none;
-	color: #FFFFFF;
+        text-decoration: none;
+        color: #FFFFFF;
 }
 
 /* Menu */
 
 #menu {
-	width: 600px;
-	height: 30px;
-	margin: 0px auto;
+        width: 600px;
+        height: 30px;
+        margin: 0px auto;
 }
 
 #menu ul {
-	margin: 0px;
-	padding: 0px;
-	list-style: none;
+        margin: 0px;
+        padding: 0px;
+        list-style: none;
 }
 
 #menu li {
-	display: inline;
+        display: inline;
 }
 
 #menu a {
-	display: block;
-	float: left;
-	width: 100px;
-	padding: 7px 0px;
-	text-align: center;
-	text-decoration: none;
-	text-transform: uppercase;
-	font-weight: bold;
-	background: #EEEEEE;
+        display: block;
+        float: left;
+        width: 100px;
+        padding: 7px 0px;
+        text-align: center;
+        text-decoration: none;
+        text-transform: uppercase;
+        font-weight: bold;
+        background: #EEEEEE;
 }
 
 #menu a:hover {
-	background: #CCCCCC;
+        background: #CCCCCC;
 }
 
 /* Content */
 
 #content {
-	background: #FFFFFF;
-	width: 600px;
-	margin: 0px auto;
-	padding: 2px 0px 0px 0px;
+        background: #FFFFFF;
+        width: 600px;
+        margin: 0px auto;
+        padding: 2px 0px 0px 0px;
 }
 
 #colFull {
-	width: 550px;
-	margin-top: 20px;
-	margin-bottom: 20px;
-	padding-right: 15px;
-	padding-left: 25px;
+        width: 550px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        padding-right: 15px;
+        padding-left: 25px;
 
 }
 
 #colOne {
-	float: right;
-	width: 360px;
-	margin-top: 20px;
-	padding-right: 20px;
+        float: right;
+        width: 360px;
+        margin-top: 20px;
+        padding-right: 20px;
 }
 
 #colTwo {
-	float: left;
-	width: 180px;
-	margin-top: 20px;
-	padding-right: 20px;
-	padding-left: 20px;
+        float: left;
+        width: 180px;
+        margin-top: 20px;
+        padding-right: 20px;
+        padding-left: 20px;
 }
 
 #colTwo ul {
-	margin-left: 0px;
-	padding-left: 0px;
-	list-style-position: inside;
+        margin-left: 0px;
+        padding-left: 0px;
+        list-style-position: inside;
 }
 
 #content h1 {
-	padding: 5px 0px 5px 5px;
-	color: #2D2D2D;
+        padding: 5px 0px 5px 5px;
+        color: #2D2D2D;
 }
 
 #content h2 {
-	padding: 5px 0px 5px 5px;
-	text-transform: uppercase;
-	font-size: 16px;
-	color: #2D2D2D;
-	border-bottom: 1px dashed;
+        padding: 5px 0px 5px 5px;
+        text-transform: uppercase;
+        font-size: 16px;
+        color: #2D2D2D;
+        border-bottom: 1px dashed;
 }
 
 #content h3 {
-	padding: 5px 0px 5px 5px;
-	color: #6C6C6C;
+        padding: 5px 0px 5px 5px;
+        color: #6C6C6C;
 }
 /* Footer */
 
 #footer {
-	width: 600px;
-	margin: 0px auto;
-	padding: 3px 0px;
-	height: 50px;
-	background: #EEEEEE;
+        width: 600px;
+        margin: 0px auto;
+        padding: 3px 0px;
+        height: 50px;
+        background: #EEEEEE;
 }
 
 #footer p {
-	margin: 0px;
-	padding-top: 15px;
-	text-align: center;
-	font-size: 11px;
-	color: #999999;
+        margin: 0px;
+        padding-top: 15px;
+        text-align: center;
+        font-size: 11px;
+        color: #999999;
 }
 
 #footer a {
-	color: #666666;
+        color: #666666;
 }
 
 #footer a:hover {
-	color: #333333;
+        color: #333333;
 }
     """
     return stylesheet
@@ -584,12 +584,12 @@ class htmlWriter:
         self.f.write('<img src="%s" alt="%s" %s/>\n' % (url, alt, attr))
 
     def h2(self, text):
-        unicode=('<h2>'+text+'</h2>\n')
-        self.write(unicode)
+        str=('<h2>'+text+'</h2>\n')
+        self.write(str)
 
     def h4(self, text):
-        unicode=('<h4>'+text+'</h4>\n')
-        self.write(unicode)
+        str=('<h4>'+text+'</h4>\n')
+        self.write(str)
 
     def linkList(self, list):
         self.f.write('Index:<ul>\n')
@@ -749,44 +749,44 @@ class htmlWriter:
 
     ## LINKS TO EXTERNAL RESOURCES
     def ensGeneLink(self, orgName, geneId):
-	return ensGeneLink(orgName, geneId)
+        return ensGeneLink(orgName, geneId)
 
     def ucscGenomeUrl(self, baseUrl, db, pos):
         return '%s/cgi-bin/hgTracks?db=%s&position=%s' % (baseUrl, db, pos)
 
     def zfinGeneLink(self, geneId, title=None):
-	if title==None:
-	    title=""
-	else:
-	    title = ' title="%s" ' % title
-	return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-markerview.apg&OID=%s" %s>%s</a>' % (geneId, title, geneId)
+        if title==None:
+            title=""
+        else:
+            title = ' title="%s" ' % title
+        return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-markerview.apg&OID=%s" %s>%s</a>' % (geneId, title, geneId)
 
     def geneCardsLink(self, symbol):
-	return geneCardsLink(symbol)
+        return geneCardsLink(symbol)
 
     def brainAtlasLink(self, mouseEntrezIds):
-	abaItems = ["entrezgeneid:=" + i for i in mouseEntrezIds]
-	query = " OR ".join(abaItems)
-	ids = ", ".join(mouseEntrezIds)
-	return '<a href="http://www.brain-map.org/search.do?findButton.x=1&queryText=%s">%s</a>' % (query, ids)
+        abaItems = ["entrezgeneid:=" + i for i in mouseEntrezIds]
+        query = " OR ".join(abaItems)
+        ids = ", ".join(mouseEntrezIds)
+        return '<a href="http://www.brain-map.org/search.do?findButton.x=1&queryText=%s">%s</a>' % (query, ids)
 
     def zfinInsituLink(self, geneId, desc=None, title=None):
-	if desc==None:
-	    desc=geneId
-	if title!=None:
-	    titleStr=' title="%s" ' % title
-	else:
-	    titleStr=""
-	return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-xpatselect.apg&query_results=true&xpatsel_geneZdbId=%s" %s">%s</a>' % (geneId, titleStr, desc)
+        if desc==None:
+            desc=geneId
+        if title!=None:
+            titleStr=' title="%s" ' % title
+        else:
+            titleStr=""
+        return '<a href="http://zfin.org/cgi-bin/webdriver?MIval=aa-xpatselect.apg&query_results=true&xpatsel_geneZdbId=%s" %s">%s</a>' % (geneId, titleStr, desc)
 
     def ghostGeneUrl(self, geneId):
-	return 'http://ghost.zool.kyoto-u.ac.jp/cgi-bin3/txtgetr2.cgi?%s' % geneId
+        return 'http://ghost.zool.kyoto-u.ac.jp/cgi-bin3/txtgetr2.cgi?%s' % geneId
 
     def ghostInSituUrl(self, geneId):
-	return 'http://ghost.zool.kyoto-u.ac.jp/cgi-bin3/photoget2.cgi?%s' % geneId
+        return 'http://ghost.zool.kyoto-u.ac.jp/cgi-bin3/photoget2.cgi?%s' % geneId
 
     def aniseedInSituUrl(self, geneId):
-	return 'http://crfb.univ-mrs.fr/aniseed/insitu-result.php?target=%s&BOOLmut=3&BOOLmanip=2&MOLtype=2&Order=DEV_STAGE_ID' % geneId
+        return 'http://crfb.univ-mrs.fr/aniseed/insitu-result.php?target=%s&BOOLmut=3&BOOLmanip=2&MOLtype=2&Order=DEV_STAGE_ID' % geneId
 
     def ensemblMCUrl(self, baseName, compName, basePair, compPair):
         """ return string with html-link to ensembl multicontigview from two genes given genes and organism names """
@@ -819,7 +819,7 @@ class htmlWriter:
 
 def HTMLEntitiesToUnicode(text):
     """Converts HTML entities to unicode.  For example '&amp;' becomes '&'."""
-    text = unicode(BeautifulStoneSoup(text, convertEntities=BeautifulStoneSoup.ALL_ENTITIES))
+    text = str(BeautifulStoneSoup(text, convertEntities=BeautifulStoneSoup.ALL_ENTITIES))
     return text
 
 def unicodeToHTMLEntities(text):

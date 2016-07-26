@@ -1,4 +1,4 @@
-import zipfile, glob, logging, sys, atexit, shutil, gzip, re, HTMLParser, datetime, operator
+import zipfile, glob, logging, sys, atexit, shutil, gzip, re, html.parser, datetime, operator
 import lxml.html
 import unidecode
 from lxml.html.clean import Cleaner
@@ -212,7 +212,7 @@ def diacToUnicode(textOrig):
         return textOrig
     text = textOrig.replace("|[", "&").replace("]|", ";")
     #text = lxml.html.fromstring(text).text
-    h = HTMLParser.HTMLParser()
+    h = html.parser.HTMLParser()
     text = h.unescape(text)
     logging.debug("Converted %s to %s" % (textOrig, text))
     return text

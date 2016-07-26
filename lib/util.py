@@ -7,8 +7,8 @@ import os, logging
 import re
 import shutil, tarfile
 import math, socket
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 from math import *
 import ftplib
 import unicodedata
@@ -78,7 +78,7 @@ def extractTar(tarObject, path="."):
             # Extract directories with a safe mode.
             directoryInfos.append(tarinfo)
             tarinfo = copy.copy(tarinfo)
-            tarinfo.mode = 0700
+            tarinfo.mode = 0o700
         tarObject.extract(tarinfo, path)
 
         if tarinfo.isfile():
@@ -199,7 +199,7 @@ def readAniseed(asAnnot, tissueKeywords, bgGenesFile=None):
     targetGenes = set()
     bgGenes = set()
     asBgGenes = set()
-    for annot, genes in asAnnot.iteritems():
+    for annot, genes in asAnnot.items():
         asBgGenes.update(genes)
         for kw in tissueKeywords:
             if annot.find(kw)!=-1:
@@ -257,7 +257,7 @@ def getFtpDir(ftp, dir, onlySubdirs=False):
     try:
         ftp.cwd(dir)
     except:
-        print ("error: directory %s does not seemt to exist on host %s" % (dir, ftp.host))
+        print(("error: directory %s does not seemt to exist on host %s" % (dir, ftp.host)))
         return None
     lines = []
     dirs = [] 
@@ -285,22 +285,22 @@ def ftpDownload(ftp, filename, locPath):
     return True
 
 # -- for httpGet, helper class for redirects ---
-class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
+class SmartRedirectHandler(urllib.request.HTTPRedirectHandler):
     def http_error_301(self, req, fp, code, msg, headers):
-        result = urllib2.HTTPRedirectHandler.http_error_301(
+        result = urllib.request.HTTPRedirectHandler.http_error_301(
             self, req, fp, code, msg, headers)
         result.status = code
         return result
 
     def http_error_302(self, req, fp, code, msg, headers):
-        result = urllib2.HTTPRedirectHandler.http_error_302(
+        result = urllib.request.HTTPRedirectHandler.http_error_302(
             self, req, fp, code, msg, headers)
         result.status = code
         return result
 
 def httpGet(url):
-    req = urllib2.Request(url)
-    opener = urllib2.build_opener(SmartRedirectHandler())
+    req = urllib.request.Request(url)
+    opener = urllib.request.build_opener(SmartRedirectHandler())
     req.add_header('User-Agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.7.8) Gecko/20050524 Fedora/1.5 Firefox/1.5')
     f = opener.open(req, timeout=5)
     return f
@@ -320,7 +320,7 @@ def httpDownload(url, fname, verbose=False):
         logging.info("Downloading %s to %s" % (url, fname))
     try:
         fh = httpGet(url)
-    except urllib2.URLError:
+    except urllib.error.URLError:
         logging.error("%s does not exist" % url)
         return False
 
@@ -672,9 +672,9 @@ def resolveIupac(seq):
     newseq = []
     for nucl in seq:
        if nucl in table:
-	   newseq += "[%s]" % table[nucl]
+           newseq += "[%s]" % table[nucl]
        else:
-	   newseq += nucl
+           newseq += nucl
     newstr = "".join(newseq)
     #newstr = newstr.replace("N", "[ACTGN]")
     return newstr
@@ -713,7 +713,7 @@ def translate_dna(sequence):
     #loop to read DNA sequence in codons, 3 nucleotides at a time
     for n in range(0,len(sequence),3):
         #checking to see if the dictionary has the key
-        if gencode.has_key(sequence[n:n+3]) == True:
+        if (sequence[n:n+3] in gencode) == True:
             proteinseq += gencode[sequence[n:n+3]]
         else:
             proteinseq += "X" # modif max: to make it the same as ensembl
@@ -792,14 +792,14 @@ def baseN(num, base=49, numerals="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRST
 
 def remove_accents(str):
     """ remove accents from unicode string and return as ascii, replace with non-accented similar ascii characters """
-    nkfd_form = unicodedata.normalize('NFKD', unicode(str))
-    return u"".join([c for c in nkfd_form if not unicodedata.combining(c)])
+    nkfd_form = unicodedata.normalize('NFKD', str(str))
+    return "".join([c for c in nkfd_form if not unicodedata.combining(c)])
 
 def removeAccents(unicodeString):
     """ remove accents from unicode string and return as ascii, replace with non-accented similar ascii characters """
     nkfd_form = unicodedata.normalize('NFKD', unicodeString) # replace accents
-    cleanStr = u"".join([c for c in nkfd_form if not unicodedata.combining(c)]) # remove diacritics
-    cleanStr = u"".join([c for c in cleanStr if ord(c) < 128]) # remove diacritics
+    cleanStr = "".join([c for c in nkfd_form if not unicodedata.combining(c)]) # remove diacritics
+    cleanStr = "".join([c for c in cleanStr if ord(c) < 128]) # remove diacritics
     return cleanStr.decode("ascii")
 
 def makeDirs(dir):

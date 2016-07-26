@@ -1,7 +1,7 @@
 # general routines to make http connections
 
 from os.path import *
-import os, logging, telnetlib, urlparse, time, tempfile, urllib, random
+import os, logging, telnetlib, urllib.parse, time, tempfile, urllib.request, urllib.parse, urllib.error, random
 
 import chardet
 import pubGeneric
@@ -52,7 +52,7 @@ def delayedWget(url, forceDelaySecs=None):
         return wgetCache[url]
 
     if forceDelaySecs==None:
-        host = urlparse.urlsplit(url)[1]
+        host = urllib.parse.urlsplit(url)[1]
         logging.debug("Looking up delay time for host %s" % host)
         if host in crawlDelays:
             delaySecs = crawlDelays.get(host, defaultDelay)
@@ -88,13 +88,13 @@ def parseWgetLog(logFile, origUrl):
         elif l.lower().startswith("location:"):
             logging.log(5, "wget location line: %s" % l)
             url = l.split(": ")[1].split(" ")[0]
-            scheme, netloc = urlparse.urlsplit(url)[0:2]
+            scheme, netloc = urllib.parse.urlsplit(url)[0:2]
             if netloc=="":
                 #assert(lastUrl!=None)
                 if lastUrl==None:
                     lastUrl = origUrl
                 logging.log(5, "joined parts are %s, %s" % (lastUrl, url))
-                url = urlparse.urljoin(lastUrl, url)
+                url = urllib.parse.urljoin(lastUrl, url)
                 logging.log(5, "URL did not contain server, using previous server, corrected URL is %s" % url)
             else:
                 lastUrl = url
@@ -143,7 +143,7 @@ def runWget(url, useTor=None, tmpDir='/tmp'):
             not isfile(torFname):
             exitNodeUrl = "http://torstatus.blutmagie.de/ip_list_exit.php/Tor_ip_list_EXIT.csv"
             logging.info("Downloading current tor exit node lists from %s" % exitNodeUrl)
-            exitNodeData = urllib.urlopen(exitNodeUrl).read()
+            exitNodeData = urllib.request.urlopen(exitNodeUrl).read()
             open(torFname, "w").write(exitNodeData)
             logging.info("wrote new tor list to %s" % torFname)
 

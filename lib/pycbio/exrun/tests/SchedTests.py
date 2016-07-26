@@ -38,7 +38,7 @@ class SchedTests(TestCaseBase):
         sched = Sched()
         grp = sched.obtainLocalGroup()
         tasks = []
-        for i in xrange(5):
+        for i in range(5):
             t = TrivialTask()
             tasks.append(t)
             sched.addTask(t.run, grp)
@@ -50,7 +50,7 @@ class SchedTests(TestCaseBase):
         "simple tasks in groups"
         sched = Sched()
         tasks = []
-        for i in xrange(10):
+        for i in range(10):
             t = TrivialTask()
             tasks.append(t)
             grp = sched.obtainGroup(mkGrpName(i%2), 2)
@@ -63,7 +63,7 @@ class SchedTests(TestCaseBase):
         "tasks moving between groups"
         sched = Sched()
         tasks = []
-        for i in xrange(10):
+        for i in range(10):
             t = MoveGrpTask(mkGrpName(i+1))
             tasks.append(t)
             grp = sched.obtainGroup(mkGrpName(i))
