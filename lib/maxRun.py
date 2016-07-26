@@ -192,7 +192,7 @@ class Runner:
             self.commands.append(command)
 
         elif self.clusterType=="parasol":
-            logging.log(5, "addding parasol command %s to %s" % (jobListFh.name, command))
+            logging.log(5, "addding parasol command %s to %s" % (self.jobListFh.name, command))
             self.jobListFh.write(command)
             self.jobListFh.write("\n")
 

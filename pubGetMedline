@@ -21,7 +21,7 @@ baselinePath= '/nlmdata/.medleasebaseline/gz'
 updatePath= '/nlmdata/.medlease/gz'
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current Medline copy from Medline ftp server. optionally download full baseline medline with lftp.
+parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current Medline copy from Medline ftp server. optionally download full baseline medline. Uses lftp.
 
 Example:
 pubGetMedline /hive/data/outside/pubs/medline
@@ -37,7 +37,7 @@ If a new baseline comes in from NCBI (december):
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
-parser.add_option("-p", "--parallelConnections", dest="connCount", action="store", type="int", help="use lftp for faster, parallel downloads, use X number of connections, default %default", default=8)
+parser.add_option("-p", "--parallelConnections", dest="connCount", action="store", type="int", help="use X number of connections, default %default", default=8)
 parser.add_option("", "--full", dest="full", action="store_true", help="also download the baseline medline files for the current year")
 (options, args) = parser.parse_args()
 
@@ -46,7 +46,7 @@ parser.add_option("", "--full", dest="full", action="store_true", help="also dow
 def downloadBaseline(outDir, connCount):
     " download current baseline into outDir "
     baselineFnames = pubGeneric.getFtpDir(medlineSrv, baselinePath)
-    baselineFnames = [fname for fname in baselineFnames if fname.endswith(".xml.gz")]
+    baselineFnames = [basename(fname) for fname in baselineFnames if fname.endswith(".xml.gz")]
     logging.info("Found %d filenames on ftp server" % len(baselineFnames))
     medlineUrl = "ftp://"+medlineSrv+"/"+baselinePath,
     #baselinePaths = [baselinePath+fname for fname in baselineFnames]
@@ -69,7 +69,8 @@ def downloadUpdates(outDir, connCount):
     """ Download updates from Medline into outDir """
     logging.debug("Downloading updates")
     updateFnames = pubGeneric.getFtpDir(medlineSrv, updatePath)
-    updateFnames = [fname for fname in updateFnames if fname.endswith(".xml.gz")]
+    updateFnames = [basename(fname) for fname in updateFnames if fname.endswith(".xml.gz")]
+    logging.info("Found %d updates on ftp server" % len(updateFnames))
     medlineUrl = "ftp://"+medlineSrv+"/"+updatePath,
     pubGeneric.lftpGet(medlineUrl, outDir, updateFnames, connCount)
 
