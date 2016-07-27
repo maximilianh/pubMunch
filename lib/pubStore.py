@@ -1180,6 +1180,7 @@ def updateSqlite(textDir):
         copyBack = True
         con, cur = maxTables.openSqlite(ramDbPath, lockDb=True)
         
+    artFnames = [basename(x) for x in artFnames]
     toLoadFnames = getUnloadedFnames(con, cur, artFnames)
     toLoadPaths = [join(textDir, fname) for fname in toLoadFnames]
 
