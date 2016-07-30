@@ -75,7 +75,10 @@ def parseMembers(outFname):
     headers = ["primaryName", "totalCount", "backfileCount", "currentCount", "prefixes", "prefixInfo","altNames", "location"]
 
     rows = []
-    for fname in glob.glob("crossrefMembers*.json"):
+    for fname in glob.glob("/tmp/crossrefMembers*.json"):
+        logging.info("Parsing %s" % fname)
+        if os.path.getsize(fname)==0:
+            continue
         d = json.load(open(fname))
 
         for member in d["message"]["items"]:
