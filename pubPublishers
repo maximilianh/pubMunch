@@ -6,7 +6,8 @@
 # TODO: add index by pISSN to "here" 
 
 from os.path import *
-import os, sys, optparse, logging, marshal, zlib, unicodedata, gc, cPickle, shutil, random
+import os, sys, optparse, logging, marshal, zlib, unicodedata, gc, cPickle, shutil, random, urllib2
+import glob, json, operator
 progFile = os.path.abspath(sys.argv[0])
 progDir  = os.path.dirname(progFile)
 pubToolsLibDir = os.path.join(progDir, "..", "lib")
@@ -60,6 +61,54 @@ def parsePermissions(LICENSETABLE):
             #print pubName.lower()
     return pubToPermission
         
+def parseMembers(outFname):
+    " download and convert the crossref member table "
+    for i in range(0, 8000, 1000):
+        outTmp = "/tmp/crossrefMembers"+str(i)+".json"
+        if isfile(outTmp):
+            continue
+        ofh = open(outTmp, "w")
+        url = "http://api.crossref.org/members?rows=1000&offset="+str(i)
+        logging.info("Downloading %s to %s" % (url, outTmp))
+        ofh.write(urllib2.urlopen(url).read())
+
+    headers = ["primaryName", "totalCount", "backfileCount", "currentCount", "prefixes", "prefixInfo","altNames", "location"]
+
+    rows = []
+    for fname in glob.glob("crossrefMembers*.json"):
+        d = json.load(open(fname))
+
+        for member in d["message"]["items"]:
+            row = []
+            row.append(member["primary-name"])
+            row.append(member["counts"]["total-dois"])
+            row.append(member["counts"]["backfile-dois"])
+            row.append(member["counts"]["current-dois"])
+            row.append("|".join(member["prefixes"]))
+
+            prefixInfos = []
+            if member["prefix"] is not None:
+                for prefix in member["prefix"]:
+                    prefixInfos.append("%s=%s" % (prefix["value"], prefix["name"]))
+            row.append("|".join(prefixInfos))
+
+            row.append("|".join(member["names"]))
+            row.append(member["location"])
+                
+            rows.append(row)
+
+    rows.sort(key=operator.itemgetter(1), reverse=True)
+
+    ofh = open(outFname, "w")
+    ofh.write( "\t".join(headers))
+    ofh.write( "\n")
+    for row in rows:
+            row = [unicode(x).encode("utf8") for x in row]
+            ofh.write("\t".join(row))
+            ofh.write("\n")
+    logging.info("Wrote %s" % ofh.name)
+    ofh.close()
+
 # === COMMAND LINE ====
 parser = optparse.OptionParser("""usage: %prog [options] <step> - guess ISSNs for each publisher, count relevant articles per ISSN per year and create overview tables of publishers, their journals, and % of articles on disk
 
@@ -68,6 +117,7 @@ steps are:
               journals in the NLM catalog and other lists (Highwire, Wiley)
               that we got via email from publishers. Write these to pubConf.publisherIssnTable
               This step is essential for pubPrepCrawl
+"crossref" - parse crossref member table to tab-sep file
 
 These steps are only needed at UCSC to compared the list of PMIDs we got with the list of PMIDs 
 we expect:
@@ -156,6 +206,10 @@ if len(steps)==0:
 if "journals" in steps:
     inDir = pubConf.journalListDir
     pubResolvePublishers.initJournalDir(inDir, None, journalFname, publisherFname)
+
+elif "crossref" in steps:
+    outFname = join(pubConf.journalInfoDir, "crossrefMembers.tab")
+    parseMembers(outFname)
 
 # process medline:
 # make table with journalId -> number of articles
