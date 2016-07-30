@@ -49,7 +49,7 @@ class Runner:
     def __init__(self, clusterType="auto", headNode=None, queue=None, dryRun=False, \
         logDir=None, delayTime=None, maxPush=700000, maxJob=None, batchDir=".", runNow=False, maxRam=None):
         """ create joblist on parasol, do nothing on SGE 
-            clusterType can be "local", "sge" or "parasol"
+            clusterType can be "local"(singlethread), "smp" (multithread), "sge" or "parasol"
 
             if headNode is set, will ssh onto headNode to submit batch and cd into batchDir or cwd
             if runNow is set, will block until job is finished (doesn't work on SGE)
@@ -59,6 +59,8 @@ class Runner:
             queue is only used for SGE
         """
         self.clusterType = clusterType
+        if self.clusterType=="localhost":
+            self.clusterType = "local"
         self.logDir = logDir
         self.dryRun = dryRun
         self.runNow = runNow  # whether to wait until all commands have completed
@@ -185,12 +187,17 @@ class Runner:
             logging.info("Running command: %s" % command)
             self._exec(command, stopOnError=True)
 
-        elif self.clusterType=="smp" or self.clusterType=="localhost":
+        elif self.clusterType=="smp":
+            logging.log(5, "queuing multicore command: %s" % command)
             self.commands.append(command)
 
         elif self.clusterType=="parasol":
+            logging.log(5, "addding parasol command %s to %s" % (self.jobListFh.name, command))
             self.jobListFh.write(command)
             self.jobListFh.write("\n")
+
+        else:
+            assert(False) # illegal clusterType value
 
     def submitAll(self, lines):
         " like submit, but accepts a list of lines "
@@ -225,6 +232,7 @@ class Runner:
             logging.warn("No jobs submitted, not running anything")
             return
 
+        logging.info("Running jobs for cluster type %s" % self.clusterType)
         #assert(self.jobCount > 0)
         if self.clusterType=="parasol":
             self.jobListFh.close()
@@ -282,6 +290,7 @@ class Runner:
 
         elif self.clusterType=="smp":
             # adapted from http://stackoverflow.com/questions/4992400/running-several-system-commands-in-parallel
+            logging.info("Running %d commands on localhost on %d CPUs" % (len(self.commands), self.maxCpu))
             processes = []
             for cmdCount, command in enumerate(self.commands):
                 logging.info("Starting process %s" % command)

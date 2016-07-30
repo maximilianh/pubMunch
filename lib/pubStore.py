@@ -1168,7 +1168,7 @@ def updateSqlite(textDir):
     into the sqlite database 
     """
     artFnames = getAllArticleFnames(textDir)
-    assert(len(artFnames)!=0)
+    assert(len(artFnames)!=0) # there are no input files in the text data directory
     dbPath = getArtDbPath(textDir)
     if isfile(dbPath):
         con, cur = openArticleDb(textDir)
@@ -1180,6 +1180,7 @@ def updateSqlite(textDir):
         copyBack = True
         con, cur = maxTables.openSqlite(ramDbPath, lockDb=True)
         
+    artFnames = [basename(x) for x in artFnames]
     toLoadFnames = getUnloadedFnames(con, cur, artFnames)
     toLoadPaths = [join(textDir, fname) for fname in toLoadFnames]
 

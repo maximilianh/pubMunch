@@ -188,7 +188,7 @@ logDir = pubsDataDir + "/log/"
 
 # head node of cluster
 clusterHeadNode = "ku.sdsc.edu"
-# type of cluster, either parasol or sge or localhost
+# type of cluster, either parasol or sge or local (single CPU) or localhost:5 for five CPUs
 clusterType = "localhost"
 
 # _sourceDir = "/cluster/home/max/projects/pubs/tools"
