@@ -237,7 +237,7 @@ class SeqData(object):
         cur = self.snpDb.execute(sql, (rsId,))
         row = cur.fetchone()
         if row is None:
-            return None
+            return None, None, None
         else:
             return row[0], row[1], row[2]
 
@@ -252,6 +252,7 @@ class SeqData(object):
         return protIds
 
     def entrezToSym(self, entrezGene):
+        entrezGene = str(entrezGene)
         if "/" in entrezGene:
             logger.debug("Got multiple entrez genes %s. Using only first to get symbol." % entrezGene)
         entrezGene = entrezGene.split("/")[0]
@@ -909,7 +910,8 @@ def checkAminAcidAgainstSequence(variant, entrezGene, sym, protDbs=["refseq"]):
     - entrezGene has to be number as a string or a list of numbers separated by "/"
     - sym is only used for the logger system
     """
-    assert(type(entrezGene)==types.StringType)
+    entrezGene = str(entrezGene)
+    # assert(type(entrezGene)==types.StringType)
     for entrezGene in entrezGene.split("/"):
         entrezGene = int(entrezGene)
         logger.debug("Trying to ground %s to entrez gene %s / %s" % (str(variant), entrezGene, sym))
