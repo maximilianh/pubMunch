@@ -9,6 +9,7 @@ threeToOne = \
      'Sec': 'U',  # Sec = sometimes used as amino acid (same as Ter)
      'Ter': '*',   # the termination codon
      'Stop': '*',   # the termination codon
+     'Fs': '*',   # the termination codon
      'X': '*',   # the termination codon
      'Alanine'       : 'A',
      'Asparagine'    : 'B',
