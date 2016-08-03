@@ -319,7 +319,7 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
             #fname = join(GENEDATADIR, "bandToEntrez.marshal.gz")
             fname = join(GENEDATADIR, "bandGenes.tab")
             logging.info("Loading %s" % fname)
-            #bandToEntrezSyms = marshal.loads(gzip.open(fname).read())
+            # bandToEntrezSyms = marshal.loads(gzip.open(fname).read())
             bandToEntrezSyms = parseKeyValList(fname)
 
         # special case for gene symbols
@@ -694,9 +694,9 @@ def findGenesResolveByType(text, pmid=None, seqCache=None):
     symDict        = resolveAmbiguousSymbols(geneDict, text, markers)
     geneDict.update(symDict)
 
-    if "dnaSeq" in markers:
-        seqDict            = resolveSeqs(markers["dnaSeq"], seqCache)
-        geneDict["dnaSeq"] = seqDict
+    # if "dnaSeq" in markers:
+    #     seqDict            = resolveSeqs(markers["dnaSeq"], seqCache)
+    #     geneDict["dnaSeq"] = seqDict
 
     genes          = flipUnsureSymbols(text, geneDict)
 
