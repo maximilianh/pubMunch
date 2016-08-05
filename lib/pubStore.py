@@ -375,6 +375,7 @@ class PubWriterFile:
         """ appends id and data to current .file table,
         """
         assert("content" in fileDict)
+
         if fileDict["content"]==None:
             logging.warn("file %s, object or content is None" % fileId)
             fileDict["content"] = ""
@@ -442,7 +443,7 @@ class PubWriterFile:
         logging.log(5, "%d articles written" % self.articlesWritten)
         
     def writeDocs(self, artDict, fileDicts):
-        " write all article and files in one go "
+        " write all article and files in one go. Optionally extract images from PDFs. "
         # set the 'size' field of the article
         totalSize = 0
         for fileDict in fileDicts:
@@ -454,6 +455,7 @@ class PubWriterFile:
 
         for fileDict in fileDicts:
             self.writeFile(artDict['articleId'], fileDict['fileId'], fileDict)
+
 
     def close(self, keepEmpty=False):
         """ 

@@ -17,6 +17,8 @@ BedxClass = collections.namedtuple("bedx", \
 dataset = None # e.g. pmc
 baseDir = None # e.g. /hive/data/inside/pubs/pmc
 
+mapBaseDir = pubConf.pubMapBaseDir
+
 def countUpcaseWords(runner, baseDir, wordCountBase, textDir, updateIds):
     " submit map-reduce-style job to count uppercase words if we don't already have a list"
     mapTmpDir = join(baseDir, "mapReduceTmp")
@@ -1804,18 +1806,12 @@ def runStepSsh(host, dataset, step):
         logging.info("error during SSH")
         sys.exit(1)
 
-def runAnnotStep(d, onlyMarkers=False, onlySeq=False):
+def runAnnotStep(bundle, onlyMarkers=False, onlySeq=False):
     """ 
     run jobs to annotate the text files, directory names for this are 
     stored as attributes on the object d
     """
-    # if the old batch is not over tables yet, squirk and die
-    if d.batchId!=None and d.batchIsPastStep("annot") and not d.batchIsPastStep("tables"):
-        raise Exception("Found one batch in %s that is past annot but not past tables yet. "
-            "A previous run might have crashed. You can try rm -rf %s to restart this batch" % \
-                (d.progressDir, d.batchDir))
 
-    d.createNewBatch()
     # paranoia: the new batch must not be over annot yet
     #if d.batchIsPastStep("annot"):
         #raise Exception("Annot was already run on this batch, see %s. Stopping." % \
@@ -2059,15 +2055,17 @@ def findLociForBeds(bedFname, db):
     #print annotIdToGene["44000210370000000"]
     return annotIdToGene
 
-def runStep(command, d, options):
+def runStep(command, bundle, options):
     """ run one step of the pubMap pipeline with pipeline directories in 'd' (=short variable as it's used all the time) """
 
     logging.info("Running step %s" % command)
 
     if command=="annot":
-        runAnnotStep(d)
+        runAnnotStep(bundle)
 
-    elif command=="annotMarker":
+    dirs = pubMapProp.PipelineConfig(dataset, options.outDir)
+
+    if command=="annotMarker":
         runAnnotStep(d, onlyMarkers=True)
     elif command=="annotSeq":
         runAnnotStep(d, onlySeq=True)

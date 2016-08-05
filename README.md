@@ -182,10 +182,11 @@ Install these packages on ubuntu:
 
 Install these python packages:
 
-    pip install requests selenium pyvirtualdisplay
+    pip install requests selenium pyvirtualdisplay html2text
 
+- html2text is required, used for the html -> text conversion (written by Aaron Schwartz)
 - requests is very useful for pubCraw2 and highly recommended
-- selenium may only be needed to crawl karger journals
+- selenium is only be optionally used to crawl karger journals. Not required.
 
 If regular-expression based text annotation is too slow:
 The re2 library will make it at least 10 times faster. It is a regular expression engine that avoids backtracking as far as possible, developed originally at Google. To install it, you need to download the C++ source from re2.googlecode.com, compile and install it

@@ -7,7 +7,7 @@ export PATH=$PATH:/cluster/bin/x86_64 # for hgLoadSqlTab
 
 # VARIABLES
 PYTHON=/cluster/software/bin/python
-BIN=/hive/data/inside/pubs/bin
+BIN=/hive/data/inside/pubs/tools
 DOWNBASE=/hive/data/outside/pubs
 TEXTBASE=/hive/data/inside/pubs/text
 BLATBASE=/hive/data/inside/pubs/blat
@@ -50,7 +50,7 @@ echo
 echo __CONVERT MEDLINE and update DB__ 
 cd $JOBDIR; time $PYTHON $BIN/pubConvMedline --cluster=localhost --auto
 echo __UPDATING MEDLINE PMIDS FOR CRAWLER
-time $PYTHON $BIN/pubPrepCrawl $DOWNBASE/crawler
+time $PYTHON $BIN/pubPrepCrawl allpmids $DOWNBASE/crawler
 #echo __CONVERT ELSEVIER___
 #cd $JOBDIR; $PYTHON $BIN/pubConvElsevier --cluster=localhost $DOWNBASE/elsevier $TEXTBASE/elsevier
 #echo __CONVERT PMC___
@@ -60,7 +60,7 @@ time $PYTHON $BIN/pubPrepCrawl $DOWNBASE/crawler
 
 echo
 echo __CREATING CRAWLER REPORT
-$PYTHON $BIN/pubCrawl $DOWNBASE/crawler --report /cluster/home/max/public_html/mining/crawlerStatus.html
+#$PYTHON $BIN/pubCrawl $DOWNBASE/crawler --report /cluster/home/max/public_html/mining/crawlerStatus.html
 
 rm -f $FLAGFILE
 

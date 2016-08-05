@@ -1,0 +1,110 @@
+#!/cluster/software/bin/python2.7
+
+import cgitb
+cgitb.enable()
+import cgi, sys
+from os.path import join
+
+# serve images over http
+# requires:
+# - subdir lib/ with pubImgLoad.py
+# - hg.conf in current dir with path to pubStore.py text folder with parsed images
+
+# "python's default sqlite3 is often slower. do 'pip install pysqlite' to get the update")
+try:
+    from pysqlite2 import dbapi2 as sqlite3
+except:
+    import sqlite3
+
+#imgDir = "/hive/data/inside/pubs/text/crawler.withImg/"
+imgDir = "/cluster/home/max/projects/pubs/tools/test/pubCrawl2/2016Min50/outConvImg"
+
+# add <scriptDir>/lib/ to package search path
+#progFile = os.path.abspath(sys.argv[0])
+#progDir  = os.path.dirname(progFile)
+#pubToolsLibDir = os.path.join(progDir, "lib")
+#sys.path.insert(0, pubToolsLibDir)
+#import pubLoadImg
+
+def openImgDbForArticles(articlePath):
+    " given the path of the articles.gz file, e.g. xxx/yyy/0_00001.articles.gz, create the img db "
+    imgDbPath = articlePath.replace(".articles.gz", "").replace(".files.gz", "")+".img.sqlite"
+    con = sqlite3.connect(imgDbPath)
+
+def errAbort(msg):
+    print(msg+"<p>")
+    sys.exit(0)
+
+def getVars():
+    form = cgi.FieldStorage()
+
+    pmids = form.getfirst("pmids")
+    if pmids!=None:
+        if "," in pmids:
+            pmids = pmids.split(",")
+        else:
+            pmids = pmids.split("\n")
+        pmids = [p.strip() for p in pmids]
+    pmid = form.getfirst("pmid")
+    imgId = form.getfirst("imgId")
+    chunkId = form.getfirst("chunkId")
+    fullSize = form.getfirst("fullSize")
+    return pmids, pmid, chunkId, imgId, fullSize
+
+def showForm():
+    print "Content-Type: text/html; charset=UTF-8\n"
+    print """
+    <form method="get" action="pubImages">
+    PMIDs to show:<p>
+    <textarea name="pmids"  rows="30" cols="40"></textarea><p>
+    <p>
+    <input type="submit" name="submit" value="OK" />
+    </form>
+    """
+
+def showTable(pmids):
+    " "
+    print "Content-Type: text/html; charset=UTF-8\n"
+    artDbPath = join(imgDir, "articles.db")
+    artDb = sqlite3.connect(artDbPath)
+    print "<ul>"
+    for pmid in pmids:
+        print repr(pmid)
+        chunkId = artDb.execute("SELECT max(chunkId) from articles where pmid=?", [pmid] ).fetchone()[0]
+        if chunkId is None:
+            continue
+        chunkDbPath = join(imgDir, chunkId+".img.sqlite")
+        chunkDb = sqlite3.connect(chunkDbPath)
+        row = chunkDb.execute("SELECT title, authors, journal, year from img where pmid=? limit 1", [pmid] ).fetchone()
+
+        title, authors, journal, year = row
+        print "<li>", title.encode("utf8"), authors.encode("utf8"), journal, year, "<br>"
+        for imgId in chunkDb.execute("SELECT imgId from img where pmid=? and isThumb=1", [pmid] ):
+            args = "pubImages?chunkId=%s&pmid=%s&imgId=%s" % (chunkId, pmid, imgId[0])
+            print "<a href='%s&fullSize=1'><img src='%s'></a>" % (args, args)
+    print "</ul>"
+
+def showImage(chunkId, pmid, imgId, fullSize):
+    " send image via http "
+    chunkDbPath = join(imgDir, chunkId+".img.sqlite")
+    chunkDb = sqlite3.connect(chunkDbPath)
+    addQuery = ""
+    if fullSize==None or not bool(int(fullSize)):
+        addQuery = " isThumb=1 and "
+    row = chunkDb.execute("SELECT data from img where %s pmid=? and imgId=? limit 1" % addQuery, \
+        [pmid, imgId] ).fetchone()
+    data = row[0]
+
+    print "Content-Type: image/png\n"
+    print data
+
+def main():
+    pmids, pmid, chunkId, imgId, fullSize = getVars()
+    if pmids is not None:
+        showTable(pmids)
+    elif chunkId is not None and imgId is not None and pmid is not None:
+        showImage(chunkId, pmid, imgId, fullSize)
+    else:
+        showForm()
+    
+main()

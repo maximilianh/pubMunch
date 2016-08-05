@@ -53,6 +53,52 @@ def readUpdateIds(batchDir):
         return None
     return json.load(open(inFname))
     
+def iterBatchDirs(batchBaseDir):
+    " yield all batch directories "
+    for batchDir in glob.glob(join(batchBaseDir, "*")):
+        if not isdir(fname):
+            continue
+        yield batchDir
+
+def allBatchesAreComplete(batchBaseDir):
+    """     
+    check if all batches are past the 'tables' step
+    """
+    allComplete = True
+    for batchDir in iterBatchDirs(batchBaseDir):
+        stepName = "tables"
+        progressFname = join(batchDir, "progress", stepName)
+        if isfile(progressFname):
+            logging.debug("%s exists, step was completed in this batch" % (progressFname))
+        else:
+            logging.debug("checking %s: this batch is not at %s yet" % (str(progressDir), stepName))
+            allComplete = False
+            break
+    return allComplete
+        
+def createNewBatch(bundle):
+    " create new batch under a directory mapBaseDir/bundle/batches "
+    batchBaseDir = join(mapBaseDir, bundle, "batches")
+    if not isdir(batchBaseDir):
+        logging.info("Making %s" % batchBaseDir)
+        os.makedirs(batchBaseDir)
+
+    if not pubMapProp.allBatchesAreComplete(batchBaseDir):
+        raise Exception("Not all batches in %s are past the tables step" % batchBaseDir)
+
+    # find the first free batchId
+    batchId = 0
+    for i in range(0, 999999999):
+        batchDir = join(batchBaseDir, str(i))
+        if not isdir(batchDir):
+            logging.debug("New batch, Creating dir %s" % self.batchDir)
+            os.makedirs(self.batchDir)
+            break
+
+    # get the list of already processed updates
+    for batchDir in iterBatchDirs(batchBaseDir):
+        batchUpd = loadUpdateIds(batchDir)
+
 class PipelineConfig:
     """ a simple class with attributes = all directories used by the pipeline 
         Most of these are relative to a BATCH (=one full run of the pipeline)
@@ -61,27 +107,9 @@ class PipelineConfig:
         __init__ will search for the first incomplete batch under this directory
         or create a new batch directory, if all batches are complete.
     """
-    def newBatch(self, outDir, bundle):
+
+    def defineDirectories(self, batchBaseDir):
         " create a new batch directory and save ourselves as JSON into it "
-        # define the dir
-        if self.batchId is None:
-            self.batchId = 0
-        else:
-            self.batchId = self.batchId+1
-            logging.debug("Increasing batchId, new batchId is %s" % self.batchId)
-        self.batchDir = join(self.baseDirBatches, str(self.batchId))
-
-        # create the dir
-        if isdir(self.batchDir):
-            if not len(os.listdir(self.batchDir))==0:
-                raise Exception("%s contains files, is this really a new run?" % self.batchDir)
-        else:
-            logging.debug("Creating dir %s" % self.batchDir)
-            os.makedirs(self.batchDir)
-
-        assert(outDir!=None and outDir!="")
-        maxCommon.mustExistDir(outDir, makeDir=True)
-        self.pubMapBaseDir = outDir
         logging.debug("Main pipeline outdir is %s" % outDir)
 
         self.bundleName = bundle
@@ -252,22 +280,6 @@ class PipelineConfig:
 
         return os.listdir(self.progressDir)
 
-    def batchIsPastStep(self, stepName, progressDir=None):
-        """     
-        check if the old batch using stepFname is at least past a certain step
-        """
-
-        if progressDir==None:
-            progressDir = self.progressDir
-
-        progressFname = join(progressDir, stepName)
-        if isfile(progressFname)==True:
-            logging.debug("%s exists, step was completed in this batch" % (progressFname))
-            return True
-        else:
-            logging.debug("checking %s: this batch is not at %s yet" % (str(progressDir), stepName))
-            return False
-        
     def getUpdateIds(self, batchIds):
         """ 
         go over all subdirs of baseDirBatches, read the updateIds.txt files and return 

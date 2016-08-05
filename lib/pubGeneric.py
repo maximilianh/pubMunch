@@ -7,8 +7,6 @@ import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables, pub
 from os.path import *
 from distutils.spawn import find_executable
 
-import sqlite3 as sqlite
-
 from time import gmtime, strftime
 
 try:

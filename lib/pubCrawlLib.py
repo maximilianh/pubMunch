@@ -230,13 +230,13 @@ def getLandingUrlSearchEngine(articleData):
     # try medline's DOI
     # note that can sometimes differ e.g. 12515824 directs to a different page via DOI
     # than via Pubmed outlink, so sometimes we need to rewrite the doi urls
-    if articleData["doi"]!="":
+    if articleData["doi"] not in ["", None]:
         landingUrl = resolveDoi(articleData["doi"])
         if landingUrl!=None:
             return landingUrl
 
     # try crossref's search API to find the DOI 
-    if articleData["doi"]=="":
+    if articleData["doi"] in ["", None]:
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
             articleData["doi"] = xrDoi.replace("http://dx.doi.org/","")
@@ -397,13 +397,16 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
         page['data'] = page['data'].encode('utf8')
     return page
 
-def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None):
+def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None, newSession=False):
     """ download with curl or wget and make sure that delaySecs (global var)
     secs have passed between two calls special cases for highwire hosts and
     some hosts configured in config file.
 
     returns dict with these keys: url, mimeType, charset, data
     Follows redirects, "url" is really the final URL.
+
+    block flash: use IPad user agent
+    newSession: empty the cookie cart before making the request.
     """
     global webCache
     if url in webCache:
@@ -422,14 +425,14 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cook
             userAgent = forceUserAgent
     if blockFlash:
         userAgent = 'Mozilla/5.0(iPad; U; CPU iPhone OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10'
-    page = httpGetRequest(url, userAgent, cookies, referer=referer)
+    page = httpGetRequest(url, userAgent, cookies, referer=referer, newSession=newSession)
     if mustGet and page == None:
         raise pubGetError('Could not get URL %s' % url, 'illegalUrl')
     return page
 
 session = None
 
-def httpGetRequest(url, userAgent, cookies, referer=None):
+def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
     """
     download a url with the requests module, return a dict with the keys
     url, mimeType, charset and data
@@ -441,7 +444,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None):
     if referer is not None:
         headers['referer'] = referer
 
-    if session is None:
+    if session is None or newSession:
         session = requests.Session()
         if pubConf.httpProxy != None:
             proxies = {'http': pubConf.httpProxy,
@@ -469,7 +472,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None):
     page = {}
     page['url'] = r.url
     page['data'] = r.content
-    page['mimeType'] = r.headers['content-type'].split(';')[0]
+    page['mimeType'] = r.headers.get('content-type', "").split(';')[0]
     page['encoding'] = r.encoding
 
     logging.log(5, 'Got page, url=%(url)s, mimeType=%(mimeType)s, encoding=%(encoding)s' % page)
@@ -680,7 +683,7 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
                 if content != None:
                     parts = string.split(content, '=', 1)
                     if len(parts)==2:
-                        url = urlparse.urljoin(baseUrl, url)
+                        url = urlparse.urljoin(baseUrl, parts[1])
                         metaDict['refresh'] = url
 
     logging.log(5, "Meta tags: %s" % metaDict)
@@ -1805,7 +1808,7 @@ class ElsevierCrawler(Crawler):
         if pdfEl!=None:
             pdfUrl = pdfEl["href"]
             pdfUrl = urlparse.urljoin(htmlPage["url"], url)
-            pdfPage = httpGetDelay(pdfUrl, delayTime)
+            pdfPage = httpGetDelay(pdfUrl, delayTime, userAgent=agent)
             paperData["main.pdf"] = pdfPage
             # the PDF link becomes invalid after 10 minutes, so direct users
             # to html instead when they select a PDF
@@ -2166,9 +2169,9 @@ class WileyCrawler(Crawler):
         if len(suppListUrls)==0:
             logging.debug("No list to suppl file list page found")
             return paperData
-        if len(suppListUrls)>1:
-            logging.debug("Too many supp links found")
-            raise Exception("Too many suppl. links found in wiley paper")
+        if len(set(suppListUrls))>1:
+            logging.warn("Too many Wiley supp links found")
+            #raise pubGetError("Too many suppl. links found in wiley paper", "tooManySuppl", )
 
         suppListPage = httpGetDelay(suppListUrls[0], delayTime)
         suppUrls = findLinksWithUrlPart(suppListPage, "/asset/supinfo/")
@@ -2395,7 +2398,7 @@ class TandfCrawler(Crawler):
 
         url = url.replace("/abs/", "/full/")
 
-        fullPage = httpGetDelay(url, delayTime)
+        fullPage = httpGetDelay(url, delayTime, newSession=True)
         if fullPage==None:
             logging.debug("Got no page")
             return None
@@ -2404,6 +2407,10 @@ class TandfCrawler(Crawler):
         if pageContains(fullPage, noAccTags):
             logging.info("No license for this Taylor and Francis journal")
             return None
+
+        if "client IP is blocked" in fullPage["data"]:
+            raise pubGetError("Got blocked by Taylor and Francis", "tandfBlocked")
+
         fullPage["data"] = htmlExtractPart(fullPage, "div", {"id":"fulltextPanel"})
         paperData["main.html"] = fullPage
 

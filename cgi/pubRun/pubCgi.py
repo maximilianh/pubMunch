@@ -20,7 +20,7 @@ def parseHgConf(fname=HGCONF, conf={}):
             absFname = os.path.join(os.path.dirname(fname), relFname)
             parseHgConf(absFname, conf)
             continue
-        key, val = line.split("=")
+        key, val = string.split("=", 1)
         conf[key]=val
     return conf
 

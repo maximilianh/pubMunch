@@ -131,20 +131,19 @@ def main(args, options):
     if options.debug:
         pubMap.DEBUG=True
 
-    command, dataset = args
+    dataset, command = args
 
     allSteps = ["annot", "annotMarkerDbg", "annotSeqDbg", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]
 
-    dirs = pubMapProp.PipelineConfig(dataset, options.outDir)
 
     if "-" in command:
         stepFrom, stepTo = command.split("-")
-        pubMap.runStepRange(dirs, allSteps, stepFrom, stepTo, args, options)
+        pubMap.runStepRange(dataset, allSteps, stepFrom, stepTo, args, options)
     elif command=="all":
-        pubMap.runStepRange(dirs, allSteps, "annot", "tables", args, options)
+        pubMap.runStepRange(dataset, allSteps, "annot", "tables", args, options)
     else:
-        pubMap.runStep(dataset, command, dirs, options)
+        pubMap.runStep(command, dataset, options)
 
 def removeLock():
     global lockFname

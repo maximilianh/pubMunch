@@ -34,3 +34,6 @@ bigFiles:
 
 data:
 	curl http://hgwdev.soe.ucsc.edu/~max/pubs/tools/bigFiles.tgz | tar xvz
+
+tags:
+	ctags  -R -o ~/.vim/tags/python.ctags pub* lib/*
