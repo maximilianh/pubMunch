@@ -31,6 +31,9 @@ def setOptions(options):
         scrapeLib.ERRWAIT = 0
         scrapeLib.MAXCONSECERR = 500
 
+    if options.noProxy:
+        scrapeLib.useProxy = False
+
     scrapeLib.userAgent = pubConf.httpUserAgent
     if options.fakeUseragent:
         logging.debug("Setting useragent to Mozilla/IPad (=deactivate flash)")
@@ -58,6 +61,9 @@ def sendErrorEmail(outDirs):
     maxCommon.sendEmail(pubConf.email, subject, text)
 
 def main(args, options):
+    if options.testDoc:
+        options.debug = True
+
     pubGeneric.setupLogging("", options)
     outDirs = args
     if options.report:
@@ -81,7 +87,7 @@ def main(args, options):
     gotCtrlc = False
     try:
         docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
-        if len(outDirs) > 1: # only randomize if we're doing multiple publishers
+        if len(outDirs) > 1 or options.fakeUseragent: # only randomize if we're doing multiple publishers
             random.shuffle(docIds)
         scrapeLib.crawlDocuments(docIds, skipIssns)
     except KeyboardInterrupt:
@@ -135,8 +141,8 @@ parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
     "all other default delay settings")
 
 parser.add_option("", "--test", dest="testDoc", action="store_true", \
-    help="test mode, outDir is not a directory but a PMID."
-    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format number/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Allowed crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
+    help="test mode, outDir is not a directory but a docId."
+    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format docId/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Allowed crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
 
 #parser.add_option("", "--testOut", metavar="DIRECTORY", dest="OuttestDoc", action="store", \
     #help="like --test, but write files to directory")
@@ -150,11 +156,12 @@ parser.add_option("", "--noLocalMedline", dest="skipLocalMedline", action="store
 
 parser.add_option("-e", "--sendEmail", dest="sendEmail", action="store_true", help="send an error email to address specified in pubConf when program crashes")
 
-parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_true", help="by default, the crawler accounces itself to the hoster's webserver as 'genomeBot/0.1'. This parameter changes the behaviour and the crawler will present itself as Firefox. Use this with caution and only if the publisher/hoster accepts it.")
+parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_true", help="by default, the crawler accounces itself to the hoster's webserver as 'genomeBot/0.1'. This parameter changes the behaviour and the crawler will present itself as Firefox. Use this with caution and only if the publisher/hoster accepts it. This will also shuffle the input docIds, to spread out errors.")
 
 #parser.add_option("", "--preferPmc", dest="preferPmc", action="store_true", help="prefer PMC, if fulltext is available from two sources")
 
 parser.add_option("", "--tryHarder", dest="tryHarder", action="store_true", help="increase max error count to 500 and do not wait between errors")
+parser.add_option("", "--noProxy", dest="noProxy", action="store_true", help="do not use the proxy, even if configured in ~/.pubConf")
 
 parser.add_option("", "--report", dest="report", action="store", help="Do not crawl but given the base crawl directory, write a status report in html format to the specified first output filename and quit. ")
 

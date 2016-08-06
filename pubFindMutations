@@ -74,13 +74,12 @@ def findInLocalFile(inFname, writer, dbAnnots):
 
     genes, exclPos = findGenesCached(pmid, text)
 
-    mutations  = varFinder.findVariantMentions(text, exclPos)
+    mutations  = varFinder.findVariantDescriptions(text, exclPos)
     dbAnnots.newDocument(pmid)
     for variant, mentions in mutations["prot"]:
         groundedMuts, ungroundVar, beds = \
             varFinder.groundVariant(pmid, text, variant, mentions, mutations["dbSnp"], genes)
         isInDb = dbAnnots.checkCoords(beds)
-        #isInDb = dbAnnots.xxx
         if isInDb:
             for gm in groundedMuts:
                 gm.inDb = "invitae"
@@ -90,7 +89,6 @@ def findInLocalFile(inFname, writer, dbAnnots):
         writer.writeBeds(beds)
 
     dbAnnots.writeUnmappedMuts(writer.outFh)
-
 
 def findInLocalDir(inDir, writer, dbAnnots):
     for fname in glob.glob(join(inDir, "*.txt")):
@@ -273,7 +271,12 @@ def main(args, options):
     if isfile(inFname):
         findInLocalFile(inFname, writer, dbAnnots)
     elif isdir(inFname):
-        findInLocalDir(inFname, writer, dbAnnots)
+        inDir = inFname
+        artPath = join(inDir, "articles.db")
+        if isfile(artPath):
+            findInPubStore(inDir, writer, dbAnnots)
+        else:
+            findInLocalDir(inFname, writer, dbAnnots)
     else:
         assert(False)
 

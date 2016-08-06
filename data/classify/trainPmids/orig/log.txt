@@ -205,3 +205,6 @@ rm gwasdb_20140908_annotation
 
 # TAIR (The Arabidopsis Information Resource) - http://arabidopsis.org
 wget https://www.arabidopsis.org/download_files/Public_Data_Releases/TAIR_Data_20140930/Locus_Published_20140930.txt.gz -O - | zcat | cut -f3 | grep -v -i Pubmed | sort -u > pos.tair.txt
+
+# BRCA-LOVD - http://chromium.lovd.nl/LOVD2/cancer/home.php
+cp ~/projects/pubs/analysis/brca/crawl/pmids.txt ./pos.brcaLovd.txt

@@ -54,6 +54,9 @@ issnYearErrorCounts = defaultdict(int)
 # global variable, http userAgent for all requests
 forceUserAgent = None
 
+# global variable that allows to switch off all proxies
+useProxy = True
+
 # name of document crawling status file
 PMIDSTATNAME = "docStatus.tab"
 
@@ -343,7 +346,7 @@ def startFirefox(force=False):
 
     proxy = None
 
-    if pubConf.httpProxy:
+    if pubConf.httpProxy and useProxy:
         proxy = Proxy({'proxyType': ProxyType.MANUAL,
          'httpProxy': pubConf.httpProxy,
          'ftpProxy': pubConf.httpProxy,
@@ -446,7 +449,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
 
     if session is None or newSession:
         session = requests.Session()
-        if pubConf.httpProxy != None:
+        if pubConf.httpProxy != None and useProxy:
             proxies = {'http': pubConf.httpProxy,
              'https': pubConf.httpProxy}
             session.proxies.update(proxies)
@@ -1408,6 +1411,7 @@ def parseDirectories(srcDirs):
         for docId in dirDocIds:
             if docId in seenIds or docId in doneIds:
                 continue
+            assert(not docId.startswith("0")) # PMIDs cannot start with 0
             seenIds.add(docId)
             allDocIds.append( (docId, srcDir) )
             count += 1
@@ -1757,11 +1761,19 @@ class NpgCrawler(Crawler):
         if pageContains(htmlPage, ["make a payment", "purchase this article"]):
             return None
 
+        if pageContains(htmlPage, ["This article appears in"]):
+            finalUrls = findLinksWithUrlPart(htmlPage, "/full/")
+            if len(finalUrls)==0:
+                return None
+            else:
+                htmlPage = httpGetDelay(finalUrls[0], delayTime)
+            
         # try to strip the navigation elements from more recent article html
         html = htmlPage["data"]
         htmlPage["data"] = self._npgStripExtra(html)
         paperData["main.html"] = htmlPage
 
+        url = htmlPage["url"]
         pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
@@ -2694,7 +2706,8 @@ class GenericCrawler(Crawler):
     name = "generic"
     useSelenium = False
 
-    urlPatterns = ['.*/pdf/.*',
+    urlPatterns = [
+     '.*/pdf/.*', \
      '.*current/pdf\\?article.*',
      '.*/articlepdf/.*',
      '.*/_pdf.*',
@@ -2772,7 +2785,7 @@ class GenericCrawler(Crawler):
 
         metaUrl = getMetaPdfUrl(landPage)
 
-        # some hosts do not have PDF links into the citation_pdf_url meta attribute
+        # some hosts do not have PDF links in the citation_pdf_url meta attribute
         if metaUrl is not None:
             isInvalidMeta = False
             ignoreMetaHosts = ["cambridge.org", "degruyter.com", "frontiersin.org"]
@@ -2865,6 +2878,12 @@ class GenericCrawler(Crawler):
         if pageContains(landPage, errTags):
             raise pubGetError('Error Message', 'errorMessage', landPage['url'])
 
+        blockTags = [
+        '<p class="error">Your IP ' # liebertonline
+        ]
+        if pageContains(landPage, blockTags):
+            raise pubGetError("got blocked", "IPblock", landPage["url"])
+
     def crawl(self, url):
         if url.endswith(".pdf"):
             logging.debug("Landing URL is already a PDF")
@@ -2897,6 +2916,10 @@ class GenericCrawler(Crawler):
 
         paperData['main.html'] = landPage
 
+        # XX
+        open('temp.html', "w").write(landPage["data"])
+        asdd
+        
         pdfUrl = self._findPdfLink(landPage)
         if pdfUrl==None:
             logging.info("generic: could not find link to PDF")

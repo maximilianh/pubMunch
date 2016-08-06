@@ -31,6 +31,11 @@ def delOnExit(path):
     atexit.register(delTemp)
     tempPaths.append(path)
 
+def ignoreOnExit(path):
+    " undo delOnExit "
+    global tempPaths
+    tempPaths.remove(path)
+
 def which(program):
     import os
     def is_exe(fpath):
@@ -459,6 +464,7 @@ def appendTsvDict(filename, inDict, headers):
     else:
        outFh = codecs.open(filename, "a", encoding="utf8")
     logging.log(5, "values are: %s" % values)
+    values = [x if x !=None else "" for x in values]
     outFh.write(u"\t".join(values)+"\n")
 
 def appendTsvOrderedDict(filename, orderedDict):
