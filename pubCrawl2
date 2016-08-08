@@ -14,9 +14,9 @@ import pubCrawlLib as scrapeLib
 
 def setOptions(options):
     " configure pubCrawLib "
-    if options.waitTime!=None:
+    if options.waitTime!=-1:
         logging.info("Http delay is set to %d secs from command line." % options.waitTime)
-        scrapeLib.globalForceDelay = options.waitTime
+        scrapeLib.forceDelay = options.waitTime
 
     if options.pause:
         scrapeLib.DO_PAUSE = True
@@ -43,7 +43,7 @@ def testDownload(docId):
     " test crawler on docId, don't write anything to disk. docId can have format <docId>/<crawler> "
     artMeta = scrapeLib.getArticleMeta(docId)
 
-    scrapeLib.globalForceDelay = 0
+    scrapeLib.forceDelay = 3
     if "/" in docId:
         docId, crawlerStr = docId.split("/")
         crawlers = crawlerStr.split(",")
@@ -138,7 +138,7 @@ parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
 
 parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
     type="int", help="number of seconds to wait between http requests, overrides"
-    "all other default delay settings")
+    "all other default delay settings", default=-1)
 
 parser.add_option("", "--test", dest="testDoc", action="store_true", \
     help="test mode, outDir is not a directory but a docId."

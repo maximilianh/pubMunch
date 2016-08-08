@@ -110,7 +110,7 @@ crawlDelays = {
     "elsevier" : 10,
     "wiley" : 10,
     "springer" : 10,
-    "tandf" : 10,
+    "tandf" : 6,
     "karger" : 10,
     "generic" : 5,
     "silverchair" : 10
@@ -122,7 +122,7 @@ crawlDelays.update(pubConf.crawlDelays)
 # default delay secs if nothing else is found
 defaultDelay = 10
 # can be set from outside to force all delays to one fixed number of secs
-globalForceDelay = None
+forceDelay = -1
 
 # filenames of lockfiles
 lockFnames = []
@@ -184,7 +184,11 @@ class pubGetError(Exception):
         self.logMsg = logMsg
         self.detailMsg = detailMsg
     def __str__(self):
-        return unidecode.unidecode(self.longMsg+"/"+self.logMsg+"/"+self.detailMsg)
+        parts = [self.longMsg, self.logMsg, self.detailMsg]
+        parts = [unidecode.unidecode(x) for x in parts if x!=None]
+        partStr = u" / ".join(parts)
+        return partStr
+
     def __repr__(self):
         return str(self)
 
@@ -311,9 +315,10 @@ def getDelaySecs(host, forceDelaySecs):
     or set by-host or some global default if everything fails
     returns number of secs
     """
-    if globalForceDelay!=None:
-        logging.log(5, "delay time is set globally to %d seconds" % globalForceDelay)
-        return globalForceDelay
+    global forceDelay
+    if forceDelay!=-1:
+        logging.log(5, "delay time is set globally to %d seconds" % forceDelay)
+        return forceDelay
     if forceDelaySecs!=None:
         logging.log(5, "delay time is set for this download to %d seconds" % forceDelaySecs)
         return forceDelaySecs
@@ -1549,7 +1554,7 @@ def getHosterIssns(publisherName):
         journalFname = pubConf.journalTable
         if not isfile(journalFname):
             logging.warn("%s does not exist, cannot use ISSNs to assign crawler" % journalFname)
-            return {}, []
+            return {}, set([])
 
         # create two dicts: hoster -> issn -> url
         # and hoster -> urls
@@ -2363,6 +2368,43 @@ class TandfCrawler(Crawler):
     name = "tandf"
     canDoIssns = None
 
+    def _tandfDelay(self):
+        """ return current delay for tandf, depending on current time at west coast
+            can be overriden in pubConf per host-keyword
+
+            ---------- Forwarded message ----------
+            From: Bowler, Tamara <Tamara.Bowler@tandf.co.uk>
+            Date: Mon, Aug 8, 2016 at 1:08 AM
+            Subject: RE: Re: text mining project
+            To: Maximilian Haeussler <max@soe.ucsc.edu>, 
+                "Donahue Walker, Meg" <margaret.walker@taylorandfrancis.com>
+            Cc: "Duce, Helen" <Helen.Duce@tandf.co.uk>, Mihoko Hosoi <Mihoko.Hosoi@ucop.edu>
+            Hi Max (and all),
+            My apologies for the late response, details for throttling rates:
+            1.       Regular Rate - the crawl is (not to exceed) 1 request every 6 seconds
+            Monday through Friday: From Midnight - Noon in the "America/Los_Angeles" timezone
+            2.       Fast Rate - the crawl is (not to exceed) 1 request every 2 seconds
+            Monday through Friday: From Noon - Midnight in the "America/Los_Angeles" timezone
+            Saturday through Sunday: All day
+            Please let me know if you still have any remaining queries.
+            Thanks,
+            Tamara
+ 
+        """
+        os.environ['TZ'] = 'US/Western'
+        if hasattr(time, "tzset"):
+            time.tzset()
+        tm = time.localtime()
+        if tm.tm_wday in [5,6]:
+            delay=2
+        else:
+            if tm.tm_hour >= 0 and tm.tm_hour <= 12:
+                delay = 2
+            else:
+                delay = 6
+        logging.log(5, "current tandf delay time is %d" % (delay))
+        return delay
+
     def canDo_article(self, artMeta):
         doi = artMeta["doi"]
         if artMeta["doi"]!="" and (doi.startswith("10.1080/") or doi.startswith("10.3109/")):
@@ -2406,7 +2448,7 @@ class TandfCrawler(Crawler):
 
     def crawl(self, url):
         paperData = OrderedDict()
-        delayTime = crawlDelays["tandf"]
+        delayTime = self._tandfDelay()
 
         url = url.replace("/abs/", "/full/")
 
@@ -2916,10 +2958,6 @@ class GenericCrawler(Crawler):
 
         paperData['main.html'] = landPage
 
-        # XX
-        open('temp.html', "w").write(landPage["data"])
-        asdd
-        
         pdfUrl = self._findPdfLink(landPage)
         if pdfUrl==None:
             logging.info("generic: could not find link to PDF")
