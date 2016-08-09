@@ -57,14 +57,20 @@ forceUserAgent = None
 # global variable that allows to switch off all proxies
 useProxy = True
 
+# Some crawlers can fall back to Selenium, a virtualized firefox.
+# However, currently I don't know how to get PDFs from this Firefox
+# and it leaves many crashed firefox instances. Therefore, 
+# Selenium is disabled for now.
+allowSelenium = False
+
 # name of document crawling status file
 PMIDSTATNAME = "docStatus.tab"
 
 # name of issn status file
 ISSNSTATNAME = "issnStatus.tab"
 
-# maximum of suppl files, based on EMBO which had an article with 37 suppl.
-SUPPFILEMAX = 50
+# maximum of suppl files, based on EMBO which had an article with 37 suppl. files
+SUPPFILEMAX = 40
 
 # max. length of any suppl file
 SUPPFILEMAXSIZE = 30000000
@@ -193,7 +199,6 @@ class pubGetError(Exception):
         return str(self)
 
 # ===== FUNCTIONS =======
-
 def resolveDoiWithSfx(sfxServer, doi):
     " return the fulltext url for doi using the SFX system "
     logging.debug("Resolving doi %s with SFX" % doi)
@@ -358,6 +363,11 @@ def startFirefox(force=False):
          'sslProxy': pubConf.httpProxy})
 
     if not browser or force:
+        # reduce logging
+        # http://stackoverflow.com/questions/9226519/turning-off-logging-in-selenium-from-python
+        from selenium.webdriver.remote.remote_connection import LOGGER
+        LOGGER.setLevel(logging.WARNING)
+
         logging.info('Starting firefox on pseudo-display')
         browser = webdriver.Firefox(proxy=proxy)
 
@@ -380,15 +390,15 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
 
             browser.get(url)
             page['seleniumDriver'] = browser
-            page['url'] = browser.current_url  # these calls can throw http errors, too
             page['data'] = browser.page_source # these calls can throw http errors, too
             page['mimeType'] = 'unknown'
+            page['url'] = browser.current_url  # these calls can throw http errors, too
             break
 
         except (requests.Timeout, timeout):
             logging.warn('timeout from selenium')
             count += 1
-        except httplib.CannotSendRequest:
+        except (httplib.CannotSendRequest, httplib.BadStatusLine):
             logging.warn("Selenium's firefox died, restarting")
             count += 1
             browser = startFirefox(force=True)
@@ -438,6 +448,21 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cook
         raise pubGetError('Could not get URL %s' % url, 'illegalUrl')
     return page
 
+# http request with timeout, copied from
+# http://stackoverflow.com/questions/21965484/timeout-for-python-requests-get-entire-response
+class TimeoutException(Exception):
+    """ Simple Exception to be called on timeouts. """
+    pass
+
+def _httpTimeout(signum, frame):
+    """ Raise an TimeoutException.
+    This is intended for use as a signal handler.
+    The signum and frame arguments passed to this are ignored.
+    """
+    # Raise TimeoutException with system default timeout message
+    raise TimeoutException()
+# -- end stackoverflow
+
 session = None
 
 def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
@@ -455,24 +480,35 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
     if session is None or newSession:
         session = requests.Session()
         if pubConf.httpProxy != None and useProxy:
-            proxies = {'http': pubConf.httpProxy,
-             'https': pubConf.httpProxy}
+            proxies = {
+             'http': pubConf.httpProxy,
+             'https': pubConf.httpProxy
+             }
             session.proxies.update(proxies)
 
     tryCount = 0
     r = None
 
+    # Set the handler for the SIGALRM signal and set it to 30 secs
+    signal.signal(signal.SIGALRM, _httpTimeout)
+    signal.alarm(30)
+
     while tryCount < 5:
         try:
-            r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True)
+            r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True, timeout=30)
             break
         except (requests.exceptions.ConnectionError,
          requests.exceptions.TooManyRedirects,
          requests.exceptions.Timeout,
-         requests.exceptions.RequestException):
+         requests.exceptions.RequestException,
+         TimeoutException
+         ):
             tryCount += 1
             logging.info('HTTP error, retry number %d' % tryCount)
             time.sleep(3)
+
+    # stop the alarm
+    signal.alarm(0)
 
     if r == None:
         raise pubGetError('HTTP error on %s' % url, 'httpError', url)
@@ -1325,9 +1361,9 @@ def checkIssnErrorCounts(pubmedMeta, ignoreIssns, outDir):
 
 def resolveDoi(doi):
     """ resolve a DOI to the final target url or None on error
-    #>>> resolveDoi("10.1073/pnas.1121051109")
     >>> logging.warn("doi test")
-    >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x")
+    >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x").split(";")[0]
+    u'http://onlinelibrary.wiley.com/doi/10.1111/j.1440-1754.2010.01952.x/abstract'
     """
     logging.debug("Resolving DOI %s" % doi)
     doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
@@ -1941,12 +1977,13 @@ class HighwireCrawler(Crawler):
 
             # try the vol/issue/page, is a lot faster
             vol = artMeta.get("vol", "")
-            issue = artMeta.get("issue", "")
+            issue = artMeta.get("issue", "").replace("Pt ", "") # PMID 26205837
             page = artMeta.get("page", "")
             if (vol, issue, page) != ("", "", ""):
                 url = "%s/content/%s/%s/%s.long" % (baseUrl, vol, issue, page)
                 page = httpGetDelay(url, delayTime)
-                if page != None:
+                notFoundMsgs = ["<li>Page Not Found</li>"]
+                if page!=None and not pageContains(page, notFoundMsgs):
                     return url
 
             if "pmid" in artMeta:
@@ -1981,6 +2018,10 @@ class HighwireCrawler(Crawler):
             stopWords = [aaasStr, aacrStr]
             if pageContains(htmlPage, stopWords):
                 raise pubGetError("no license for this article", "noLicense")
+
+            notFounds = ["<li>Page Not Found</li>"]
+            if pageContains(htmlPage, notFounds):
+                raise pubGetError("page not found error", "highwirePageNotFound")
 
             if pageContains(htmlPage, ["We are currently doing routine maintenance"]):
                 time.sleep(600)
@@ -2558,7 +2599,7 @@ class KargerCrawler(Crawler):
         page["url"] = response.url
         page["mimeType"] = response.headers["content-type"].split(";")[0]
 
-        if "Incapsula incident" in page["data"]:
+        if "Incapsula incident" in page["data"] and allowSelenium:
             self.useSelenium = True
             page = httpGetSelenium(url, delaySecs)
 
@@ -2921,9 +2962,13 @@ class GenericCrawler(Crawler):
             raise pubGetError('Error Message', 'errorMessage', landPage['url'])
 
         blockTags = [
-        '<p class="error">Your IP ' # liebertonline
+        '<p class="error">Your IP ' # liebertonline 24621145 
         ]
         if pageContains(landPage, blockTags):
+            # XX
+            ofh = open("temp.html", "w")
+            ofh.write(landPage["data"])
+            # XX
             raise pubGetError("got blocked", "IPblock", landPage["url"])
 
     def crawl(self, url):
