@@ -2965,10 +2965,6 @@ class GenericCrawler(Crawler):
         '<p class="error">Your IP ' # liebertonline 24621145 
         ]
         if pageContains(landPage, blockTags):
-            # XX
-            ofh = open("temp.html", "w")
-            ofh.write(landPage["data"])
-            # XX
             raise pubGetError("got blocked", "IPblock", landPage["url"])
 
     def crawl(self, url):
