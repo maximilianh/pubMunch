@@ -99,7 +99,7 @@ def getImages(pdfName):
         maxCommon.runCommand(cmd)
 
         x, y = pngDimensions(thumbFName)
-        pngBlob = open(outFname).read()
+        pngBlob = open(thumbFName).read()
         md5Str = makeMd5(pngBlob)
 
         data.append( (imgId, 1, x, y, md5Str, pngBlob) )
