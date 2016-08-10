@@ -1,0 +1,7 @@
+ls files/*.img.db  > files.txt
+# get list of all MD5s
+cat files.txt | xargs -n 1 -I FILE sqlite3 -separator ' ' build/FILE 'select pmid, md5 from img where isThumb=0;' > md5List.txt
+# get their counts
+cut -f2 -d' '  md5List.txt | tabUniq -rs > md5Counts.txt
+# and take only those that appear at least three times
+less md5Counts.txt | gawk '($2>=3) {print $1}' > blacklistMd5.txt
