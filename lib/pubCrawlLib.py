@@ -3088,6 +3088,9 @@ class GenericCrawler(Crawler):
 
         paperData['main.html'] = landPage
 
+        # XX
+        open('temp.html', "w").write(landPage["data"])
+        
         pdfUrl = self._findPdfLink(landPage)
         if pdfUrl==None:
             logging.info("generic: could not find link to PDF")
