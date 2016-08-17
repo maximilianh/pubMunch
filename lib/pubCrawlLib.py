@@ -1494,7 +1494,7 @@ def findLinksWithUrlPart(page, searchText, canBeOffsite=False):
     if len(urls)!=0:
         logging.debug("Found links with %s in URL: %s" % (repr(searchText), urls))
     else:
-        logging.debug("Found no links with %s in URL" % searchText)
+        logging.log(5, "Found no links with %s in URL" % searchText)
     return urls
 
 def findLinksWithUrlRe(page, searchRe):
@@ -1513,7 +1513,7 @@ def findLinksWithUrlRe(page, searchRe):
     if len(urls) != 0:
         logging.debug('Found links with %s in URL: %s' % (repr(searchRe.pattern), urls))
     else:
-        logging.debug('Found no links with %s in URL' % searchRe.pattern)
+        logging.log(5, 'Found no links with %s in URL' % searchRe.pattern)
     return urls
 
 
@@ -1836,22 +1836,37 @@ class ElsevierCrawler(Crawler):
             return False
 
     def crawl(self, url):
-        # this is a weird prefix that gets added only when the useragent is genomeBot
-        # strip this for now as it happens in testing sometimes
-        url = url.replace("http%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2F", "")
-
-        paperData = OrderedDict()
         delayTime = crawlDelays["elsevier"]
         agent = 'Googlebot/2.1 (+http://www.googlebot.com/bot.html)' # do not use new .js interface
+        # this is a weird prefix that gets added only when the useragent is genomeBot
+        # strip this for now as it happens in testing sometimes
+        # http://linkinghub.elsevier.com/retrieve/pii/http%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2FS1044532307000115
+        # This also works around splash page
+        # e.g. http://linkinghub.elsevier.com/retrieve/pii/S1044532307000115
+        # (only shown for IP of UCSC, not at Stanford)
+
+        if "linkinghub" in url:
+            logging.debug("Working around splash page")
+            if "%2F" in url:
+                parts = url.split("%2F")
+            else:
+                parts = url.split("/")
+            if len(parts)>1:
+                url = "http://www.sciencedirect.com/science/article/pii/"+parts[-1]
+                htmlPage = httpGetDelay(url, delayTime, userAgent=agent)
+
+        paperData = OrderedDict()
         htmlPage = httpGetDelay(url, delayTime, userAgent=agent)
+        open("temp.txt", "w").write(htmlPage["data"])
 
         if pageContains(htmlPage, ["Choose an option to locate/access this article:",
-            "purchase this article", "Purchase PDF"]):
-            raise pubGetError("no License", "noLicense")
+            "purchase this article", "Purchase PDF", 
+            "ShoppingCartURL"]):
+            raise pubGetError("no Elsevier License", "noElsevierLicense")
         if pageContains(htmlPage, ["Sorry, the requested document is unavailable."]):
             raise pubGetError("document is not available", "documentUnavail")
         if pageContains(htmlPage, ["was not found on this server"]):
-            raise pubGetError("Elsevier error", "elsevierError")
+            raise pubGetError("Elsevier page not found", "elsevierPageNotFound", htmlPage["url"])
 
         # strip the navigation elements from the html
         html = htmlPage["data"]
