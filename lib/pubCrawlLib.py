@@ -1888,6 +1888,8 @@ class ElsevierCrawler(Crawler):
             logging.debug("Could not find elsevier PDF")
         else:
             pdfUrl = pdfEl["href"]
+            if pdfUrl.startswith("//"):
+                pdfUrl = "http:"+pdfUrl
             logging.debug("Elsevier PDF URL seems to be %s" % pdfUrl)
             pdfUrl = urlparse.urljoin(htmlPage["url"], url)
             pdfPage = httpGetDelay(pdfUrl, delayTime, userAgent=agent, referer=htmlPage["url"])
