@@ -1857,11 +1857,10 @@ class ElsevierCrawler(Crawler):
 
         paperData = OrderedDict()
         htmlPage = httpGetDelay(url, delayTime, userAgent=agent)
-        open("temp.txt", "w").write(htmlPage["data"])
+        #open("temp.txt", "w").write(htmlPage["data"])
 
         if pageContains(htmlPage, ["Choose an option to locate/access this article:",
-            "purchase this article", "Purchase PDF", 
-            "ShoppingCartURL"]):
+            "purchase this article", "Purchase PDF"]):
             raise pubGetError("no Elsevier License", "noElsevierLicense")
         if pageContains(htmlPage, ["Sorry, the requested document is unavailable."]):
             raise pubGetError("document is not available", "documentUnavail")
