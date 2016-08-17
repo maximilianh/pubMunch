@@ -1831,6 +1831,9 @@ class NpgCrawler(Crawler):
 class ElsevierCrawler(Crawler):
     """ sciencedirect.com is Elsevier's hosting platform 
     This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
+
+    PMID that works: 8142468
+    no license: 9932421
     """
     name = "elsevier"
 
