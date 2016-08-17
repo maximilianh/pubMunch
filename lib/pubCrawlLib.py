@@ -493,7 +493,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
     signal.signal(signal.SIGALRM, _httpTimeout)
     signal.alarm(30)
 
-    while tryCount < 5:
+    while tryCount < 3:
         try:
             r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True, timeout=30)
             break
@@ -1836,6 +1836,10 @@ class ElsevierCrawler(Crawler):
             return False
 
     def crawl(self, url):
+        # this is a weird prefix that gets added only when the useragent is genomeBot
+        # strip this for now as it happens in testing sometimes
+        url = url.replace("http%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2F", "")
+
         paperData = OrderedDict()
         delayTime = crawlDelays["elsevier"]
         agent = 'Googlebot/2.1 (+http://www.googlebot.com/bot.html)' # do not use new .js interface
@@ -1846,6 +1850,8 @@ class ElsevierCrawler(Crawler):
             raise pubGetError("no License", "noLicense")
         if pageContains(htmlPage, ["Sorry, the requested document is unavailable."]):
             raise pubGetError("document is not available", "documentUnavail")
+        if pageContains(htmlPage, ["was not found on this server"]):
+            raise pubGetError("Elsevier error", "elsevierError")
 
         # strip the navigation elements from the html
         html = htmlPage["data"]
@@ -2199,6 +2205,9 @@ class WileyCrawler(Crawler):
         if "temporarily unavailable" in mainPage["data"]:
             logging.info("Article page not found")
             return None
+
+        if "We're sorry, the page you've requested does not exist at this address." in mainPage["data"]:
+            raise pubGetError("Invalid landing page", "wileyInvalidLanding", mainUrl)
 
         # strip the navigation elements from the html
         absHtml = htmlExtractPart(mainPage, "div", {"id":"articleDesc"})
@@ -2579,7 +2588,8 @@ class KargerCrawler(Crawler):
                     response = crack(self.session, response)  # url is no longer blocked by incapsula
                     #response = self.session.get(url)
                     break
-                except requests.exceptions.ConnectionError:
+                except (requests.exceptions.ConnectionError,
+                    requests.exceptions.ChunkedEncodingError):
                     count +=1
                     logging.warn("Got connection error when trying to get Karger page, retrying...")
         else:
@@ -2603,8 +2613,8 @@ class KargerCrawler(Crawler):
             self.useSelenium = True
             page = httpGetSelenium(url, delaySecs)
 
-        if "Incapsula incident" in page["data"]:
-            raise pubGetError("Got blocked by Incapsula even with selenium", "incapsulaBlockFirefox")
+            if "Incapsula incident" in page["data"]:
+                raise pubGetError("Got blocked by Incapsula even with selenium", "incapsulaBlockFirefox")
 
         if "Sorry no product could be found for issn" in page["data"]:
             raise pubGetError("Not a karger journal", "notKargerJournal")
@@ -3174,7 +3184,7 @@ def crawlOneDoc(artMeta, srcDir, forceCrawlers=None):
                 url = getLandingUrlSearchEngine(artMeta)
 
         # now run the crawler on the landing URL
-        logging.info("Crawling base URL %s" % str(url))
+        logging.info(u'Crawling base URL %s' % url)
         paperData = None
 
         try:
