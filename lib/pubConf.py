@@ -94,6 +94,12 @@ medlineDbPath = join(textDir, "medline", "medline.db")
 
 # CRAWLER SETTINGS ==================================================
 
+# only needed for Elsevier crawling.
+# get your own key from 
+# https://www.elsevier.com/about/company-information/policies/text-and-data-mining
+# then paste it here
+elsevierApiKey = None
+
 # the useragent to use for http requests
 httpUserAgent = 'genomeBot/0.1 (YOUREMAIL, YOURWEB, YOURPHONE)'
 

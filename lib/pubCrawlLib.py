@@ -466,6 +466,17 @@ def _httpTimeout(signum, frame):
 
 session = None
 
+def httpResetSession():
+    " reset the http session, e.g. deletes all cookies "
+    global session
+    session = requests.Session()
+    if pubConf.httpProxy != None and useProxy:
+        proxies = {
+         'http': pubConf.httpProxy,
+         'https': pubConf.httpProxy
+         }
+        session.proxies.update(proxies)
+
 def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, accept=None):
     """
     download a url with the requests module, return a dict with the keys
@@ -482,13 +493,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
         headers['Accept'] = accept
 
     if session is None or newSession:
-        session = requests.Session()
-        if pubConf.httpProxy != None and useProxy:
-            proxies = {
-             'http': pubConf.httpProxy,
-             'https': pubConf.httpProxy
-             }
-            session.proxies.update(proxies)
+        httpResetSession()
 
     tryCount = 0
     r = None
@@ -1620,7 +1625,7 @@ def pageContains(page, strList):
     " check if page contains one of a list of strings "
     for text in strList:
         if text in page["data"]:
-            logging.log(5, "Found string %s" % text)
+            logging.debug("Found string %s in page" % text)
             return True
     return False
 
@@ -1860,6 +1865,9 @@ class ElsevierApiCrawler(Crawler):
 class ElsevierCrawler(Crawler):
     """ sciencedirect.com is Elsevier's hosting platform 
     This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
+
+    PMID that works: 8142468
+    no license: 9932421
     """
     name = "elsevier"
 
@@ -1871,7 +1879,8 @@ class ElsevierCrawler(Crawler):
 
     def crawl(self, url):
         delayTime = crawlDelays["elsevier"]
-        agent = 'Googlebot/2.1 (+http://www.googlebot.com/bot.html)' # do not use new .js interface
+        #agent = 'Googlebot/2.1 (+http://www.googlebot.com/bot.html)' # do not use new .js interface
+        agent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
         # this is a weird prefix that gets added only when the useragent is genomeBot
         # strip this for now as it happens in testing sometimes
         # http://linkinghub.elsevier.com/retrieve/pii/http%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2FS1044532307000115
@@ -1887,8 +1896,8 @@ class ElsevierCrawler(Crawler):
                 parts = url.split("/")
             if len(parts)>1:
                 url = "http://www.sciencedirect.com/science/article/pii/"+parts[-1]
-                htmlPage = httpGetDelay(url, delayTime, userAgent=agent)
 
+        url = url+"?np=y" # request screen reader version
         paperData = OrderedDict()
         htmlPage = httpGetDelay(url, delayTime, userAgent=agent)
         #open("temp.txt", "w").write(htmlPage["data"])
@@ -1911,11 +1920,16 @@ class ElsevierCrawler(Crawler):
         paperData["main.html"] = htmlPage
 
         # main PDF
-        pdfEl = bs.find("a", id="pdfLink")
-        if pdfEl!=None:
+        pdfEl = bs.find("a", attrs={"class":"pdf-link track-usage usage-pdf-link article-download-switch pdf-download-link"})
+        if pdfEl==None:
+            logging.debug("Could not find elsevier PDF")
+        else:
             pdfUrl = pdfEl["href"]
+            if pdfUrl.startswith("//"):
+                pdfUrl = "http:"+pdfUrl
+            logging.debug("Elsevier PDF URL seems to be %s" % pdfUrl)
             pdfUrl = urlparse.urljoin(htmlPage["url"], url)
-            pdfPage = httpGetDelay(pdfUrl, delayTime, userAgent=agent)
+            pdfPage = httpGetDelay(pdfUrl, delayTime, userAgent=agent, referer=htmlPage["url"])
             paperData["main.pdf"] = pdfPage
             # the PDF link becomes invalid after 10 minutes, so direct users
             # to html instead when they select a PDF
@@ -3026,6 +3040,8 @@ class GenericCrawler(Crawler):
             raise pubGetError("got blocked", "IPblock", landPage["url"])
 
     def crawl(self, url):
+        httpResetSession() # liebertonline tracks usage with cookies. Cookie reset gets around limits
+
         if url.endswith(".pdf"):
             logging.debug("Landing URL is already a PDF")
             return self._wrapPdfUrl(url)
