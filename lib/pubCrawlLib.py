@@ -114,6 +114,7 @@ crawlDelays = {
     "npg" : 10,
     "nejm" : 10,
     "elsevier" : 10,
+    "elsevier-api" : 0,
     "wiley" : 10,
     "springer" : 10,
     "tandf" : 6,
@@ -415,7 +416,7 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
         page['data'] = page['data'].encode('utf8')
     return page
 
-def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None, newSession=False):
+def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cookies=None, userAgent=None, referer=None, newSession=False, accept=None):
     """ download with curl or wget and make sure that delaySecs (global var)
     secs have passed between two calls special cases for highwire hosts and
     some hosts configured in config file.
@@ -443,7 +444,7 @@ def httpGetDelay(url, forceDelaySecs=None, mustGet=False, blockFlash=False, cook
             userAgent = forceUserAgent
     if blockFlash:
         userAgent = 'Mozilla/5.0(iPad; U; CPU iPhone OS 3_2 like Mac OS X; en-us) AppleWebKit/531.21.10 (KHTML, like Gecko) Version/4.0.4 Mobile/7B314 Safari/531.21.10'
-    page = httpGetRequest(url, userAgent, cookies, referer=referer, newSession=newSession)
+    page = httpGetRequest(url, userAgent, cookies, referer=referer, newSession=newSession, accept=accept)
     if mustGet and page == None:
         raise pubGetError('Could not get URL %s' % url, 'illegalUrl')
     return page
@@ -465,7 +466,7 @@ def _httpTimeout(signum, frame):
 
 session = None
 
-def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
+def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, accept=None):
     """
     download a url with the requests module, return a dict with the keys
     url, mimeType, charset and data
@@ -476,6 +477,9 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False):
 
     if referer is not None:
         headers['referer'] = referer
+
+    if accept is not None:
+        headers['Accept'] = accept
 
     if session is None or newSession:
         session = requests.Session()
@@ -1823,6 +1827,36 @@ class NpgCrawler(Crawler):
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
         return paperData
 
+class ElsevierApiCrawler(Crawler):
+    
+    name = "elsevier-api"
+
+    def canDo_url(self, url):
+        if "sciencedirect.com" in url:
+	    return pubConf.elsevierApiKey is not None
+	else:
+	    return False
+
+    def crawl(self, url):
+        delayTime = crawlDelays["elsevier-api"]
+	pdfUrl = None
+        if "%2F" in url:
+            parts = url.split("%2F")
+        else:
+            parts = url.split("/")
+        if len(parts)>1:
+            pdfUrl = 'https://api.elsevier.com/content/article/pii/%s?apiKey=%s' % (parts[-1], pubConf.elsevierApiKey)
+        if pdfUrl is None:
+            raise pubGetError("no PII for Elsevier article", "noElsevierPII")
+
+        paperData = OrderedDict()
+        pdfPage = httpGetDelay(pdfUrl, delayTime, accept='application/pdf')
+        paperData["main.pdf"] = pdfPage
+        paperData["main.pdf"]["url"] = pdfUrl
+
+        return paperData
+
+
 class ElsevierCrawler(Crawler):
     """ sciencedirect.com is Elsevier's hosting platform 
     This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
@@ -3081,7 +3115,7 @@ class GenericCrawler(Crawler):
 # the list of all crawlers
 # order is important: the most specific crawlers come first
 allCrawlers = [
-    ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
+    ElsevierApiCrawler(), ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
     WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), TandfCrawler(),\
     KargerCrawler(), PmcCrawler(), GenericCrawler() ]
 
