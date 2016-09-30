@@ -72,8 +72,8 @@ ISSNSTATNAME = "issnStatus.tab"
 # maximum of suppl files, based on EMBO which had an article with 37 suppl. files
 SUPPFILEMAX = 40
 
-# max. length of any suppl file
-SUPPFILEMAXSIZE = 30000000
+# max. size of any suppl file before conversion
+SUPPFILEMAXSIZE = 50000000
 
 # max number of consecutive errors
 # will abort if exceeded
@@ -1018,7 +1018,7 @@ def blacklistIssnYear(outDir, issnYear, journal):
         colCount = 3
 
     if colCount == 3:
-        outFh.write("%s\t%s\t%s\n" % (issn, year, journal))
+        outFh.write("%s\t%s\t%s\n" % (issn, year, unidecode.unidecode(journal)))
     else:
         outFh.write("%s\t%s\n" % (issn, year))
     outFh.close()
@@ -1105,7 +1105,7 @@ def isPdf(page):
     return page["data"][:4]=="%PDF"
 
 def mustBePdf(pageDict, metaData):
-    " bail out if pageDict is not a PDF file and has correct mime type "
+    " bail out if pageDict is not a PDF file. Also set the mime type. "
     if isPdf(pageDict):
         pageDict["mimeType"] = "application/pdf"
     else:
@@ -1837,6 +1837,15 @@ class ElsevierCrawler(Crawler):
     """
     name = "elsevier"
 
+    def canDo_article(self, artMeta):
+        " return true if DOI prefix is by elsevier "
+        pList = ["10.1378", "10.1016", "10.1038"]
+        for prefix in pList:
+            if artMeta["doi"].startswith(prefix):
+                return True
+
+        return None
+
     def canDo_url(self, url):
         if "sciencedirect.com" in url:
             return True
@@ -1854,6 +1863,11 @@ class ElsevierCrawler(Crawler):
         # e.g. http://linkinghub.elsevier.com/retrieve/pii/S1044532307000115
         # (only shown for IP of UCSC, not at Stanford)
 
+        # fix issue that only happens at UCSC: remove garbage from link
+        url = url.replace("http%3A%2F%2Fwww.sciencedirect.com%2Fscience%2Farticle%2Fpii%2F","")
+
+        # sometimes there is a splash page that lets user choose between sciencedirect
+        # and original journal
         if "linkinghub" in url:
             logging.debug("Working around splash page")
             if "%2F" in url:
@@ -2625,7 +2639,8 @@ class KargerCrawler(Crawler):
                 try:
                     response = self.session.get(url)
                     break
-                except requests.exceptions.ConnectionError:
+                except (requests.exceptions.ConnectionError,
+                    requests.exceptions.ChunkedEncodingError):
                     count +=1
                     logging.warn("Got connection error when trying to get Karger page, retrying...")
 
