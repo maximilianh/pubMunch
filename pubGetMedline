@@ -18,7 +18,8 @@ import pubGeneric, pubConf, maxXml, maxCommon, util
 # === CONSTANTS ===
 medlineSrv = 'ftp.nlm.nih.gov'
 baselinePath= '/nlmdata/.medleasebaseline/gz'
-updatePath= '/nlmdata/.medlease/gz'
+updatePath= '/pubmed/updatefiles'
+
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current Medline copy from Medline ftp server. optionally download full baseline medline. Uses lftp.
