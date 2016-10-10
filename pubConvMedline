@@ -186,8 +186,7 @@ def main(args,options):
         updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
         updateIds = [updateId]
         pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)
-        if not options.noDb:
-            pubStore.updateSqlite(outDir)
+        # pubStore.updateSqlite(outDir)
 
         #if options.crawlDir:
             #pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)
