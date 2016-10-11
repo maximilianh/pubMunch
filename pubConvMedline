@@ -47,6 +47,7 @@ parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="n
 #parser.add_option("-u", "--updateCrawler", metavar="CRAWLDIR", dest="crawlDir", action="store", help="go over all subdirs of crawlDir, update all pmids.txt with pmids of ISSNs in issns.tab") 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("", "--auto", dest="auto", action="store_true", help="predefine in and out dir based on pubConf.py config file") 
+parser.add_option("", "--noDb", dest="noDb", action="store_true", help="do not create the sqlite db") 
 #parser.add_option("-u", "--updateDb", dest="updateDb", action="store_true", help="export new data to sqlite db defined in pubConf") 
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
@@ -185,7 +186,8 @@ def main(args,options):
         updateId = submitJobs(inDir, outDir, minId, maxIdPerFile, options.cluster)
         updateIds = [updateId]
         pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)
-        pubStore.updateSqlite(outDir)
+        if not options.noDb:
+            pubStore.updateSqlite(outDir)
 
         #if options.crawlDir:
             #pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)

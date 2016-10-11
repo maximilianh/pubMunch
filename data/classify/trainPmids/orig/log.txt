@@ -208,3 +208,12 @@ wget https://www.arabidopsis.org/download_files/Public_Data_Releases/TAIR_Data_2
 
 # BRCA-LOVD - http://chromium.lovd.nl/LOVD2/cancer/home.php
 cp ~/projects/pubs/analysis/brca/crawl/pmids.txt ./pos.brcaLovd.txt
+
+# OncoKb - http://oncokb.org
+# by email from JianJong Gao jgao@cbio.mskcc.org
+#
+
+# gene to phenotype - www.ebi.ac.uk/gene2phenotype
+wget http://www.ebi.ac.uk/gene2phenotype/downloads/DDG2P.csv.gz
+cut DDG2P.tsv -f10 | tr ';' '\n' | sort -u | grep -v pmids > pos.ddg2p.txt
+zcat DDG2P.csv.gz | csvToTab /dev/stdin > pos.ddg2p.txt
