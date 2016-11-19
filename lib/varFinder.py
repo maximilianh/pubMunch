@@ -1053,6 +1053,7 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
         if not geneSym:
             logger.warn("No symbol for entrez gene %s. Skipping gene." % str(entrezGene))
             continue
+        
         db, protIds = checkAminAcidAgainstSequence(variant, entrezGene, geneSym)
 
         if len(protIds)!=0:
@@ -1063,12 +1064,12 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
             else:
                 assert(False)
             # if needed, map to current refseq from uniprot or genbank or oldRefseq
-            #else:
-                #protVars = mapToRefProt(db, variant, protIds)
-                #comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
-                #if protVars==None:
-                    #logger.warn("found seqs, but no PSLs for %s" % protIds)
-                    #continue
+            # else:
+                # protVars = mapToRefProt(db, variant, protIds)
+                # comment  = "mapped via %s, IDs: %s" % (db, ",".join(protIds))
+                # if protVars==None:
+                    # logger.warn("found seqs, but no PSLs for %s" % protIds)
+                    # continue
 
             # map variants to coding and rna sequence coordinates
             varId              = str(docId)
@@ -1088,6 +1089,8 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
             groundedMuts.append(groundedVar)
             allBeds.extend(beds)
             groundSuccess=True
+        else:
+            logger.debug("Len of protIds is 0")
 
     #if not groundSuccess:
         #ungroundedMuts.append((variant,  mentions))

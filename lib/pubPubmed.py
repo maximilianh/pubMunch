@@ -78,12 +78,7 @@ def parseMedline(xmlParser):
         
     data["vol"]         = journalTree.getTextFirst("JournalIssue/Volume", default="")
     data["issue"]       = journalTree.getTextFirst("JournalIssue/Issue", default="")
-    data["year"]        = journalTree.getTextFirst("JournalIssue/PubDate/Year", default="")
-    if data["year"]=="":
-        year = journalTree.getTextFirst("JournalIssue/PubDate/MedlineDate", default="").split()[0]
-        if not year.isdigit():
-            year = ""
-        data["year"] = year
+    data["year"]        = medlineData.getTextFirst("DateCreated/Year", default="") + " " + medlineData.getTextFirst("DateCreated/Month", default="")
     data["journal"]     = journalTree.getTextFirst("Title", default="")
     data["page"]        = artTree.getTextFirst("Pagination/MedlinePgn", default="")
 
