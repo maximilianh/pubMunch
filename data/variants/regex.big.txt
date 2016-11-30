@@ -773,3 +773,4 @@ prot	sub	MF_WRESPPOS, and RESPOS, to MRES	{sep}{origAaLong}{pos}, and {skipAa}([
 prot	sub	MF_WRESPPOS, RESPOS, and RESPOS, to MRES	{sep}{origAaLong}{pos}, {skipAa}([1-9][0-9]*), and {skipAa}([1-9][0-9]*), to {mutAaLong}
 prot	sub	MF_WRESPPOS, RESPOS, RESPOS, and RESPOS, to MRES	{sep}{origAaLong}{pos}, {skipAa}([1-9][0-9]*), {skipAa}([1-9][0-9]*), and {skipAa}([1-9][0-9]*), to {mutAaLong}
 dbSnp	dbSnp	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})
+
