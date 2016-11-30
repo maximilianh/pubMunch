@@ -1,18 +1,20 @@
 seqType	mutType	patName	pat
-dna	del		{sep}c\.{fromPos}_{toPos}del{origDna}+
-dna	ins		{sep}c\.{fromPos}_{toPos}ins{origDna}+
-prot	del		{sep}p\.{fromPos}_{toPos}del{origAaShort}+
-prot	ins		{sep}p\.{fromPos}_{toPos}ins{dna}+
-prot	sub		{sep}p\.\(?{origAaShort}{pos}{mutAaShort}{fs}
-prot	sub		{sep}{origAaShort}{pos}{mutAaShort}
-prot	sub		{sep}{origAaLong}{pos}{mutAaLong}
-prot	sub		{sep}p\.\(?{origAaLong}{pos}{mutAaLong}{fs}
-prot	sub	11005141	{origAaLong}\u2192{mutAaLong}
-dna	sub		substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}
-dna	del	10083731	deletion of nt{pos}{origDna}
-dna	sub	c.123T>A	{sep}c\.{pos}{origDna}>{mutDna}
-dna	sub	c.123TrA (r is ->, ocr error)	{sep}c\.{pos}{origDna}r{mutDna}
-dna	sub	c.123T(RIGHT ARROW)2192A	{sep}c\.{pos}{origDna}\u2192{mutDna}
-#dna	sub	10090526	codon {pos} {origCodon}-{mutCodon}
-#dna	sub	11005141	{origCodon}\u2192{mutCodon}
-dbSnp	dbSnp	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})
+dna	del	10083731	deletion of nt{pos}{origDnas}{sep}
+dna	del		{sep}c\.{fromPos}_{toPos}del{origDnas}{sep}
+prot	del		{sep}p\.{fromPos}_{toPos}del{origAasShort}{sep}
+prot	del		{sep}p\.{fromPos}_{toPos}del{origAasLong}{sep}
+dna	ins		{sep}c\.{fromPos}_{toPos}ins{dnas}{sep}
+prot	ins		{sep}p\.{fromPos}_{toPos}ins{mutAasShort}{sep}
+prot	ins		{sep}p\.{fromPos}_{toPos}ins{mutAasLong}{sep}
+dna	sub		substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}{sep}
+dna	sub	c.123T>A	{sep}c\.{pos}{origDna}>{mutDna}{sep}
+dna	sub	c.123TrA (r is ->, ocr error)	{sep}c\.{pos}{origDna}r{mutDna}{sep}
+dna	sub	c.123T(RIGHT ARROW)2192A	{sep}c\.{pos}{origDna}\u2192{mutDna}{sep}
+#dna	sub	10090526	codon {pos} {origCodon}-{mutCodon}{sep}
+#dna	sub	11005141	{origCodon}\u2192{mutCodon}{sep}
+dbSnp	dbSnp	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}}){sep}
+prot	sub		{sep}p\.\(?{origAaShort}{pos}{mutAaShort}{fs}{sep}
+prot	sub		{sep}{origAaShort}{pos}{mutAaShort}{sep}
+prot	sub		{sep}{origAaLong}{pos}{mutAaLong}{sep}
+prot	sub		{sep}p\.\(?{origAaLong}{pos}{mutAaLong}{fs}{sep}
+prot	sub	11005141	{origAaLong}\u2192{mutAaLong}{sep}
