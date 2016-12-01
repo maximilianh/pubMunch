@@ -1,9 +1,12 @@
 seqType	mutType	patName	pat
 dna	del	10083731	deletion of nt{pos}{origDnas}
 dna	del		{sep}c\.{fromPos}_{toPos}del{origDnas}
+dna	del		{sep}c\.{pos}del{origDna}
 prot	del		{sep}p\.{fromPos}_{toPos}del{origAasShort}
 prot	del		{sep}p\.{fromPos}_{toPos}del{origAasLong}
 dna	ins		{sep}c\.{fromPos}_{toPos}ins{dnas}
+dna	dup		{sep}c\.{pos}dup{origDna}
+dna	dup		{sep}c\.{fromPos}_{toPos}dup{origDnas}
 prot	ins		{sep}p\.{fromPos}_{toPos}ins{mutAasShort}
 prot	ins		{sep}p\.{fromPos}_{toPos}ins{mutAasLong}
 dna	sub		substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}

@@ -39,7 +39,7 @@ VariantFields = [
     "end",  # end position in text
     "origSeq",  # wild type seq, used for sub and del, also used to store rsId for dbSnp variants
     "mutSeq",  # mutated seq, used for sub and ins
-    "origStr", # variant name as it occurs in the original paper
+    "origStr",  # variant name as it occurs in the original paper
     ]
 
 # A completely resolved mutation
@@ -516,7 +516,7 @@ def parseRegex(mutDataDir):
     """ parse and compile regexes to list (seqType, mutType, patName, pat) """
     # read regexes, translate placeholders to long form and compile
     replDict = {
-    "sep"         : r"""(?:^|[\s\(\[\'\"/,\-])""",
+    "sep"         : r"""(?:^|[:;\s\(\[\'\"/,\-])""",
     "fromPos"     : r'(?P<fromPos>[1-9][0-9]*)',
     "toPos"       : r'(?P<toPos>[1-9][0-9]*)',
     "pos"         : r'(?P<pos>[1-9][0-9]*)',
@@ -648,6 +648,8 @@ def parseMatchDel(match, patName, seqType):
         origSeq = threeToOneLower[groups["origAasLong"].lower()]
     if "origDnas" in groups:
         origSeq = groups["origDnas"]
+    if "origDna" in groups:
+        origSeq = groups["origDna"]
     origSeq = origSeq.upper()
 
     var = VariantDescription("del", seqType, seqStart, seqEnd, origSeq, None, origStr=match.group(0).strip())
@@ -679,6 +681,38 @@ def parseMatchIns(match, patName, seqType):
     mutSeq = mutSeq.upper()
 
     var = VariantDescription("ins", seqType, seqStart, seqEnd, None, mutSeq, origStr=match.group(0).strip())
+    return var
+
+def parseMatchDup(match, patName, seqType):
+    groups = match.groupdict()
+
+    if "origDna" in groups:
+        origSeq = groups["origDna"]
+    elif "origDnas" in groups:
+        origSeq = groups["origDnas"]
+    else:
+        assert False
+
+    if "pos" in groups:
+        pos = int(groups["pos"])
+        seqStart = pos
+        seqEnd = seqStart + 1
+    elif "fromPos" in groups:
+        assert "toPos" in groups
+        seqStart = int(groups["fromPos"])
+        seqEnd = int(groups["toPos"])
+        # it's just cause some people don't like basic arithmetic, or they're trying to be inclusive
+        if seqEnd - seqStart != len(origSeq) and seqEnd - seqStart == len(origSeq) - 1:
+            seqEnd += 1
+    else:
+        assert False
+
+    # duplication ... in the old Indian fashion:
+    mutSeq = origSeq + origSeq
+    # ! duplication ... in the Assyro-Babylonian fashion:
+    # ! mutSeq = origSeq * 2
+
+    var = VariantDescription("dup", seqType, seqStart, seqEnd, origSeq, mutSeq, origStr=match.group(0).strip())
     return var
 
 def isOverlapping(match, exclPos):
@@ -716,6 +750,8 @@ def findVariantDescriptions(text, exclPos=set()):
                 variant = parseMatchDel(match, patName, seqType)
             elif mutType == "ins":
                 variant = parseMatchIns(match, patName, seqType)
+            elif mutType == "dup":
+                variant = parseMatchDup(match, patName, seqType)
             else:
                 logger.debug("Ignoring match %s; don't know how to handle" % match.groups())
                 continue
@@ -962,9 +998,13 @@ def ungroundedMutToFakeSeqVariant(variant, mentions, text):
 
 def isSeqCorrect(seqId, variant, insertion_rv):
     " check if wild type sequence in protein corresponds to mutation positions "
+    if seqId.startswith("NR_"):
+        logger.info("Skipping noncoding sequence ID %s" % seqId)
+        return False
+
     if variant.mutType == "ins" and not variant.origSeq:
         return insertion_rv
-    
+
     vStart = variant.start - 1  # uniprot is 1-based, we are 0-based
     vEnd = variant.end - 1
     seq = geneData.getSeq(seqId)
@@ -1033,9 +1073,9 @@ def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=[
                 continue
             if len(seqIds) == 0:
                 continue
-            foundProtIds = hasSeqAtPos(seqIds, variant, insertion_rv)
-            if len(foundProtIds) != 0:
-                return db, foundProtIds
+            foundSeqIds = hasSeqAtPos(seqIds, variant, insertion_rv)
+            if len(foundSeqIds) != 0:
+                return db, foundSeqIds
     return None, []
 
 def rewriteToRefProt(variant, protIds):
