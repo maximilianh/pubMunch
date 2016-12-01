@@ -18,10 +18,12 @@ def indexPsls(fname, isProt=False):
             psl.protToNa()
         psls[psl.qName].append(psl)
     return psls
-        
+
 class PslMapBedMaker(object):
     " object that collects blocks from pslMap and creates a bed in the end"
-    __slots__ = ("chrom", "chromStart", "chromEnd", "name", "score", "strand", "thickStart", "thickEnd", "itemRgb", "blockCount", "blockSizes", "blockStarts", "mapper", "chromSize")
+    __slots__ = ("chrom", "chromStart", "chromEnd", "name", "score", "strand",
+                 "thickStart", "thickEnd", "itemRgb", "blockCount", "blockSizes",
+                 "blockStarts", "mapper", "chromSize")
 
     def __init__(self):
         self.mapper = PslMap(self)
@@ -45,9 +47,9 @@ class PslMapBedMaker(object):
 
     def mapBlock(self, psl, blk, qRngStart, qRngEnd, tRngStart, tRngEnd):
         " callback for pslMap "
-        logging.debug("Got blk: %d-%d, len %d" % (tRngStart, tRngEnd, tRngEnd-tRngStart))
+        logging.debug("Got blk: %d-%d, len %d" % (tRngStart, tRngEnd, tRngEnd - tRngStart))
         self.blockCount += 1
-        self.blockSizes.append(tRngEnd-tRngStart)
+        self.blockSizes.append(tRngEnd - tRngStart)
         self.blockStarts.append(tRngStart)
 
     def mapGap(self, psl, prevBlk, nextBlk, qRngStart, qRngEnd, tRngStart, tRngEnd):
@@ -57,14 +59,14 @@ class PslMapBedMaker(object):
     def mapQuery(self, psl, qRngStart, qRngEnd):
         " call this method to get qRngStart-qRngEnd mapped through the psl as a bed "
         # must be reversed somewhere upstream
-        assert(psl.strand[0]=="+")
-        #if psl.strand=="-":
+        assert(psl.strand[0] == "+")
+        # if psl.strand=="-":
             # the +1 here is weird but seems to be true
-            #end   = mapPsl.qSize - rnaVar.start + 1
-            #start = mapPsl.qSize - rnaVar.end + 1
-            #logging.debug("Inversing map coordinates to %d/%d" % (start, end))
-            #logging.debug("Reversing map psl")
-            #psl = psl.reverseComplement()
+            # end   = mapPsl.qSize - rnaVar.start + 1
+            # start = mapPsl.qSize - rnaVar.end + 1
+            # logging.debug("Inversing map coordinates to %d/%d" % (start, end))
+            # logging.debug("Reversing map psl")
+            # psl = psl.reverseComplement()
         self.chromSize = psl.tSize
         self.mapper.queryToTargetMap(psl, qRngStart, qRngEnd)
         self.chrom = psl.tName
@@ -73,29 +75,30 @@ class PslMapBedMaker(object):
 
     def getBed(self, name=None):
         " return bed feature as a 12-tuple, default name is query name "
-        if len(self.blockStarts)==0:
+        if len(self.blockStarts) == 0:
             return None
-        if self.strand[-1]=="-":
+        if self.strand[-1] == "-":
             logging.debug("Reversing coords")
             self.blockStarts.reverse()
             self.blockSizes.reverse()
             # pslToBed.c:
             #    for (i=0; i<blockCount; ++i)
             #       chromStarts[i] = chromSize - chromStarts[i] - bed->blockSizes[i];
-            chromSize   = self.chromSize
+            chromSize = self.chromSize
             chromStarts = self.blockStarts
-            blockSizes  = self.blockSizes
+            blockSizes = self.blockSizes
             for i in range(0, len(self.blockStarts)):
                 self.blockStarts[i] = chromSize - chromStarts[i] - blockSizes[i]
         self.chromStart = self.blockStarts[0]
-        self.chromEnd   = self.blockStarts[-1]+self.blockSizes[-1]
+        self.chromEnd = self.blockStarts[-1] + self.blockSizes[-1]
+
         self.thickStart = self.chromStart
         self.thickEnd = self.chromEnd
         self.score = sum(self.blockSizes)
         blockSizeStr = ",".join([str(x) for x in self.blockSizes])
 
         chromStart = self.chromStart
-        blockStartStr = ",".join([str(x-chromStart) for x in self.blockStarts])
+        blockStartStr = ",".join([str(x - chromStart) for x in self.blockStarts])
 
         # default bed name is query name
         if not name:
@@ -121,29 +124,29 @@ def test():
     mapper.mapQuery(mapPsl, 0, 500)
     newBed = " ".join(mapper.getBed())
     exp = "chr6 135787499 135818903 NM_017651 500 - 135787499 135818903 0 6 12,54,125,64,62,183 0,1219,24261,25866,30826,31221"
-    assert(exp==newBed)
-    
+    assert(exp == newBed)
+
 if __name__ == '__main__':
     parser = optparse.OptionParser("usage: %prog [options] inBed mapPsl outBed - map bed features through psl")
-    parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests") 
+    parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
     (options, args) = parser.parse_args()
     if options.test:
         test()
         sys.exit(0)
 
-    if args==[]:
+    if args == []:
         parser.print_help()
         sys.exit(1)
     inBedFname, mapPslFname, outBedFname = args
-    ofh = open(outBedFname, "w") if outBedFname!="stdout" else sys.stdout
+    ofh = open(outBedFname, "w") if outBedFname != "stdout" else sys.stdout
     psls = indexPsls(mapPslFname)
 
     mapper = PslMapBedMaker()
     for chrom, start, end, name, in parseBed(inBedFname):
         for psl in psls.get(chrom, []):
             newBed = mapper.mapQuery(psl, start, end)
-            if newBed!=None:
-                ofh.write("\t".join(newBed)+"\n")
+            if newBed != None:
+                ofh.write("\t".join(newBed) + "\n")
             mapper.clear()
 
     print("output written to %s" % outBedFname)

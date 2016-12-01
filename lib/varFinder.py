@@ -19,7 +19,7 @@ import pslMapBed, pubAlg, maxbio, pubConf, maxCommon, pubKeyVal
 regexes = None
 
 # this setting can be changed to allow protein variants
-# that require a change of two base pairs. By default, it 
+# that require a change of two base pairs. By default, it
 # is off to reduce false positives
 allowTwoBpVariants = False
 
@@ -31,51 +31,52 @@ Mention = namedtuple("Mention", "patName,start,end")
     All positions are 0-based
 """
 VariantFields = [
-    "mutType", # sub, del or ins
-    "seqType", # prot, dna or dbSnp 
+    "mutType",  # sub, del or ins
+    "seqType",  # prot, dna or dbSnp
     "seqId",  # protein or nucleotide accession
-    "geneId", # entrez gene id, if a gene was found nearby in text
+    "geneId",  # entrez gene id, if a gene was found nearby in text
     "start",  # original position in text
-    "end",    # end position in text
-    "origSeq", # wild type seq, used for sub and del, also used to store rsId for dbSnp variants
+    "end",  # end position in text
+    "origSeq",  # wild type seq, used for sub and del, also used to store rsId for dbSnp variants
     "mutSeq",  # mutated seq, used for sub and ins
+    "origStr", # variant name as it occurs in the original paper
     ]
 
 # A completely resolved mutation
 mutFields = \
     (
-    "chrom",       # chromosome
-    "start",       # on chrom
-    "end",         # on chrom
-    "varId",       # a unique id
-    "inDb",        # list of db names where was found
-    "patType",     # the type of the patterns (sub, del, ins)
-    "hgvsProt",    # hgvs on protein, can be multiple, separated with |
+    "chrom",  # chromosome
+    "start",  # on chrom
+    "end",  # on chrom
+    "varId",  # a unique id
+    "inDb",  # list of db names where was found
+    "patType",  # the type of the patterns (sub, del, ins)
+    "hgvsProt",  # hgvs on protein, can be multiple, separated with |
     "hgvsCoding",  # hgvs on cdna, can be multiple, separated with |
-    "hgvsRna",     # hgvs on refseq, separated by "|"
-    "comment",     # comment on how mapping was done
-    "rsIds",       # possible rsIds, separated by "|", obtained by mapping from hgvsRna
-    "protId",      # the protein ID that was used for the first mapping
-    "texts",        # mutation match in text
-    #"mutSupport",  # prot, dna, protDna
-    #"mutCount",    # how often was this mutation mentioned?
-    "rsIdsMentioned", # mentioned dbSnp IDs that support any of the hgvsRna mutations
-    "dbSnpStarts" ,   # mentioned dbSnp IDs in text, start positions
-    "dbSnpEnds",      # mentioned dbSNP Ids in text, end positions
+    "hgvsRna",  # hgvs on refseq, separated by "|"
+    "comment",  # comment on how mapping was done
+    "rsIds",  # possible rsIds, separated by "|", obtained by mapping from hgvsRna
+    "protId",  # the protein ID that was used for the first mapping
+    "texts",  # mutation match in text
+    # "mutSupport",  # prot, dna, protDna
+    # "mutCount",    # how often was this mutation mentioned?
+    "rsIdsMentioned",  # mentioned dbSnp IDs that support any of the hgvsRna mutations
+    "dbSnpStarts" ,  # mentioned dbSnp IDs in text, start positions
+    "dbSnpEnds",  # mentioned dbSNP Ids in text, end positions
 
     "geneSymbol",  # symbol of gene
-    "geneType",    # why was this gene selected (entrez, symNearby, symInTitle, symInAbstract)
-    "entrezId",    # entrez ID of gene
+    "geneType",  # why was this gene selected (entrez, symNearby, symInTitle, symInAbstract)
+    "entrezId",  # entrez ID of gene
     "geneStarts",  # start positions of gene mentions in document
-    "geneEnds",    # end positions of gene mentions in document
+    "geneEnds",  # end positions of gene mentions in document
 
-    "seqType",     # the seqType of the patterns, dna or protein
-    "mutPatNames",    # the names of the patterns that matched, separated by |
-    "mutStarts",   # start positions of mutation pattern matches in document
-    "mutEnds",     # end positions of mutation pattern matches in document
+    "seqType",  # the seqType of the patterns, dna or protein
+    "mutPatNames",  # the names of the patterns that matched, separated by |
+    "mutStarts",  # start positions of mutation pattern matches in document
+    "mutEnds",  # end positions of mutation pattern matches in document
     "mutSnippets",  # the phrases around the mutation mentions, separated by "|"
     "geneSnippets",  # the phrases around the gene mentions, separated by "|"
-    "dbSnpSnippets" # mentioned dbSNP Ids in text, snippets
+    "dbSnpSnippets"  # mentioned dbSNP Ids in text, snippets
     )
 
 # fields of the output file
@@ -91,16 +92,16 @@ geneData = None
 
 # these look like mutations but are definitely not mutations
 blackList = set([
-    ("E", 2, "F"), # genes
-    ("D", 11, "S"), # satellites
+    ("E", 2, "F"),  # genes
+    ("D", 11, "S"),  # satellites
     ("D", 12, "S"),
     ("D", 13, "S"),
     ("D", 14, "S"),
     ("D", 15, "S"),
     ("D", 16, "S"),
-    ("A", 84, "M"), # cell lines...
-    ("A", 84, "P"), # all of these copied...
-    ("A", 94, "P"), # from http://bioinf.umbc.edu/EMU/ftp/Cell_line_list_short.txt
+    ("A", 84, "M"),  # cell lines...
+    ("A", 84, "P"),  # all of these copied...
+    ("A", 94, "P"),  # from http://bioinf.umbc.edu/EMU/ftp/Cell_line_list_short.txt
     ("A", 94, "P"),
     ("C", 127, "I"),
     ("C", 86, "M"),
@@ -115,7 +116,7 @@ blackList = set([
     ("T", 47, "D"),
     ("T", 84, "M"),
     ("T", 98, "G"),
-    ("S", 288, "C"), # yeast strain names
+    ("S", 288, "C"),  # yeast strain names
     ("T", 229, "C"),
 
     # these are from cellosaurus:
@@ -159,11 +160,11 @@ def parseEntrez(fname):
 
     for row in maxCommon.iterTsvRows(fname):
         entrez2Sym[int(row.entrezId)] = row.sym
-        if row.refseqProtIds=="":
+        if row.refseqProtIds == "":
             refProts = None
         else:
             refProts = row.refseqProtIds.split(",")
-            #assert(len(refProts)==len(refseqs))
+            # assert(len(refProts)==len(refseqs))
         if row.refseqIds == "":
             refseqIds = None
         else:
@@ -172,8 +173,8 @@ def parseEntrez(fname):
         entrez2RefseqProts[int(row.entrezId)] = refProts
         entrez2RefseqCodingSeqs[int(row.entrezId)] = refseqIds
     return entrez2Sym, entrez2RefseqProts, entrez2RefseqCodingSeqs
-        
-        
+
+
 # ===== CLASSES =================
 class SeqData(object):
     """ functions to get sequences and map between identifiers for entrez genes,
@@ -183,18 +184,18 @@ class SeqData(object):
         " open db files, compile patterns, parse input as far as possible "
         mutDataDir = pubConf.varDataDir
         geneDataDir = pubConf.geneDataDir
-        if mutDataDir==None:
+        if mutDataDir == None:
             return
         self.mutDataDir = mutDataDir
         self.entrez2sym, self.entrez2refprots, self.entrez2refseqs = parseEntrez(join(geneDataDir, "entrez.tab"))
-        self.symToEntrez = None # lazy loading
+        self.symToEntrez = None  # lazy loading
 
         # refseq sequences
         fname = join(mutDataDir, "seqs")
         logger.info("opening %s" % fname)
         seqs = pubKeyVal.SqliteKvDb(fname)
         self.seqs = seqs
-        
+
         # refprot to refseqId
         # refseq to CDS Start
         fname = join(mutDataDir, "refseqInfo.tab")
@@ -203,11 +204,11 @@ class SeqData(object):
         self.refSeqCds = {}
         for row in maxCommon.iterTsvRows(fname):
             self.refProtToRefSeq[row.refProt] = row.refSeq
-            self.refSeqCds[row.refSeq] = int(row.cdsStart)-1 # NCBI is 1-based
+            self.refSeqCds[row.refSeq] = int(row.cdsStart) - 1  # NCBI is 1-based
 
         # refseq to genome
         self.pslCache = {}
-        self.refGenePsls      = openIndexedPsls(mutDataDir, "refGenePsls.9606")
+        self.refGenePsls = openIndexedPsls(mutDataDir, "refGenePsls.9606")
 
         # dbsnp db
         fname = join(self.mutDataDir, "dbSnp.sqlite")
@@ -219,7 +220,7 @@ class SeqData(object):
     def getSeq(self, seqId):
         " get seq from db , cache results "
         logger.log(5, "Looking up sequence for id %s" % seqId)
-        seqId = str(seqId) # no unicode
+        seqId = str(seqId)  # no unicode
         if seqId not in self.seqs:
             return None
         return self.seqs[seqId]
@@ -233,7 +234,7 @@ class SeqData(object):
         if row is None:
             return None
         else:
-            return "rs"+str(row[0])
+            return "rs" + str(row[0])
 
     def rsIdToGenome(self, rsId):
         " given the rs-Id, return chrom, start, end of it"
@@ -249,7 +250,7 @@ class SeqData(object):
     def entrezToProtDbIds(self, entrezGene, db):
         " return protein accessions (list) in otherDb for entrezGene "
         entrezGene = int(entrezGene)
-        if db=="refseq":
+        if db == "refseq":
             protIds = self.mapEntrezToRefseqProts(entrezGene)
         # used to have other DBs here
         else:
@@ -259,7 +260,7 @@ class SeqData(object):
     def entrezToCodingSeqDbIds(self, entrezGene, db):
         " return protein accessions (list) in otherDb for entrezGene "
         entrezGene = int(entrezGene)
-        if db=="refseq":
+        if db == "refseq":
             seqIds = self.mapEntrezToRefseqCodingSeq(entrezGene)
         # used to have other DBs here
         else:
@@ -282,7 +283,7 @@ class SeqData(object):
 
     def mapSymToEntrez(self, sym):
         " return a list of entrez IDs for given symbol "
-        if self.symToEntrez==None:
+        if self.symToEntrez == None:
             self.symToEntrez = defaultdict(list)
             for e, s in self.entrez2sym.iteritems():
                 self.symToEntrez[s].append(e)
@@ -329,12 +330,12 @@ class SeqData(object):
         return refseqId
 
     def getProteinPsls(self, db, protId):
-        if db=="uniprot":
+        if db == "uniprot":
             return self.getUniprotPsls(protId)
-        #elif db=="oldRefseq":
-            #return self.getOldRefseqPsls(protId)
-        #elif db=="genbank":
-            #return self.getGenbankPsls(protId)
+        # elif db=="oldRefseq":
+            # return self.getOldRefseqPsls(protId)
+        # elif db=="genbank":
+            # return self.getGenbankPsls(protId)
         else:
             assert(False)
 
@@ -360,42 +361,43 @@ class VariantDescription(object):
     >>> VariantDescription("sub", "prot", 10, 11, "R", "S")
     VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'10',end=u'11',origSeq=u'R',mutSeq=u'S')
     """
-    __slots__=VariantFields
+    __slots__ = VariantFields
 
-    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None, geneId=""):
-        self.mutType = mutType # sub, del or ins or dbSnp
-        self.seqType = seqType # cds, rna or prot
+    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None, geneId="", origStr=""):
+        self.mutType = mutType  # sub, del or ins or dbSnp
+        self.seqType = seqType  # cds, rna or prot
         self.seqId = seqId
         self.geneId = geneId
         self.start = int(start)
         self.end = int(end)
         self.origSeq = origSeq
         self.mutSeq = mutSeq
+        self.origStr = origStr
 
     def getName(self):
         " return HGVS text for this variant "
-        #logger.debug("Creating HGVS type %s for vars %s" % (hgvsType, variants))
-        if self.seqId==None:
+        # logger.debug("Creating HGVS type %s for vars %s" % (hgvsType, variants))
+        if self.seqId == None:
             name = "p.%s%d%s" % (self.origSeq, self.start, self.mutSeq)
-        elif self.mutType=="dbSnp":
+        elif self.mutType == "dbSnp":
             name = self.origSeq
         else:
             name = makeHgvsStr(self.seqType, self.seqId, self.origSeq, self.start, self.mutSeq)
         return name
 
     def asRow(self):
-        row =[]
+        row = []
         for i in self.__slots__:
             row.append(unicode(getattr(self, i)))
         return row
-        
+
     def __repr__(self):
-        #return ",".join(self.asRow())
+        # return ",".join(self.asRow())
         parts = []
         for field in self.__slots__:
-            parts.append(field+"="+repr(unicode(getattr(self, field))))
+            parts.append(field + "=" + repr(unicode(getattr(self, field))))
         return "VariantDescription(%s)" % ",".join(parts)
-    
+
 class SeqVariantData(object):
     """ the full information about variant located on a sequence, with mentions from the text that support it
         This is the final output of this module, including all information about mapped variants and their genes.
@@ -403,27 +405,27 @@ class SeqVariantData(object):
     """
     __slots__ = mutFields
 
-    def __init__(self, varId="", protVars=[], codVars=[], rnaVars=[],  \
-            comment="", beds=[], entrezGene="", geneSym="", rsIds=[],  \
+    def __init__(self, varId="", protVars=[], codVars=[], rnaVars=[], \
+            comment="", beds=[], entrezGene="", geneSym="", rsIds=[], \
             dbSnpMentionsByRsId={}, mentions=[], text="", seqType="prot", patType="sub"):
-        self.varId   = varId
-        self.inDb    = ""
+        self.varId = varId
+        self.inDb = ""
         self.patType = patType
         self.seqType = seqType
-        self.chrom      = ""
-        self.start      = ""
-        self.end        = ""
+        self.chrom = ""
+        self.start = ""
+        self.end = ""
         self.geneSymbol = geneSym
-        self.entrezId   = entrezGene
-        self.hgvsProt   = "|".join([v.getName() for v in protVars])
+        self.entrezId = entrezGene
+        self.hgvsProt = "|".join([v.getName() for v in protVars])
         self.hgvsCoding = "|".join([v.getName() for v in codVars])
-        self.hgvsRna    = "|".join([v.getName() for v in rnaVars])
-        self.comment    = comment
-        self.rsIds      = "|".join(rsIds)
-        self.protId     = ""
-        self.geneType   = "entrez"
+        self.hgvsRna = "|".join([v.getName() for v in rnaVars])
+        self.comment = comment
+        self.rsIds = "|".join(rsIds)
+        self.protId = ""
+        self.geneType = "entrez"
         self.geneStarts = ""
-        self.geneEnds   = ""
+        self.geneEnds = ""
         self.geneSnippets = ""
 
         # for each rsId mentioned, concat their starts/ends/snips
@@ -441,19 +443,19 @@ class SeqVariantData(object):
             for m in mentions:
                 mentionedRsIds.append(rsId)
         self.dbSnpStarts = ",".join(starts)
-        self.dbSnpEnds   = ",".join(ends)
+        self.dbSnpEnds = ",".join(ends)
         self.dbSnpSnippets = "|".join(snippets)
         self.rsIdsMentioned = "|".join(mentionedRsIds)
 
         mutStarts, mutEnds, patNames, snippets, texts = mentionsFields(mentions, text)
         self.mutStarts = ",".join(mutStarts)
-        self.mutEnds   = ",".join(mutEnds)
-        self.mutPatNames= "|".join(patNames)
+        self.mutEnds = ",".join(mutEnds)
+        self.mutPatNames = "|".join(patNames)
         self.mutSnippets = "|".join(snippets)
         self.texts = "|".join(set(texts))
 
     def asRow(self, rawStr=False):
-        row =[]
+        row = []
         for i in self.__slots__:
             s = getattr(self, i)
             if rawStr:
@@ -462,14 +464,14 @@ class SeqVariantData(object):
                 s = unicode(s)
             row.append(s)
         return row
-        
+
     def __repr__(self):
-        #return ",".join(self.asRow())
+        # return ",".join(self.asRow())
         parts = []
         for field in self.__slots__:
-            parts.append(field+"="+repr(unicode(getattr(self, field))))
+            parts.append(field + "=" + repr(unicode(getattr(self, field))))
         return "SeqVariantData(%s)" % ",".join(parts)
-        
+
 # ===== FUNCTIONS =================
 # helper methods for SeqData
 def getPsls(qId, cache, dbm, stripVersion=False):
@@ -493,10 +495,10 @@ def getPsls(qId, cache, dbm, stripVersion=False):
             psls.append(psl)
         cache[qId] = psls
     logger.debug("Got mapping psl %s" % str(psls[0]))
-    
+
     corrPsls = []
     for p in psls:
-        if p.strand=="-":
+        if p.strand == "-":
             p2 = p.reverseComplement()
         else:
             p2 = p
@@ -514,24 +516,27 @@ def parseRegex(mutDataDir):
     """ parse and compile regexes to list (seqType, mutType, patName, pat) """
     # read regexes, translate placeholders to long form and compile
     replDict = {
-    "sep"         : r"""(?:^|[\s\(\[\'"/,\-])""",
-    "fromPos"     : r'(?P<fromPos>[1-9][0-9]+)',
-    "toPos"       : r'(?P<toPos>[1-9][0-9]+)',
-    "pos"         : r'(?P<pos>[1-9][0-9]+)',
+    "sep"         : r"""(?:^|[\s\(\[\'\"/,\-])""",
+    "fromPos"     : r'(?P<fromPos>[1-9][0-9]*)',
+    "toPos"       : r'(?P<toPos>[1-9][0-9]*)',
+    "pos"         : r'(?P<pos>[1-9][0-9]*)',
+    "fromPoss"     : r'(?P<fromPos>[1-9][0-9]+)',
+    "toPoss"       : r'(?P<toPos>[1-9][0-9]+)',
+    "poss"         : r'(?P<pos>[1-9][0-9]+)',
     "origAaShort" : r'(?P<origAaShort>[CISQMNPKDTFAGHLRWVEYX])',
     "origAasShort" : r'(?P<origAasShort>[CISQMNPKDTFAGHLRWVEYX]+)',
     "skipAa"  : r'(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP|X)',
     "origAaLong"  : r'(?P<origAaLong>(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP|X))',
     "origAasLong"  : r'(?P<origAasLong>(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP|X)+)',
-    "mutAaShort"  : r'(?P<mutAaShort>[fCISQMNPKDTFAGHLRWVEYX*])', # tolerate "fs"
+    "mutAaShort"  : r'(?P<mutAaShort>[fCISQMNPKDTFAGHLRWVEYX*])',  # tolerate "fs"
     "mutAaLong"  : r'(?P<mutAaLong>(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP|X|FS))',
-    "mutAasShort"  : r'(?P<mutAasShort>[fCISQMNPKDTFAGHLRWVEYX*]+)', # tolerate "fs"
+    "mutAasShort"  : r'(?P<mutAasShort>[fCISQMNPKDTFAGHLRWVEYX*]+)',  # tolerate "fs"
     "mutAasLong"  : r'(?P<mutAasLong>(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP|X|FS)+)',
     "dna"         : r'(?P<dna>[actgACTG])',
-    "dnas"         : r'(?P<dna>[actgACTG]+)',
+    "dnas"         : r'(?P<dnas>[actgACTG]+)',
     "origDna"     : r'(?P<origDna>[actgACTG])',
     "origDnas"     : r'(?P<origDnas>[actgACTG]+)',
-    "mutDna"      : r'(?P<mutDna>[actgACTGfs])', # tolerate "fs"
+    "mutDna"      : r'(?P<mutDna>[actgACTGfs])',  # tolerate "fs"
     "fs"          : r'(?P<fs>(fs\*?[0-9]*)|fs\*|fs|)?',
     }
     regexTab = join(mutDataDir, "regex.txt")
@@ -539,16 +544,16 @@ def parseRegex(mutDataDir):
     regexList = []
     counts = defaultdict(int)
     for row in maxCommon.iterTsvRows(regexTab, commentPrefix="#"):
-        logger.log(5, "Translating %s" % row.pat)
+        logger.info("Translating %s" % row.pat)
         patName = row.patName
-        if patName=="":
+        if patName == "":
             patName = row.pat
         patFull = row.pat.format(**replDict)
-        logger.log(5, "full pattern is %s" % patFull)
+        logger.info("full pattern is %s" % patFull)
         flags = 0
         if "Long}" in row.pat:
             flags = re.IGNORECASE
-            logger.log(5, "ignoring case for this pattern")
+            logger.info("ignoring case for this pattern")
         patComp = re.compile(patFull, flags=flags)
         regexList.append((row.seqType, row.mutType, patName, patComp))
         counts[(row.seqType, row.mutType)] += 1
@@ -566,9 +571,9 @@ def parseMatchRsId(match, patName):
     rsId = groups["rsId"]
     chrom, start, end = geneData.rsIdToGenome(rsId)
 
-    if chrom==None:
+    if chrom == None:
         return None
-    var = VariantDescription("dbSnp", "dbSnp", start, end, chrom, "rs"+rsId)
+    var = VariantDescription("dbSnp", "dbSnp", start, end, chrom, "rs" + rsId, None, None, origStr=match.group(0).strip())
     return var
 
 def isBlacklisted(let1, pos, let2):
@@ -576,10 +581,10 @@ def isBlacklisted(let1, pos, let2):
     if (let1, pos, let2) in blackList:
         logger.debug("Variant %s,%d,%s is blacklisted" % (let1, pos, let2))
         return True
-    if let1=="H" and pos<80 and let2 in "ACDE":
+    if let1 == "H" and pos < 80 and let2 in "ACDE":
         logger.debug("Variant %s,%d,%s looks like chemical symbol" % (let1, pos, let2))
         return True
-    if let1=="C" and pos<80 and let2 in "H":
+    if let1 == "C" and pos < 80 and let2 in "H":
         logger.debug("Variant %s,%d,%s looks like chemical symbol" % (let1, pos, let2))
         return True
     return False
@@ -617,9 +622,9 @@ def parseMatchSub(match, patName, seqType):
         if isBlacklisted(origSeq, pos, mutSeq):
             return None
         seqStart = pos
-        seqEnd = pos+1
+        seqEnd = pos + 1
 
-    var = VariantDescription("sub", seqType, seqStart, seqEnd, origSeq, mutSeq)
+    var = VariantDescription("sub", seqType, seqStart, seqEnd, origSeq, mutSeq, origStr=match.group(0).strip())
     return var
 
 def parseMatchDel(match, patName, seqType):
@@ -631,12 +636,12 @@ def parseMatchDel(match, patName, seqType):
         seqStart = pos
 
     if "toPos" in groups:
-        seqEnd = int(groups["toPos"])+1
+        seqEnd = int(groups["toPos"]) + 1
     else:
         pos = int(groups["pos"])
         seqStart = pos
-        seqEnd = pos+1
-    
+        seqEnd = pos + 1
+
     if "origAasShort" in groups:
         origSeq = groups["origAasShort"]
     if "origAasLong" in groups:
@@ -645,7 +650,7 @@ def parseMatchDel(match, patName, seqType):
         origSeq = groups["origDnas"]
     origSeq = origSeq.upper()
 
-    var = VariantDescription("del", seqType, seqStart, seqEnd, origSeq, None)
+    var = VariantDescription("del", seqType, seqStart, seqEnd, origSeq, None, origStr=match.group(0).strip())
     return var
 
 def parseMatchIns(match, patName, seqType):
@@ -661,22 +666,24 @@ def parseMatchIns(match, patName, seqType):
     else:
         pos = int(groups["pos"])
         seqStart = pos
-        seqEnd = pos+1
-    
-    if "aasShort" in groups:
-        origSeq = groups["aasShort"]
-    if "aasLong" in groups:
-        origSeq = threeToOneLower[groups["aasLong"].lower()]
-    if "dnas" in groups:
-        origSeq = groups["dnas"]
-    mutSeq = seq.upper()
+        seqEnd = pos + 1
 
-    var = VariantDescription("ins", seqType, seqStart, seqEnd, None, mutSeq)
+    if "mutAasShort" in groups:
+        mutSeq = groups["mutAasShort"]
+    if "mutAasLong" in groups:
+        mutSeq = threeToOneLower[groups["mutAasLong"].lower()]
+    if "dnas" in groups:
+        mutSeq = groups["dnas"]
+    logger.debug("match: %s" % match.group(0))
+    logger.info(str([g for g in groups]))
+    mutSeq = mutSeq.upper()
+
+    var = VariantDescription("ins", seqType, seqStart, seqEnd, None, mutSeq, origStr=match.group(0).strip())
     return var
 
 def isOverlapping(match, exclPos):
     posSet = set(range(match.start(), match.end()))
-    if len(posSet.intersection(exclPos))!=0:
+    if len(posSet.intersection(exclPos)) != 0:
         logger.debug("regex overlaps an excluded position (gene?)")
         return True
     return False
@@ -689,7 +696,7 @@ def findVariantDescriptions(text, exclPos=set()):
     >>> findVariantDescriptions("The R71G BRCA1 mutation is really a p.R71G mutation")
     {'prot': [(VariantDescription(mutType=u'sub',seqType=u'prot',seqId=u'None',geneId=u'',start=u'70',end=u'71',origSeq=u'R',mutSeq=u'G'), [Mention(patName=u'{sep}p\\\\.\\\\(?{origAaShort}{pos}{mutAaShort}{fs}', start=35, end=42), Mention(patName=u'{sep}{origAaShort}{pos}{mutAaShort}', start=3, end=8)])]}
     """
-    if regexes==None:
+    if regexes == None:
         loadDb()
 
     exclPos = set(exclPos)
@@ -701,18 +708,18 @@ def findVariantDescriptions(text, exclPos=set()):
             if isOverlapping(match, exclPos):
                 logger.debug("Overlapping with exclPos")
                 continue
-            if mutType=="sub":
+            if mutType == "sub":
                 variant = parseMatchSub(match, patName, seqType)
-            elif mutType=="dbSnp":
-                variant = parseMatchRsId(match, patName, seqType)
-            elif mutType=="del":
+            elif mutType == "dbSnp":
+                variant = parseMatchRsId(match, patName)
+            elif mutType == "del":
                 variant = parseMatchDel(match, patName, seqType)
-            elif mutType=="ins":
+            elif mutType == "ins":
                 variant = parseMatchIns(match, patName, seqType)
             else:
                 logger.debug("Ignoring match %s; don't know how to handle" % match.groups())
                 continue
-            if variant==None:
+            if variant == None:
                 continue
 
             mention = makeMention(match, patName)
@@ -723,35 +730,35 @@ def findVariantDescriptions(text, exclPos=set()):
 
     # convert to dict of "prot"|"dna"|"dbSnp" -> list (variant, mentions)
     variants = {}
-    variants["prot"]= []
-    variants["dna"]= []
-    variants["dbSnp"]= []
+    variants["prot"] = []
+    variants["dna"] = []
+    variants["dbSnp"] = []
 
     for varName, mentions in varMentions.iteritems():
         variant = varDescObj[varName]
         variants[variant.seqType].append((variant, mentions))
     variants = dict(variants)
     return variants
-    
+
 def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq):
-    if seqType=="prot":
+    if seqType == "prot":
         desc = "%s:p.%s%d%s" % (seqId, oneToThree[origSeq], pos, oneToThree[mutSeq])
-    elif seqType=="cds":
+    elif seqType == "cds":
         desc = "%s:c.%d%s>%s" % (seqId, pos, origSeq, mutSeq)
-    elif seqType=="rna":
+    elif seqType == "rna":
         desc = "%s:r.%d%s>%s" % (seqId, pos, origSeq, mutSeq)
-    elif seqType=="dna":
+    elif seqType == "dna":
         desc = "%s:c.%d%s>%s" % (seqId, pos, origSeq, mutSeq)
     return desc
-  
+
 def firstDiffNucl(str1, str2, maxDiff=1):
     """Return first pos and all letters where strings differ. Returns None if more than maxDiff chars are different"""
-    assert(len(str1)==len(str2))
-    if str1==str2:
+    assert(len(str1) == len(str2))
+    if str1 == str2:
         return None
     diffCount = 0
     i = 0
-    diffPos =[]
+    diffPos = []
     diffCh1 = []
     diffCh2 = []
 
@@ -761,13 +768,13 @@ def firstDiffNucl(str1, str2, maxDiff=1):
             diffCh1.append(ch1)
             diffCh2.append(ch2)
             diffPos.append(i)
-        i+=1
+        i += 1
 
-    if diffCount>maxDiff:
+    if diffCount > maxDiff:
         return None
     elif diffCount == 1:
         return (diffPos[0], diffCh1[0], diffCh2[0])
-    elif diffCount == 2 and diffPos[0]+1==diffPos[1]:
+    elif diffCount == 2 and diffPos[0] + 1 == diffPos[1]:
         return (diffPos[0], "".join(diffCh1), "".join(diffCh2))
     return None
 
@@ -792,30 +799,30 @@ def possibleDnaChanges(origAa, mutAa, origDna):
     logger.debug("Looking for possible DNA change. Aa change %s -> %s, original dna %s" % (origAa, mutAa, origDna))
     for mutDna in mutDnas:
         diffTuple = firstDiffNucl(origDna, mutDna, maxDiff)
-        if diffTuple!=None:
-            ret.add( diffTuple )
+        if diffTuple != None:
+            ret.add(diffTuple)
             logger.debug("found possible mutated DNA: %s" % (mutDna))
 
-    if len(ret)==0:
+    if len(ret) == 0:
         logger.debug("No possible DNA change found (max %d bp change)." % maxDiff)
-        
+
     return list(ret)
 
 def newToOldRefseqs(accs):
     """ given a list of new accessions return all previous versions
     >>> newToOldRefseqs(["NM_000325.5"])
     ['NM_000325.1', 'NM_000325.2', 'NM_000325.3', 'NM_000325.4']
-    """ 
+    """
     oldAccs = []
     for newAcc in accs:
-        prefix,suffix = newAcc.split(".")
-        version = int(suffix)-1 
-        if version!=0:
+        prefix, suffix = newAcc.split(".")
+        version = int(suffix) - 1
+        if version != 0:
             oldVersions = range(0, version)
-            oldVersions = [ov+1 for ov in oldVersions]
+            oldVersions = [ov + 1 for ov in oldVersions]
             for oldVersion in range(0, version):
-                oldVersion = oldVersion+1 
-                oldAcc = prefix+"."+str(oldVersion)
+                oldVersion = oldVersion + 1
+                oldAcc = prefix + "." + str(oldVersion)
                 oldAccs.append(oldAcc)
     return oldAccs
 
@@ -834,7 +841,7 @@ def backTrans(aa):
     sequences = [codon for codon in aaToDna[aa[0]]]
     for amino_acid in aa[1:]:
         # add each codon to each existing sequence replacing sequences
-        # leaves (num_codons * num_sequences) for next amino acid 
+        # leaves (num_codons * num_sequences) for next amino acid
         to_extend = sequences
         sequences = []
         for codon in aaToDna[amino_acid]:
@@ -847,7 +854,7 @@ def translate(dna):
     " return the aa translation of a dna seq "
     aaSeq = []
     for i in range(0, len(dna), 3):
-        codon = dna[i:i+3].upper()
+        codon = dna[i:i + 3].upper()
         aa = dnaToAa[codon]
         aaSeq.append(aa)
     return "".join(aaSeq)
@@ -857,20 +864,20 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     get nucleotide at CODING position in refseqId, check against expected aa
     also return positions on cdna
     """
-    logger.debug("Paranoia check: making sure that codons from %d-%d in %s correspond to %s" % 
+    logger.debug("Paranoia check: making sure that codons from %d-%d in %s correspond to %s" %
         (start, end, refseqId, expectAa))
-    cdsStart    = geneData.getCdsStart(str(refseqId))
-    nuclStart   = cdsStart + (3*start)
-    nuclEnd     = nuclStart + 3*(end-start)
-    cdnaSeq     = geneData.getSeq(refseqId)
-    if cdnaSeq==None:
+    cdsStart = geneData.getCdsStart(str(refseqId))
+    nuclStart = cdsStart + (3 * start)
+    nuclEnd = nuclStart + 3 * (end - start)
+    cdnaSeq = geneData.getSeq(refseqId)
+    if cdnaSeq == None:
         logger.warn("Could not find seq %s (update diff between UCSC/NCBI maps?)" % refseqId)
         return None, None, None
-    nuclSeq     = cdnaSeq[nuclStart:nuclEnd]
-    foundAa     = translate(nuclSeq)
+    nuclSeq = cdnaSeq[nuclStart:nuclEnd]
+    foundAa = translate(nuclSeq)
     logger.debug("CDS start is %d, nucl pos is %d, codon is %s" % (cdsStart, nuclStart, nuclSeq))
     if not doShuffle:
-        assert(foundAa==expectAa)
+        assert(foundAa == expectAa)
     return nuclSeq, nuclStart, nuclEnd
 
 def mapToCodingAndRna(protVars):
@@ -878,31 +885,31 @@ def mapToCodingAndRna(protVars):
     changes on the refseq cdna sequence and add these to the variant object
     """
     codVars = []
-    rnaVars  = []
+    rnaVars = []
     for protVar in protVars:
-        transId     = geneData.getRefSeqId(protVar.seqId)
-        if transId==None:
+        transId = geneData.getRefSeqId(protVar.seqId)
+        if transId == None:
             logger.error("could not resolve refprot to refseq. This is due to a difference between "
                     "UniProt and Refseq updates. Skipping this protein.")
             continue
 
-        pos         = protVar.start - 1
-        origDnaSeq, cdnaStart, cdnaEnd  = dnaAtCodingPos(transId, pos, \
-            pos+len(protVar.origSeq), protVar.origSeq)
-        if origDnaSeq==None:
+        pos = protVar.start - 1
+        origDnaSeq, cdnaStart, cdnaEnd = dnaAtCodingPos(transId, pos, \
+            pos + len(protVar.origSeq), protVar.origSeq)
+        if origDnaSeq == None:
             return None, None
 
         possChanges = possibleDnaChanges(protVar.origSeq, protVar.mutSeq, origDnaSeq)
         for relPos, oldNucl, newNucl in possChanges:
             cdStart = 3 * protVar.start + relPos
-            cdEnd   = cdStart+len(origDnaSeq)
-            codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId)
+            cdEnd = cdStart + len(origDnaSeq)
+            codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId, origStr=protVar.origStr)
             codVars.append(codVar)
 
             cdnaNuclStart = cdnaStart + relPos
-            cdnaNuclEnd   = cdnaNuclStart + len(newNucl)
+            cdnaNuclEnd = cdnaNuclStart + len(newNucl)
             rnaVar = VariantDescription(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
-                oldNucl, newNucl, transId)
+                oldNucl, newNucl, transId, origStr=protVar.origStr)
             rnaVars.append(rnaVar)
 
     return codVars, rnaVars
@@ -931,7 +938,7 @@ def mentionsFields(mentions, text):
     for m in mentions:
         mutStarts.append(str(m.start))
         mutEnds.append(str(m.end))
-        snippets.append(pubAlg.getSnippet(text, m.start, m.end).replace("|"," "))
+        snippets.append(pubAlg.getSnippet(text, m.start, m.end).replace("|", " "))
         patNames.append(m.patName)
         texts.append(text[m.start:m.end].strip("() -;,."))
     return mutStarts, mutEnds, patNames, snippets, texts
@@ -947,30 +954,33 @@ def ungroundedMutToFakeSeqVariant(variant, mentions, text):
     """ convert mutations that could not be grounded to "fake" variants
         that are not located on any sequence but are easy to write to a file
     """
-    #muts = []
-    #for mut, mentions in ungroundedMuts:
-    #muts.append(SeqVariantData(seqType=mut.seqType, mentions=mentions, text=text))
+    # muts = []
+    # for mut, mentions in ungroundedMuts:
+    # muts.append(SeqVariantData(seqType=mut.seqType, mentions=mentions, text=text))
     var = SeqVariantData(seqType=variant.seqType, mentions=mentions, text=text)
     return var
 
-def isSeqCorrect(seqId, variant):
+def isSeqCorrect(seqId, variant, insertion_rv):
     " check if wild type sequence in protein corresponds to mutation positions "
-    vStart = variant.start - 1# uniprot is 1-based, we are 0-based
-    vEnd   = variant.end - 1
+    if variant.mutType == "ins" and not variant.origSeq:
+        return insertion_rv
+    
+    vStart = variant.start - 1  # uniprot is 1-based, we are 0-based
+    vEnd = variant.end - 1
     seq = geneData.getSeq(seqId)
 
     logger.info("vStart: %d" % vStart)
     logger.info("vEnd: %d" % vEnd)
-    logger.info("len(seq): %d" % len(seq))
-    if seq==None:
+    if seq == None:
         # uniprot sometimes uses other species as support
         logger.debug("sequence %s is not human or not available" % seqId)
         return False
+    logger.info("len(seq): %d" % len(seq))
 
-    if not vEnd<=len(seq):
+    if not vEnd <= len(seq):
         logger.debug("sequence %s is too short" % seqId)
         return False
-    
+
     if doShuffle:
         s = list(seq)
         random.shuffle(s)
@@ -980,28 +990,28 @@ def isSeqCorrect(seqId, variant):
         cdsStart = geneData.getCdsStart(seqId)
     else:
         cdsStart = 0
-    genomeSeq = seq[vStart+cdsStart:vEnd+cdsStart].upper()
+    genomeSeq = seq[vStart + cdsStart:vEnd + cdsStart].upper()
     if genomeSeq == variant.origSeq.upper():
         logger.debug("Seq match: Found %s at pos %d-%d in seq %s" % \
             (genomeSeq, vStart, vEnd, seqId))
         return True
     else:
-        surroundingSeq = seq[vStart+cdsStart-5:vEnd+5+cdsStart].upper()
+        surroundingSeq = seq[vStart + cdsStart - 5:vEnd + 5 + cdsStart].upper()
         logger.debug("No seq match: Need %s, but found %s at pos %d-%d in seq %s (surrounding: %s) (vStart: %d, vEnd: %d, cdsStart: %d)" % \
             (variant.origSeq, genomeSeq, vStart, vEnd, seqId, surroundingSeq, vStart, vEnd, cdsStart))
         return False
 
-def hasSeqAtPos(seqIds, variant):
+def hasSeqAtPos(seqIds, variant, insertion_rv):
     " check a list of IDs return those with a wild-type sequence at a position "
-    if seqIds==None:
+    if seqIds == None:
         return []
     foundIds = []
     for seqId in seqIds:
-        if isSeqCorrect(seqId, variant):
+        if isSeqCorrect(seqId, variant, insertion_rv):
             foundIds.append(seqId)
     return foundIds
 
-def checkVariantAgainstSequence(variant, entrezGene, sym, seqDbs=["refseq"]):
+def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=["refseq"]):
     """ given a variant and a gene ID, 
     try to resolve gene to transcript sequence via  various protein databases 
     and check if they have matches for the wildtype aa at the right position 
@@ -1021,10 +1031,10 @@ def checkVariantAgainstSequence(variant, entrezGene, sym, seqDbs=["refseq"]):
             else:
                 logger.debug("variant is neither DNA nor prot variant, but %s instead" % variant.seqType)
                 continue
-            if len(seqIds)==0:
+            if len(seqIds) == 0:
                 continue
-            foundProtIds = hasSeqAtPos(seqIds, variant)
-            if len(foundProtIds)!=0:
+            foundProtIds = hasSeqAtPos(seqIds, variant, insertion_rv)
+            if len(foundProtIds) != 0:
                 return db, foundProtIds
     return None, []
 
@@ -1046,7 +1056,7 @@ def mapToRefProt(db, variant, protIds):
         psls = geneData.getProteinPsls(db, protId)
         for psl in psls:
             newVar = pslMapVariant(variant, psl)
-            if newVar==None:
+            if newVar == None:
                 logger.warn("Cannot map a variant to refprot")
                 continue
             # some variants are in uniprot but cannot be mapped to refseq at all
@@ -1056,13 +1066,13 @@ def mapToRefProt(db, variant, protIds):
             mappedVars.append(newVar)
     logger.debug("Mapped to refprot variants: %s" % str(newVar))
     return mappedVars
-        
+
 def pslMapVariant(variant, psl):
     " map variant through psl on target, given query position, and create a new variant "
     maker = pslMapBed.PslMapBedMaker()
     maker.mapQuery(psl, variant.start, variant.end)
     bed = maker.getBed()
-    if bed==None:
+    if bed == None:
         return None
 
     varNew = copy.deepcopy(variant)
@@ -1070,7 +1080,7 @@ def pslMapVariant(variant, psl):
     varNew.start = int(bed[1])
     varNew.end = int(bed[2])
     return varNew
-    
+
 def mapToGenome(rnaVars, variants, bedName):
     " map to genome from refseq, remove duplicate results, return as 12-tuple (=BED) "
     maker = pslMapBed.PslMapBedMaker()
@@ -1080,9 +1090,9 @@ def mapToGenome(rnaVars, variants, bedName):
         maker.clear()
         # get psl
         pslList = geneData.getRefseqPsls(rnaVar.seqId)
-        if len(pslList)>1:
+        if len(pslList) > 1:
             logger.warn("refSeq %s maps to multiple places, using only first one" % rnaVar.seqId)
-        if len(pslList)==0:
+        if len(pslList) == 0:
             logger.warn("No mapping for %s, skipping variant" % rnaVar.seqId)
             continue
         mapPsl = pslList[0]
@@ -1092,34 +1102,35 @@ def mapToGenome(rnaVars, variants, bedName):
         end = rnaVar.end
         maker.mapQuery(mapPsl, start, end)
         bed = maker.getBed(name=bedName)
-        if bed==None:
+        if bed == None:
             logger.debug("found mapping psl but nothing was mapped")
             continue
+        bed.append(rnaVar.origStr)
         # .e.g NM_004006.1:c.3G>T
-        #bed.append("%s:c.%d%s>%s" % (rnaVar.seqId, start, rnaVar.origSeq, rnaVar.mutSeq))
-        bed.append(rnaVar.getName())
+        # bed.append("%s:c.%d%s>%s" % (rnaVar.seqId, start, rnaVar.origSeq, rnaVar.mutSeq))
+        # bed.append(rnaVar.getName())
 
         # generate prot var
         # e.g. NP_12323.2:p.Trp13Ser
-        #protVarDescs = ["%s:%s%d%s" % (p.seqId, p.origSeq, p.start, rnaVar.mutSeq) for p in protVars]
-        protVarDescs = [v.getName() for v in variants]
-        bed.append(",".join(protVarDescs))
+        # protVarDescs = ["%s:%s%d%s" % (p.seqId, p.origSeq, p.start, rnaVar.mutSeq) for p in protVars]
+        # protVarDescs = [v.getName() for v in variants]
+        # bed.append(",".join(protVarDescs))
 
         logger.debug("Got bed: %s" % str(bed))
         beds.append(bed)
     return beds
-    
+
 def getSnpMentions(mappedRsIds, varList):
     """ find all variants + their mentions with any of the mapped rsIds 
         returns dict rsId -> list of mentions
     """
-    if len(varList)==0:
+    if len(varList) == 0:
         return {}
 
     mappedRsIds = set(mappedRsIds)
     if "na" in mappedRsIds:
         mappedRsIds.remove("na")
-    if len(mappedRsIds)==0:
+    if len(mappedRsIds) == 0:
         return {}
 
     res = defaultdict(list)
@@ -1129,7 +1140,7 @@ def getSnpMentions(mappedRsIds, varList):
             res[rsId].extend(mentions)
     return res
 
-def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
+def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, insertion_rv):
     """ 
     ground mutations onto genes and return a tuple of:
     (list of grounded SeqVariantData objects, list of ungrounded SeqVariantData, 
@@ -1147,30 +1158,30 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
 
     allBeds = []
     logger.debug("Grounding mutation %s onto genes %s" % (variant, entrezGenes))
-    groundSuccess=False
+    groundSuccess = False
     # try all entrez genes in article
     for entrezGene in entrezGenes:
         geneSym = geneData.entrezToSym(entrezGene)
         if not geneSym:
             logger.warn("No symbol for entrez gene %s. Skipping gene." % str(entrezGene))
             continue
-        db, seqIds = checkVariantAgainstSequence(variant, entrezGene, geneSym)
+        db, seqIds = checkVariantAgainstSequence(variant, entrezGene, geneSym, insertion_rv)
 
-        if len(seqIds)!=0:
+        if len(seqIds) != 0:
             # we found a sequence hit
             varId = str(docId)
-            comment  = ""
+            comment = ""
             if variant.seqType == "prot":
-                if db=="refseq":
+                if db == "refseq":
                     protVars = rewriteToRefProt(variant, seqIds)
                 else:
                     assert(False)
 
                 # map variants to coding and rna sequence coordinates
-                codVars, rnaVars   = mapToCodingAndRna(protVars)
-                if codVars==None:
+                codVars, rnaVars = mapToCodingAndRna(protVars)
+                if codVars == None:
                     continue
-                beds               = mapToGenome(rnaVars, protVars, varId)
+                beds = mapToGenome(rnaVars, protVars, varId)
                 logger.info("protVars: %s" % str(protVars))
                 logger.info("codVars: %s" % str(codVars))
                 logger.info("rnaVars: %s" % str(rnaVars))
@@ -1185,37 +1196,40 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes):
                     codVars.append(cVariant)
                     cdsStart = geneData.getCdsStart(seqId)
                     rVariant = copy.copy(variant)
-                    rVariant.start = variant.start + cdsStart
-                    rVariant.end = variant.end + cdsStart
+                    # Johannes: not sure why -1, but so be it ... these wacko off by one errors are not worth hunting down to the original source lol
+                    rVariant.start = variant.start + cdsStart - 1
+                    rVariant.end = variant.end + cdsStart - 1
                     rVariant.seqId = seqId
                     rnaVars.append(rVariant)
                 beds = mapToGenome(rnaVars, codVars, varId)
             else:
                 assert False, "can only ground prot and dna variants"
-            # add all relevant dbSnp IDs from the document to this variant 
-            varRsIds           = bedToRsIds(beds)
-            #mentionedDbSnpVars = getSnpMentions(varRsIds, mutations["dbSnp"])
+            # add all relevant dbSnp IDs from the document to this variant
+            varRsIds = bedToRsIds(beds)
+            # mentionedDbSnpVars = getSnpMentions(varRsIds, mutations["dbSnp"])
             mentionedDbSnpVars = getSnpMentions(varRsIds, snpMentions)
             mappedRsIds.extend(mentionedDbSnpVars.keys())
 
             groundedVar = SeqVariantData(varId, protVars, codVars, rnaVars, comment, beds, \
                 entrezGene, geneSym, varRsIds, mentionedDbSnpVars, mentions, text)
-            #isInDb = dbAnnots.addCheckVariant(groundedVar)
+            # isInDb = dbAnnots.addCheckVariant(groundedVar)
             groundedMuts.append(groundedVar)
             allBeds.extend(beds)
-            groundSuccess=True
+            groundSuccess = True
+        else:
+            logger.debug("Len of protIds is 0")
 
-    #if not groundSuccess:
-        #ungroundedMuts.append((variant,  mentions))
+    # if not groundSuccess:
+        # ungroundedMuts.append((variant,  mentions))
 
-    #if not groundSuccess:
-        #ungroundVar = ungroundedMutToFakeSeqVariant(variant, mentions, text)
+    # if not groundSuccess:
+        # ungroundVar = ungroundedMutToFakeSeqVariant(variant, mentions, text)
     ungroundVar = None
     if not groundSuccess:
         ungroundVar = SeqVariantData(seqType=variant.seqType, mentions=mentions, text=text)
 
     unmappedRsVars = unmappedRsVarsToFakeVariants(snpMentions, mappedRsIds, text)
-    #ungroundVarData.extend(unmappedRsVars)
+    # ungroundVarData.extend(unmappedRsVars)
     return groundedMuts, ungroundVar, allBeds
 
 def groundSymbolVariant(geneSym, protDesc):
@@ -1231,14 +1245,14 @@ def groundSymbolVariant(geneSym, protDesc):
     # use the first entrez entry we find
     for entrezGene in entrezGenes:
         db, protIds = checkVariantAgainstSequence(variant, str(entrezGene), geneSym)
-        if len(protIds)!=0:
+        if len(protIds) != 0:
             break
     protVars = rewriteToRefProt(variant, protIds)
-    codVars, rnaVars   = mapToCodingAndRna(protVars)
-    beds               = mapToGenome(rnaVars, protVars, "%s:%s" % (geneSym, protDesc))
+    codVars, rnaVars = mapToCodingAndRna(protVars)
+    beds = mapToGenome(rnaVars, protVars, "%s:%s" % (geneSym, protDesc))
     return beds, codVars, rnaVars
 
-if __name__=="__main__":
+if __name__ == "__main__":
     logger.basicConfig(level=logger.DEBUG)
     import doctest
     doctest.testmod()
