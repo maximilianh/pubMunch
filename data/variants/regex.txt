@@ -4,6 +4,8 @@ dna	del		{sep}c\.{fromPos}_{toPos}del{origDnas}
 dna	del		{sep}c\.{pos}del{origDna}
 prot	del		{sep}p\.{fromPos}_{toPos}del{origAasShort}
 prot	del		{sep}p\.{fromPos}_{toPos}del{origAasLong}
+prot	del		{sep}p\.{origAaShort}{pos}del
+prot	del		{sep}p\.{origAaLong}{pos}del
 dna	ins		{sep}c\.{fromPos}_{toPos}ins{dnas}
 dna	dup		{sep}c\.{pos}dup{origDna}
 dna	dup		{sep}c\.{fromPos}_{toPos}dup{origDnas}
@@ -13,6 +15,9 @@ dna	sub		substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,
 dna	sub	c.123T>A	{sep}c\.{pos}{origDna}>{mutDna}
 dna	sub	c.123TrA (r is ->, ocr error)	{sep}c\.{pos}{origDna}r{mutDna}
 dna	sub	c.123T(RIGHT ARROW)2192A	{sep}c\.{pos}{origDna}\u2192{mutDna}
+dna	splicing		{sep}c\.{pos}{plusMinus}{offset}{origDna}>{mutDna}
+dna	splicing		{sep}c\.{pos}{plusMinus}{offset}{origDna}r{mutDna}
+dna	splicing		{sep}c\.{pos}{plusMinus}{offset}{origDna}\u2192{mutDna}
 #dna	sub	10090526	codon {poss} {origCodon}-{mutCodon}
 #dna	sub	11005141	{origCodon}\u2192{mutCodon}
 dbSnp	dbSnp	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})

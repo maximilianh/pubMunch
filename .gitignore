@@ -47,3 +47,5 @@ pip-log.txt
 *~
 *.save
 
+# compiled python files
+*.pyc

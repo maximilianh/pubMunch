@@ -16,6 +16,8 @@ from pubSeqTables import threeToOneLower, threeToOne, oneToThree, aaToDna, dnaTo
 from pycbio.hgdata.Psl import Psl
 import pslMapBed, pubAlg, maxbio, pubConf, maxCommon, pubKeyVal
 
+from pygr.seqdb import SequenceFileDB
+
 regexes = None
 
 # this setting can be changed to allow protein variants
@@ -40,6 +42,7 @@ VariantFields = [
     "origSeq",  # wild type seq, used for sub and del, also used to store rsId for dbSnp variants
     "mutSeq",  # mutated seq, used for sub and ins
     "origStr",  # variant name as it occurs in the original paper
+    "offset", # offset for splicing variants, e.g., -3 for c.1184-3A>T
     ]
 
 # A completely resolved mutation
@@ -142,6 +145,8 @@ def loadDb(logLevel=logging.DEBUG, loadSequences=True):
     global regexes
     regexes = parseRegex(pubConf.varDataDir)
     logger.info("Blacklist has %d entries" % len(blackList))
+    global genomeseq
+    genomeseq = SequenceFileDB(join(pubConf.varDataDir, 'hg19.fa'))
 
 def openIndexedPsls(mutDataDir, fileBaseName):
     " return a dict-like object that returns psls given a transcript ID "
@@ -363,7 +368,7 @@ class VariantDescription(object):
     """
     __slots__ = VariantFields
 
-    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None, geneId="", origStr=""):
+    def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None, geneId="", origStr="", offset=0):
         self.mutType = mutType  # sub, del or ins or dbSnp
         self.seqType = seqType  # cds, rna or prot
         self.seqId = seqId
@@ -373,6 +378,7 @@ class VariantDescription(object):
         self.origSeq = origSeq
         self.mutSeq = mutSeq
         self.origStr = origStr
+        self.offset = offset
 
     def getName(self):
         " return HGVS text for this variant "
@@ -520,9 +526,11 @@ def parseRegex(mutDataDir):
     "fromPos"     : r'(?P<fromPos>[1-9][0-9]*)',
     "toPos"       : r'(?P<toPos>[1-9][0-9]*)',
     "pos"         : r'(?P<pos>[1-9][0-9]*)',
+    "offset"         : r'(?P<offset>[1-9][0-9]*)',
     "fromPoss"     : r'(?P<fromPos>[1-9][0-9]+)',
     "toPoss"       : r'(?P<toPos>[1-9][0-9]+)',
     "poss"         : r'(?P<pos>[1-9][0-9]+)',
+    "plusMinus"         : r'(?P<plusMinus>[+-])',
     "origAaShort" : r'(?P<origAaShort>[CISQMNPKDTFAGHLRWVEYX])',
     "origAasShort" : r'(?P<origAasShort>[CISQMNPKDTFAGHLRWVEYX]+)',
     "skipAa"  : r'(CYS|ILE|SER|GLN|MET|ASN|PRO|LYS|ASP|THR|PHE|ALA|GLY|HIS|LEU|ARG|TRP|VAL|GLU|TYR|TER|GLUTAMINE|GLUTAMIC ACID|LEUCINE|VALINE|ISOLEUCINE|LYSINE|ALANINE|GLYCINE|ASPARTATE|METHIONINE|THREONINE|HISTIDINE|ASPARTIC ACID|ARGININE|ASPARAGINE|TRYPTOPHAN|PROLINE|PHENYLALANINE|CYSTEINE|SERINE|GLUTAMATE|TYROSINE|STOP|X)',
@@ -589,6 +597,24 @@ def isBlacklisted(let1, pos, let2):
         return True
     return False
 
+def parseMatchSplicing(match, patName, seqType):
+    # dna splicing        {sep}c\.{pos}{plusMinus}{offset}{origDna}>{mutDna}
+    groups = match.groupdict()
+    seqStart = int(groups["pos"])
+    seqEnd = seqEnd = seqStart + 1
+    plusMinus = groups["plusMinus"]
+    offset = int(groups["offset"])
+    if plusMinus == "+":
+        pass
+    elif plusMinus == "-":
+        offset *= -1
+    else:
+        assert False
+    origSeq = groups["origDna"]
+    mutSeq = groups["mutDna"]
+    var = VariantDescription("splicing", seqType, seqStart, seqEnd, origSeq, mutSeq, origStr=match.group(0).strip(), offset=offset)
+    return var
+
 def parseMatchSub(match, patName, seqType):
     " given a regular expression match object, return mutation and mention objects "
     groups = match.groupdict()
@@ -641,7 +667,7 @@ def parseMatchDel(match, patName, seqType):
         pos = int(groups["pos"])
         seqStart = pos
         seqEnd = pos + 1
-
+    
     if "origAasShort" in groups:
         origSeq = groups["origAasShort"]
     if "origAasLong" in groups:
@@ -650,6 +676,10 @@ def parseMatchDel(match, patName, seqType):
         origSeq = groups["origDnas"]
     if "origDna" in groups:
         origSeq = groups["origDna"]
+    if "origAaShort" in groups:
+        origSeq = groups["origAaShort"]
+    elif "origAaLong" in groups:
+        origSeq = threeToOneLower[groups["origAaLong"].lower()]
     origSeq = origSeq.upper()
 
     var = VariantDescription("del", seqType, seqStart, seqEnd, origSeq, None, origStr=match.group(0).strip())
@@ -752,6 +782,8 @@ def findVariantDescriptions(text, exclPos=set()):
                 variant = parseMatchIns(match, patName, seqType)
             elif mutType == "dup":
                 variant = parseMatchDup(match, patName, seqType)
+            elif mutType == "splicing":
+                variant = parseMatchSplicing(match, patName, seqType)
             else:
                 logger.debug("Ignoring match %s; don't know how to handle" % match.groups())
                 continue
@@ -778,7 +810,7 @@ def findVariantDescriptions(text, exclPos=set()):
 
 def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq):
     if seqType == "prot":
-        desc = "%s:p.%s%d%s" % (seqId, oneToThree[origSeq], pos, oneToThree[mutSeq])
+        desc = "%s:p.%s%d%s" % (seqId, oneToThree.get(origSeq, "None"), pos, oneToThree.get(mutSeq, "None"))
     elif seqType == "cds":
         desc = "%s:c.%d%s>%s" % (seqId, pos, origSeq, mutSeq)
     elif seqType == "rna":
@@ -934,19 +966,34 @@ def mapToCodingAndRna(protVars):
             pos + len(protVar.origSeq), protVar.origSeq)
         if origDnaSeq == None:
             return None, None
-
-        possChanges = possibleDnaChanges(protVar.origSeq, protVar.mutSeq, origDnaSeq)
-        for relPos, oldNucl, newNucl in possChanges:
-            cdStart = 3 * protVar.start + relPos
-            cdEnd = cdStart + len(origDnaSeq)
-            codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId, origStr=protVar.origStr)
+        
+        if protVar.mutType == "del" and protVar.mutSeq is None:
+            # the salomonian solution ... I don't exactly know where this deletion starts and ends,
+            # at least some papers (25278557) do a poor job of telling you what's going on, so just settling
+            # on this position for the deletion
+            cdStart = 3 * protVar.start
+            cdEnd = cdStart + 3 * len(protVar.origSeq)
+            codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, origDnaSeq, None, transId, origStr=protVar.origStr)
             codVars.append(codVar)
-
-            cdnaNuclStart = cdnaStart + relPos
-            cdnaNuclEnd = cdnaNuclStart + len(newNucl)
+            
+            cdnaNuclStart = cdnaStart
+            cdnaNuclEnd = cdnaNuclStart + 3 * len(protVar.origSeq)
             rnaVar = VariantDescription(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
-                oldNucl, newNucl, transId, origStr=protVar.origStr)
+                origDnaSeq, None, transId, origStr=protVar.origStr)
             rnaVars.append(rnaVar)
+        else:
+            possChanges = possibleDnaChanges(protVar.origSeq, protVar.mutSeq, origDnaSeq)
+            for relPos, oldNucl, newNucl in possChanges:
+                cdStart = 3 * protVar.start + relPos
+                cdEnd = cdStart + len(origDnaSeq)
+                codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId, origStr=protVar.origStr)
+                codVars.append(codVar)
+    
+                cdnaNuclStart = cdnaStart + relPos
+                cdnaNuclEnd = cdnaNuclStart + len(newNucl)
+                rnaVar = VariantDescription(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
+                    oldNucl, newNucl, transId, origStr=protVar.origStr)
+                rnaVars.append(rnaVar)
 
     return codVars, rnaVars
 
@@ -996,11 +1043,21 @@ def ungroundedMutToFakeSeqVariant(variant, mentions, text):
     var = SeqVariantData(seqType=variant.seqType, mentions=mentions, text=text)
     return var
 
+def isSplicingSeqCorrect(seqId, variant):
+    psls = geneData.getRefseqPsls(seqId)
+    for psl in psls:
+        logger.info("psl: %s" % str(psl))
+        logger.info("type(psl): %s" % str(type(psl)))
+    assert False, "TODO"
+
 def isSeqCorrect(seqId, variant, insertion_rv):
     " check if wild type sequence in protein corresponds to mutation positions "
     if seqId.startswith("NR_"):
         logger.info("Skipping noncoding sequence ID %s" % seqId)
         return False
+
+    if variant.mutType == "splicing":
+        return isSplicingSeqCorrect(seqId, variant)
 
     if variant.mutType == "ins" and not variant.origSeq:
         return insertion_rv
@@ -1121,12 +1178,12 @@ def pslMapVariant(variant, psl):
     varNew.end = int(bed[2])
     return varNew
 
-def mapToGenome(rnaVars, variants, bedName):
+def mapToGenome(rnaVars, bedName):
     " map to genome from refseq, remove duplicate results, return as 12-tuple (=BED) "
     maker = pslMapBed.PslMapBedMaker()
     beds = []
     for rnaVar in rnaVars:
-        logger.debug("Mapping rnaVar %s:%d-%d to genome" % (rnaVar.seqId, rnaVar.start, rnaVar.end))
+        logger.debug("Mapping rnaVar %s:%d-%d (offset %d) to genome" % (rnaVar.seqId, rnaVar.start, rnaVar.end, rnaVar.offset))
         maker.clear()
         # get psl
         pslList = geneData.getRefseqPsls(rnaVar.seqId)
@@ -1146,15 +1203,10 @@ def mapToGenome(rnaVars, variants, bedName):
             logger.debug("found mapping psl but nothing was mapped")
             continue
         bed.append(rnaVar.origStr)
-        # .e.g NM_004006.1:c.3G>T
-        # bed.append("%s:c.%d%s>%s" % (rnaVar.seqId, start, rnaVar.origSeq, rnaVar.mutSeq))
-        # bed.append(rnaVar.getName())
-
-        # generate prot var
-        # e.g. NP_12323.2:p.Trp13Ser
-        # protVarDescs = ["%s:%s%d%s" % (p.seqId, p.origSeq, p.start, rnaVar.mutSeq) for p in protVars]
-        # protVarDescs = [v.getName() for v in variants]
-        # bed.append(",".join(protVarDescs))
+        bed[1] = str(int(bed[1]) + rnaVar.offset)
+        bed[2] = str(int(bed[2]) + rnaVar.offset)
+        bed[6] = str(int(bed[6]) + rnaVar.offset)
+        bed[7] = str(int(bed[7]) + rnaVar.offset)
 
         logger.debug("Got bed: %s" % str(bed))
         beds.append(bed)
@@ -1221,7 +1273,7 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, inse
                 codVars, rnaVars = mapToCodingAndRna(protVars)
                 if codVars == None:
                     continue
-                beds = mapToGenome(rnaVars, protVars, varId)
+                beds = mapToGenome(rnaVars, varId)
                 logger.info("protVars: %s" % str(protVars))
                 logger.info("codVars: %s" % str(codVars))
                 logger.info("rnaVars: %s" % str(rnaVars))
@@ -1241,7 +1293,7 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, inse
                     rVariant.end = variant.end + cdsStart - 1
                     rVariant.seqId = seqId
                     rnaVars.append(rVariant)
-                beds = mapToGenome(rnaVars, codVars, varId)
+                beds = mapToGenome(rnaVars, varId)
             else:
                 assert False, "can only ground prot and dna variants"
             # add all relevant dbSnp IDs from the document to this variant
