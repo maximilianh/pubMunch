@@ -49,3 +49,6 @@ pip-log.txt
 
 # compiled python files
 *.pyc
+
+# vim temporary files
+*.swp
