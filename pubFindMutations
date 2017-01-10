@@ -10,12 +10,14 @@ sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
 import pubGeneric, maxCommon, pubConf, maxbio, pubAlg, maxTables, pslMapBed
 import geneFinder, varFinder
+import pubStore
 #import kent.psl, kent.pslTransMap
 
-geneData = None
+#geneData = None
 
 seqCache = None
 cacheMode = "w"
+geneCache = None
 
 geneInitDone = False
 
@@ -24,7 +26,7 @@ def findGenesCached(pmid, text):
     """
     # get the sha1 digest of the text string
     m = hashlib.sha1()
-    m.update(text)
+    m.update(text.encode("utf8"))
     hashStr = m.digest()
 
     if hashStr in geneCache:
@@ -57,21 +59,20 @@ def readFile(inFname):
     pmid  = splitext(basename(inFname))[0]
     return pmid, title, abstract, text
 
-def findInLocalFile(inFname, writer, dbAnnots):
+def initCaches(inDir):
+    " setup the global vars seqCache and geneCache "
     global seqCache
     global geneCache
-    if seqCache==None:
-        inDir = dirname(inFname)
-        scFname = join(inDir, "seqCache.gdbm")
-        logging.debug("Opening %s" % scFname)
-        seqCache = gdbm.open(scFname, cacheMode)
+    scFname = join(inDir, "seqCache.gdbm")
+    logging.debug("Opening %s" % scFname)
+    seqCache = gdbm.open(scFname, cacheMode)
 
-        gcFname = join(inDir, "geneCache.gdbm")
-        logging.debug("Opening %s" % gcFname)
-        geneCache = gdbm.open(gcFname, cacheMode)
-    
-    pmid, title, abstract, text = readFile(inFname)
+    gcFname = join(inDir, "geneCache.gdbm")
+    logging.debug("Opening %s" % gcFname)
+    geneCache = gdbm.open(gcFname, cacheMode)
 
+def processText(pmid, title, abstract, text, writer, dbAnnots):
+    text = text.replace("\a", "\n")
     genes, exclPos = findGenesCached(pmid, text)
 
     mutations  = varFinder.findVariantDescriptions(text, exclPos)
@@ -90,17 +91,36 @@ def findInLocalFile(inFname, writer, dbAnnots):
 
     dbAnnots.writeUnmappedMuts(writer.outFh)
 
+def findInLocalFile(inFname, writer, dbAnnots):
+    if seqCache==None:
+        initCaches(dirname(inFname))
+    
+    pmid, title, abstract, text = readFile(inFname)
+    processText(pmid, title, abstract, text, writer, dbAnnots)
+
+def findInPubStore(inDir, writer, dbAnnots):
+    " read text from a directory in pubStore format "
+    initCaches(inDir)
+    logging.info("Looking for *.article.gz and *.file.gz files in %s" % inDir)
+    for art, fileRows in pubStore.iterArticleDirList(inDir, None):
+        for fileRow in fileRows:
+            processText(art.pmid, art.title, art.abstract, fileRow.content, writer, dbAnnots)
+
 def findInLocalDir(inDir, writer, dbAnnots):
-    for fname in glob.glob(join(inDir, "*.txt")):
+    " reading text from a directory full of *.txt files "
+    logging.info("Looking for input text files in %s" % inDir)
+    fnames = glob.glob(join(inDir, "*.txt"))
+    assert(len(fnames)!=0) # no text files found in input directory
+    for fname in fnames:
         docId = splitext(basename(fname))[0]
         if not dbAnnots.isInRef(docId):
             logging.info("Ignoring %s" % fname)
             continue
-        
         logging.info(fname)
         findInLocalFile(fname, writer, dbAnnots)
 
 class DbAnnotator(object):
+    """collect document/gene/variant tuples and evaluate against a benchmark set """
     def __init__(self, fname):
         self.docCount = 0
         self.mutCount = 0
@@ -142,7 +162,7 @@ class DbAnnotator(object):
             self.docCount += 1
             self.predDocRefCount += len(self.target[docId])
         else:
-            logging.warn("document is not in reference")
+            logging.warn("document %s is not in gold standard" % docId)
         self.docId = docId
 
     #def addCheckVariant(self, mut):
@@ -218,10 +238,11 @@ class OutputWriter(object):
         for mut in muts:
             prefixFields=[docId, status]
             self.outFh.write("\t".join(prefixFields)+"\t")
-            row = mut.asRow(rawStr=True)
+            row = mut.asRow()
             row = [r.replace("\n", " ") for r in row]
             row = [r.replace("\t", " ") for r in row]
             #row = [r.encode("utf8") for r in row]
+            row = [x.encode("utf8") for x in row]
             self.outFh.write("\t".join(row))
             self.outFh.write("\n")
 
@@ -235,8 +256,8 @@ class OutputWriter(object):
         
 def runTests():
     #geneData = SeqData(mutDataDir, 9606)
-    assert( geneData.lookupDbSnp("chr4", 111547605,111547606)=="rs143894132")
-    assert( geneData.lookupDbSnp("chr4", 111547606,111547606)==None)
+    #assert( geneData.lookupDbSnp("chr4", 111547605,111547606)=="rs143894132")
+    #assert( geneData.lookupDbSnp("chr4", 111547606,111547606)==None)
     text = open("test.txt").read()
     varFinder.loadDb()
     variants  = varFinder.findVariantMentions(text)
@@ -286,7 +307,7 @@ def main(args, options):
     writer.close()
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [options] inTxtFileOrDir outFileTab - resolve mutations in text file""")
+parser = optparse.OptionParser("""usage: %prog [options] inTxtFileOrDir outFileTab - resolve mutations in text file or directory with papers in pubMunch tabular format""")
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
 parser.add_option("-v", "--verbose", dest="verbose", action="store_true", help="show more debug messages")
