@@ -29,13 +29,22 @@ Most commands need some settings in the config file adapted to your particular
 server / cluster system. E.g. pubCrawl2 needs your email address, pubConvX 
 need the cluster system (SGE or parasol) and various input/output directories.
 
+# The data
+
+Some of the tools require a few pretty big databases (dbSNP, RefSeq, etc.). Run 
+
+    make data
+
+once you have git-cloned the repository. Make will download the data files via
+curl and save them under data/.
+
 # Common command line options
 
 Remember that all programs mentioned here accept the -d and -v options, which will output
 lots of debugging information. Many programs accept -c which specifies the cluster to use.
 You can either specify the "headnode" of a cluster, so the program will ssh onto it and run
-commands there. An alternative is to specify "localhost" to force running on the local machine,
-or "localhost:5" to use 5 local CPUs for the processing.
+commands there. An alternative is to specify "localhost" to force running on the local machine.
+You can also multithread, e.g. with "-c localhost:5" to use 5 local CPUs for the processing.
 
 # An example run
 
