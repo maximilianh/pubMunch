@@ -1051,7 +1051,7 @@ def isSplicingSeqCorrect(seqId, variant):
     assert False, "TODO"
 
 def isSeqCorrect(seqId, variant, insertion_rv):
-    " check if wild type sequence in protein corresponds to mutation positions "
+    " check if wild type sequence in protein corresponds to mutation positions or to insertion_rv? JOHANNES "
     if seqId.startswith("NR_"):
         logger.info("Skipping noncoding sequence ID %s" % seqId)
         return False
@@ -1113,8 +1113,10 @@ def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=[
     try to resolve gene to transcript sequence via  various protein databases 
     and check if they have matches for the wildtype aa at the right position 
     seqDbs can be any of "refseq", "oldRefseq", "uniprot", "genbank"
-    - entrezGene has to be number as a string or a list of numbers separated by "/"
+    - variant is a namedtuple with VariantFields defined above
+    - entrezGene has to be a number as a string or a list of numbers separated by "/"
     - sym is only used for the logger system
+    - insertion_rv is JOHANNES?
     """
     entrezGene = str(entrezGene)
     for entrezGene in entrezGene.split("/"):
@@ -1336,12 +1338,12 @@ def groundSymbolVariant(geneSym, protDesc):
     entrezGenes = geneData.mapSymToEntrez(geneSym)
     # use the first entrez entry we find
     for entrezGene in entrezGenes:
-        db, protIds = checkVariantAgainstSequence(variant, str(entrezGene), geneSym)
+        db, protIds = checkVariantAgainstSequence(variant, str(entrezGene), geneSym, "")
         if len(protIds) != 0:
             break
     protVars = rewriteToRefProt(variant, protIds)
     codVars, rnaVars = mapToCodingAndRna(protVars)
-    beds = mapToGenome(rnaVars, protVars, "%s:%s" % (geneSym, protDesc))
+    beds = mapToGenome(rnaVars, protVars)
     return beds, codVars, rnaVars
 
 if __name__ == "__main__":
