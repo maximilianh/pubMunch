@@ -16,7 +16,7 @@ import pubStore
 #geneData = None
 
 seqCache = None
-cacheMode = "w"
+cacheMode = "c"
 geneCache = None
 
 geneInitDone = False
