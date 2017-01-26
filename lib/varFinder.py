@@ -1051,7 +1051,8 @@ def isSplicingSeqCorrect(seqId, variant):
     assert False, "TODO"
 
 def isSeqCorrect(seqId, variant, insertion_rv):
-    " check if wild type sequence in protein corresponds to mutation positions or to insertion_rv? JOHANNES "
+    " check if wild type sequence in protein corresponds to mutation positions or to insertion_rv: "
+    " if the original variant is not checkable because the reference sequence is not given (for example in insertions), then return insertion_rv. If insertion_rv is True, then eventually all uncheckable variants will be mapped to all candidate genes. If insertion_rv is False, then eventually all uncheckable variants will be dropped."
     if seqId.startswith("NR_"):
         logger.info("Skipping noncoding sequence ID %s" % seqId)
         return False
@@ -1116,7 +1117,7 @@ def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=[
     - variant is a namedtuple with VariantFields defined above
     - entrezGene has to be a number as a string or a list of numbers separated by "/"
     - sym is only used for the logger system
-    - insertion_rv is JOHANNES?
+    insertion_rv: if the original variant is not checkable because the reference sequence is not given (for example in insertions), then return insertion_rv. If insertion_rv is True, then eventually all uncheckable variants will be mapped to all candidate genes. If insertion_rv is False, then eventually all uncheckable variants will be dropped.
     """
     entrezGene = str(entrezGene)
     for entrezGene in entrezGene.split("/"):
