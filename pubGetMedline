@@ -16,8 +16,8 @@ sys.path.insert(0, pubToolsLibDir)
 import pubGeneric, pubConf, maxXml, maxCommon, util
 
 # === CONSTANTS ===
-medlineSrv = 'ftp.nlm.nih.gov'
-baselinePath= '/nlmdata/.medleasebaseline/gz'
+medlineSrv = 'ftp.ncbi.nlm.nih.gov'
+baselinePath= '/pubmed/baseline'
 updatePath= '/pubmed/updatefiles'
 
 
@@ -50,7 +50,6 @@ def downloadBaseline(outDir, connCount):
     baselineFnames = [basename(fname) for fname in baselineFnames if fname.endswith(".xml.gz")]
     logging.info("Found %d filenames on ftp server" % len(baselineFnames))
     medlineUrl = "ftp://"+medlineSrv+"/"+baselinePath,
-    #baselinePaths = [baselinePath+fname for fname in baselineFnames]
     pubGeneric.lftpGet(medlineUrl, outDir, baselineFnames, connCount)
     
 def ftpBaselineEqLocal(outDir):
@@ -88,7 +87,7 @@ def main():
     outDir = args[0]
 
     if options.full:
-        #maxCommon.mustBeEmptyDir(outDir)
+        maxCommon.mustBeEmptyDir(outDir)
         downloadBaseline(outDir, options.connCount)
 
     ftpVer, localVer = ftpBaselineEqLocal(outDir)
