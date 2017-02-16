@@ -235,6 +235,9 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
                 ##I sometimes see "HTTP Error 502: Bad Gateway"
                 #logging.info("HTTP Error on eutils, pausing for 120 secs")
                 #time.sleep(120)
+            except socket.error:
+                logging.info("Socket error on eutils, pausing for 120 secs")
+                time.sleep(120)
             except urllib2.URLError: # this should handle HTTPError, too
                 logging.info("HTTP Error on eutils, pausing for 120 secs")
                 time.sleep(120)
