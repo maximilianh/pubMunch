@@ -11,7 +11,7 @@
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
 import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator, types
-import zipfile, gzip, re, random, tempfile, copy
+import zipfile, gzip, re, random, tempfile, copy, string
 try:
     import sqlite3
 except ImportError:
@@ -58,6 +58,7 @@ articleFields=[
 "page",            # first page of article, can be ix, x, or S4
 "pmid",            # PubmedID if available
 "pmcId",           # Pubmed Central ID
+"pii",           # publisher internal ID, Elsevier/ACM: the "PII" standard used in the linkout
 "doi",             # DOI, without leading doi:
 "fulltextUrl",     # URL to fulltext of article
 "time",     # entry creation time (conversion time)
@@ -610,10 +611,10 @@ class PubReaderFile:
         """ iterate over articles AND files, as far as possible
 
         for input files with article and file data:
-            yield a tuple (articleData, list of fileData) per article 
+            yield a tuple (articleData, list of fileData) per article
         for input files with no article data, yield a tuple (None, [fileData])
         for input files with no file data, generate pseudo-file from abstract
-        (title+abstract+authors) 
+        (title+abstract+authors)
 
         algPrefs.onlyMeta == True: do not read .files.gz and yield
         (articleData, pseudoFile)
@@ -765,6 +766,18 @@ class PubReaderTest:
         fileObj.fileType = "main"
         fileObj.externalId = "file0000"
         fileObj.desc="desc"
+
+        lines = text.splitlines()
+        abstract = ""
+        title = ""
+        for line in lines:
+            if line.startswith("abstract: "):
+                abstract = string.split(line, ": ", 1)[1]
+            if line.startswith("title: "):
+                title = string.split(line, ": ", 1)[1]
+        art.title = title
+        art.abstract = abstract
+
         return art, [fileObj]
 
     def iterArticlesFileList(self, algPrefs):
@@ -776,7 +789,9 @@ class PubReaderTest:
             yield self._makeArtFile(text, fname)
 
 def iterArticleDirList(textDir, algPrefs=None):
-    " iterate over all files with article/fileData in textDir "
+    """ iterate over all files with article/fileData in textDir.
+    This yields tuples (articleDict, list of fileDicts)
+    """
     logging.debug("Getting filenames in dir %s" % textDir)
     fileNames = getAllArticleFnames(textDir)
     logging.debug("Found %d files in input dir %s" % (len(fileNames), textDir))

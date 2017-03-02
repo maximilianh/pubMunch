@@ -214,6 +214,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, \
             for inFile in baseNames:
                 inBase = splitext(basename(inFile))[0]
                 inBase = basename(inDir)+"_"+inBase
+                print "XX inBase is", inBase
                 outNames.add(inBase)
                 outFullname = join(outDir, inBase)+outExt
                 #mustNotExist(outFullname) # should not hurt to avoid this check...
@@ -565,7 +566,7 @@ def newTempOutFile(tmpFnames, outName, alg, addFields):
     tmpOutFname = makeLocalTempFile()
 
     tmpFnames.append( tmpOutFname )
-    outFh = pubStore.utf8GzWriter(tmpOutFname)
+    outFh = gzip.open(tmpOutFname, "wb")
 
     if addFields!=None:
         writeHeaders(alg, outFh, addFields)
@@ -601,10 +602,11 @@ def runAnnotate(reader, alg, paramDict, outName):
             outFh, tmpFnames = newTempOutFile(tmpFnames, outName, alg, addFields)
             continue
             
-        row = [pubStore.removeTabNl(x) for x in row]
-        line = "\t".join(row)
-        outFh.write(line)
-        outFh.write("\n")
+        #row = [pubStore.removeTabNl(x) for x in row]
+        writeRow(row, outFh)
+        #line = "\t".join(row)
+        #outFh.write(line)
+        #outFh.write("\n")
 
     if "cleanup" in dir(alg):
         logging.info("Running cleanup")
@@ -654,7 +656,7 @@ def runAnnotateIter(reader, alg, paramDict, addFields):
                 yield row
                 rowCount += 1
 
-    logging.debug("Got %d rows" % rowCount)
+    logging.debug("Got %d rows from annotator" % rowCount)
 
 def unmarshal(fname):
     if fname.endswith(".gz"):
@@ -1005,7 +1007,8 @@ def mapReduceTestRun(datasets, alg, paramDict, tmpDir, updateIds=None, skipMap=F
 def writeRow(row, outFh):
     " write list as tab-sep to ofh "
     newRow = [pubStore.removeTabNl(unicode(x)) for x in row]
-    outFh.write("\t".join(row))
+    newRow = [i.encode('utf8') if isinstance(i, unicode) else str(i) for i in newRow]
+    outFh.write("\t".join(newRow))
     outFh.write("\n")
 
 def runProcessRow(inName, alg, paramDict, outName):
