@@ -6,7 +6,7 @@ set -o errexit                        # stop on errors
 echo updating pdb
 sh /hive/data/outside/pdb/sync.sh
 echo updating uniprot
-sh /hive/data/outside/uniProtCurrent/sync.sh
+sh /hive/data/outside/uniProt/updateCurrent.sh
 echo parsing uniprot
 ~/projects/pubs/tools/pubParseDb uniprot all
 ~/projects/pubs/tools/pubParseDb uniprotTrembl all
