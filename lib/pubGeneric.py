@@ -569,10 +569,11 @@ def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNo
 
 def lftpGet(remoteUrl, locDir, fileNames, connCount):
     " use lftp to download files in parallel "
+    locDir = os.path.abspath(locDir)
     scriptPath = join(locDir, "lftp.cmd")
     logging.debug("Writing filenames to %s" % scriptPath)
     lFile = open(scriptPath, "w")
-    lFile.write("set net:socket-buffer 4000000\n")
+    lFile.write("set net:socket-buffer 32000000\n")
     lFile.write("set cmd:parallel %d\n" % int(connCount))
     lFile.write("open %s\n" % remoteUrl)
     lFile.write("set xfer:log true\n")

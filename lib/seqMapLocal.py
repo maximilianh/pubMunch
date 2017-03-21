@@ -121,6 +121,7 @@ class DnaMapper():
 
     def mapDnaToBed(self, seqs, docId, dbList, outDir):
         """ seqs is a list of (seqId, seq)
+        returns a dict db -> bedFname
         """
         pslDir = pubGeneric.makeTempDir(prefix="geneFinderPsls")
         # create tuples (seqId, seq)
@@ -157,7 +158,7 @@ class DnaMapper():
         dbBedNames = self.mapDnaToBed(seqs, docId, dbList, bedDir)
         dbAnnotGenes = {}
         for db, bedName in dbBedNames.iteritems():
-            annotToGenes = pubMap.findLoci(bedName, dbList)
+            annotToGenes = pubMap.findLociForBeds(bedName, db)
             seqIdToGenes = {}
             for annotId, genes in annotToGenes.iteritems():
                 seqId, seqRange = annotId.split(":")

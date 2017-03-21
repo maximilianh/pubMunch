@@ -23,6 +23,8 @@ on them.  All tools start with the prefix "pub".
 - pubPrepX = prepare directory structures. These are used to download
         taxon names, import gene models from websites like NCBI or
         UCSC. 
+- pubFindMutations, pubFindGenes = command line tools to find genes and variants.
+  Easier to run like that if you have only a few text files to try.
 
 If you plan to use any of these, make sure to go over lib/pubConf.py first.
 Most commands need some settings in the config file adapted to your particular

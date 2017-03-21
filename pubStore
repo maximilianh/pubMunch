@@ -44,6 +44,12 @@ command "filterPmid":
 example:
 %prog filter pmc,elsevier,crawler uniprotPmids.txt uniProtText
 
+command "filterIssn":
+    %prog filterIssn <datasetList> issn1,issn2,issn3,... <outFname>
+example:
+%prog filterIssn pmc 1367-4803 bioformatics
+It may be easier to use sqlite3 + filterPmid for ISSN filtering
+
 command "addPmids": 
     read PMIDs from datasetDir/medline.ids.tab, rewrite all 
     articles.gz files and add the new PMID.
@@ -80,7 +86,22 @@ pubGeneric.addGeneralOptions(parser)
 def main(args, options):
     cmd = args[0]
 
-    if cmd=="filterPmid":
+    if cmd=="filterIssn":
+        inSpec, issnListStr, outFname = args[1:]
+        store  = pubStore.PubWriterFile(outFname)
+        issns = issnListStr.split(",")
+        inDirs = pubConf.resolveTextDirs(inSpec)
+
+        for inDir in inDirs:
+            for reader in pubStore.iterPubReaders(inDir):
+                for article, files in reader.iterArticlesFileList(None):
+                    if article.eIssn in issns or article.printIssn in issns:
+                        fileDicts = [f._asdict() for f in files]
+                        store.writeDocs(article._asdict(), fileDicts)
+
+        store.close()
+
+    elif cmd=="filterPmid":
         inSpec, pmidFname, outDir = args[1:]
         pmidFname = os.path.abspath(pmidFname)
         assert(isfile(pmidFname))

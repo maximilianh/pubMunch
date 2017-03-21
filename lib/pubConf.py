@@ -174,7 +174,8 @@ bundleToText = {
 TEMPDIR = "/tmp/pubTools" # local filesystem on cluster nodes
 FASTTEMPDIR = TEMPDIR
 
-maxBinFileSize = 20000000 # maximum filesize of any file before conversion to ASCII
+maxBinFileSize = 50000000 # maximum filesize of any file before conversion to ASCII
+# pretty big, to allow big blobs like TIFF files etc, in docx files
 maxTxtFileSize = 10000000 # maximum filesize of any file after conversion to ASCII
 minTxtFileSize = 60 # minimum filesize of any file after conversion to ASCII
 # 60 to allow files with just a figure legend to be processed

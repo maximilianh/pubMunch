@@ -19,14 +19,14 @@ import pubGeneric, util, pubConf
 parser = optparse.OptionParser("""usage: %prog [options] <outDir> - update current PMC copy from PMC ftp server
 
 Does not check each file on disk for existence, but compares 
-the last file_list.txt with the current file_list.txt on the FTP
+the last oa_file_list.txt with the current oa_file_list.txt on the FTP
 server.
 
 Creates a file download.log with information what has been added/deleted.
 
 Command to download PMC to some directory using lftp without this script:
 (http://lftp.yar.ru/) : 
-    lftp -e 'set net:socket-buffer 4000000; connect
+    lftp -e 'set net:socket-buffer 32000000; connect
     ftp://ftp.ncbi.nlm.nih.gov; mirror --delete-first -c --parallel=8
     --ignore-time /pub/pmc/; quit'
 
@@ -35,9 +35,9 @@ Command to download PMC to some directory using lftp without this script:
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 parser.add_option("-p", "--parallelConnections", dest="parallel", action="store", type="int", help="use lftp for faster, parallel downloads, use X number of connections")
 parser.add_option("-c", "--check", dest="check", action="store_true", \
-    help="do not use file_list.txt to find the right files, but check file existence on disk")
+    help="do not use oa_file_list.txt to find the right files, but check file existence on disk")
 parser.add_option("", "--justCheck", dest="justCheck", action="store_true", \
-    help="just check if all files in the current file_list.txt are really on disk")
+    help="just check if all files in the current oa_file_list.txt are really on disk")
 parser.add_option("", "--auto", dest="auto", action="store_true", \
     help="automatically set the output directory based on pubConf.extDir")
 (options, args) = parser.parse_args()
@@ -45,20 +45,17 @@ parser.add_option("", "--auto", dest="auto", action="store_true", \
 # ==== FUNCTIONs =====
 
 def parseFileList(path):
-    " parse pmc file_list.csv into dict PMCID -> filename "
+    " parse pmc oa_file_list.txt into dict PMCID -> filename "
     if not isfile(path):
         logging.info("Could not find %s, probably first download" % path)
         return {}
-    logging.debug("Parsing %s" % path)
+    logging.info("Parsing %s" % path)
     data = {}
     ifh = open(path)
     ifh.readline() # skip header
     for line in ifh:
         fields = line.strip('\n').split("\t")
-        if len(fields)!=3:
-            fname, cit, pmcId, pdfName = fields # PMC changed their format for a few weeks
-        else:
-            fname, cit, pmcId = fields
+        fname, cit, pmcId = fields[:3]
         data[pmcId] = fname
     return data
 
@@ -125,22 +122,23 @@ def deleteFiles(ourPmc, staleIds, outDir):
     logging.info("Deleted %d stale local files" % delCount)
 
 def updatePmc(outDir, checkOnDisk):
-    """ compare remote and local file_list.txt and download new files
-    ignore the last_updated date, replace file_list.txt once finished
+    """ compare remote and local oa_file_list.txt and download new files
+    ignore the last_updated date, replace oa_file_list.txt once finished
 
-    if checkOnDisk is True, always check files on disk instead of using the file_list.txt comparison
+    if checkOnDisk is True, always check files on disk instead of using the oa_file_list.txt comparison
     """
 
     # download from server to .current.txt
-    logging.info("Inferring missing PMC-IDs by comparing file_list.txt")
-    newListFname = "file_list.current.txt"
+    logging.info("Inferring missing PMC-IDs by comparing oa_file_list.txt")
+    newListFname = "oa_file_list.new.txt"
     newListPath = join(outDir, newListFname)
     pmcUrl = "ftp://ftp.ncbi.nlm.nih.gov/pub/pmc"
     ftpConn = util.openFtpConn("ftp.ncbi.nlm.nih.gov", "/pub/pmc", "anonymous", "pubGetPmc@pubtools")
-    listName = "file_list.txt"
+    listName = "oa_file_list.txt"
+    logging.info("Downloading %s, file %s to %s" % (pmcUrl, listName, newListPath))
     downloadOk = util.ftpDownload(ftpConn, listName, newListPath)
     if not downloadOk:
-        raise Exception("could not download file_list.txt")
+        raise Exception("could not download oa_file_list.txt")
 
     pmcIdxPath = join(outDir, "PMC-ids.csv.gz")
     downloadOk = util.ftpDownload(ftpConn, "PMC-ids.csv.gz", pmcIdxPath)
@@ -148,7 +146,7 @@ def updatePmc(outDir, checkOnDisk):
         raise Exception("could not download PMC-ID file")
 
     # compare local txt with current.txt 
-    locListPath = join(outDir, "file_list.txt")
+    locListPath = join(outDir, "oa_file_list.txt")
     ourPmc = parseFileList(locListPath)
     theirPmc  = parseFileList(newListPath)
 
@@ -167,11 +165,12 @@ def updatePmc(outDir, checkOnDisk):
 
     logging.debug("Renaming file list files")
     locListOld = join(outDir, "file_list.old.txt")
-    os.rename(locListPath, locListOld)
+    if isfile(locListPath):
+        os.rename(locListPath, locListOld)
     os.rename(newListPath, locListPath)
 
 def checkPmc(outDir):
-    locListPath = join(outDir, "file_list.txt")
+    locListPath = join(outDir, "oa_file_list.txt")
     ourPmc = parseFileList(locListPath)
     missCount = 0
     for pmcId, fileName in ourPmc.iteritems():
@@ -179,7 +178,7 @@ def checkPmc(outDir):
         if not isfile(locFname):
             logging.error("%s does not exist" % locFname)
             missCount +=1
-    logging.error("%d file missing" % missCount)
+    logging.info("%d files missing" % missCount)
 
 def main(args, options):
     if args==[] and not options.auto:

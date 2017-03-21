@@ -149,6 +149,7 @@ def compileREs():
     sgdRe = re.compile(r'%s(?P<id>Y[A-Z]{2}[0-9]{3}[CW](-[AB])?|S[0-9]{9})' % (startSepDash))
     zfinRe = re.compile(r'%s(?P<id>ZDB-GENE-[0-9]{6,8}-[0-9]{2,4})' % (startSepDash))
     clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8})' % startSepDash)
+    dbGapRe = re.compile(r'%s(?P<id>phs([0-9]{6}))%s' % (startSepDash, endSepDash))
 
     # a more or less random selection of keywords, not sure if this is really necessary
     global reqWordDict
@@ -194,7 +195,8 @@ def compileREs():
         "sgd"          : sgdRe,
         "zfin"         : zfinRe,
         # https://clinicaltrials.gov/show/NCT01204177
-        "clintrials"   : clinTrialsRe
+        "clintrials"   : clinTrialsRe,
+        "dbGap"        : dbGapRe
         })
 
     return reDict

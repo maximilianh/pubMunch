@@ -15,7 +15,7 @@ if sys.version_info[0]==2 and not sys.version_info[1]>=7:
 
 # load default python packages
 import logging, optparse, os, collections, tarfile, mimetypes, tempfile, \
-    copy, shutil, glob, time
+    copy, shutil, glob, time, string
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path

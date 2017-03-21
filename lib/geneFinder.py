@@ -267,11 +267,24 @@ def readBestWords(fname, count):
 
 def parseKeyValList(fname):
     " parse a text file in the format key<tab>val1|val2|... and return as dict of key -> list of values "
+    logging.info("Reading %s" % fname)
     data = dict()
     for line in open(fname):
         key, valStr = line.rstrip("\n").split("\t")[:2]
         vals = valStr.split("|")
         data[key] = vals
+    return data
+
+def parseBands(fname):
+    " parse a text file in the format band,entrezIds,geneSyms"
+    logging.info("Reading %s" % fname)
+    data = dict()
+    for line in open(fname):
+        bandName, entrezIdStr, symStr = line.rstrip("\n").split("\t")[:3]
+        entrezIds = entrezIdStr.split("|")
+        syms = symStr.split("|")
+        entrezToSym = dict(zip(entrezIds, syms))
+        data[bandName] = entrezToSym
     return data
 
 def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
@@ -320,7 +333,7 @@ def initData(markerTypes=None, exclMarkerTypes=None, addOptional=False):
             fname = join(GENEDATADIR, "bandGenes.tab")
             logging.info("Loading %s" % fname)
             #bandToEntrezSyms = marshal.loads(gzip.open(fname).read())
-            bandToEntrezSyms = parseKeyValList(fname)
+            bandToEntrezSyms = parseBands(fname)
 
         # special case for gene symbols
         if markerType=="symbol" or markerType=="symbolMaybe":
@@ -496,7 +509,7 @@ def resolveSeqs(seqDict, seqCache=None):
 
 def resolveNonSymbols(markers):
     """ resolve all non-symbol markers to genes 
-        return as geneDict gene -> (markerId, locs) 
+        return as geneDict gene -> (markerId, list of (start, end)) 
 
     >>> resolveNonSymbols({"entrez":{'2717/5308': [(0, 10)]}})
     {'entrez': {5308: ('2717/5308', [(0, 10)]), 2717: ('2717/5308', [(0, 10)])}}
@@ -933,20 +946,20 @@ def markerToGenes(markerType, markerId):
 
 flankSplitRe = re.compile(r'[:,. -]')
 
-def getFlankWords(start, end, text, maxWordLen=20):
+def getFlankWords(start, end, text, wordCount=1, maxFlankLen=20):
     """ return left and right flanking words as list. 
     >>> getFlankWords(8, 15, "biggest context ever") 
     ['biggest', 'ever']
     """
     words = []
 
-    leftStart = max(0, start-maxWordLen)
+    leftStart = max(0, start-maxFlankLen)
     leftSnip = text[leftStart:start].strip()
     leftWords = flankSplitRe.split(leftSnip)
     if len(leftWords)>0:
         words.append(leftWords[-1])
 
-    rightEnd  = min(len(text), end+maxWordLen)
+    rightEnd  = min(len(text), end+maxFlankLen)
     rightSnip = text[end:rightEnd].strip()
     rightWords = flankSplitRe.split(rightSnip)
     if len(rightWords)>0:

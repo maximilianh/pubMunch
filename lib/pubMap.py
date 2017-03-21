@@ -2040,7 +2040,7 @@ def findLociBedDir(bedDir):
 
 def findLociForBeds(bedFname, db):
     """ 
-    return gene loci for annotations as a dict annotationId -> list of locusString
+    return genes for annotations as a dict annotationId -> list of name
     """
     lociFname = join(pubConf.lociDir, db+".bed")
     if not isfile(lociFname):

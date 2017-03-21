@@ -139,11 +139,12 @@ def convertOneChunk(fileMinId, inFile, outFile):
     logging.debug("Writing to %s" % outFile)
     articleId = int(fileMinId)
     # parse & write to output
-    for articleData in pubPubmed.parsePubmedMedlineIter(xmlString, fromMedline=True):
+    for articleData in pubPubmed.parsePubmedMedlineIter(xmlString):
         logging.debug("Writing article %s" % str(articleId))
         articleData["source"]="medline"
-        articleData["origFile"]=inFile
+        articleData["origFile"]=basename(inFile)
         articleData["publisher"]="ncbi"
+        del articleData["mid"] # pubmed does not document what the "mid" identifier could be
         store.writeArticle(articleId, articleData)
         articleId += 1
     store.close()
@@ -188,9 +189,6 @@ def main(args,options):
         pubCompare.createWriteFingerprints(outDir, updateIds = updateIds)
         if not options.noDb:
             pubStore.updateSqlite(outDir)
-
-        #if options.crawlDir:
-            #pubUpdatePmids.updatePmids(outDir, options.crawlDir, updateIds)
 
     else:
         inFile = inDir

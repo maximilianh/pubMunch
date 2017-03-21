@@ -55,11 +55,31 @@ def pngDimensions(fname):
     h = int(fs[6].strip(","))
     return w, h
 
+md5Blacklist = None
+
+def loadBlacklist():
+    " load blacklisted MD5 sums, appear > 3 times in crawl from July 2016 "
+    global md5Blacklist
+    if md5Blacklist!=None:
+        return
+
+    fname = join(pubConf.staticDataDir, "imgExtract", "blacklistMd5.txt")
+    logging.debug("Reading %s" % fname)
+    md5Blacklist = set(open(fname).read().splitlines())
+    logging.debug("Got %d blacklisted MD5 sums, e.g. %s" % (len(md5Blacklist), str(list(md5Blacklist)[:10])))
+    
 def getImages(pdfName):
     """ returns a list of tuples 
     (imgId (int), isThumbnail (int), width, height, md5sum, PNGBinarydataBlob) extracted from pdfName.
     returns two tuples per image, one is the original, one is the thumbnail.
     """
+    loadBlacklist()
+
+    head = open(pdfName).read(30)
+    if "<html" in head or "<HTML" in head:
+        logging.info("PDF %s is an HTML file, skipping" % pdfName)
+        return None
+
     logging.debug("Extracting images from %s" % pdfName)
     tempDir = tempfile.mkdtemp(prefix="pdfimages", dir=pubConf.getTempDir())
     maxCommon.delOnExit(tempDir)
@@ -84,6 +104,11 @@ def getImages(pdfName):
         
         pngBlob = open(outFname).read()
         md5Str = makeMd5(pngBlob)
+
+        print "XX", md5Str, list(md5Blacklist)[:10]
+        if md5Str in md5Blacklist:
+            logging.debug("Image MD5 is blacklisted")
+            continue
 
         data.append( (imgId, 0, x, y, md5Str, pngBlob) )
 
@@ -166,7 +191,12 @@ def loadImages(con, artDict, fileDict):
     url = fileDict["url"]
     fileId = str(fileDict["fileId"])
 
-    for imgId, isThumbnail, width, height, md5, pngData in getImages(tmpPdfName):
+    imgRows = getImages(tmpPdfName)
+    if imgRows is None:
+        tmpFile.close()
+        return
+
+    for imgId, isThumbnail, width, height, md5, pngData in imgRows:
         logging.debug("Adding image %d" % imgId)
         size = len(pngData)
         fileInfo = [ title, authors, journal, year, pmid, doi, pmcId, fileType, \

@@ -35,6 +35,7 @@ pubConvCrawler /hive/data/outside/pubs/crawler /hive/data/inside/pubs/text/crawl
 
 parser.add_option("", "--auto", dest="auto", action="store_true", help="set input and output dirs based on pubConf directories")
 parser.add_option("", "--finish", dest="finish", action="store_true", help="finish up after you fixed a failed cluster batch")
+parser.add_option("", "--img", dest="doImages", action="store_true", help="also extract images from PDF files into sqlite databases (adding thumbnails and MD5 hashes)")
 parser.add_option("", "--chunkSize", dest="chunkSize", type="int", action="store", help="number of article chunks, default (from pubConf), is %default", default=pubConf.chunkArticleCount)
 pubGeneric.addGeneralOptions(parser)
 (options, args) = parser.parse_args()
@@ -206,7 +207,7 @@ def finishUp(outDir):
     pubStore.appendToUpdatesTxt(outDir, updateId, lastArticleId, newPmidsStrList)
     shutil.rmtree(buildDir)
 
-def submitJobs(inDir, outDir, useCluster, chunkSize):
+def submitJobs(inDir, outDir, useCluster, chunkSize, doImages):
     " split crawler article info (article info + additional fields) into chunks"
     outDir = abspath(outDir)
 
@@ -244,6 +245,8 @@ def submitJobs(inDir, outDir, useCluster, chunkSize):
         #newFnames.extend((outFname, outArtFname))
         command = "%s %s convertJob {check in exists %s} {check out exists+ %s} {check out exists+ %s}" % \
             (sys.executable, progFile, inChunkFname, outFname, outArtFname)
+        if doImages:
+            command += " --img"
         runner.submit(command)
     logging.info("Now converting %d articles" % len(newPmids))
     runner.finish(wait=True)
@@ -291,7 +294,7 @@ def convSaveFile(artDict, fileDicts, externalId, fileType, url, mimeType, fname,
         fileDict["locFname"] = fname
         fileDict["fileId"] = fileId
 
-        if mimeType=="application/pdf":
+        if mimeType=="application/pdf" and imgDb is not None:
             pubImgLoad.loadImages(imgDb, artDict, fileDict)
             
         fileDict = pubGeneric.toAsciiEscape(fileDict)
@@ -309,7 +312,7 @@ def convSaveFile(artDict, fileDicts, externalId, fileType, url, mimeType, fname,
         #raise Exception("File %s was not found" % fname)
         logging.error("corrupt crawler output: File %s was not found" % fname)
 
-def convertOneChunk(inFname, outFname, outArtFname):
+def convertOneChunk(inFname, outFname, outArtFname, doImages):
     """ 
     convert one crawler meta file and pdf files to two pubtools files, 
     files and articles
@@ -336,7 +339,10 @@ def convertOneChunk(inFname, outFname, outArtFname):
     logging.debug("Reading %s" % inFname)
     logging.debug("Writing to %s" % outFname)
 
-    imgDb = pubImgLoad.openImgDbForArticles(outFname)
+    if doImages:
+        imgDb = pubImgLoad.openImgDbForArticles(outFname)
+    else:
+        imgDb = None
 
     # parse & write to output
     for row in maxCommon.iterTsvRows(inFname):
@@ -399,7 +405,8 @@ def convertOneChunk(inFname, outFname, outArtFname):
         #writer.writeArticle(articleId, artDict)
         writer.writeDocs(artDict, fileDicts)
 
-    pubImgLoad.addIndexes(imgDb)
+    if options.doImages:
+        pubImgLoad.addIndexes(imgDb)
     writer.close()
 
 def main(args):
@@ -412,20 +419,20 @@ def main(args):
         else:
             inDir, outDir = args
 
-        maxCommon.mustExistDir(outDir)
+        maxCommon.mustExistDir(outDir, makeDir=True)
 
         chunkSize = options.chunkSize
 
         if options.finish:
             finishUp(outDir)
         else:
-            submitJobs(inDir, outDir, options.cluster, chunkSize)
+            submitJobs(inDir, outDir, options.cluster, chunkSize, options.doImages)
             finishUp(outDir)
 
     else:
         # this is a cluster job -> just convert one chunk
         cmd, inFile, outFile, outArtFname = args
-        convertOneChunk(inFile, outFile, outArtFname)
+        convertOneChunk(inFile, outFile, outArtFname, options.doImages)
 
 # ----------- MAIN --------------
 if args==[] and not options.auto:

@@ -157,32 +157,33 @@ def parsePubmedFields(xmlEl, dataDict):
     dataDict["pmcId"]         = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pmc'}, default="").replace("PMC", "")
     return dataDict
 
-def parsePubmedMedlineIter(xml, fromMedline=False):
+def parsePubmedMedlineIter(xml):
     """
     Parse pubmed xml format and yield as dictionary, see parseMedline
     records come either from Pubmed as a <PubmedArticleSet><PubmedArticle><MedlineCitation>...
     or from Medline as <MedlineCitationSet><MedlineCitation>...</MedlineCitation>
     """
-    if fromMedline:
-        recordTag = "MedlineCitation"
-        closeTag = "</MedlineArticleSet>"
-        openTag = "<MedlineArticleSet"
-    else:
-        recordTag = "PubmedArticle/MedlineCitation"
-        closeTag = "</PubmedArticleSet>"
-        openTag = "<PubmedArticleSet>"
-        # NCBI eutils sometimes "forgets" the opening/closing tags
-        if xml.strip()=="":
-            logging.error("Got empty XML file from NCBI")
-            raise PubmedError("Got empty XML from NCBI", "pubmedEmptyXml")
+    #if fromMedline:
+        #recordTag = "MedlineCitation"
+        #closeTag = "</MedlineArticleSet>"
+        #openTag = "<MedlineArticleSet"
+    #else:
+    recordTag = "PubmedArticle"
+    #recordTag = "PubmedArticle/MedlineCitation"
+    closeTag = "</PubmedArticleSet>"
+    openTag = "<PubmedArticleSet>"
+    # NCBI eutils sometimes "forgets" the opening/closing tags
+    if xml.strip()=="":
+        logging.error("Got empty XML file from NCBI")
+        raise PubmedError("Got empty XML from NCBI", "pubmedEmptyXml")
 
-        if not openTag in xml:
-            logging.warn("Addding opening tag")
-            xml = openTag + "\n" + xml
+    if not openTag in xml:
+        logging.warn("Addding opening tag")
+        xml = openTag + "\n" + xml
 
-        if not closeTag in xml:
-            logging.warn("Addding closing tag")
-            xml = xml+"\n"+closeTag
+    if not closeTag in xml:
+        logging.warn("Addding closing tag")
+        xml = xml+"\n"+closeTag
 
     logging.debug("Parsing pubmed file")
     try:
@@ -194,11 +195,12 @@ def parsePubmedMedlineIter(xml, fromMedline=False):
         logging.debug("Error on parsing this XML: %s" % xml)
         raise
 
-    for medlineCitEl in topEl.getXmlAll(recordTag):
+    for artEl in topEl.getXmlAll(recordTag):
+        medlineCitEl = artEl.getXmlFirst("MedlineCitation")
         dataDict = parseMedline(medlineCitEl)
-        if not fromMedline:
-            pubmedCitEl = topEl.getXmlFirst("PubmedArticle/PubmedData")
-            dataDict = parsePubmedFields(pubmedCitEl, dataDict)
+
+        pubmedCitEl = artEl.getXmlFirst("PubmedData")
+        dataDict = parsePubmedFields(pubmedCitEl, dataDict)
         yield dataDict
 
 def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.email, debug=False):
