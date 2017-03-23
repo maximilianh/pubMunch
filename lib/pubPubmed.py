@@ -25,7 +25,7 @@ def parseMedline(xmlParser):
     >>> data = parseMedline(maxXml.XmlParser(string=xml))
     >>> del data["time"]
     >>> repr(data)
-     "OrderedDict([('articleId', ''), ('externalId', 'PMID20430833'), ('source', ''), ('origFile', ''), ('journal', 'Brain : a journal of neurology'), ('printIssn', '0006-8950'), ('eIssn', '0006-8950'), ('journalUniqueId', '0372537'), ('year', '2010'), ('articleType', 'research-article'), ('articleSection', ''), ('authors', u'Willemsen, Mich\\\\xe9l A; Verbeek, Marcel M'), ('authorEmails', ''), ('authorAffiliations', 'Radboud University Nijmegen Medical Centre, Donders Institute for Brain, Cognition and Behaviour, Department of Paediatric Neurology (820 IKNC), PO Box 9101, 6500 HB Nijmegen, The Netherlands. m.willemsen@cukz.umcn.nl'), ('keywords', 'Age of Onset/Useless Research'), ('title', 'Tyrosine hydroxylase deficiency: a treatable disorder of brain catecholamine biosynthesis.'), ('abstract', 'An infantile onset, progressive, hypokinetic-rigid syndrome with dystonia (type A), and a complex encephalopathy with neonatal onset (type B). Decreased cerebrospinal fluid concentrations of homovanillic acid and c.698G>A and c.707T>C mutations. Carriership of at least one promotor mutation, however, apparently predicts type A tyrosine hydroxylase deficiency. Most patients with tyrosine hydroxylase deficiency can be successfully treated with l-dopa.'), ('vol', '133'), ('issue', 'Pt 6'), ('page', '1810-22'), ('pmid', '20430833'), ('pmcId', ''), ('doi', ''), ('fulltextUrl', 'http://www.ncbi.nlm.nih.gov/pubmed/20430833')])"
+     "OrderedDict([('articleId', ''), ('externalId', 'PMID20430833'), ('source', ''), ('origFile', ''), ('journal', 'Brain : a journal of neurology'), ('printIssn', '0006-8950'), ('eIssn', '0006-8950'), ('journalUniqueId', '0372537'), ('year', '2010'), ('articleType', 'research-article'), ('articleSection', ''), ('authors', u'Willemsen, Mich\\\\xe9l A; Verbeek, Marcel M'), ('authorEmails', ''), ('authorAffiliations', 'Radboud University Nijmegen Medical Centre, Donders Institute for Brain, Cognition and Behaviour, Department of Paediatric Neurology (820 IKNC), PO Box 9101, 6500 HB Nijmegen, The Netherlands. m.willemsen@cukz.umcn.nl'), ('keywords', 'Age of Onset/Useless Research'), ('title', 'Tyrosine hydroxylase deficiency: a treatable disorder of brain catecholamine biosynthesis.'), ('abstract', 'An infantile onset, progressive, hypokinetic-rigid syndrome with dystonia (type A), and a complex encephalopathy with neonatal onset (type B). Decreased cerebrospinal fluid concentrations of homovanillic acid and c.698G>A and c.707T>C mutations. Carriership of at least one promotor mutation, however, apparently predicts type A tyrosine hydroxylase deficiency. Most patients with tyrosine hydroxylase deficiency can be successfully treated with l-dopa.'), ('vol', '133'), ('issue', 'Pt 6'), ('page', '1810-22'), ('pmid', '20430833'), ('pmcId', ''), ('doi', ''), ('fulltextUrl', 'https://www.ncbi.nlm.nih.gov/pubmed/20430833')])"
 
     """
     data = pubStore.createEmptyArticleDict()
@@ -33,7 +33,7 @@ def parseMedline(xmlParser):
     medlineData           = xmlParser
     data["pmid"]          = medlineData.getTextFirst("PMID")
     data["externalId"]            = "PMID"+data["pmid"]
-    data["fulltextUrl"]   = "http://www.ncbi.nlm.nih.gov/pubmed/%s" % data["pmid"]
+    data["fulltextUrl"]   = "https://www.ncbi.nlm.nih.gov/pubmed/%s" % data["pmid"]
     logging.log(5, "PMID %s" % data["pmid"])
     #data["year-pubmed"]   = medlineData.getTextFirst("DateCreated/Year")
     #data["month-pubmed"]  = medlineData.getTextFirst("DateCreated/Month")
@@ -217,7 +217,7 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
         retStart = downloadCount
         downloadIds = idsLeft[:min(retmax, len(idsLeft))]
         logging.debug("Getting data on %d PMIDs from NCBI, %d PMIDs left to download" % (len(downloadIds), len(idsLeft)))
-        url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&tool=%s&email=%s&retmode=xml&rettype=medline&id=%s" % (dbName, tool, email, ",".join(downloadIds))
+        url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=%s&tool=%s&email=%s&retmode=xml&rettype=medline&id=%s" % (dbName, tool, email, ",".join(downloadIds))
         logging.debug("Getting %s" % url)
 
         tryCount = 0
@@ -274,7 +274,7 @@ def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", 
 
     while idsLeft>0 or idsLeft==None:
         logging.debug( "PMIDs left %s, PMIDs downloaded %d" % (str(idsLeft), len(allPmids)))
-        url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=%s&tool=retrPubmed&tool=%s&email=%s&term=%s&retstart=%d&retmax=%d%s' % (dbName, tool, email, query, len(allPmids), retmax, addString)
+        url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=%s&tool=retrPubmed&tool=%s&email=%s&term=%s&retstart=%d&retmax=%d%s' % (dbName, tool, email, query, len(allPmids), retmax, addString)
         req = urllib2.Request(url)
         html = urllib2.urlopen(req)
         logging.debug("Getting "+url+"\n")
@@ -401,7 +401,7 @@ def stripTag(line):
 def getOutlinks(pmid, preferPmc=False):
     """ use NCBI eutils to get outlinks for a pmid as a dict provider -> url  """
     logging.debug("%s: Getting outlink from pubmed" % (pmid))
-    url = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id=%s&retmode=llinks&cmd=llinks" % pmid
+    url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi?dbfrom=pubmed&id=%s&retmode=llinks&cmd=llinks" % pmid
     #logging.debug("getting %s" % url)
     #try:
     #except

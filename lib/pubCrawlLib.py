@@ -1698,10 +1698,10 @@ class PmcCrawler(Crawler):
             return False
 
     def canDo_url(self, url):
-        return ("http://www.ncbi.nlm.nih.gov/pmc/" in url)
+        return ("www.ncbi.nlm.nih.gov/pmc/" in url)
 
     def makeLandingUrl(self, artMeta):
-        return "http://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
+        return "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
 
 
     def crawl(self, url):
