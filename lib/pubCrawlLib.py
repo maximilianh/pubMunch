@@ -2668,6 +2668,9 @@ class KargerCrawler(Crawler):
                     requests.exceptions.ChunkedEncodingError):
                     count +=1
                     logging.warn("Got connection error when trying to get Karger page, retrying...")
+                except:
+                    count +=10
+                    logging.warn("Got unknown, new exception when trying to get Karger page. Not retrying.")
         else:
             while count < 5:
                 try:

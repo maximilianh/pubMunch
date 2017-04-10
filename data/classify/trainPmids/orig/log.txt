@@ -220,3 +220,6 @@ zcat DDG2P.csv.gz | csvToTab /dev/stdin > pos.ddg2p.txt
 
 # Hippocampome - www.hippocampome.org
 hgsql maxHippo -e 'select pmid_isbn from Article' -NB > pos.Hippocampome.txt
+
+# Dictybase - www.dictybase.org
+curl 'http://dictybase.org/db/cgi-bin/dictyBase/download/download.pl?area=general&ID=DDBID_PMID.txt' -o - | cut -f1 | sort -u > pos.dictybase.txt
