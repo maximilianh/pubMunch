@@ -42,8 +42,9 @@ except:
 # did not choke on invalid HTML a single time. Lxml was by far not as tolerant.
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 
-# sometimes using etree, as it's faster
+# use etree, it's faster
 import xml.etree.ElementTree as etree
+import xml.etree.ElementTree
 
 PUBLOCKFNAME = "_pubCrawl.lock"
 # ===== GLOBALS ======
@@ -1717,7 +1718,11 @@ class PmcCrawler(Crawler):
 
         # strip the navigation elements from the html
         html = htmlPage["data"].replace('xmlns="http://www.w3.org/1999/xhtml"', '')
-        root = etree.fromstring(html)
+        try:
+            root = etree.fromstring(html)
+        except xml.etree.ElementTree.ParseError:
+            raise pubGetError("Etree cannot parse html at %s" % url, "HtmlParseError")
+
         mainContElList = root.findall(".//div[@id='maincontent']")
         if len(mainContElList)==1:
             htmlPage["data"] = etree.tostring(mainContElList[0])
@@ -2207,7 +2212,7 @@ class NejmCrawler(Crawler):
 
         # PDF 
         pdfUrl = url.replace("/full/", "/pdf/")
-        raise pubGetError('karger crawler could not find a link to the PDF on %s' % url, 'kargerCannotFindPdf')
+        raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
         pdfPage = httpGetDelay(pdfUrl)
         paperData["main.pdf"] = pdfPage
 
