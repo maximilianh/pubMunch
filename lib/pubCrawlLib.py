@@ -2207,7 +2207,7 @@ class NejmCrawler(Crawler):
 
         # PDF 
         pdfUrl = url.replace("/full/", "/pdf/")
-        assert(pdfUrl != url)
+        raise pubGetError('karger crawler could not find a link to the PDF on %s' % url, 'kargerCannotFindPdf')
         pdfPage = httpGetDelay(pdfUrl)
         paperData["main.pdf"] = pdfPage
 
