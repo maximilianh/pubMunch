@@ -987,8 +987,8 @@ def mapToCodingAndRna(protVars):
         else:
             possChanges = possibleDnaChanges(protVar.origSeq, protVar.mutSeq, origDnaSeq)
             for relPos, oldNucl, newNucl in possChanges:
-                cdStart = 3 * protVar.start + relPos
-                cdEnd = cdStart + len(origDnaSeq)
+                cdStart = 3 * (protVar.start-1) + relPos + 1
+                cdEnd = cdStart + len(oldNucl)
                 codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId, origStr=protVar.origStr)
                 codVars.append(codVar)
     
