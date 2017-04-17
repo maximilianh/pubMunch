@@ -2212,7 +2212,8 @@ class NejmCrawler(Crawler):
 
         # PDF 
         pdfUrl = url.replace("/full/", "/pdf/")
-        raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
+        if pdfUrl == url:
+            raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
         pdfPage = httpGetDelay(pdfUrl)
         paperData["main.pdf"] = pdfPage
 
