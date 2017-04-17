@@ -700,6 +700,7 @@ def parseMatchIns(match, patName, seqType):
         seqStart = pos
         seqEnd = pos + 1
 
+    mutSeq = None
     if "mutAasShort" in groups:
         mutSeq = groups["mutAasShort"]
     if "mutAasLong" in groups:
@@ -708,7 +709,9 @@ def parseMatchIns(match, patName, seqType):
         mutSeq = groups["dnas"]
     logger.debug("match: %s" % match.group(0))
     logger.info(str([g for g in groups]))
-    mutSeq = mutSeq.upper()
+
+    if mutSeq is not None:
+        mutSeq = mutSeq.upper()
 
     var = VariantDescription("ins", seqType, seqStart, seqEnd, None, mutSeq, origStr=match.group(0).strip())
     return var
