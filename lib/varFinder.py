@@ -51,6 +51,7 @@ mutFields = \
     "chrom",  # chromosome
     "start",  # on chrom
     "end",  # on chrom
+    "offset", # intron offset
     "varId",  # a unique id
     "inDb",  # list of db names where was found
     "patType",  # the type of the patterns (sub, del, ins)
@@ -370,7 +371,7 @@ class VariantDescription(object):
 
     def __init__(self, mutType, seqType, start, end, origSeq, mutSeq, seqId=None, geneId="", origStr="", offset=0):
         self.mutType = mutType  # sub, del or ins or dbSnp
-        self.seqType = seqType  # cds, rna or prot
+        self.seqType = seqType  # cds, rna or prot, intron
         self.seqId = seqId
         self.geneId = geneId
         self.start = int(start)
@@ -388,7 +389,7 @@ class VariantDescription(object):
         elif self.mutType == "dbSnp":
             name = self.origSeq
         else:
-            name = makeHgvsStr(self.seqType, self.seqId, self.origSeq, self.start, self.mutSeq)
+            name = makeHgvsStr(self.seqType, self.seqId, self.origSeq, self.start, self.mutSeq, self.offset)
         return name
 
     def asRow(self):
@@ -421,6 +422,7 @@ class SeqVariantData(object):
         self.chrom = ""
         self.start = ""
         self.end = ""
+        self.offset = ""
         self.geneSymbol = geneSym
         self.entrezId = entrezGene
         self.hgvsProt = "|".join([v.getName() for v in protVars])
@@ -527,9 +529,6 @@ def parseRegex(mutDataDir):
     "toPos"       : r'(?P<toPos>[1-9][0-9]*)',
     "pos"         : r'(?P<pos>[1-9][0-9]*)',
     "offset"         : r'(?P<offset>[1-9][0-9]*)',
-    "fromPoss"     : r'(?P<fromPos>[1-9][0-9]+)',
-    "toPoss"       : r'(?P<toPos>[1-9][0-9]+)',
-    "poss"         : r'(?P<pos>[1-9][0-9]+)',
     "plusMinus"         : r'(?P<plusMinus>[+-])',
     "origAaShort" : r'(?P<origAaShort>[CISQMNPKDTFAGHLRWVEYX])',
     "origAasShort" : r'(?P<origAasShort>[CISQMNPKDTFAGHLRWVEYX]+)',
@@ -546,6 +545,9 @@ def parseRegex(mutDataDir):
     "origDnas"     : r'(?P<origDnas>[actgACTG]+)',
     "mutDna"      : r'(?P<mutDna>[actgACTGfs])',  # tolerate "fs"
     "fs"          : r'(?P<fs>(fs\*?[0-9]*)|fs\*|fs|)?',
+    "intron"      : r'(?P<intron>[1-9][0-9]*)',
+    "rightArrow"  : r'(-*>|\u2192|-?&gt;|r|R|4|\ufb02)',
+    "sp"          : r'\u00a0| |'
     }
     regexTab = join(mutDataDir, "regex.txt")
     logger.info("Parsing regexes from %s" % regexTab)
@@ -563,7 +565,14 @@ def parseRegex(mutDataDir):
             flags = re.IGNORECASE
             logger.info("ignoring case for this pattern")
         patComp = re.compile(patFull, flags=flags)
-        regexList.append((row.seqType, row.mutType, patName, patComp))
+        if row.isCoding == "True":
+            isCoding = True
+        elif row.isCoding == "False":
+            isCoding = False
+        else:
+            logger.info("Skipping regex. Invalid value for isCoding: "+row.isCoding)
+            continue
+        regexList.append((row.seqType, row.mutType, isCoding, patName, patComp))
         counts[(row.seqType, row.mutType)] += 1
 
     for regexType, count in counts.iteritems():
@@ -615,10 +624,18 @@ def parseMatchSplicing(match, patName, seqType):
     var = VariantDescription("splicing", seqType, seqStart, seqEnd, origSeq, mutSeq, origStr=match.group(0).strip(), offset=offset)
     return var
 
-def parseMatchSub(match, patName, seqType):
+def parseMatchSub(match, patName, seqType, isCoding):
     " given a regular expression match object, return mutation and mention objects "
     groups = match.groupdict()
     # grab long and short versions of amino acid
+    offset = 0
+    if not isCoding:
+        if "plusMinus" in groups:
+            if groups["plusMinus"] == "+":
+                offset = int(groups["offset"])
+            if groups["plusMinus"] == "-":
+                offset = (-1)*int(groups["offset"])
+
     if "origAaShort" in groups:
         origSeq = groups["origAaShort"]
     if "origAaLong" in groups:
@@ -650,12 +667,21 @@ def parseMatchSub(match, patName, seqType):
         seqStart = pos
         seqEnd = pos + 1
 
-    var = VariantDescription("sub", seqType, seqStart, seqEnd, origSeq, mutSeq, origStr=match.group(0).strip())
+    var = VariantDescription("sub", seqType, seqStart, seqEnd, origSeq, mutSeq, \
+                             offset=offset, origStr=match.group(0).strip())
     return var
 
-def parseMatchDel(match, patName, seqType):
+def parseMatchDel(match, patName, seqType, isCoding):
     " given a regular expression match object, return mutation and mention objects "
     groups = match.groupdict()
+
+    offset = 0
+    if not isCoding:
+        if "plusMinus" in groups:
+            if groups["plusMinus"] == "+":
+                offset = int(groups["offset"])
+            if groups["plusMinus"] == "-":
+                offset = (-1)*int(groups["offset"])
 
     if "fromPos" in groups:
         pos = int(groups["fromPos"])
@@ -682,12 +708,21 @@ def parseMatchDel(match, patName, seqType):
         origSeq = threeToOneLower[groups["origAaLong"].lower()]
     origSeq = origSeq.upper()
 
-    var = VariantDescription("del", seqType, seqStart, seqEnd, origSeq, None, origStr=match.group(0).strip())
+    var = VariantDescription("del", seqType, seqStart, seqEnd, origSeq, None, \
+                             offset=offset, origStr=match.group(0).strip())
     return var
 
-def parseMatchIns(match, patName, seqType):
+def parseMatchIns(match, patName, seqType, isCoding):
     " given a regular expression match object, return mutation and mention objects "
     groups = match.groupdict()
+
+    offset = 0
+    if not isCoding:
+        if "plusMinus" in groups:
+            if groups["plusMinus"] == "+":
+                offset = int(groups["offset"])
+            if groups["plusMinus"] == "-":
+                offset = (-1)*int(groups["offset"])
 
     if "fromPos" in groups:
         pos = int(groups["fromPos"])
@@ -713,11 +748,20 @@ def parseMatchIns(match, patName, seqType):
     if mutSeq is not None:
         mutSeq = mutSeq.upper()
 
-    var = VariantDescription("ins", seqType, seqStart, seqEnd, None, mutSeq, origStr=match.group(0).strip())
+    var = VariantDescription("ins", seqType, seqStart, seqEnd, None, mutSeq, \
+                             offset=offset, origStr=match.group(0).strip())
     return var
 
-def parseMatchDup(match, patName, seqType):
+def parseMatchDup(match, patName, seqType, isCoding):
     groups = match.groupdict()
+
+    offset = 0
+    if not isCoding:
+        if "plusMinus" in groups:
+            if groups["plusMinus"] == "+":
+                offset = int(groups["offset"])
+            if groups["plusMinus"] == "-":
+                offset = (-1)*int(groups["offset"])
 
     if "origDna" in groups:
         origSeq = groups["origDna"]
@@ -745,7 +789,8 @@ def parseMatchDup(match, patName, seqType):
     # ! duplication ... in the Assyro-Babylonian fashion:
     # ! mutSeq = origSeq * 2
 
-    var = VariantDescription("dup", seqType, seqStart, seqEnd, origSeq, mutSeq, origStr=match.group(0).strip())
+    var = VariantDescription("dup", seqType, seqStart, seqEnd, origSeq, mutSeq, \
+                             offset=offset, origStr=match.group(0).strip())
     return var
 
 def isOverlapping(match, exclPos):
@@ -769,24 +814,22 @@ def findVariantDescriptions(text, exclPos=set()):
     exclPos = set(exclPos)
     varMentions = defaultdict(list)
     varDescObj = {}
-    for seqType, mutType, patName, pat in regexes:
+    for seqType, mutType, isCoding, patName, pat in regexes:
         for match in pat.finditer(text):
             logger.debug("Match: Pattern %s, text %s" % (patName, match.groups()))
             if isOverlapping(match, exclPos):
                 logger.debug("Overlapping with exclPos")
                 continue
             if mutType == "sub":
-                variant = parseMatchSub(match, patName, seqType)
+                variant = parseMatchSub(match, patName, seqType, isCoding)
             elif mutType == "dbSnp":
                 variant = parseMatchRsId(match, patName)
             elif mutType == "del":
-                variant = parseMatchDel(match, patName, seqType)
+                variant = parseMatchDel(match, patName, seqType, isCoding)
             elif mutType == "ins":
-                variant = parseMatchIns(match, patName, seqType)
+                variant = parseMatchIns(match, patName, seqType, isCoding)
             elif mutType == "dup":
-                variant = parseMatchDup(match, patName, seqType)
-            elif mutType == "splicing":
-                variant = parseMatchSplicing(match, patName, seqType)
+                variant = parseMatchDup(match, patName, seqType, isCoding)
             else:
                 logger.debug("Ignoring match %s; don't know how to handle" % match.groups())
                 continue
@@ -804,6 +847,7 @@ def findVariantDescriptions(text, exclPos=set()):
     variants["prot"] = []
     variants["dna"] = []
     variants["dbSnp"] = []
+    variants["intron"] = []
 
     for varName, mentions in varMentions.iteritems():
         variant = varDescObj[varName]
@@ -811,7 +855,7 @@ def findVariantDescriptions(text, exclPos=set()):
     variants = dict(variants)
     return variants
 
-def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq):
+def makeHgvsStr(seqType, seqId, origSeq, pos, mutSeq, offset):
     if seqType == "prot":
         desc = "%s:p.%s%d%s" % (seqId, oneToThree.get(origSeq, "None"), pos, oneToThree.get(mutSeq, "None"))
     elif seqType == "cds":
@@ -1046,22 +1090,15 @@ def ungroundedMutToFakeSeqVariant(variant, mentions, text):
     var = SeqVariantData(seqType=variant.seqType, mentions=mentions, text=text)
     return var
 
-def isSplicingSeqCorrect(seqId, variant):
-    psls = geneData.getRefseqPsls(seqId)
-    for psl in psls:
-        logger.info("psl: %s" % str(psl))
-        logger.info("type(psl): %s" % str(type(psl)))
-    assert False, "TODO"
-
 def isSeqCorrect(seqId, variant, insertion_rv):
-    " check if wild type sequence in protein corresponds to mutation positions or to insertion_rv: "
-    " if the original variant is not checkable because the reference sequence is not given (for example in insertions), then return insertion_rv. If insertion_rv is True, then eventually all uncheckable variants will be mapped to all candidate genes. If insertion_rv is False, then eventually all uncheckable variants will be dropped."
+    """ check if wild type sequence in protein corresponds to mutation positions or to insertion_rv:
+    if the original variant is not checkable because the reference sequence is not given
+    (for example in insertions), then return insertion_rv. If insertion_rv is True, then eventually
+    all uncheckable variants will be mapped to all candidate genes. If insertion_rv is False, then
+    eventually all uncheckable variants will be dropped."""
     if seqId.startswith("NR_"):
         logger.info("Skipping noncoding sequence ID %s" % seqId)
         return False
-
-    if variant.mutType == "splicing":
-        return isSplicingSeqCorrect(seqId, variant)
 
     if variant.mutType == "ins" and not variant.origSeq:
         return insertion_rv
@@ -1069,7 +1106,6 @@ def isSeqCorrect(seqId, variant, insertion_rv):
     vStart = variant.start - 1  # uniprot is 1-based, we are 0-based
     vEnd = variant.end - 1
     seq = geneData.getSeq(seqId)
-
     logger.info("vStart: %d" % vStart)
     logger.info("vEnd: %d" % vEnd)
     if seq == None:
@@ -1120,7 +1156,10 @@ def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=[
     - variant is a namedtuple with VariantFields defined above
     - entrezGene has to be a number as a string or a list of numbers separated by "/"
     - sym is only used for the logger system
-    insertion_rv: if the original variant is not checkable because the reference sequence is not given (for example in insertions), then return insertion_rv. If insertion_rv is True, then eventually all uncheckable variants will be mapped to all candidate genes. If insertion_rv is False, then eventually all uncheckable variants will be dropped.
+    - insertion_rv: if the original variant is not checkable because the reference sequence
+    is not given (for example in insertions), then return insertion_rv. If insertion_rv is
+    True, then eventually all uncheckable variants will be mapped to all candidate genes.
+    If insertion_rv is False, then eventually all uncheckable variants will be dropped.
     """
     entrezGene = str(entrezGene)
     for entrezGene in entrezGene.split("/"):
@@ -1129,7 +1168,7 @@ def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=[
         for db in seqDbs:
             if variant.seqType == "prot":
                 seqIds = geneData.entrezToProtDbIds(entrezGene, db)
-            elif variant.seqType == "dna":
+            elif variant.seqType == "dna" or variant.seqType == "intron":
                 seqIds = geneData.entrezToCodingSeqDbIds(entrezGene, db)
             else:
                 logger.debug("variant is neither DNA nor prot variant, but %s instead" % variant.seqType)
@@ -1238,6 +1277,25 @@ def getSnpMentions(mappedRsIds, varList):
             res[rsId].extend(mentions)
     return res
 
+def findClosestGeneMention(mentions, entrezGenes):
+    """
+    Find which gene was mentioned in closest proximity to the give variant mention
+    """
+    closestGene = None
+    closestDistance = float('inf')
+    for mention in mentions:
+        logger.error(str(mentions))
+        for entrezGene in entrezGenes:
+            gene = entrezGenes[entrezGene]
+            geneMentions = sum([sum((x[1] for x in gene[key]), []) for key in gene], []) 
+            for geneMention in geneMentions:
+                distance = min(abs(int(geneMention[0])-int(mention.start)), abs(int(geneMention[1])-int(mention.end)))
+                if distance < closestDistance:
+                    closestDistance = distance
+                    closestGene = entrezGene
+
+    return closestGene
+
 def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, insertion_rv):
     """ 
     ground mutations onto genes and return a tuple of:
@@ -1300,6 +1358,9 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, inse
                     rVariant.seqId = seqId
                     rnaVars.append(rVariant)
                 beds = mapToGenome(rnaVars, varId)
+            elif variant.seqType == "intron":
+                groundSuccess = False
+                break
             else:
                 assert False, "can only ground prot and dna variants"
             # add all relevant dbSnp IDs from the document to this variant
@@ -1309,7 +1370,8 @@ def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, inse
             mappedRsIds.extend(mentionedDbSnpVars.keys())
 
             groundedVar = SeqVariantData(varId, protVars, codVars, rnaVars, comment, beds, \
-                entrezGene, geneSym, varRsIds, mentionedDbSnpVars, mentions, text)
+                entrezGene, geneSym, varRsIds, mentionedDbSnpVars, mentions, text, seqType=variant.seqType)
+
             # isInDb = dbAnnots.addCheckVariant(groundedVar)
             groundedMuts.append(groundedVar)
             allBeds.extend(beds)
