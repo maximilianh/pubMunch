@@ -58,7 +58,6 @@ articleFields=[
 "page",            # first page of article, can be ix, x, or S4
 "pmid",            # PubmedID if available
 "pmcId",           # Pubmed Central ID
-"pii",           # publisher internal ID, Elsevier/ACM: the "PII" standard used in the linkout
 "doi",             # DOI, without leading doi:
 "fulltextUrl",     # URL to fulltext of article
 "time",     # entry creation time (conversion time)
