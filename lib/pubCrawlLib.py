@@ -3157,7 +3157,7 @@ class GenericCrawler(Crawler):
 allCrawlers = [
     ElsevierApiCrawler(), ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
     WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), TandfCrawler(),\
-    KargerCrawler(), PmcCrawler(), GenericCrawler() ]
+    PmcCrawler(), GenericCrawler() ]
 
 allCrawlerNames = [c.name for c in allCrawlers]
 
