@@ -36,7 +36,7 @@ def findGenesCached(pmid, text):
     logging.warn("No gene info in cache")
     global geneInitDone
     if not geneInitDone:
-        geneFinder.initData(exclMarkerTypes=["snp"])
+        geneFinder.initData(exclMarkerTypes=["snp", "dnaSeq"])
         geneInitDone = True
 
     #geneTypes = geneFinder.findMarkersAsDict(text)
