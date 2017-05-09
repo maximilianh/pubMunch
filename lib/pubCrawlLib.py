@@ -1518,7 +1518,7 @@ def findLinksWithUrlRe(page, searchRe):
         logging.log(5, dbgStr)
         if searchRe.match(linkUrl):
             urls.append(linkUrl)
-            logging.debug(u'Found link: %s -> %s' % (repr(linkText.decode('utf8')), repr(linkUrl.decode('utf8'))))
+            logging.debug(u'Found link: %s -> %s' % (unidecode.unidecode(linkText), unidecode.unidecode(linkUrl)))
 
     if len(urls) != 0:
         logging.debug('Found links with %s in URL: %s' % (repr(searchRe.pattern), urls))
