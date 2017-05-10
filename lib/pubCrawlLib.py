@@ -501,11 +501,12 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
 
     # Set the handler for the SIGALRM signal and set it to 30 secs
     signal.signal(signal.SIGALRM, _httpTimeout)
-    signal.alarm(30)
 
     while tryCount < 3:
+        signal.alarm(30)
         try:
             r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True, timeout=30)
+            signal.alarm(0) # stop the alarm
             break
         except (requests.exceptions.ConnectionError,
          requests.exceptions.TooManyRedirects,
@@ -513,6 +514,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
          requests.exceptions.RequestException,
          TimeoutException
          ):
+            signal.alarm(0) # stop the alarm
             tryCount += 1
             logging.info('HTTP error, retry number %d' % tryCount)
             time.sleep(3)
