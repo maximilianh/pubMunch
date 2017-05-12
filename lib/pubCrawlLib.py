@@ -1932,6 +1932,12 @@ class ElsevierCrawler(Crawler):
         if pageContains(htmlPage, ["was not found on this server"]):
             raise pubGetError("Elsevier page not found", "elsevierPageNotFound", htmlPage["url"])
 
+        # 8552170 direct immediately to a PDF, there is no landing page
+        if isPdf(htmlPage):
+            logging.warn("Landing URL is already a PDF")
+            paperData["main.pdf"] = htmlPage
+            return paperData
+
         # strip the navigation elements from the html
         html = htmlPage["data"]
         bs = BeautifulSoup(html)
@@ -3136,7 +3142,7 @@ class GenericCrawler(Crawler):
             requirePdf = False
 
         if requirePdf and not isPdf(pdfPage):
-            logging.debug("PDF may be in a frame, trying to resolve it to final PDF")
+            logging.debug("This is not a PDF. PDF may be in a frame, trying to resolve it to final PDF")
             pdfPage = parseHtmlLinks(pdfPage)
             pdfUrlRe = re.compile('.*temp.*\\.pdf$')
             pdfUrls = findLinksWithUrlRe(pdfPage, pdfUrlRe)
