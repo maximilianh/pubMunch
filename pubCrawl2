@@ -81,6 +81,7 @@ def main(args, options):
     pubGeneric.setupLogging("", options)
 
     if options.testDoc:
+        scrapeLib.TEST_OUTPUT = True
         testDownload(outDirs[0])
         sys.exit(0)
 
@@ -142,7 +143,7 @@ parser.add_option("-t", "--waitTime", dest="waitTime", action="store",
 
 parser.add_option("", "--test", dest="testDoc", action="store_true", \
     help="test mode, outDir is not a directory but a docId."
-    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format docId/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Allowed crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
+    "Output is just summary information of files downloaded, not written to disk. PMIDs can have the format docId/crawlers, e.g. 24076656/wiley,npg which will only use the wiley and NPG crawlers for this PMID. Implies --hash. Allowed crawlers are: %s" % ",".join(scrapeLib.allCrawlerNames))
 
 #parser.add_option("", "--testOut", metavar="DIRECTORY", dest="OuttestDoc", action="store", \
     #help="like --test, but write files to directory")

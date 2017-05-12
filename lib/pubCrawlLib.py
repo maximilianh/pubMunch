@@ -184,6 +184,7 @@ articleFields=[
 metaHeaders = articleFields
 metaHeaders.extend(addHeaders)
 
+
 # ===== EXCEPTIONS ======
 
 class pubGetError(Exception):
@@ -3050,10 +3051,12 @@ class GenericCrawler(Crawler):
 
         for text in noLicenseTags:
             if text in landPage["data"]:
-                if text=="Buy this article" and "foxycart" in landPage["data"]:
+                if (text=="Buy this article" and "foxycart" in landPage["data"]) or \
+                    (text=="Purchase access" and "silverchaircdn.com" in landPage["data"]):
+
                     continue # highwire's new site always has the string "Buy this article" somewhere in the javascript
                 logging.debug("Found string %s in page" % text)
-                raise pubGetError('No License', 'noLicense', "found '%s' on page "+landPage['url'])
+                raise pubGetError('No License', 'noLicense', "found '%s' on page %s" % (text,landPage['url']))
 
         #if pageContains(landPage, noLicenseTags):
             #logging.info("generic crawler found 'No license' on " + landPage['url'])
@@ -3150,6 +3153,11 @@ class GenericCrawler(Crawler):
                 pdfPage = self._httpGetDelay(pdfUrls[0], delayTime)
             else:
                 logging.warn('PDF-link is not a PDF and not framed')
+                if TEST_OUTPUT:
+                    dumpFname = "/tmp/pubCrawl.tmp"
+                    ofh = open(dumpFname, "w")
+                    ofh.write(pdfPage["data"])
+                    logging.info('PDF-like-link contents were dumped to %s' % dumpFname)
                 return
                 
         if requirePdf and not isPdf(pdfPage):
