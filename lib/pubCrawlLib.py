@@ -3047,9 +3047,18 @@ class GenericCrawler(Crawler):
          'Your current credentials do not allow retrieval of the full text.',
          'Access to the content you have requested requires one of the following:',
          'Online access to the content you have requested requires one of the following']
-        if pageContains(landPage, noLicenseTags):
-            logging.info("generic crawler found 'No license' on " + landPage['url'])
-            raise pubGetError('No License', 'noLicense', landPage['url'])
+
+        for text in noLicenseTags:
+            if text in landPage["data"]:
+                if text=="Buy this article" and "foxycart" in landPage["data"]:
+                    continue # highwire's new site always has the string "Buy this article" somewhere in the javascript
+                logging.debug("Found string %s in page" % text)
+                raise pubGetError('No License', 'noLicense', "found '%s' on page "+landPage['url'])
+
+        #if pageContains(landPage, noLicenseTags):
+            #logging.info("generic crawler found 'No license' on " + landPage['url'])
+            #raise pubGetError('No License', 'noLicense', landPage['url'])
+
         errTags = ['This may be the result of a broken link',
          'please verify that the link is correct',
          'Sorry, we could not find the page you were looking for',
