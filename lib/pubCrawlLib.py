@@ -2655,7 +2655,7 @@ class KargerCrawler(Crawler):
         # rate limit
         wait(delaySecs, "karger.com")
 
-        if self.useSelenium:
+        if self.useSelenium and allowSelenium:
             page = httpGetSelenium(url, delaySecs, mustGet=True)
             if "Incapsula incident" in page["data"]:
                 raise pubGetError("Got blocked by Incapsula", "incapsulaBlock")
@@ -2918,7 +2918,7 @@ class GenericCrawler(Crawler):
     def _httpGetDelay(self, url, waitSecs, mustGet=False, noFlash=False, useSelCookies=False, referer=None):
         " generic http get request, uses selenium if needed "
         page = None
-        if self.useSelenium:
+        if self.useSelenium and allowSelenium:
             page = httpGetSelenium(url, waitSecs, mustGet=mustGet)
             time.sleep(5)
             return page
@@ -3083,10 +3083,11 @@ class GenericCrawler(Crawler):
         "healio.com"
         ]
         self.useSelenium = False
-        for tag in useSeleniumHosts:
-            if tag in url:
-                self.useSelenium = True
-                break
+        if allowSelenium:
+            for tag in useSeleniumHosts:
+                if tag in url:
+                    self.useSelenium = True
+                    break
 
         landPage = self._httpGetDelay(url, delayTime, mustGet=True)
         self._checkErrors(landPage)
