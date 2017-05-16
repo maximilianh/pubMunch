@@ -2433,8 +2433,11 @@ class LwwCrawler(Crawler):
             return False
 
     def makeLandingUrl(self, artMeta):
-        url =  "http://content.wkhealth.com/linkback/openurl?issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
-        return url
+        #url =  "http://content.wkhealth.com/linkback/openurl?issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
+        #return url
+        # We saw too many openUrl errors recently, so relying on crossref DOI search for now
+        # example PMID 10457856
+        return None
 
     def crawl(self, url):
         paperData = OrderedDict()
