@@ -1844,12 +1844,18 @@ class NpgCrawler(Crawler):
                 htmlPage = httpGetDelay(finalUrls[0], delayTime)
             
         # try to strip the navigation elements from more recent article html
-        html = htmlPage["data"]
-        htmlPage["data"] = self._npgStripExtra(html)
+        origHtml = htmlPage["data"]
+        htmlPage["data"] = self._npgStripExtra(origHtml)
         paperData["main.html"] = htmlPage
 
-        url = htmlPage["url"]
-        pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+        url = htmlPage["url"].rstrip("/")
+        if "data-sixpack-client" in origHtml:
+            # Scientific Reports have a different URL structure
+            logging.debug("Found a new-style NPG page")
+            pdfUrl = url+".pdf"
+        else:
+            pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
@@ -1912,6 +1918,9 @@ class ElsevierCrawler(Crawler):
             return False
 
     def crawl(self, url):
+        if "www.nature.com" in url:
+            raise pubGetError("ElsevierCrawler refuses NPG journals", "ElsevierNotNpg", url)
+
         delayTime = crawlDelays["elsevier"]
         #agent = 'Googlebot/2.1 (+http://www.googlebot.com/bot.html)' # do not use new .js interface
         agent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
@@ -2433,7 +2442,7 @@ class LwwCrawler(Crawler):
 
         if "landingpage.htm" in url and "?" in url:
             # get around the ovid/lww splash page
-            logging.debug("Routing around ovid splash page")
+            logging.debug("Routing around OVID splash page")
             params = url.split("&")[1:]
             # remove type=abstract from params
             # the .js code seems to do this
