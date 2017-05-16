@@ -1694,13 +1694,14 @@ def addSuppZipFiles(suppZipUrl, paperData, delayTime):
 
 class DeGruyterCrawler(Crawler):
     def canDo_url(self, url):
-        return ("XXXXdegruyter" in url) # XX
+        return ("www.degruyter.com" in url)
 
     def crawl(self, url):
-        #url = url.rstrip("/")
         delayTime = 5
         paperData = OrderedDict()
-        pdfUrl = url+"/pdf" # XX
+        pdfUrl = re.sub("\\.xml$", ".pdf", url)
+        if pdfUrl is None:
+            raise pubGetError("degruyter failed to convert xml URL {} to PDF ".format(url), "DegruyterXmlUrlConvert")
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
         return paperData
