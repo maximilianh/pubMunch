@@ -1420,15 +1420,18 @@ class Crawler():
         Returns True/False
         """
         return False
+
     def canDo_url(self, artMeta):
         """ some crawlers can only decide if they apply based on the URL, returns True/False """
         return False
+
     def makeLandingUrl(self, artMeta):
         """ try to avoid DOI or NCBI queries by building the URL to the paper from the meta data 
         Especially useful for Highwire, which has a very slow DOI resolver.
         Returns a string, the URL.
         """
         return None
+
     def crawl(self, url):
         """ now get the paper, return a paperData dict with 'main.pdf', 'main.html', "S1.pdf" etc 
         """
@@ -1689,6 +1692,20 @@ def addSuppZipFiles(suppZipUrl, paperData, delayTime):
         fileExt = splitext(fname)[1]
         paperData["S"+str(suppIdx+1)+fileExt] = page
 
+class DeGruyterCrawler(Crawler):
+    def canDo_url(self, url):
+        return ("XXXXdegruyter" in url) # XX
+
+    def crawl(self, url):
+        #url = url.rstrip("/")
+        delayTime = 5
+        paperData = OrderedDict()
+        pdfUrl = url+"/pdf" # XX
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        paperData["main.pdf"] = pdfPage
+        return paperData
+
+
 class PmcCrawler(Crawler):
     """
     a scraper for PMC
@@ -1706,7 +1723,6 @@ class PmcCrawler(Crawler):
 
     def makeLandingUrl(self, artMeta):
         return "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
-
 
     def crawl(self, url):
         url = url.rstrip("/")
@@ -1738,6 +1754,7 @@ class PmcCrawler(Crawler):
 
         suppUrls = findLinksByText(htmlPage, re.compile("Click here for additional data file.*"))
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
         return paperData
 
 class NpgCrawler(Crawler):
@@ -3182,7 +3199,7 @@ class GenericCrawler(Crawler):
 allCrawlers = [
     ElsevierApiCrawler(), ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
     WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), TandfCrawler(),\
-    KargerCrawler(), PmcCrawler(), GenericCrawler() ]
+    KargerCrawler(), DeGruyterCrawler(), PmcCrawler(), GenericCrawler()]
 
 allCrawlerNames = [c.name for c in allCrawlers]
 
