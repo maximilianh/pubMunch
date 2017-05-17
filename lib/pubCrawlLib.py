@@ -10,7 +10,8 @@
 
 import logging, os, shutil, tempfile, codecs, re, types, datetime, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib
+    sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, \
+    traceback
 from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
@@ -2248,7 +2249,8 @@ class NejmCrawler(Crawler):
 
         # PDF 
         pdfUrl = url.replace("/full/", "/pdf/")
-        raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
+        if pdfUrl == url:
+            raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
         pdfPage = httpGetDelay(pdfUrl)
         paperData["main.pdf"] = pdfPage
 
@@ -3212,7 +3214,7 @@ class GenericCrawler(Crawler):
 allCrawlers = [
     ElsevierApiCrawler(), ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
     WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), TandfCrawler(),\
-    KargerCrawler(), DeGruyterCrawler(), PmcCrawler(), GenericCrawler()]
+    PmcCrawler(), GenericCrawler() ]
 
 allCrawlerNames = [c.name for c in allCrawlers]
 
@@ -3370,7 +3372,7 @@ def getArticleMeta(docId):
 
     return artMeta
 
-def crawlDocuments(docIds, skipIssns):
+def crawlDocuments(docIds, skipIssns, forceContinue):
     """
     run crawler on a list of (paperId, sourceDir) tuples
     """
@@ -3445,8 +3447,12 @@ def crawlDocuments(docIds, skipIssns):
 
             if DO_PAUSE:
                 raw_input("Press Enter to process next paper...")
-        except:
-            raise
+        except Exception as e:
+            if forceContinue:
+                logging.error("FAILED TO CRAWL PMID: %s".format(docId))
+                logging.error(traceback.format_exc())
+            else:
+                raise e
 
     logging.info("Downloaded %d articles" % (successCount))
 

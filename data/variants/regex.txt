@@ -1,28 +1,27 @@
-seqType	mutType	patName	pat
-dna	del	10083731	deletion of nt{pos}{origDnas}
-dna	del		{sep}c\.{fromPos}_{toPos}del{origDnas}
-dna	del		{sep}c\.{pos}del{origDna}
-prot	del		{sep}p\.{fromPos}_{toPos}del{origAasShort}
-prot	del		{sep}p\.{fromPos}_{toPos}del{origAasLong}
-prot	del		{sep}p\.{origAaShort}{pos}del
-prot	del		{sep}p\.{origAaLong}{pos}del
-dna	ins		{sep}c\.{fromPos}_{toPos}ins{dnas}
-dna	dup		{sep}c\.{pos}dup{origDna}
-dna	dup		{sep}c\.{fromPos}_{toPos}dup{origDnas}
-prot	ins		{sep}p\.{fromPos}_{toPos}ins{mutAasShort}
-prot	ins		{sep}p\.{fromPos}_{toPos}ins{mutAasLong}
-dna	sub		substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}
-dna	sub	c.123T>A	{sep}c\.{pos}{origDna}>{mutDna}
-dna	sub	c.123TrA (r is ->, ocr error)	{sep}c\.{pos}{origDna}r{mutDna}
-dna	sub	c.123T(RIGHT ARROW)2192A	{sep}c\.{pos}{origDna}\u2192{mutDna}
-dna	splicing		{sep}c\.{pos}{plusMinus}{offset}{origDna}>{mutDna}
-dna	splicing		{sep}c\.{pos}{plusMinus}{offset}{origDna}r{mutDna}
-dna	splicing		{sep}c\.{pos}{plusMinus}{offset}{origDna}\u2192{mutDna}
-#dna	sub	10090526	codon {poss} {origCodon}-{mutCodon}
-#dna	sub	11005141	{origCodon}\u2192{mutCodon}
-dbSnp	dbSnp	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})
-prot	sub		{sep}p\.\(?{origAaShort}{pos}{mutAaShort}{fs}
-prot	sub		{sep}{origAaShort}{poss}{mutAaShort}
-prot	sub		{sep}{origAaLong}{poss}{mutAaLong}
-prot	sub		{sep}p\.\(?{origAaLong}{pos}{mutAaLong}{fs}
-prot	sub	11005141	{origAaLong}\u2192{mutAaLong}
+seqType	mutType	isCoding	patName	pat
+dna	sub	True	c.123T>A	{sep}c\.{pos}{origDna}{rightArrow}{mutDna}
+dna	sub	True	somename	substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}
+dna	sub	True	859G>A	{sep}{pos}{origDna}{rightArrow}{mutDna}
+#dna	sub	True	2521del5insT	{pos}del{delLen}ins{mutDna}
+dna	del	True	c.123delT	{sep}c\.{pos}del{origDna}
+dna	del	True	c.123_125delAT	{sep}c\.{fromPos}_{toPos}del{origDnas}
+dna	del	True	10083731	deletion of nt{pos}{origDnas}
+dna	del	True	6174delT	{sep}{pos}del{origDna}
+dna	ins	True	c.123_124insGC	{sep}c\.{fromPos}_{toPos}ins{dnas}
+dna	dup	True	c.123dupA	{sep}c\.{pos}dup{origDna}
+dna	dup	True	c.123_125dupAT	{sep}c\.{fromPos}_{toPos}dup{origDnas}
+dna	sub	False	c.123+2A>T	{sep}c\.{pos}{plusMinus}{offset}{origDna}{rightArrow}{mutDna}
+prot	sub	True	M1775R	{sep}{origAaShort}{pos}{mutAaShort}
+prot	sub	True	Met1775Arg	{sep}{origAaLong}{pos}{mutAaLong}
+prot	sub	True	p.M1775R	{sep}p\.\(?{origAaShort}{pos}{mutAaShort}{fs}
+prot	sub	True	p.Met1775Arg	{sep}p\.\(?{origAaLong}{pos}{mutAaLong}{fs}
+#prot	sub	True	11005141	{sep}{origAaLong}{rightArrow}{mutAaLong}
+prot	del	True	p.M1775del	{sep}p\.{origAaShort}{pos}del
+prot	del	True	p.Met1775del	{sep}p\.{origAaLong}{pos}del
+prot	del	True	p.1775_1776delM	{sep}p\.{fromPos}_{toPos}del{origAasShort}
+prot	del	True	p.1775_1776delMet	{sep}p\.{fromPos}_{toPos}del{origAasLong}
+prot	ins	True	p.1775_1776dinsR	{sep}p\.{fromPos}_{toPos}ins{mutAasShort}
+prot	ins	True	p.1775_1775insArg	{sep}p\.{fromPos}_{toPos}ins{mutAasLong}
+intron	sub	False	IVS5+3A>G	IVS{pos}{plusMinus}{offset}{origDna}{rightArrow}{mutDna}
+intron	del	False	IVS6-2delA	IVS{pos}{plusMinus}{offset}del{origDna}
+dbSnp	dbSnp	True	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})

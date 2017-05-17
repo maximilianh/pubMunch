@@ -270,9 +270,10 @@ def parseKeyValList(fname):
     logging.info("Reading %s" % fname)
     data = dict()
     for line in open(fname):
-        key, valStr = line.rstrip("\n").split("\t")[:2]
-        vals = valStr.split("|")
-        data[key] = vals
+        key, valStr1, valStr2 = line.rstrip("\n").split("\t")[:3]
+        vals1 = valStr1.split("|")
+        vals2 = valStr2.split("|")
+        data[key] = dict(zip(vals1, vals2))
     return data
 
 def parseBands(fname):
