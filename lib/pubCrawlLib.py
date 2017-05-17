@@ -185,6 +185,7 @@ articleFields=[
 metaHeaders = articleFields
 metaHeaders.extend(addHeaders)
 
+
 # ===== EXCEPTIONS ======
 
 class pubGetError(Exception):
@@ -502,11 +503,12 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
 
     # Set the handler for the SIGALRM signal and set it to 30 secs
     signal.signal(signal.SIGALRM, _httpTimeout)
-    signal.alarm(30)
 
     while tryCount < 3:
+        signal.alarm(30)
         try:
             r = session.get(url, headers=headers, cookies=cookies, allow_redirects=True, timeout=30)
+            signal.alarm(0) # stop the alarm
             break
         except (requests.exceptions.ConnectionError,
          requests.exceptions.TooManyRedirects,
@@ -514,6 +516,7 @@ def httpGetRequest(url, userAgent, cookies, referer=None, newSession=False, acce
          requests.exceptions.RequestException,
          TimeoutException
          ):
+            signal.alarm(0) # stop the alarm
             tryCount += 1
             logging.info('HTTP error, retry number %d' % tryCount)
             time.sleep(3)
@@ -1418,15 +1421,18 @@ class Crawler():
         Returns True/False
         """
         return False
+
     def canDo_url(self, artMeta):
         """ some crawlers can only decide if they apply based on the URL, returns True/False """
         return False
+
     def makeLandingUrl(self, artMeta):
         """ try to avoid DOI or NCBI queries by building the URL to the paper from the meta data 
         Especially useful for Highwire, which has a very slow DOI resolver.
         Returns a string, the URL.
         """
         return None
+
     def crawl(self, url):
         """ now get the paper, return a paperData dict with 'main.pdf', 'main.html', "S1.pdf" etc 
         """
@@ -1519,7 +1525,7 @@ def findLinksWithUrlRe(page, searchRe):
         logging.log(5, dbgStr)
         if searchRe.match(linkUrl):
             urls.append(linkUrl)
-            logging.debug(u'Found link: %s -> %s' % (repr(linkText.decode('utf8')), repr(linkUrl.decode('utf8'))))
+            logging.debug(u'Found link: %s -> %s' % (unidecode.unidecode(linkText), unidecode.unidecode(linkUrl)))
 
     if len(urls) != 0:
         logging.debug('Found links with %s in URL: %s' % (repr(searchRe.pattern), urls))
@@ -1687,6 +1693,21 @@ def addSuppZipFiles(suppZipUrl, paperData, delayTime):
         fileExt = splitext(fname)[1]
         paperData["S"+str(suppIdx+1)+fileExt] = page
 
+class DeGruyterCrawler(Crawler):
+    def canDo_url(self, url):
+        return ("www.degruyter.com" in url)
+
+    def crawl(self, url):
+        delayTime = 5
+        paperData = OrderedDict()
+        pdfUrl = re.sub("\\.xml$", ".pdf", url)
+        if pdfUrl is None:
+            raise pubGetError("degruyter failed to convert xml URL {} to PDF ".format(url), "DegruyterXmlUrlConvert")
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        paperData["main.pdf"] = pdfPage
+        return paperData
+
+
 class PmcCrawler(Crawler):
     """
     a scraper for PMC
@@ -1704,7 +1725,6 @@ class PmcCrawler(Crawler):
 
     def makeLandingUrl(self, artMeta):
         return "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC"+artMeta["pmcId"]
-
 
     def crawl(self, url):
         url = url.rstrip("/")
@@ -1736,6 +1756,7 @@ class PmcCrawler(Crawler):
 
         suppUrls = findLinksByText(htmlPage, re.compile("Click here for additional data file.*"))
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
+
         return paperData
 
 class NpgCrawler(Crawler):
@@ -1825,12 +1846,18 @@ class NpgCrawler(Crawler):
                 htmlPage = httpGetDelay(finalUrls[0], delayTime)
             
         # try to strip the navigation elements from more recent article html
-        html = htmlPage["data"]
-        htmlPage["data"] = self._npgStripExtra(html)
+        origHtml = htmlPage["data"]
+        htmlPage["data"] = self._npgStripExtra(origHtml)
         paperData["main.html"] = htmlPage
 
-        url = htmlPage["url"]
-        pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+        url = htmlPage["url"].rstrip("/")
+        if "data-sixpack-client" in origHtml:
+            # Scientific Reports have a different URL structure
+            logging.debug("Found a new-style NPG page")
+            pdfUrl = url+".pdf"
+        else:
+            pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
 
@@ -1893,6 +1920,9 @@ class ElsevierCrawler(Crawler):
             return False
 
     def crawl(self, url):
+        if "www.nature.com" in url:
+            raise pubGetError("ElsevierCrawler refuses NPG journals", "ElsevierNotNpg", url)
+
         delayTime = crawlDelays["elsevier"]
         #agent = 'Googlebot/2.1 (+http://www.googlebot.com/bot.html)' # do not use new .js interface
         agent = "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1)"
@@ -1929,6 +1959,12 @@ class ElsevierCrawler(Crawler):
             raise pubGetError("document is not available", "documentUnavail")
         if pageContains(htmlPage, ["was not found on this server"]):
             raise pubGetError("Elsevier page not found", "elsevierPageNotFound", htmlPage["url"])
+
+        # 8552170 direct immediately to a PDF, there is no landing page
+        if isPdf(htmlPage):
+            logging.warn("Landing URL is already a PDF")
+            paperData["main.pdf"] = htmlPage
+            return paperData
 
         # strip the navigation elements from the html
         html = htmlPage["data"]
@@ -2400,8 +2436,11 @@ class LwwCrawler(Crawler):
             return False
 
     def makeLandingUrl(self, artMeta):
-        url =  "http://content.wkhealth.com/linkback/openurl?issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
-        return url
+        #url =  "http://content.wkhealth.com/linkback/openurl?issn=%(printIssn)s&volume=%(vol)s&issue=%(issue)s&spage=%(page)s" % artMeta
+        #return url
+        # We saw too many openUrl errors recently, so relying on crossref DOI search for now
+        # example PMID 10457856
+        return None
 
     def crawl(self, url):
         paperData = OrderedDict()
@@ -2409,7 +2448,7 @@ class LwwCrawler(Crawler):
 
         if "landingpage.htm" in url and "?" in url:
             # get around the ovid/lww splash page
-            logging.debug("Routing around ovid splash page")
+            logging.debug("Routing around OVID splash page")
             params = url.split("&")[1:]
             # remove type=abstract from params
             # the .js code seems to do this
@@ -2655,7 +2694,7 @@ class KargerCrawler(Crawler):
         # rate limit
         wait(delaySecs, "karger.com")
 
-        if self.useSelenium:
+        if self.useSelenium and allowSelenium:
             page = httpGetSelenium(url, delaySecs, mustGet=True)
             if "Incapsula incident" in page["data"]:
                 raise pubGetError("Got blocked by Incapsula", "incapsulaBlock")
@@ -2918,7 +2957,7 @@ class GenericCrawler(Crawler):
     def _httpGetDelay(self, url, waitSecs, mustGet=False, noFlash=False, useSelCookies=False, referer=None):
         " generic http get request, uses selenium if needed "
         page = None
-        if self.useSelenium:
+        if self.useSelenium and allowSelenium:
             page = httpGetSelenium(url, waitSecs, mustGet=mustGet)
             time.sleep(5)
             return page
@@ -3047,9 +3086,20 @@ class GenericCrawler(Crawler):
          'Your current credentials do not allow retrieval of the full text.',
          'Access to the content you have requested requires one of the following:',
          'Online access to the content you have requested requires one of the following']
-        if pageContains(landPage, noLicenseTags):
-            logging.info("generic crawler found 'No license' on " + landPage['url'])
-            raise pubGetError('No License', 'noLicense', landPage['url'])
+
+        for text in noLicenseTags:
+            if text in landPage["data"]:
+                if (text=="Buy this article" and "foxycart" in landPage["data"]) or \
+                    (text=="Purchase access" and "silverchaircdn.com" in landPage["data"]):
+
+                    continue # highwire's new site always has the string "Buy this article" somewhere in the javascript
+                logging.debug("Found string %s in page" % text)
+                raise pubGetError('No License', 'noLicense', "found '%s' on page %s" % (text,landPage['url']))
+
+        #if pageContains(landPage, noLicenseTags):
+            #logging.info("generic crawler found 'No license' on " + landPage['url'])
+            #raise pubGetError('No License', 'noLicense', landPage['url'])
+
         errTags = ['This may be the result of a broken link',
          'please verify that the link is correct',
          'Sorry, we could not find the page you were looking for',
@@ -3083,10 +3133,11 @@ class GenericCrawler(Crawler):
         "healio.com"
         ]
         self.useSelenium = False
-        for tag in useSeleniumHosts:
-            if tag in url:
-                self.useSelenium = True
-                break
+        if allowSelenium:
+            for tag in useSeleniumHosts:
+                if tag in url:
+                    self.useSelenium = True
+                    break
 
         landPage = self._httpGetDelay(url, delayTime, mustGet=True)
         self._checkErrors(landPage)
@@ -3123,7 +3174,7 @@ class GenericCrawler(Crawler):
             requirePdf = False
 
         if requirePdf and not isPdf(pdfPage):
-            logging.debug("PDF may be in a frame, trying to resolve it to final PDF")
+            logging.debug("This is not a PDF. PDF may be in a frame, trying to resolve it to final PDF")
             pdfPage = parseHtmlLinks(pdfPage)
             pdfUrlRe = re.compile('.*temp.*\\.pdf$')
             pdfUrls = findLinksWithUrlRe(pdfPage, pdfUrlRe)
@@ -3140,6 +3191,11 @@ class GenericCrawler(Crawler):
                 pdfPage = self._httpGetDelay(pdfUrls[0], delayTime)
             else:
                 logging.warn('PDF-link is not a PDF and not framed')
+                if TEST_OUTPUT:
+                    dumpFname = "/tmp/pubCrawl.tmp"
+                    ofh = open(dumpFname, "w")
+                    ofh.write(pdfPage["data"])
+                    logging.info('PDF-like-link contents were dumped to %s' % dumpFname)
                 return
                 
         if requirePdf and not isPdf(pdfPage):
