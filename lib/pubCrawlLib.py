@@ -10,8 +10,7 @@
 
 import logging, os, shutil, tempfile, codecs, re, types, datetime, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, \
-    traceback
+    sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, json
 from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
@@ -2398,9 +2397,13 @@ class SpringerCrawler(Crawler):
         paperData["main.html"] = fullPage
 
         # PDF 
-        pdfUrl = url.replace("/article/", "/content/pdf/")+".pdf"
+        if url.find("/chapter/") >= 0:
+            pdfUrl = url.replace("/chapter/", "/content/pdf/")+".pdf"
+        else:
+            pdfUrl = url.replace("/article/", "/content/pdf/")+".pdf"
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
+        print '@1 pgfPage', pdfPage
 
         # suppl files 
         suppUrls = findLinksWithUrlPart(absPage, "/MediaObjects/")
@@ -2419,13 +2422,16 @@ class LwwCrawler(Crawler):
 
     issnList = None
 
+    def __init__(self):
+        self.currentPmid = None
+
     def canDo_article(self, artMeta):
         if self.issnList==None:
             self.issnList, _ = getHosterIssns("LWW")
 
-        if artMeta["printIssn"] in self.issnList or artMeta["eIssn"] in self.issnList:
-            return True
-        if artMeta["doi"].startswith("10.1097"):
+        if (artMeta["printIssn"] in self.issnList or artMeta["eIssn"] in self.issnList
+            or artMeta["doi"].startswith("10.1097")):
+            self.currentPmid = artMeta.get("pmid", None)
             return True
         return None # = not sure
 
@@ -2442,21 +2448,10 @@ class LwwCrawler(Crawler):
         # example PMID 10457856
         return None
 
-    def crawl(self, url):
+    def __crawlDirect(self, url):
         paperData = OrderedDict()
         delayTime = crawlDelays["lww"]
 
-        if "landingpage.htm" in url and "?" in url:
-            # get around the ovid/lww splash page
-            logging.debug("Routing around OVID splash page")
-            params = url.split("&")[1:]
-            # remove type=abstract from params
-            # the .js code seems to do this
-            params = [s for s in params if s!="type"]
-            url = "http://content.wkhealth.com/linkback/openurl?" + "&".join(params)
-
-        #if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
-            #return None
         fullPage = httpGetDelay(url, delayTime)
         if fullPage==None:
             return None
@@ -2480,6 +2475,42 @@ class LwwCrawler(Crawler):
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
 
         return paperData
+
+    def __crawlOvid(self, url):
+        "access to via OVID"
+        paperData = OrderedDict()
+        delayTime = crawlDelays["lww"]
+        # get page will contain internal accession 
+        pmidUrl = "http://insights.ovid.com/pubmed?pmid={}".format(21646875)
+        pmidResult = httpGetDelay(pmidUrl)
+        # parse internal access from javascript:
+        #   var an = "00019605-201107000-00010";
+        mat = re.search('var an = "([-0-9]+)";', pmidResult["data"])
+        if mat is None:
+            logging.debug("Can't fine OVID accession in response from {}".format(pmidUrl))
+            return None
+        accession = mat.group(1)
+        # make AJAX request to URL of pdf
+        ovidMetaUrl = "http://insights.ovid.com/home?accession={}".format(accession)
+        ovidMetaResult = httpGetDelay(ovidMetaUrl)
+        try:
+            ovidMeta = json.loads(ovidMetaResult["data"], "UTF8")
+        except json.decoder.JSONDecodeError as ex:
+            raise pubGetError("error parsing OVID metadata JSON from {}: {}".format(ovidMetaUrl, str(ex)),
+                              "ovidMetaParseFailed")
+        pdfUrl = ovidMeta.get("ArticlePDFUri", None)
+        if pdfUrl is None:
+            logging.debug("Can't fine OVID ArticlePDFUri metadata field in response from {}".format(ovidMetaUrl))
+            return None
+        pdfPage = httpGetDelay(pdfUrl, delayTime)
+        paperData["main.pdf"] = pdfPage
+        return paperData
+    
+    def crawl(self, url):
+        if "landingpage.htm" in url and "?" in url:
+            return self.__crawlOvid(url)
+        else:
+            return self.__crawlDirect(url)
     
 class SilverchairCrawler(Crawler):
     " Silverchair is an increasingly popular hoster "
