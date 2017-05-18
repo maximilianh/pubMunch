@@ -77,9 +77,9 @@ def processText(pmid, title, abstract, text, writer, dbAnnots):
 
     mutations  = varFinder.findVariantDescriptions(text, exclPos)
     dbAnnots.newDocument(pmid)
-    for variant, mentions in mutations["prot"]:
+    for variant, mentions in mutations["dna"]+mutations["prot"]+mutations["intron"]:
         groundedMuts, ungroundVar, beds = \
-            varFinder.groundVariant(pmid, text, variant, mentions, mutations["dbSnp"], genes)
+            varFinder.groundVariant(pmid, text, variant, mentions, mutations["dbSnp"], genes, False) #set insertion_rv=False
         isInDb = dbAnnots.checkCoords(beds)
         if isInDb:
             for gm in groundedMuts:

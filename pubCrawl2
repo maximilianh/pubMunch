@@ -90,7 +90,7 @@ def main(args, options):
         docIds, skipIssns = scrapeLib.parseDirectories(outDirs)
         if len(outDirs) > 1 or options.fakeUseragent: # only randomize if we're doing multiple publishers
             random.shuffle(docIds)
-        scrapeLib.crawlDocuments(docIds, skipIssns)
+        scrapeLib.crawlDocuments(docIds, skipIssns, options.forceContinue)
     except KeyboardInterrupt:
         logging.info("Got Keyboard interrupt")
         gotCtrlc = True
@@ -165,6 +165,8 @@ parser.add_option("", "--tryHarder", dest="tryHarder", action="store_true", help
 parser.add_option("", "--noProxy", dest="noProxy", action="store_true", help="do not use the proxy, even if configured in ~/.pubConf")
 
 parser.add_option("", "--report", dest="report", action="store", help="Do not crawl but given the base crawl directory, write a status report in html format to the specified first output filename and quit. ")
+
+parser.add_option("", "--forceContinue", dest="forceContinue", action="store_true", help="After an uncaught error, continue crawling remaining PMIDs")
 
 (options, args) = parser.parse_args()
 

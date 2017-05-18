@@ -2248,7 +2248,8 @@ class NejmCrawler(Crawler):
 
         # PDF 
         pdfUrl = url.replace("/full/", "/pdf/")
-        raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
+        if pdfUrl == url:
+            raise pubGetError('NEJM crawler could not find a link to the PDF on %s' % url, 'nejmCannotFindPdf')
         pdfPage = httpGetDelay(pdfUrl)
         paperData["main.pdf"] = pdfPage
 
@@ -3240,7 +3241,7 @@ class GenericCrawler(Crawler):
 allCrawlers = [
     ElsevierApiCrawler(), ElsevierCrawler(), NpgCrawler(), HighwireCrawler(), SpringerCrawler(), \
     WileyCrawler(), SilverchairCrawler(), NejmCrawler(), LwwCrawler(), TandfCrawler(),\
-    KargerCrawler(), DeGruyterCrawler(), PmcCrawler(), GenericCrawler()]
+    PmcCrawler(), GenericCrawler() ]
 
 allCrawlerNames = [c.name for c in allCrawlers]
 
@@ -3398,7 +3399,7 @@ def getArticleMeta(docId):
 
     return artMeta
 
-def crawlDocuments(docIds, skipIssns):
+def crawlDocuments(docIds, skipIssns, forceContinue):
     """
     run crawler on a list of (paperId, sourceDir) tuples
     """
@@ -3473,8 +3474,12 @@ def crawlDocuments(docIds, skipIssns):
 
             if DO_PAUSE:
                 raw_input("Press Enter to process next paper...")
-        except:
-            raise
+        except Exception as e:
+            if forceContinue:
+                logging.error("FAILED TO CRAWL PMID: %s".format(docId))
+                logging.error(traceback.format_exc())
+            else:
+                raise e
 
     logging.info("Downloaded %d articles" % (successCount))
 
