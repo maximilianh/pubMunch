@@ -1615,6 +1615,7 @@ def getHosterIssns(publisherName):
         publisherUrls = defaultdict(set)
         logging.log(5, "Parsing %s to get highwire ISSNs" % journalFname)
 
+        logging.info("Parsing ISSN <-> publisher list from %s" % journalFname)
         for row in maxCommon.iterTsvRows(journalFname):
             if row.source in ["HIGHWIRE", "WILEY"]:
                 hoster = row.source
@@ -2263,17 +2264,16 @@ class WileyCrawler(Crawler):
     name = "wiley"
 
     issnList = None
-    urlList = None
 
     def canDo_article(self, artMeta):
         if self.issnList==None:
-            self.issnList, self.urlList = getHosterIssns("WILEY")
+            self.issnList = getScopusIssns("Wiley")
         if artMeta["printIssn"] in self.issnList or  \
             artMeta["eIssn"] in self.issnList:
             return True
         # DOI prefixes for wiley and the old blackwell prefix
-        if artMeta["doi"].startswith("10.1002") or artMeta["doi"].startswith("10.1111"):
-            return True
+        #if artMeta["doi"].startswith("10.1002") or artMeta["doi"].startswith("10.1111"):
+            #return True
         return None # = not sure, maybe
 
     def canDo_url(self, url):
