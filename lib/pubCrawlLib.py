@@ -2397,9 +2397,13 @@ class SpringerCrawler(Crawler):
         paperData["main.html"] = fullPage
 
         # PDF 
-        pdfUrl = url.replace("/article/", "/content/pdf/")+".pdf"
+        if url.find("/chapter/") >= 0:
+            pdfUrl = url.replace("/chapter/", "/content/pdf/")+".pdf"
+        else:
+            pdfUrl = url.replace("/article/", "/content/pdf/")+".pdf"
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
+        print '@1 pgfPage', pdfPage
 
         # suppl files 
         suppUrls = findLinksWithUrlPart(absPage, "/MediaObjects/")
