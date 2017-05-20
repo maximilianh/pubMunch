@@ -111,14 +111,15 @@ Reads a file docIds.txt from source directories.
 If multiple directories are specified, the order of articles is randomized.
 
 - the status of each pmid is written to sourceDir/docStatus.log
-  IDs from this file are not crawled again.
-- log/error messages are written to outDir/crawler.log
+  IDs that are in this file are not crawled again.
+- log/error messages are written to sourceDir/crawler.log
 - if it contains a file crawler.txt, only the crawler with this name
   is used (e.g. 'echo highwire > crawler.txt')
 - the status of whole journals is written to sourceDir/issnStatus.log
   It is used to blacklist an ISSN+year if too many of its articles fail.
   Documents from blacklisted ISSNs are skipped.
-- crawling stops if more than 50 consecutive errors are encountered.
+- the crawl stops if more than 50 consecutive errors are encountered.
+  (change this with --tryHarder)
 - papers+suppl. data are downloaded into a subdirectory "files" of each
   sourceDir
 
@@ -130,6 +131,13 @@ Examples:
 - pubCrawl2 highwire/ wiley/
 - pubCrawl2 --test 24076656
 
+There are some default settings that you may want to change. Copy the file
+doc/pubConf.example to ~/.pubConf and adapt the settings.
+
+Elsevier is the biggest publisher and uses sophisticated anti-crawler
+technology. But it has an API. Obtain a key via
+https://dev.elsevier.com/text_mining.html, paste it into  ~/.pubConf under
+'elsevierApiKey' and run the crawler.
 """)
 
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
