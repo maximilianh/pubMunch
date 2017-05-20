@@ -1,0 +1,31 @@
+# Your email address. Make sure you set this
+email = "me@me.com"
+
+# The user agent used. You're nice and show that you
+# are using a crawler to the publisher's webservers
+httpUserAgent = 'pubCrawl2 (contact: %s)' % email
+
+# Your University's SFX server. Used to find fulltext, when 
+# Pubmed doesn't have a link
+# Search your University's webpage for "SFX" or contact your 
+# trusted librarian
+crawlSfxServer = "http://sfx.stanford.edu/local"
+
+# Your Elsevier API key
+# You should get one from https://dev.elsevier.com/text_mining.html
+# for most crawling projects, this is important
+# If this is None, pubCrawl2 will try to download papers anyways,
+# but this may fail after a while and you will not get more than
+# the main text as html and the supplement.
+elsevierApiKey=None
+
+# the URL for pubGetElsevier, only for users with consyn access
+# most users don't need this
+consynRssUrl = "https://consyn.elsevier.com/batch/atom?key=XXXXXXXXXX"
+
+# the temporary directory
+TEMPDIR = "/tmp/"
+
+# If you use a proxy server to get fulltext access, enter it here
+# httpProxy="http://myserver.com:8888"
+
