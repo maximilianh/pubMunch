@@ -119,7 +119,8 @@ def compileREs():
               }
 
     arrayExprRe = re.compile(r'%s(?P<id>E-[A-Z]{4}-[0-9]+)' % (startSep))
-    geoRe = re.compile(r'%s(?P<id>GSE[0-9]{2,8})' % (startSepDash))
+    geoRe = re.compile(r'%s(?P<id>GSE[0-9]{2,9})' % (startSepDash))
+    sraRe = re.compile(r'%s(?P<id>(SR[ARSXPZ][0-9]{2,9})|(ER[ARSXPZ][0-9]{2,9})|(DR[ARSXPZ][0-9]{2,9})|(SAMN[0-9]{2,9}))' % (startSepDash))
     interproRe = re.compile(r'%s(?P<id>IPR[0-9]{5})' % (startSepDash))
     pfamRe = re.compile(r'%s(?P<id>PF[0-9]{5})' % (startSepDash))
     printsRe = re.compile(r'%s(?P<id>PR[0-9]{5})' % (startSepDash))
@@ -151,6 +152,18 @@ def compileREs():
     clinTrialsRe = re.compile(r'%s(?P<id>NCT[0-9]{8})' % startSepDash)
     dbGapRe = re.compile(r'%s(?P<id>phs([0-9]{6}))%s' % (startSepDash, endSepDash))
 
+    # see https://www.ncbi.nlm.nih.gov/genbank/collab/db_xref/
+    xenbaseRe = re.compile(r'%s(?P<id>XB-GENE-([0-9]{4,7}))%s' % (startSepDash, endSepDash))
+    tigrFamRe = re.compile(r'%s(?P<id>TIGR([0-9]{4,8}))%s' % (startSepDash, endSepDash))
+    taxonRe = re.compile(r'%s(Taxon ID|NCBI Taxon|tax_id|taxon id|taxon|Taxon ID|Taxon|Taxon Id|[tT]ax [iI][Dd])[ :=]+(?P<id>([0-9]{4,8}))%s' % (startSepDash, endSepDash))
+    tairRe = re.compile(r'%s(?P<id>A[tT][0-9][Gg]([0-9]{4,8}))%s' % (startSepDash, endSepDash))
+    rfamRe = re.compile(r'%s(?P<id>RF([0-9]{4,6}))%s' % (startSepDash, endSepDash))
+    mirbaseRe = re.compile(r'%s(?P<id>MI([0-9]{7}))%s' % (startSepDash, endSepDash))
+    # see http://www.imgt.org/genedb/tableC.action;jsessionid=588872629D280D560E308336EA35D9B2
+    imgtIgRe = re.compile(r'%s(?P<id>IG[HKL][CVJL][0-9]+-?[0-9]*[DOR]*-*[0-9]*))%s' % (startSepDash, endSepDash))
+    imgtTrRe = re.compile(r'%s(?P<id>TR[ABG][CDJV][0-9]+[/-]?[0-9]*P?))%s' % (startSepDash, endSepDash))
+    epdRe = re.compile(r'%s(?P<id>EP[0-9]{4,8}))%s' % (startSepDash, endSepDash))
+
     # a more or less random selection of keywords, not sure if this is really necessary
     global reqWordDict
     reqWordDict.update({
@@ -170,6 +183,7 @@ def compileREs():
     reDict.update({
         "arrayexpress" : arrayExprRe,
         "geo"          : geoRe,
+        "sra"          : sraRe,
         "interpro"     : interproRe,
         "pfam"         : pfamRe,
         "prints"       : printsRe,
@@ -196,7 +210,18 @@ def compileREs():
         "zfin"         : zfinRe,
         # https://clinicaltrials.gov/show/NCT01204177
         "clintrials"   : clinTrialsRe,
-        "dbGap"        : dbGapRe
+        "dbGap"        : dbGapRe,
+        "xenbase"      : xenbaseRe,
+        "tigrFamRe"    : tigrFamRe,
+        "ncbiTaxonomy" : taxonRe,
+        "tair"         : tairRe,
+        "rfam"         : rfamRe,
+        "mirbase"      : mirbaseRe,
+        "imgtIg"       : imgtIgRe,
+        "imgtTr"       : imgtTrRe,
+        "epd"          : epdRe
+
+
         })
 
     return reDict
@@ -379,6 +404,7 @@ class AccsFinder():
     [[5, 12, 'sgd', 'YGL163C']]
     >>> list(a.findAccessions(" sgd S000003131"))
     [[5, 15, 'sgd', 'S000003131']]
+    >>> list(a.findAccessions(" SRA010122  SAMN00004417    "))
     """
     def __init__(self, onlyDbs=None, removeDbs=None):
         """ compile regexes.
