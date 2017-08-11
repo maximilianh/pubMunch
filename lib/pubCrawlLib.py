@@ -1034,12 +1034,8 @@ def blacklistIssnYear(outDir, issnYear, journal):
 def writeDocIdStatus(outDir, pmid, msg, detail=""):
     " append a line to doc status file in outDir "
     fname = join(outDir, PMIDSTATNAME)
-    if isfile(fname):
-        outFh = codecs.open(fname, "a", encoding="utf8")
-    else:
-        outFh = codecs.open(fname, "w", encoding="utf8")
-
-    outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, repr(detail)))
+    with codecs.open(fname, "a", encoding="utf8") as outFh:
+        outFh.write("%s\t%s\t%s\n" % (str(pmid), msg, repr(detail)))
 
 def removeLocks():
     " remove all lock files "
