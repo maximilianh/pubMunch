@@ -63,7 +63,11 @@ articleFields=[
 "fulltextUrl",     # URL to fulltext of article
 "time",     # entry creation time (conversion time)
 "offset",   # offset in .files, number of bytes (NOT number of unicode characters).
-"size"      # total size (in bytes, not utf8 characters) of all files in this article + size of abstract
+"size",      # total size (in bytes, not utf8 characters) of all files in this article + size of abstract
+"pii",       # Publisher Item Identifier
+"medlineCreatedDate",  # date medline entry was created
+"medlineCompletedDate", # date medline entry was completed
+"medlineRevisedDate", # date medline entry was last revised
 ]
 
 fileDataFields = [

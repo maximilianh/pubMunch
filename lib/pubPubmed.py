@@ -17,6 +17,11 @@ class PubmedError(Exception):
     def __str__(self):
         return repr(self.longMsg+"/"+self.logMsg)
 
+def getMedlineDate(medlineData, dateField):
+    return "{}-{}-{}".format(medlineData.getTextFirst("{}/Year".format(dateField)),
+                             medlineData.getTextFirst("{}/Month".format(dateField)),
+                             medlineData.getTextFirst("{}/Day".format(dateField)))
+    
 def parseMedline(xmlParser):
     """
     fill article data dict with pubmed xml data
@@ -35,9 +40,9 @@ def parseMedline(xmlParser):
     data["externalId"]            = "PMID"+data["pmid"]
     data["fulltextUrl"]   = "https://www.ncbi.nlm.nih.gov/pubmed/%s" % data["pmid"]
     logging.log(5, "PMID %s" % data["pmid"])
-    #data["year-pubmed"]   = medlineData.getTextFirst("DateCreated/Year")
-    #data["month-pubmed"]  = medlineData.getTextFirst("DateCreated/Month")
-    #data["day-pubmed"]    = medlineData.getTextFirst("DateCreated/Day")
+    data["medlineCreatedDate"] = getMedlineDate(medlineData, "DateCreated")
+    data["medlineCompletedDate"] = getMedlineDate(medlineData, "DateCompleted")
+    data["medlineRevisedDate"] = getMedlineDate(medlineData, "DateRevised")
     otherIds         = medlineData.getTextAll("OtherID", reqAttrDict={"Source":"NLM"})
     pmcIds = [i for i in otherIds if i.startswith("PMC")]
     if len(pmcIds) > 0:
