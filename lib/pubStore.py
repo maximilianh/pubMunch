@@ -59,6 +59,7 @@ articleFields=[
 "pmid",            # PubmedID if available
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
+"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
 "fulltextUrl",     # URL to fulltext of article
 "time",     # entry creation time (conversion time)
 "offset",   # offset in .files, number of bytes (NOT number of unicode characters).
