@@ -63,8 +63,9 @@ def mustExistDir(path, makeDir=False):
             logging.info("Creating directory %s" % path)
             os.makedirs(path)
         else:
-            logging.error("Directory %s does not exist" % path)
-            raise Exception()
+            msg = "Directory %s does not exist " % path
+            logging.error(msg)
+            raise Exception(msg)
 
 def mustExist(path):
     if not (os.path.isdir(path) or os.path.isfile(path)):

@@ -44,6 +44,7 @@ Or alternatively with something like this:
 
 parser.add_option("", "--minId", dest="minId", action="store", help="numerical IDs written to the pubStore start at this number times one billion to prevent overlaps of numerical IDs between publishers, default %default", default=pubConf.identifierStart["medline"]) 
 parser.add_option("", "--idsPerFile", dest="idsPerFile", action="store", help="number of identifiers per medline file. Reserves space for x entries in numerical namespace, default %default", default=300000) 
+parser.add_option("", "--maxRam", dest="maxRam", type="int", help="number of gigabytes of RAM to request for cluster jobs", default=None)
 #parser.add_option("-u", "--updateCrawler", metavar="CRAWLDIR", dest="crawlDir", action="store", help="go over all subdirs of crawlDir, update all pmids.txt with pmids of ISSNs in issns.tab") 
 parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("", "--auto", dest="auto", action="store_true", help="predefine in and out dir based on pubConf.py config file") 
@@ -87,7 +88,7 @@ def submitJobs(inDir, outDir, minId, idStep, headNode):
         sys.exit(1)
 
     doneFiles = set(doneFiles)
-    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)
+    runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, maxRam=options.maxRam, outDir=outDir)
 
     chunkArticleId = firstArticleId
     chunkId = 0
