@@ -31,6 +31,13 @@ Most commands need some settings in the config file adapted to your particular
 server / cluster system. E.g. pubCrawl2 needs your email address, pubConvX 
 need the cluster system (SGE or parasol) and various input/output directories.
 
+The settings in lib/pubConf.py can be overridden in a local
+configuration file.  If an environment variable PUBMUNCH_CONF is specified, it
+point to the user defined file, otherwise ~/.pubConf is used, if it exists.
+If a variable is not overridden in the local configuration file, the default
+values in lib/pubConf.py are used.
+
+
 # The data
 
 Some of the tools require a few pretty big databases (dbSNP, RefSeq, etc.). Run 
