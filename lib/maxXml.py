@@ -75,23 +75,23 @@ class XmlParser:
         """ return text between elements given path 
             reqAttrDict is in the format attrName -> value
         """
-        xml = self._getElFirst(path, reqAttrDict)
+        xml = self.getElFirst(path, reqAttrDict)
         if xml != None and xml.text!=None:
             return xml.text
         else:
             return default
         
     def getTextAll(self, path, reqAttrDict=None):
-        for el in self._getElAll(path, reqAttrDict):
+        for el in self.getElAll(path, reqAttrDict):
             yield el.text
 
-    def _getElFirst(self, path, reqAttrDict):
+    def getElFirst(self, path, reqAttrDict):
         found = False
-        for el in self._getElAll(path, reqAttrDict):
+        for el in self.getElAll(path, reqAttrDict):
             found = True
             return el
 
-    def _getElAll(self, path, reqAttrDict):
+    def getElAll(self, path, reqAttrDict):
         found = False
         elIter = self.root.findall(path)
         for el in elIter:
@@ -100,14 +100,14 @@ class XmlParser:
                 yield el
         
     def getXmlFirst(self, path, reqAttrDict=None, default=None):
-        el = self._getElFirst(path, reqAttrDict)
+        el = self.getElFirst(path, reqAttrDict)
         if el==None:
             return default
         else:
             return XmlParser(root=el)
 
     def getXmlAll(self, path, reqAttrDict=None):
-        for el in self._getElAll(path, reqAttrDict):
+        for el in self.getElAll(path, reqAttrDict):
             yield XmlParser(root=el)
 
     def __repr__(self):
