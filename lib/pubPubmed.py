@@ -18,9 +18,13 @@ class PubmedError(Exception):
         return repr(self.longMsg+"/"+self.logMsg)
 
 def getMedlineDate(medlineData, dateField):
-    return "{}-{}-{}".format(medlineData.getTextFirst("{}/Year".format(dateField)),
-                             medlineData.getTextFirst("{}/Month".format(dateField)),
-                             medlineData.getTextFirst("{}/Day".format(dateField)))
+    year = medlineData.getTextFirst("{}/Year".format(dateField))
+    if (year is None) or (len(year) == 0):
+        return ""
+    else:
+        return "{}-{}-{}".format(year,
+                                 medlineData.getTextFirst("{}/Month".format(dateField)),
+                                 medlineData.getTextFirst("{}/Day".format(dateField)))
     
 def parseMedline(xmlParser):
     """
@@ -37,7 +41,9 @@ def parseMedline(xmlParser):
     #medlineData           = xmlParser.getXmlFirst("MedlineCitation")
     medlineData           = xmlParser
     data["pmid"]          = medlineData.getTextFirst("PMID")
-    data["externalId"]            = "PMID"+data["pmid"]
+    el = medlineData.getElFirst("PMID", None)
+    data["pmidVersion"]   = el.attrib.get("Version", "") if el is not None else ""
+    data["externalId"]    = "PMID"+data["pmid"]
     data["fulltextUrl"]   = "https://www.ncbi.nlm.nih.gov/pubmed/%s" % data["pmid"]
     logging.log(5, "PMID %s" % data["pmid"])
     data["medlineCreatedDate"] = getMedlineDate(medlineData, "DateCreated")
@@ -160,6 +166,7 @@ def parsePubmedFields(xmlEl, dataDict):
     dataDict["pii"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pii'}, default="")
     dataDict["mid"]           = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'mid'}, default="")
     dataDict["pmcId"]         = xmlEl.getTextFirst("ArticleIdList/ArticleId", reqAttrDict = {"IdType" : 'pmc'}, default="").replace("PMC", "")
+    verEl = xmlEl.getXmlFirst("PMID")
     return dataDict
 
 def parsePubmedMedlineIter(xml):

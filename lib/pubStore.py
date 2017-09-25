@@ -57,6 +57,7 @@ articleFields=[
 "issue",    # issue
 "page",            # first page of article, can be ix, x, or S4
 "pmid",            # PubmedID if available
+"pmidVersion",     # PubmedID version
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
 "pii",             # Publisher Item Identifier, only used by Elsevier and ACM
@@ -94,7 +95,12 @@ emptyFileData = FileDataRec(*len(fileDataFields)*[""])
 
 RefRec = namedtuple("citRec", refFields)
 
-def createEmptyFileDict(url=None, time=time.asctime(), mimeType=None, content=None, \
+def isoTime():
+    "use ISO time, is it sorts correctly"
+    return time.strftime("%Y-%m-%dT%T%z")
+
+
+def createEmptyFileDict(url=None, time=isoTime(), mimeType=None, content=None,
     fileType=None, desc=None, externalId=None, locFname=None):
     fileData = emptyFileData._asdict()
     if time!=None:
@@ -121,7 +127,7 @@ def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=Non
     publisher=None, pmid=None, doi=None):
     """ create a dictionary with all fields of the ArticleType """
     metaInfo = emptyArticle._asdict()
-    metaInfo["time"]=time.asctime()
+    metaInfo["time"]=isoTime()
     if publisher!=None:
         metaInfo["publisher"]=publisher
     if doi:
@@ -989,7 +995,7 @@ def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     else:
         outFh = open(outFname, "a")
 
-    row = [str(updateId), str(maxArticleId), time.asctime(), "|".join(files)]
+    row = [str(updateId), str(maxArticleId), isoTime(), "|".join(files)]
     outFh.write("\t".join(row))
     outFh.write("\n")
     outFh.close()
