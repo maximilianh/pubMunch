@@ -39,7 +39,7 @@ If a new baseline comes in from NCBI (december):
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("-p", "--parallelConnections", dest="connCount", action="store", type="int", help="use X number of connections, default %default", default=8)
-parser.add_option("", "--full", dest="full", action="store_true", help="also download the baseline medline files for the current year")
+#parser.add_option("", "--full", dest="full", action="store_true", help="also download the baseline medline files for the current year")
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
@@ -86,10 +86,6 @@ def main():
 
     outDir = args[0]
 
-    if options.full:
-        maxCommon.mustBeEmptyDir(outDir)
-        downloadBaseline(outDir, options.connCount)
-
     ftpVer, localVer = ftpBaselineEqLocal(outDir)
     if not ftpVer==localVer:
         logging.warn("Merry Christmas!")
@@ -104,10 +100,9 @@ def main():
         flagFname = join(outDir, "newVersion.20"+localVer)
         logging.info("Creating flag file %s to show that this version has changed" % flagFname)
         open(flagFname, "w").write("")
+        logging.info("getting new baseline now")
 
-        logging.info("getting baseline now")
-        downloadBaseline(outDir, options.connCount)
-
+    downloadBaseline(outDir, options.connCount)
     downloadUpdates(outDir, options.connCount)
 
 main()
