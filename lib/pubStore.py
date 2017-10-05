@@ -95,12 +95,12 @@ emptyFileData = FileDataRec(*len(fileDataFields)*[""])
 
 RefRec = namedtuple("citRec", refFields)
 
-def isoTime():
-    "use ISO time, is it sorts correctly"
-    return time.strftime("%Y-%m-%dT%T%z")
+def isoGmtTime():
+    "get current GMT time in ISO time, as it sorts correctly"
+    return time.strftime("%Y-%m-%dT%T%z", time.gmtime())
 
 
-def createEmptyFileDict(url=None, time=isoTime(), mimeType=None, content=None,
+def createEmptyFileDict(url=None, time=isoGmtTime(), mimeType=None, content=None,
     fileType=None, desc=None, externalId=None, locFname=None):
     fileData = emptyFileData._asdict()
     if time!=None:
@@ -127,7 +127,7 @@ def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=Non
     publisher=None, pmid=None, doi=None):
     """ create a dictionary with all fields of the ArticleType """
     metaInfo = emptyArticle._asdict()
-    metaInfo["time"]=isoTime()
+    metaInfo["time"]=isoGmtTime()
     if publisher!=None:
         metaInfo["publisher"]=publisher
     if doi:
@@ -995,7 +995,7 @@ def appendToUpdatesTxt(outDir, updateId, maxArticleId, files):
     else:
         outFh = open(outFname, "a")
 
-    row = [str(updateId), str(maxArticleId), isoTime(), "|".join(files)]
+    row = [str(updateId), str(maxArticleId), isoGmtTime(), "|".join(files)]
     outFh.write("\t".join(row))
     outFh.write("\n")
     outFh.close()
