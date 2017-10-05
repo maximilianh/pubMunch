@@ -78,6 +78,7 @@ def downloadUpdates(outDir, connCount, maxFiles):
     logging.info("Found %d updates on ftp server" % len(updateFnames))
     medlineUrl = "ftp://"+medlineSrv+"/"+updatePath,
     pubGeneric.lftpGet(medlineUrl, outDir, updateFnames, connCount)
+    return len(updateFnames)
 
 # ----------- MAIN --------------
 def main():
