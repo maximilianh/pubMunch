@@ -2,7 +2,7 @@
 import logging, re, urllib
 import xml.etree.cElementTree as etree
 
-class XmlParser:
+class XmlParser(object):
     """ class to represent an xml tree (using ElementTree)
         Functions Accept PATH which is a /a/b/c style xpath-like expression to refer to elements
         PATH is not a complete XPATH implementation
@@ -11,8 +11,8 @@ class XmlParser:
         getXml... functions return an XmlParser-object
         ...First  functions get only the first instance
         ...All    functions return an iterator
-    
-    >>> xp = XmlParser(string="<fruit><apple size='big'>boskoop</apple><apple size='small'>granny smith</apple><pear>mypear</pear></fruit>") 
+
+    >>> xp = XmlParser(string="<fruit><apple size='big'>boskoop</apple><apple size='small'>granny smith</apple><pear>mypear</pear></fruit>")
     >>> xp.getTextFirst("pineapple", default="NothingAtAll")
     'NothingAtAll'
     >>> xp.getTextFirst("apple")
@@ -21,7 +21,7 @@ class XmlParser:
     ['boskoop', 'granny smith']
     >>> list(xp.getTextAll("apple", reqAttrDict={'size':'big'}))
     ['boskoop']
-    
+
     """
     def __init__(self, string=None, url=None, root=None, removeNamespaces=False):
         self.root=None
@@ -40,6 +40,12 @@ class XmlParser:
             return ""
         else:
             return self.root.text
+
+    def getTextTail(self):
+        if self.root.tail==None:
+            return ""
+        else:
+            return self.root.tail
 
     def fromString(self, string, removeNamespaces=False):
         if string=="":
@@ -72,7 +78,7 @@ class XmlParser:
         return True
 
     def getTextFirst(self, path, reqAttrDict=None, default=None):
-        """ return text between elements given path 
+        """ return text between elements given path
             reqAttrDict is in the format attrName -> value
         """
         xml = self.getElFirst(path, reqAttrDict)
@@ -80,7 +86,7 @@ class XmlParser:
             return xml.text
         else:
             return default
-        
+
     def getTextAll(self, path, reqAttrDict=None):
         for el in self.getElAll(path, reqAttrDict):
             yield el.text
@@ -98,7 +104,7 @@ class XmlParser:
             if reqAttrDict == None or self._hasAttribs(el, reqAttrDict):
                 found = True
                 yield el
-        
+
     def getXmlFirst(self, path, reqAttrDict=None, default=None):
         el = self.getElFirst(path, reqAttrDict)
         if el==None:
@@ -116,21 +122,21 @@ class XmlParser:
 def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
     """ Takes a parsed ET structure and does an in-place removal of all namespaces,
         or removes a specific namespacem (by its URL).
-        
+
         Can make node searches simpler in structures with unpredictable namespaces
         and in content given to be non-mixed.
 
-        By default does so for node names as well as attribute names.       
+        By default does so for node names as well as attribute names.
         (doesn't remove the namespace definitions, but apparently
          ElementTree serialization omits any that are unused)
 
         Note that for attributes that are unique only because of namespace,
-        this may attributes to be overwritten. 
+        this may attributes to be overwritten.
         For example: <e p:at="bar" at="quu">   would become: <e at="bar">
 
         I don't think I've seen any XML where this matters, though.
     """
-    if namespace==None: # all namespaces                               
+    if namespace==None: # all namespaces
         for elem in etree.getiterator():
             tagname = elem.tag
             if not isinstance(elem.tag, basestring):
@@ -171,7 +177,7 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
                     elem.attrib.pop(key)
                 elem.attrib.update(to_set)
 
-# ----- 
+# -----
 if __name__ == "__main__":
     import doctest
     doctest.testmod()

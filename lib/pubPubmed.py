@@ -25,7 +25,23 @@ def getMedlineDate(medlineData, dateField):
         return "{}-{}-{}".format(year,
                                  medlineData.getTextFirst("{}/Month".format(dateField)),
                                  medlineData.getTextFirst("{}/Day".format(dateField)))
-    
+
+def getMedlineText(roots):
+    """Obtain text from title and abstracts nodes. Keep inline markup. For
+    AbstractText tags with NlmCategory attributes, the attribute value is
+    added to the abstract text, which makes for nice reading."""
+    # FIXME: can this be merged with treeToAsciiText?
+    textParts = []
+    for root in roots:
+        label = root.getAttr("NlmCategory")
+        text = u"<p>%s</p> " % label if label is not None else u""
+        text += root.getText()
+        for child in root.getXmlAll('*'):
+            text += repr(child)
+        text += root.getTextTail()
+        textParts.append(text)
+    return u"".join(textParts).strip()
+
 def parseMedline(xmlParser):
     """
     fill article data dict with pubmed xml data
@@ -55,29 +71,21 @@ def parseMedline(xmlParser):
         data["pmcId"] = pmcIds[0].split()[0].replace("PMC","")
 
     artTree               = medlineData.getXmlFirst("Article")
-    data["title"]         = artTree.getTextFirst("ArticleTitle", default="")
+
+    data["title"]         = getMedlineText(artTree.getXmlAll("ArticleTitle"))
 
     # handle structured abstracts
-    abstractParts = []
-    abstractTrees         = artTree.getXmlAll("Abstract/AbstractText")
-    for aEl in abstractTrees:
-        label = aEl.getAttr("NlmCategory")
-        abstract = ""
-        if label!=None:
-            abstract = "<p>%s</p> " % label
-        abstract += aEl.getText()
-        abstractParts.append(abstract)
-    data["abstract"]      = "".join(abstractParts)
+    data["abstract"]      = getMedlineText(artTree.getXmlAll("Abstract/AbstractText"))
 
     if data["abstract"]=="":
-        data["abstract"]      = artTree.getTextFirst("OtherAbstract/AbstractText", default="")
+        data["abstract"]      = getMedlineText(artTree.getXmlAll("OtherAbstract/AbstractText"))
 
     data["authorAffiliations"]   = artTree.getTextFirst("Affiliation", default="")
     data["doi"]           = artTree.getTextFirst("ELocationID", default="", reqAttrDict={"EIdType":"doi"})
 
     data["journalUniqueId"] = medlineData.getTextFirst("MedlineJournalInfo/NlmUniqueID")
     linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking", default="")
-    
+
     journalTree = artTree.getXmlFirst("Journal")
     data["eIssn"]       = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Electronic'}, default="")
     data["printIssn"]   = journalTree.getTextFirst("ISSN", reqAttrDict={"IssnType": 'Print'}, default="")
@@ -86,7 +94,7 @@ def parseMedline(xmlParser):
         data["printIssn"]   = linkingIssn
     if data["eIssn"]=="" and linkingIssn!="":
         data["eIssn"]   = linkingIssn
-        
+
     data["vol"]         = journalTree.getTextFirst("JournalIssue/Volume", default="")
     data["issue"]       = journalTree.getTextFirst("JournalIssue/Issue", default="")
     data["year"]        = journalTree.getTextFirst("JournalIssue/PubDate/Year", default="")
@@ -269,7 +277,7 @@ def ncbiEFetchGenerator(ids, dbName="pubmed", tool="pubtools", email=pubConf.ema
                 time.sleep(120)
 
 def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", debug=False, delaySecs=0):
-    """ retrieve pmids for query, returns list of ids 
+    """ retrieve pmids for query, returns list of ids
     >> len(set(ncbiESearch("human genome", debug=True)))
     66009
     """
@@ -290,7 +298,7 @@ def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", 
         req = urllib2.Request(url)
         html = urllib2.urlopen(req)
         logging.debug("Getting "+url+"\n")
-        
+
         pmids = []
         for line in html:
             if line.find("<Count>")!=-1:
@@ -309,7 +317,7 @@ def ncbiESearch(query, dbName="pubmed", tool="", email="maximilianh@gmail.com", 
 
 def PubmedTestDoc():
     return '''
-        <MedlineCitation Owner="NLM" Status="MEDLINE">  
+        <MedlineCitation Owner="NLM" Status="MEDLINE">
         <PMID>20430833</PMID>
         <DateCreated>
             <Year>2010</Year>
@@ -354,7 +362,7 @@ def PubmedTestDoc():
                     <LastName>Verbeek</LastName>
                     <ForeName>Marcel M</ForeName>
                     <Initials>MM</Initials>
-                </Author> 
+                </Author>
             </AuthorList>
             <Language>eng</Language>
             <PublicationTypeList>
@@ -389,7 +397,7 @@ def PubmedTestDoc():
                 <DescriptorName MajorTopicYN="Y">Useless Research</DescriptorName>
             </MeshHeading>
         </MeshHeadingList>
-        </MedlineCitation>  
+        </MedlineCitation>
         '''
 
 def getOnePmid(pmid):
@@ -469,4 +477,3 @@ def getOutlinks(pmid, preferPmc=False):
 if __name__=="__main__":
     import doctest
     doctest.testmod()
-
