@@ -33,11 +33,9 @@ def getMedlineText(roots):
     # FIXME: can this be merged with treeToAsciiText?
     textParts = []
     for root in roots:
-        label = root.getAttr("NlmCategory")
-        text = u"<p>%s</p> " % label if label is not None else u""
-        text += root.getText()
+        text = root.getText()
         for child in root.getXmlAll('*'):
-            text += repr(child)
+            text += getMedlineText([child])
         text += root.getTextTail()
         textParts.append(text)
     return u"".join(textParts).strip()
