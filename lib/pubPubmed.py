@@ -80,6 +80,7 @@ def parseMedline(xmlParser):
 
     data["authorAffiliations"]   = artTree.getTextFirst("Affiliation", default="")
     data["doi"]           = artTree.getTextFirst("ELocationID", default="", reqAttrDict={"EIdType":"doi"})
+    data["lang"]   = artTree.getTextFirst("Language", default="")
 
     data["journalUniqueId"] = medlineData.getTextFirst("MedlineJournalInfo/NlmUniqueID")
     linkingIssn = medlineData.getTextFirst("MedlineJournalInfo/ISSNLinking", default="")

@@ -1,6 +1,6 @@
 # Classes to read and write documents to directories
 
-# gzipfiles are stored in "chunks" of x documents, usually to get around 2000 
+# gzipfiles are stored in "chunks" of x documents, usually to get around 2000
 # chunks per dataset
 
 # reader class gets path/xxxx and will open path/xxxx.articles.gz and path/xxxx.files.gz
@@ -46,13 +46,14 @@ articleFields=[
 "journalUniqueId", # medline only: NLM unique ID for journal
 "year",         # first year of publication (electronic or print or advanced access)
 "articleType", # research-article, review or other
-"articleSection",  # elsevier: the section of the book/journal, e.g. "methods", "chapter 5" or "Comments" 
+"articleSection",  # elsevier: the section of the book/journal, e.g. "methods", "chapter 5" or "Comments"
 "authors",  # list of author names, usually separated by semicolon
 "authorEmails",  # email addresses of authors
 "authorAffiliations",  # authors' affiliations
 "keywords", # medline: mesh terms or similar, separated by / (medline is using , internally)
 "title",    # title of article
 "abstract", # abstract if available
+"lang",     # article language
 "vol",      # volume
 "issue",    # issue
 "page",            # first page of article, can be ix, x, or S4
@@ -124,7 +125,7 @@ def createEmptyFileDict(url=None, time=isoGmtTime(), mimeType=None, content=None
 
 def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=None, \
     id=None, origFile=None, authors=None, fulltextUrl=None, keywords=None, title=None, abstract=None, \
-    publisher=None, pmid=None, doi=None):
+    publisher=None, pmid=None, doi=None, lang=None):
     """ create a dictionary with all fields of the ArticleType """
     metaInfo = emptyArticle._asdict()
     metaInfo["time"]=isoGmtTime()
@@ -154,10 +155,12 @@ def createEmptyArticleDict(pmcId=None, source=None, externalId=None, journal=Non
         metaInfo["externalId"]=externalId
     if abstract:
         metaInfo["abstract"]=abstract
+    if lang:
+        metaInfo["lang"]=lang
     return metaInfo
 
 def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
-    """ 
+    """
     use the chunkId field of a tab-sep file as the output filename.
     if chunkSize is specified, ignore the chunkId field and make sure that each piece
     has chunkSize lines.
@@ -202,7 +205,7 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
     return data.keys()
 
 def toUnicode(var):
-    """ 
+    """
     if string is not already a unicode strin (can happen due to upstream programming error):
     force variable to a unicode string, by decoding from utf8 first, then latin1 """
     if isinstance(var, unicode):
@@ -232,7 +235,7 @@ def listToUtf8Escape(list):
 def dictToUtf8Escape(dict):
     """ convert dict of variables to utf8 string as well as possible and
     replace \n and \t
-    """ 
+    """
     if dict==None:
         return None
     utf8Dict={}
@@ -247,7 +250,7 @@ def removeTabNl(var):
     # RAHHH! CRAZY UNICODE LINEBREAKS
     # the following would not work because of python's interpretation of unicode
     #newDict[key] = val.replace("\t", " ").replace("\n", " ")
-    # there are more newlines than just \n and \m when one is using the 
+    # there are more newlines than just \n and \m when one is using the
     # 'for line in file' construct in python
     # so we do this
     if type(var)==types.IntType:
@@ -265,10 +268,10 @@ def articleDictToTuple(artDict):
     return artTuple
 
 class PubWriterFile:
-    """ 
+    """
     a class that stores article and file data into tab-sep files
-    that are located in a subdirectory. 
-    
+    that are located in a subdirectory.
+
     Constructor will create two files:
         <chunkId>.files    = raw file content and some meta (filetype, url)
         <chunkId>.articles = article meta data (author, year, etc)
@@ -276,10 +279,10 @@ class PubWriterFile:
     The constructor takes only the .files or .articles base filename as input and will
     derive outDir and chunkId from it.
 
-    all writes will first go to tempDir, and will only be copied over 
+    all writes will first go to tempDir, and will only be copied over
     to outDir on .close()
-    We only copy files over if any files data was actually written 
-    We only copy articles over if any articles data was actually written 
+    We only copy files over if any files data was actually written
+    We only copy articles over if any articles data was actually written
 
     """
     def __init__(self, fileDataFilename):
@@ -288,7 +291,7 @@ class PubWriterFile:
         self.tempDir = pubConf.getTempDir()
 
         # convoluted way to find output filenames
-        # needed because of parasol 
+        # needed because of parasol
         outDir = os.path.dirname(fileDataFilename)
         fileDataBasename = os.path.basename(fileDataFilename)
         chunkId = fileDataBasename.split(".")[0]
@@ -341,7 +344,7 @@ class PubWriterFile:
         for key, val in lineDict.iteritems():
             newDict[key] = removeTabNl(val)
         return newDict
-        
+
     def writeRefs(self, artDict, refRows):
         " write references to table in refs/ subdir"
         if self.refFh==None:
@@ -399,7 +402,7 @@ class PubWriterFile:
             fileDict["externalId"] = externalId
         fileDict["fileId"]=str(fileId)
         fileDict["articleId"]=str(articleId)
-        # convert dict to line and write to xxxx.file 
+        # convert dict to line and write to xxxx.file
         fileTuple = FileDataRec(**fileDict)
         fileTuple = listToUtf8Escape(fileTuple)
         line = "\t".join(fileTuple)
@@ -407,7 +410,7 @@ class PubWriterFile:
         #logging.log(5, "Writing line to file table, dict is %s" % fileDict)
         self.filesWritten += 1
         self.fileFh.write(line+"\n")
-        
+
     def _checkFields(self, inDict, fieldList):
         """ makes sure that inDict contains one key for each string in fieldList.
         Keys not found are set to empty strings.
@@ -427,8 +430,8 @@ class PubWriterFile:
 
 
     def writeArticle(self, articleId, articleDict):
-        """ appends data to current chunk. article info has to be written before the files, 
-        otherwise the offset in the article dict will be wrong. 
+        """ appends data to current chunk. article info has to be written before the files,
+        otherwise the offset in the article dict will be wrong.
         """
         logging.log(5, "appending article info to %s: %s" % (self.tmpArticleFname, str(articleDict)))
         articleDict["articleId"]=articleId
@@ -451,7 +454,7 @@ class PubWriterFile:
         self.articleFh.write(line+"\n")
         self.articlesWritten += 1
         logging.log(5, "%d articles written" % self.articlesWritten)
-        
+
     def writeDocs(self, artDict, fileDicts):
         " write all article and files in one go. Optionally extract images from PDFs. "
         # set the 'size' field of the article
@@ -468,9 +471,9 @@ class PubWriterFile:
 
 
     def close(self, keepEmpty=False):
-        """ 
-        close the 3 files, move them over to final targets 
-        """ 
+        """
+        close the 3 files, move them over to final targets
+        """
         logging.debug("Moving local tempfiles over to files on server %s" % self.finalArticleName)
 
         self.fileFh.close()
@@ -480,7 +483,7 @@ class PubWriterFile:
             logging.warn("No articles received, not writing anything, but creating a 0 sized file for parasol")
             # just create a 0-size file for parasol
             open(self.finalArticleName, "w")
-            
+
         if self.filesWritten > 0 or keepEmpty:
             logging.debug("moving articles table to %s" % self.finalArticleName)
             shutil.move(self.tmpFileFname, self.finalFileDataName)
@@ -499,14 +502,14 @@ def createPseudoFile(articleData):
     logging.debug("no file data, creating pseudo-file from abstract")
     fileData = createEmptyFileDict()
     fileData["url"] = articleData.fulltextUrl
-    fileData["content"] = " ".join([" ",articleData.title, articleData.abstract, " "]) 
+    fileData["content"] = " ".join([" ",articleData.title, articleData.abstract, " "])
     fileData["mimeType"] = "text/plain"
     fileData["fileId"] = int(articleData.articleId) * (10**pubConf.FILEDIGITS)
     fileTuple = FileDataRec(**fileData)
     return fileTuple
 
 class PubReaderFile:
-    """ 
+    """
     read articles from tab-sep files
     """
     def __init__(self, fname):
@@ -521,7 +524,7 @@ class PubReaderFile:
         self.articleRows = None
         if isfile(articleFn) and getsize(articleFn)!=0:
             self.articleRows = maxCommon.iterTsvRows(articleFn, encoding="utf8")
-                
+
         self.fileRows = None
         if isfile(fileFn) and getsize(fileFn)!=0:
             self.fileRows  = maxCommon.iterTsvRows(fileFn, encoding="utf8")
@@ -567,7 +570,7 @@ class PubReaderFile:
     def _keepBestMain(self, files, preferType):
         """ if there are several main text formats, keep only one of them.
         preferType can be "pdf" or "xml" (which includes html files)
-        Keep all other files 
+        Keep all other files
         """
         mainFiles = {}
         newFiles = []
@@ -629,7 +632,7 @@ class PubReaderFile:
         (articleData, pseudoFile)
         algPrefs.onlyMain == True: skip supplemental files
         algPrefs.preferXml == True: run on only one main text file.
-        skip the PDF file if there are PDF and XML/Html main files. 
+        skip the PDF file if there are PDF and XML/Html main files.
         algPrefs.preferPdf == True: run on only one main text file.
         skip XML or HTML files if there are multiple file types.
         """
@@ -662,7 +665,7 @@ class PubReaderFile:
                 fileDataList = [lastFileData]
 
             else:
-                # if only abstract (e.g. medline): create pseudo file 
+                # if only abstract (e.g. medline): create pseudo file
                 fileTuple = createPseudoFile(articleData)
                 yield articleData, [fileTuple]
 
@@ -721,14 +724,14 @@ class PubReaderFile:
 #            art = ArtData()
 #            art.articleId = pmid
 #            art.pmid = pmid
-#            art.externalId = 
+#            art.externalId =
 #            art.printIssn = "1234-1234"
 #
 #            fileObj = C()
 #            fileObj.fileId = "1001"
 #            fileObj.content = self.text
 #            fileObj.fileType = "main"
-#        
+#
 #        yield art, [fileObj]
 
 class PubReaderTest:
@@ -794,7 +797,7 @@ class PubReaderTest:
             yield self._makeArtFile(self.text, "1000")
 
         for fname in self.fnames:
-            text = open(fname).read() 
+            text = open(fname).read()
             yield self._makeArtFile(text, fname)
 
 def iterArticleDirList(textDir, algPrefs=None):
@@ -821,13 +824,13 @@ def iterArticleDataDirs(textDirs, type="articles", filterFname=None, updateIds=N
             yield row
 
 def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=None):
-    """ yields all articleData from all files in textDir 
-        Can filter to yield only a set of filenames or files for a 
+    """ yields all articleData from all files in textDir
+        Can filter to yield only a set of filenames or files for a
         given list of updateIds.
     """
     fcount = 0
     assert(type in ["articles", "files"])
-        
+
     if isfile(textDir):
         fileNames = [textDir]
         logging.debug("Found 1 file, %s" % textDir)
@@ -889,9 +892,9 @@ def replaceSpecialChars(string):
 space_re = re.compile('[ ]+')
 
 def prepSqlString(string, maxLen=pubConf.maxColLen):
-    """ change <<</>>> to <b>/</b>, replace unicode chars with 
+    """ change <<</>>> to <b>/</b>, replace unicode chars with
     character code, because genome browser html cannot do unicode
-    
+
     """
     global control_chars
     if string==None:
@@ -922,7 +925,7 @@ def getAllBatchIds(outDir):
     return batchIds
 
 def parseUpdatesTab(outDir, minArticleId):
-    """ parse updates.tab and find next available articleIds and 
+    """ parse updates.tab and find next available articleIds and
     list of files that were processed in all updates
 
     returns (next free updateId, next free articleId, list of files that have been processed)
@@ -1024,8 +1027,8 @@ def moveFiles(srcDir, trgDir, nameList=None):
         shutil.move(infname, outfname)
 
 def articleIdToDataset(articleId):
-    """ uses the central namespace table to resolve an articleId to its dataset name 
-    >>> articleIdToDataset(4300000011) 
+    """ uses the central namespace table to resolve an articleId to its dataset name
+    >>> articleIdToDataset(4300000011)
     'imgt'
     >>> articleIdToDataset(2004499279)
     'elsevier'
@@ -1040,9 +1043,9 @@ def articleIdToDataset(articleId):
     return restList[0][0]
 
 def iterChunks(datasets):
-    """ given a list of datasets like ["pmc", "elsevier"], return a list of directory/chunkStems, 
+    """ given a list of datasets like ["pmc", "elsevier"], return a list of directory/chunkStems,
     e.g. "/hive/data/inside/pubs/text/elsevier/0_0000.articles.gz". Used to prepare cluster jobs
-    
+
     If dataset is already a valid filename, will only return the filename (for debugging)
     """
     for dataset in datasets:
@@ -1066,7 +1069,7 @@ def addLoadedFiles(con, cur, fileNames):
     sql = "INSERT INTO loadedFiles (fname) VALUES (?)"
     cur.executemany(sql, fileNames)
     con.commit()
-    
+
 def getUnloadedFnames(con, cur, newFnames):
     """ given a sqlite db and a list of filenames, return those that have not
     been loaded yet into the db. Looks only at basename of files.
@@ -1086,13 +1089,13 @@ def getUnloadedFnames(con, cur, newFnames):
     for newFname in newFnames:
         if basename(newFname) not in loadedFnames:
             toLoadFnames.append(basename(newFname))
-            
+
     logging.debug("Files that have not been loaded yet: %s" % toLoadFnames)
     return toLoadFnames
 
 def sortPubFnames(fnames):
-    """ 
-    sort names like 0_00000, 11_1111.articles.gz in the right order from 0_00000 to 1111_11111 
+    """
+    sort names like 0_00000, 11_1111.articles.gz in the right order from 0_00000 to 1111_11111
     >>> sortPubFnames(["/hive/data/test/11_0000.articles.gz", "1_0000.articles.gz"])
     ['1_0000.articles.gz', '/hive/data/test/11_0000.articles.gz']
     """
@@ -1107,7 +1110,7 @@ def sortPubFnames(fnames):
     newList.sort(key=operator.itemgetter(0))
     newFnames = [el[1] for el in newList]
     return newFnames
-        
+
 def chunkIdFromFname(fname):
     " given the path of chunk, return it's chunk ID, like 0_00001 "
     return basename(fname).split(".")[0]
@@ -1190,8 +1193,8 @@ def addToDatabase(con, cur, tsvFnames):
         #loadIndexes(con, cur, toLoadFnames)
 
 def updateSqlite(textDir):
-    """ load all .articles files that are not currently indexed 
-    into the sqlite database 
+    """ load all .articles files that are not currently indexed
+    into the sqlite database
     """
     artFnames = getAllArticleFnames(textDir)
     assert(len(artFnames)!=0) # there are no input files in the text data directory
@@ -1205,7 +1208,7 @@ def updateSqlite(textDir):
         logging.info("First load. Creating temporary sqlite db on ramdisk %s" % ramDbPath)
         copyBack = True
         con, cur = maxTables.openSqlite(ramDbPath, lockDb=True)
-        
+
     artFnames = [basename(x) for x in artFnames]
     toLoadFnames = getUnloadedFnames(con, cur, artFnames)
     toLoadPaths = [join(textDir, fname) for fname in toLoadFnames]
@@ -1235,7 +1238,7 @@ def setupDatasetRanges():
         datasetRanges.append((d[0], d[1], d2[1]))
 
 def artIdToDatasetName(artId):
-    """ resolve article Id to dataset name 
+    """ resolve article Id to dataset name
     >>> artIdToDatasetName(1000000000)
     'pmc'
     >>> artIdToDatasetName(4500000005)
@@ -1317,7 +1320,7 @@ def lookupArticle(con, cur, column, val):
     " uses sqlite db, returns a dict with info we have locally about last matching article, None if not found "
     whereExpr = "%s=%s" % (column, val)
     return list(iterArticlesWhere(con, cur, whereExpr))[-1]
-    
+
 def iterArticlesWhere(con, cur, whereExpr):
     " yields dicts for article that satisfy where expression "
     rows = None
@@ -1333,7 +1336,7 @@ def iterArticlesWhere(con, cur, whereExpr):
 
     if rows == None:
         raise Exception("database was locked for more than 60 minutes")
-        
+
     if len(rows)==0:
         logging.warn("No info in local db for %s" % (whereExpr))
     # the last entry should be the newest one
@@ -1349,7 +1352,7 @@ def lookupArticleData(articleId, lookupKey="articleId"):
     " lookup article meta data for an article via a database "
     #conn = maxTables.hgSqlConnect(pubConf.mysqlDb, charset="utf8", use_unicode=True)
     #sql = "SELECT * from %s where articleId=%s" % (dataset, articleId)
-    #rows = maxTables.sqlGetRows(conn,sql) 
+    #rows = maxTables.sqlGetRows(conn,sql)
     if lookupKey=="pmid":
         dataset = "medline"
     elif lookupKey=="articleId":
@@ -1366,7 +1369,7 @@ def lookupArticleData(articleId, lookupKey="articleId"):
         conCache[textDir] = (cur, con)
     else:
         cur, con = conCache[textDir]
-        
+
     sql = "SELECT * from articles where %s=%s" % (lookupKey, articleId)
     rows = list(cur.execute(sql))
     #assert(len(rows)==1)
@@ -1390,7 +1393,7 @@ def makeChunkPath(inDir, chunkId, tabType="articles"):
     if not isfile(artPath):
         artPath = join(inDir, "%s.%s.gz" % (chunkId, tabType))
     return artPath
-        
+
 def lookupFullDocs(inDirs, whereExpr):
     """
     inDirs is a list of directories with pubStore sqlite indexes (article.db files)
@@ -1417,7 +1420,7 @@ def lookupFullDocs(inDirs, whereExpr):
                     break
                 fileRows.append(row._asdict())
             yield artDict, fileRows
-        
+
 def getAllArticleFnames(inDir, type="articles"):
     " find all article chunks in inDir "
     inFnames = glob.glob(join(inDir, "*.%s.gz" % type))
