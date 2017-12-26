@@ -3139,7 +3139,7 @@ class GenericCrawler(Crawler):
          'We are now performing maintenance',
          'DOI cannot be found in the DOI System']
         if pageContains(landPage, errTags):
-            raise pubGetError('Error Message', 'errorMessage', landPage['url'])
+            raise pubGetError('Page contains error message', 'pageErrorMessage', landPage['url'])
 
         blockTags = [
         '<p class="error">Your IP ' # liebertonline 24621145
@@ -3454,7 +3454,7 @@ def crawlDocuments(docIds, skipIssns, forceContinue):
             # track document failure
             consecErrorCount += 1
             docId = artMeta["pmid"]
-            writeDocIdStatus(srcDir, docId, "error", msg=e.logMsg, detail=e.detailMsg)
+            writeDocIdStatus(srcDir, docId, e.logMsg, msg=e.longMsg, detail=e.detailMsg)
 
             # track journal+year failure counts
             issnYear = getIssnYear(artMeta)
