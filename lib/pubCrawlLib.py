@@ -1035,7 +1035,7 @@ def blacklistIssnYear(outDir, issnYear, journal):
 def writeDocIdStatus(outDir, pmid, status, msg="", crawler="", journal="", year="", numFiles=0, detail=""):
     " append a line to doc status file in outDir "
     def fixCol(c):
-        return "" if c is None else str(c)
+        return "" if c is None else unicode(c)  # make characters
     fname = join(outDir, PMIDSTATNAME)
     with codecs.open(fname, "a", encoding="utf8") as outFh:
         row = [pmid, status, msg, crawler, journal, year, numFiles, detail]
