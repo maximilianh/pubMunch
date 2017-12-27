@@ -1117,9 +1117,7 @@ def mustBePdf(pageDict, metaData):
     if isPdf(pageDict):
         pageDict["mimeType"] = "application/pdf"
     else:
-        raise pubGetError("not a PDF, docId %s, " \
-          "title %s, url %s, mimeType %s" % \
-          (metaData["pmid"], metaData["title"], pageDict["url"], pageDict["mimeType"]), "invalidPdf")
+        raise pubGetError("not a PDF", "invalidPdf", "pmid %s title %s, url %s, mimeType %s" % (metaData["pmid"], metaData["title"], pageDict["url"], pageDict["mimeType"]))
 
 def pdfIsCorrectFormat(fulltextData):
     " return True if data has a PDF and it is in the right format "
@@ -1705,7 +1703,8 @@ class DeGruyterCrawler(Crawler):
         paperData = OrderedDict()
         pdfUrl = re.sub("\\.xml$", ".pdf", url)
         if pdfUrl is None:
-            raise pubGetError("degruyter failed to convert xml URL {} to PDF ".format(url), "DegruyterXmlUrlConvert")
+            raise pubGetError("degruyter failed to convert to PDF ".format(url), "DegruyterXmlUrlConvert",
+                              "degruyter failed to convert xml URL {} to PDF ".format(url))
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
         return paperData

@@ -15,7 +15,7 @@ from os.path import *
 
 # ===== GLOBALS ======
 
-# options for wget 
+# options for wget
 # (python's http implementation is extremely buggy and tends to hang for minutes)
 WGETOPTIONS = " --no-check-certificate --tries=3 --random-wait --waitretry=%d --connect-timeout=%d --dns-timeout=%d --read-timeout=%d --ignore-length " % (pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout, pubConf.httpTimeout)
 
@@ -44,7 +44,7 @@ MAXISSNERRORCOUNT = 30
 ERRWAIT = 10
 ERRWAIT_TRYHARD = 3
 
-# GLOBALS 
+# GLOBALS
 
 # default delay secs if nothing else is found
 defaultDelay = 20
@@ -90,7 +90,7 @@ articleFields=[
 "journalUniqueId", # medline only: NLM unique ID for journal
 "year",         # first year of publication (electronic or print or advanced access)
 "articleType", # research-article, review or other
-"articleSection",  # elsevier: the section of the book/journal, e.g. "methods", "chapter 5" or "Comments" 
+"articleSection",  # elsevier: the section of the book/journal, e.g. "methods", "chapter 5" or "Comments"
 "authors",  # list of author names, usually separated by semicolon
 "authorEmails",  # email addresses of authors
 "authorAffiliations",  # authors' affiliations
@@ -155,7 +155,7 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
     - inferred from medline data via landingUrl_templates
     - medlina's DOI
     - a Crossref search with medline data
-    - Pubmed Outlink 
+    - Pubmed Outlink
     - an SFX search
     #>>> findLandingUrl({"pmid":"12515824", "doi":"10.1083/jcb.200210084", "printIssn" : "1234", "page":"8"}, {}, {})
     'http://jcb.rupress.org/content/160/1/53'
@@ -210,7 +210,7 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
     if landingUrl==None and articleData["doi"]!="" and not (preferPmc and articleData["pmcId"]!=""):
         landingUrl, crawlConfig = resolveDoiRewrite(articleData["doi"], crawlConfig)
 
-    # try crossref's search API to find the DOI 
+    # try crossref's search API to find the DOI
     if landingUrl==None and articleData["doi"]=="" and not (preferPmc and articleData["pmcId"]!=""):
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
@@ -237,13 +237,13 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
             landingUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData["pmid"])
 
     if landingUrl==None:
-        raise pubGetError("No fulltext for this article", "noOutlinkOrDoi") 
+        raise pubGetError("No fulltext for this article", "noOutlinkOrDoi")
 
     return landingUrl
 
 def parseWgetLog(logFile, origUrl):
     " parse a wget logfile and return final URL (after redirects) and mimetype as tuple"
-    #   Content-Type: text/html; charset=utf-8 
+    #   Content-Type: text/html; charset=utf-8
     lines = logFile.readlines()
     logging.log(5, "Wget logfile: %s" % " / ".join(lines))
     mimeType, url, charset = None, None, "utf8"
@@ -277,8 +277,8 @@ def parseWgetLog(logFile, origUrl):
 
 
 def getDelaySecs(host, forceDelaySecs):
-    """ return the number of seconds to pause. Either globally forced from command line, 
-    or set by-host or some global default if everything fails 
+    """ return the number of seconds to pause. Either globally forced from command line,
+    or set by-host or some global default if everything fails
     returns number of secs
     """
     if forceDelaySecs!=None:
@@ -303,7 +303,7 @@ def delayedWget(url, forceDelaySecs=None):
     """ download with wget and make sure that delaySecs (global var) secs have passed between two calls
     special cases for highwire hosts and some hosts configured in config file.
 
-    returns dict with keys url, mimeType, charset, data 
+    returns dict with keys url, mimeType, charset, data
     """
     global wgetCache
     if url in wgetCache:
@@ -317,7 +317,7 @@ def delayedWget(url, forceDelaySecs=None):
     return page
 
 def runWget(url):
-    """ download url with wget and return dict with keys url, mimeType, charset, data 
+    """ download url with wget and return dict with keys url, mimeType, charset, data
     global variable userAgent is used if possible
     """
     # check if file is already in cache
@@ -369,7 +369,7 @@ def runWget(url):
         finalUrl = redirectUrl
     else:
         finalUrl = url
-    
+
     data = tmpFile.read()
     logging.log(5, "Download OK, size %d bytes" % len(data))
     if len(data)==0:
@@ -391,7 +391,7 @@ def runWget(url):
     return ret
 
 def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
-    """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
+    """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data)
     to directory <outDir>/files
     """
     fileDir = join(outDir, "files")
@@ -416,16 +416,16 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
             metaData["mainHtmlUrl"] = pageDict["url"]
         elif suffix=="main.pdf":
             if pageDict["mimeType"]!="application/pdf":
-                raise pubGetError("invalidPdf", "invalid mimetype of PDF. dir %s, docId %s, title %s" % \
-                    (outDir, pmid, metaData["title"]), pageDict["url"])
+                raise pubGetError("invalid PDF mime type", "invalidPdfMime",
+                                  "invalid mimetype of PDF. dir %s, docId %s, title %s url" % (outDir, pmid, metaData["title"], pageDict["url"]))
             metaData["mainPdfFile"] = filename
             metaData["mainPdfUrl"] = pageDict["url"]
         elif suffix.startswith("S"):
             suppFnames.append(filename)
             suppUrls.append(pageDict["url"])
-            
+
         fileData = pageDict["data"]
-        
+
         filePath = join(fileDir, filename)
         logging.debug("Writing file %s" % filePath)
         fh = open(filePath, "wb")
@@ -441,7 +441,7 @@ def storeFilesNoZip(pmid, metaData, fulltextData, outDir):
     return metaData
 
 def storeFiles(pmid, metaData, fulltextData, outDir):
-    """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data) 
+    """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data)
     to target zip file saves all binary data to <issn>.zip in outDir with filename pmid.<key>
     """
     #global dataZipFile
@@ -465,7 +465,7 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
         elif suffix.startswith("S"):
             suppFnames.append(filename)
             suppUrls.append(pageDict["url"])
-            
+
         fileData = pageDict["data"]
         zipBase = "%s.zip" % metaData["eIssn"]
         zipName = join(outDir, zipBase)
@@ -494,11 +494,11 @@ def storeFiles(pmid, metaData, fulltextData, outDir):
     metaData["suppFiles"] = ",".join(suppFnames)
     metaData["suppUrls"] = ",".join(suppUrls)
     return metaData
-        
+
 #def soupToText(soup): # not needed?
     #' convert a tag to a string of the text within it '
     #text = soup.getText()
-    #return text 
+    #return text
 
     # soup has children: need to get them and concat their texts
     #texts = [text]
@@ -516,9 +516,9 @@ def anyMatch(regexList, queryStr):
     return False
 
 def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
-    """ find all A-like links and meta-tag-info from a html string and add 
+    """ find all A-like links and meta-tag-info from a html string and add
     to page dictionary as keys "links", "metas" and "iframes"
-    
+
     """
 
     # use cached results if page has already been parsed before
@@ -727,7 +727,7 @@ def readLocalMedline(pmid):
 
     if rows==None:
         raise Exception("Medline database was locked for more than 60 minutes")
-        
+
     if len(rows)==0:
         logging.info("No info in local medline for PMID %s" % pmid)
         return None
@@ -745,7 +745,7 @@ def readLocalMedline(pmid):
     result["source"] = ""
     result["origFile"] = ""
     return result
-        
+
 def downloadPubmedMeta(pmid):
     """ wrapper around pubPubmed that converts exceptions"""
     try:
@@ -755,7 +755,7 @@ def downloadPubmedMeta(pmid):
         raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError" , str(e.code))
     except pubPubmed.PubmedError, e:
         raise pubGetError(e.longMsg, e.logMsg)
-        
+
     if ret==None:
         raise pubGetError("empty result when requesting metadata from NCBI Eutils for PMID %s" % str(pmid), \
             "pubmedEmpty")
@@ -778,7 +778,7 @@ def writeMeta(outDir, metaData, fulltextData):
     # save all URLs to metadata object, nice for debugging
     #metaData["mainHtmlUrl"] = fulltextData.get("main.html",{}).get("url", "")
     #metaData["mainPdfUrl"] = fulltextData.get("main.pdf",{}).get("url", "")
-            
+
     # write to tab file
     if not isfile(filename):
         codecs.open(filename, "w", encoding="utf8").write(u"\t".join(metaHeaders)+"\n")
@@ -847,7 +847,7 @@ def containsAnyWord(text, ignWords):
 
 def findMatchingLinks(links, searchTextRes, searchUrlRes, searchFileExts, ignTextWords):
     """ given a dict linktext -> url, yield the URLs that match:
-    (one of the searchTexts in their text or one of the searchUrlRes) AND 
+    (one of the searchTexts in their text or one of the searchUrlRes) AND
     one of the file extensions"""
 
     assert(searchTextRes!=None or searchUrlRes!=None)
@@ -998,7 +998,7 @@ def findFulltextHtmlUrl(landingPage, crawlConfig):
 def findPdfFileUrl(landingPage, crawlConfig):
     " return the url that points to the main pdf file on the landing page "
     pdfUrl = None
-    # first parse the html 
+    # first parse the html
     if "links" not in landingPage:
         ignoreUrls = crawlConfig.get("landingPage_ignoreUrlREs", [])
         canBeOffsite = crawlConfig.get("landingPage_linksCanBeOffsite", False)
@@ -1060,14 +1060,14 @@ def isErrorPage(landingPage, crawlConfig):
     else:
         return False
 
-    
+
 def crawlForFulltext(landingPage, crawlConfig):
-    """ 
+    """
     given a landingPage-dict (with url, data, mimeType), return a dict with the
     keys main.html, main.pdf and S<X>.<ext> that contains all (url, data,
-    mimeType) pages for an article 
+    mimeType) pages for an article
     """
-    
+
     if noLicensePage(landingPage, crawlConfig):
         raise pubGetError("no license for this article", "noLicense", landingPage["url"])
     if isErrorPage(landingPage, crawlConfig):
@@ -1232,7 +1232,7 @@ def parsePmids(outDir):
     return pmids
 
 def findLinkMatchingReList(links, searchLinkRes, searchUrls=False):
-    """ given a list of (text, url) and search strings, return first url where text or url matches 
+    """ given a list of (text, url) and search strings, return first url where text or url matches
     one of the search strings. if searchUrls is True, searches URLs of links, otherwise their text.
     """
     for searchLinkRe in searchLinkRes:
@@ -1301,7 +1301,7 @@ def checkForOngoingMaintenanceUrl(url):
         raise pubGetError("Landing page is error page", "errorPage", url)
 
 def getConfig(url):
-    """ based on the url or IP of the landing page, return a crawl configuration dict 
+    """ based on the url or IP of the landing page, return a crawl configuration dict
     """
     hostname = urlparse.urlparse(url).netloc
     hostname = hostname.replace("www.","")
@@ -1350,7 +1350,7 @@ def highwireDelay(host):
         if hostKey in host:
             logging.debug("Overriding normal Highwire delay with %d secs as specified in conf" % delaySec)
             return delaySec
-        
+
     os.environ['TZ'] = 'US/Eastern'
     time.tzset()
     tm = time.localtime()
@@ -1381,7 +1381,7 @@ def writePaperData(pmid, pubmedMeta, fulltextData, outDir, crawlConfig, testMode
     pubmedMeta = storeFilesNoZip(pmid, pubmedMeta, fulltextData, outDir)
     writeMeta(outDir, pubmedMeta, fulltextData)
     addStatus = ""
-        
+
     if "status" in fulltextData:
         addStatus = fulltextData["status"]
     pmidStatus = "OK\t%s %s, %d files\t%s" % \
@@ -1557,7 +1557,7 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
         pubId = basename(abspath(outDir).rstrip("/"))
     else:
         pubId = usePublisher
-    
+
     # if we have one directory per publisher, make sure we only hit the website of this publisher
     # if we do parallel crawling and go astray too much (e.g. for journals that switch publishers)
     # then we risk getting blocked. This is only an issue for the first big crawls and a lot less
