@@ -31,6 +31,11 @@ def setOptions(options):
         scrapeLib.ERRWAIT = 0
         scrapeLib.MAXCONSECERR = 500
 
+    if options.tryFaster:
+        scrapeLib.ERRWAIT = 0
+        scrapeLib.MAXCONSECERR = -1
+        scrapeLib.BIGWAITCONSECERR = sys.maxint
+
     if options.noProxy:
         scrapeLib.useProxy = False
 
@@ -170,6 +175,7 @@ parser.add_option("-u", "--fakeUseragent", dest="fakeUseragent", action="store_t
 #parser.add_option("", "--preferPmc", dest="preferPmc", action="store_true", help="prefer PMC, if fulltext is available from two sources")
 
 parser.add_option("", "--tryHarder", dest="tryHarder", action="store_true", help="increase max error count to 500 and do not wait between errors")
+parser.add_option("", "--tryFaster", dest="tryFaster", action="store_true", help="do not retry or wait between errors")
 parser.add_option("", "--noProxy", dest="noProxy", action="store_true", help="do not use the proxy, even if configured in ~/.pubConf")
 
 parser.add_option("", "--report", dest="report", action="store", help="Do not crawl but given the base crawl directory, write a status report in html format to the specified first output filename and quit. ")
@@ -181,5 +187,7 @@ parser.add_option("", "--forceContinue", dest="forceContinue", action="store_tru
 if args==[]:
     parser.print_help()
     sys.exit(1)
+if options.tryHarder and options.tryFaster:
+    parser.error("be real, you can't both --tryHarder and --tryFaster")
 
 main(args, options)

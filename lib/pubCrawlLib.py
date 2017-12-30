@@ -10,7 +10,7 @@
 
 import logging, os, shutil, tempfile, codecs, re, types, datetime, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, json
+    sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, json, traceback
 from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
@@ -1035,11 +1035,16 @@ def blacklistIssnYear(outDir, issnYear, journal):
 def writeDocIdStatus(outDir, pmid, status, msg="", crawler="", journal="", year="", numFiles=0, detail=""):
     " append a line to doc status file in outDir "
     def fixCol(c):
-        return "" if c is None else unicode(c)  # make characters
+        try:
+            return "" if c is None else unicode(c)  # make characters
+        except UnicodeDecodeError:
+            # had URL that was str but had non-ascii characters
+            return "%r" % c
+
     fname = join(outDir, PMIDSTATNAME)
     with codecs.open(fname, "a", encoding="utf8") as outFh:
         row = [pmid, status, msg, crawler, journal, year, numFiles, detail]
-        outFh.write("\t".join([fixCol(c) for c in row]) + "\n")
+        outFh.write(u"\t".join([fixCol(c) for c in row]) + "\n")
 
 def removeLocks():
     " remove all lock files "
@@ -1703,7 +1708,7 @@ class DeGruyterCrawler(Crawler):
         paperData = OrderedDict()
         pdfUrl = re.sub("\\.xml$", ".pdf", url)
         if pdfUrl is None:
-            raise pubGetError("degruyter failed to convert to PDF ".format(url), "DegruyterXmlUrlConvert",
+            raise pubGetError("degruyter failed to convert to PDF {}".format(url), "DegruyterXmlUrlConvert",
                               "degruyter failed to convert xml URL {} to PDF ".format(url))
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
@@ -3361,7 +3366,7 @@ def crawlOneDoc(artMeta, srcDir, forceCrawlers=None):
                 url = getLandingUrlSearchEngine(artMeta)
 
         # now run the crawler on the landing URL
-        logging.info(u'Crawling base URL %s' % url)
+        logging.info(u'Crawling base URL %r' % url)
         paperData = None
 
         try:
@@ -3468,20 +3473,22 @@ def crawlDocuments(docIds, skipIssns, forceContinue):
 
             # if many errors in a row, wait for 10 minutes
             if consecErrorCount > BIGWAITCONSECERR:
-                logging.warn("Many consecutive errors, pausing a bit")
+                logging.warn("%d consecutive errors, pausing a bit" % consecErrorCount)
                 time.sleep(900)
 
             # if too many errors in a row, bail out
             if consecErrorCount > MAXCONSECERR:
                 logging.error("Too many consecutive errors, stopping crawl")
-                e.longMsg = "Crawl stopped after too many consecutive errors: "+e.longMsg
+                e.longMsg = "Crawl stopped after too many consecutive errors ({}): {}".format(consecErrorCount, e.longMsg)
+                if forceContinue:
+                    continue
                 raise
 
             if DO_PAUSE:
                 raw_input("Press Enter to process next paper...")
         except Exception as e:
             if forceContinue:
-                logging.error("FAILED TO CRAWL PMID: %s".format(docId))
+                logging.error("FAILED TO CRAWL PMID: {}".format(docId))
                 logging.error(traceback.format_exc())
             else:
                 raise
