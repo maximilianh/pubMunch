@@ -17,7 +17,7 @@ import maxCommon
 #        return None
 
 def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
-    """ take author, vol, journal etc from metaInfoDict, query crossref 'links' and return DOI if found 
+    """ take author, vol, journal etc from metaInfoDict, query crossref 'links' and return DOI if found
 
     >>> lookupDoi({"authors":"M. Henrion, D. J. Mortlock, D. J. Hand, and A. Gandy", "title":"A Bayesian approach to star-galaxy classification", "journal":"Monthly Notices of the Royal Astronomical Society", "vol":"414", "issue":"4", "page":"2286", "year":"2011", "printIssn" : ""})
     u'10.1111/j.1365-2966.2010.18055.x'
@@ -29,7 +29,7 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     freeFormCitFields = [mid["authors"], '"%s"' % mid["title"], mid["journal"],mid["year"], "vol. "+mid["vol"], "no. "+ mid["issue"], "pp. "+mid["page"],  mid["printIssn"]]
     freeFormCitStr = ", ".join(freeFormCitFields)
     queryData = {"q" : freeFormCitStr}
-    url = "http://search.crossref.org/links?" 
+    url = "http://search.crossref.org/links?"
     jsonParam = json.dumps([freeFormCitStr])
     logging.debug("JSON string %s" % jsonParam)
     queryParam = {"q" : jsonParam}
@@ -59,7 +59,7 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     if not firstRes["match"]:
         logging.debug("no match in crossref resply")
         return None
-        
+
     logging.debug("Best match from Crossref: %s" % firstRes)
     doi = firstRes["doi"]
     doi = doi.replace("http://dx.doi.org/","") # crossref now always adds the url, strip it

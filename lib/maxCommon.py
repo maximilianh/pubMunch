@@ -56,7 +56,7 @@ def which(program):
 
 def errAbort(text):
     raise Exception(text)
-    
+
 def mustExistDir(path, makeDir=False):
     if not os.path.isdir(path):
         if makeDir:
@@ -91,7 +91,7 @@ def makeOrCleanDir(path):
     if isdir(path):
        shutil.rmtree(path)
     os.makedirs(path)
-        
+
 def deleteFiles(fnames):
     " remove all files "
     if len(fnames)==0:
@@ -183,9 +183,9 @@ def iterTsvDir(inDir, ext=".tab.gz", prefix="", headers=None, format=None, field
             break
 
 def fastIterTsvRows(inFname):
-    """ 
+    """
     simplistic version of iterTsvRows for higher speed.
-    creates namedtuples from file and returns them AND THE LINE 
+    creates namedtuples from file and returns them AND THE LINE
     like iterTsvRows, but loads full file into memory.
     """
     if inFname.endswith(".gz"):
@@ -217,29 +217,29 @@ class TsvReader():
         cols = line.strip("\n").split("\t")
         if len(cols)!=self.fieldCount:
             raise Exception("headers not in sync with column count. headers: %s, column: %s" % (self.fieldNames, cols))
-            
+
         cols = [c.decode("utf8") for c in cols]
         row = self.Rec(*cols)
         return row
 
     def seek(self, pos):
         self.ifh.seek(pos)
-    
+
 def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldTypes=None, encoding="utf8", fieldSep="\t", isGzip=False, skipLines=None, makeHeadersUnique=False, commentPrefix=None):
-    """ 
-        parses tab-sep file with headers as field names 
+    """
+        parses tab-sep file with headers as field names
         yields collection.namedtuples
         strips "#"-prefix from header line
 
-        if file has no headers: 
-        
-        a) needs to be called with 
+        if file has no headers:
+
+        a) needs to be called with
         noHeaderCount set to number of columns.
         headers will then be named col0, col1, col2, col3, etc...
 
         b) you can also set headers to a list of strings
         and supply header names in that way.
-    
+
         c) set the "format" to one of: psl, this will also do type conversion
 
         fieldTypes can be a list of types.xxx objects that will be used for type
@@ -329,7 +329,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         yield rec
 
 def iterTsvGroups(fileObject, **kwargs):
-    """ 
+    """
     iterate over a tab sep file, convert lines to namedtuples (records), group lines by some field.
 
     file needs to be sorted on this field!
@@ -371,7 +371,7 @@ def iterTsvGroups(fileObject, **kwargs):
             lastId = id
     if id!=None:
         yield id, group
-    
+
 def iterTsvJoin(files, **kwargs):
     r"""
     iterate over two sorted tab sep files, join lines by some field and yield as namedtuples
@@ -436,12 +436,12 @@ def makedirs(path, quiet=False):
         os.makedirs(path)
     except:
         if not quiet:
-            raise 
+            raise
 
 def appendTsvNamedtuple(filename, row):
     " append a namedtuple to a file. Write headers if file does not exist "
     if not os.path.isfile(filename):
-       outFh = open(filename, "w") 
+       outFh = open(filename, "w")
        headers = row._fields
        outFh.write("\t".join(headers)+"\n")
     else:
@@ -460,7 +460,7 @@ def appendTsvDict(filename, inDict, headers):
     logging.log(5, "order of headers is: %s" % headers)
 
     if not os.path.isfile(filename):
-       outFh = codecs.open(filename, "w", encoding="utf8") 
+       outFh = codecs.open(filename, "w", encoding="utf8")
        outFh.write("\t".join(headers)+"\n")
     else:
        outFh = codecs.open(filename, "a", encoding="utf8")
@@ -519,7 +519,7 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
     """ wrap urlopen in try...except clause and repeat
     #>>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
     """
-    
+
     class HeadRequest(urllib2.Request):
         def get_method(self):
             return u'HEAD'
@@ -530,7 +530,7 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
         time.sleep(delaySecs)
         count = count - 1
         return count
-        
+
     socket.setdefaulttimeout(20)
     count = repeatCount
     while count>0:
@@ -560,12 +560,12 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
 
     logging.debug("Got repeatedexceptions on urlopen, returning None")
     return None
-    
+
 def retryHttpHeadRequest(url, repeatCount=15, delaySecs=120, userAgent = None):
     response = retryHttpRequest(url, repeatCount=repeatCount, delaySecs=delaySecs, \
         userAgent=userAgent, onlyHead=True)
     return response
-    
+
 def sendEmail(address, subject, text):
     text = text.replace("'","")
     subject = subject.replace("'","")
