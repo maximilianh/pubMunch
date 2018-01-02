@@ -1872,15 +1872,25 @@ class NpgCrawler(Crawler):
         paperData = downloadSuppFiles(suppUrls, paperData, delayTime)
         return paperData
 
-class ElsevierApiCrawler(Crawler):
+class ElsevierCrawlerMixin(object):
+    def canDo_article(self, artMeta):
+        " return true if DOI prefix is by elsevier "
+        pList = ["10.1378", "10.1016", "10.1038"]
+        for prefix in pList:
+            if artMeta["doi"].startswith(prefix):
+                return True
 
-    name = "elsevier-api"
+        return None
 
     def canDo_url(self, url):
         if "sciencedirect.com" in url:
 	    return pubConf.elsevierApiKey is not None
 	else:
 	    return False
+
+class ElsevierApiCrawler(Crawler, ElsevierCrawlerMixin):
+
+    name = "elsevier-api"
 
     def crawl(self, url):
         delayTime = crawlDelays["elsevier-api"]
@@ -1902,7 +1912,7 @@ class ElsevierApiCrawler(Crawler):
         return paperData
 
 
-class ElsevierCrawler(Crawler):
+class ElsevierCrawler(Crawler, ElsevierCrawlerMixin):
     """ sciencedirect.com is Elsevier's hosting platform
     This crawler is minimalistic, we use ConSyn to get Elsevier text at UCSC.
 
@@ -1910,21 +1920,6 @@ class ElsevierCrawler(Crawler):
     no license: 9932421
     """
     name = "elsevier"
-
-    def canDo_article(self, artMeta):
-        " return true if DOI prefix is by elsevier "
-        pList = ["10.1378", "10.1016", "10.1038"]
-        for prefix in pList:
-            if artMeta["doi"].startswith(prefix):
-                return True
-
-        return None
-
-    def canDo_url(self, url):
-        if "sciencedirect.com" in url:
-            return True
-        else:
-            return False
 
     def crawl(self, url):
         if "www.nature.com" in url:
