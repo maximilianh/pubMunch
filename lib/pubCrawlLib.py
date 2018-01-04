@@ -195,7 +195,6 @@ class pubGetError(Exception):
         self.logMsg = logMsg
         self.detailMsg = detailMsg
         logging.debug("pubGetError(longMsg={}; logMsg={}; detailMsg={})".format(longMsg, logMsg, detailMsg))
-        traceback.print_stack()
 
     def __str__(self):
         parts = [self.longMsg, self.logMsg, self.detailMsg]
