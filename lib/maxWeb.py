@@ -70,7 +70,7 @@ def delayedWget(url, forceDelaySecs=None):
 
 def parseWgetLog(logFile, origUrl):
     " parse a wget logfile and return final URL (after redirects) and mimetype as tuple"
-    #   Content-Type: text/html; charset=utf-8 
+    #   Content-Type: text/html; charset=utf-8
     lines = logFile.readlines()
     logging.log(5, "Wget logfile: %s" % " / ".join(lines))
     mimeType, url, charset = None, None, "utf8"
@@ -126,11 +126,11 @@ currentTorNode = 0
 
 
 def runWget(url, useTor=None, tmpDir='/tmp'):
-    """ download url with wget and return dict with keys url, mimeType, charset, data 
-    
+    """ download url with wget and return dict with keys url, mimeType, charset, data
+
     tor support requires a running tor on localhost with an activated control connection
     port and polipo listening on port 8118 and connected to tor.
-    
+
     """
 
     global torNodes
@@ -160,7 +160,7 @@ def runWget(url, useTor=None, tmpDir='/tmp'):
         os.environ["http_proxy"] = "http://127.0.0.1:8118"
         setTorExitNode(torNodes[currentTorNode])
         currentTorNode += 1
-        
+
     # check if file is already in cache
     global wgetCache
     if url in wgetCache:
@@ -190,7 +190,7 @@ def runWget(url, useTor=None, tmpDir='/tmp'):
         finalUrl = redirectUrl
     else:
         finalUrl = url
-    
+
     data = tmpFile.read()
     logging.log(5, "Download OK, size %d bytes" % len(data))
     if len(data)==0:
@@ -214,3 +214,9 @@ def runWget(url, useTor=None, tmpDir='/tmp'):
 
     return ret
 
+def httpStartsWith(urlPrefix, url):
+    """check if url starts with urlPrefix, which should be an http: prefix.  This will also check
+    with https:"""
+    if url.startswith(urlPrefix):
+        return True
+    return url.startswith(urlPrefix.replace("http:", "https:", 1))

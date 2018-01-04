@@ -15,6 +15,7 @@ from os.path import *
 from collections import defaultdict, OrderedDict
 from distutils.spawn import find_executable
 from socket import timeout
+from maxWeb import httpStartsWith
 
 # load our own libraries
 import pubConf, pubGeneric, pubStore, pubCrossRef, pubPubmed
@@ -1651,7 +1652,7 @@ def getMetaPdfUrl(page):
     if "citation_pdf_url" in htmlMetas:
         pdfUrl = htmlMetas["citation_pdf_url"]
         logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
-        if not pdfUrl.startswith("http://"):
+        if not httpStartsWith("http://", pdfUrl):
             pdfUrl = urlparse.urljoin(page["url"], pdfUrl)
         return pdfUrl
     return None

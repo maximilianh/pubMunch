@@ -7,6 +7,7 @@ import chardet # library for guessing encodings
 import unidecode
 #from bs4 import BeautifulSoup  # the new version of bs crashes too much
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
+from maxWeb import httpStartsWith
 
 import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
     traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
@@ -1012,7 +1013,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
         if "citation_pdf_url" in htmlMetas:
             pdfUrl = htmlMetas["citation_pdf_url"]
             logging.debug("Found link to PDF in meta tag citation_pdf_url: %s" % pdfUrl)
-            if not pdfUrl.startswith("http://"):
+            if not httpStartsWith("http://", pdfUrl):
                 pdfUrl = urlparse.urljoin(landingPage["url"], pdfUrl)
         else:
             logging.debug("No citation_pdf_url on landing page %s" % landingPage["url"])
