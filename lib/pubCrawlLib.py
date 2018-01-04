@@ -1888,18 +1888,18 @@ class ElsevierCrawlerMixin(object):
         for prefix in pList:
             if artMeta["doi"].startswith(prefix):
                 return True
-
         return None
 
-    def canDo_url(self, url):
-        if "sciencedirect.com" in url:
-	    return pubConf.elsevierApiKey is not None
-	else:
-	    return False
+    def isElsevierUrl(self, url):
+        return ("sciencedirect.com" in url) or ("elsevier.com" in url)
+
 
 class ElsevierApiCrawler(Crawler, ElsevierCrawlerMixin):
 
     name = "elsevier-api"
+
+    def canDo_url(self, url):
+        return (pubConf.elsevierApiKey is not None) and self.isElsevierUrl(url)
 
     def crawl(self, url):
         delayTime = crawlDelays["elsevier-api"]
@@ -1929,6 +1929,9 @@ class ElsevierCrawler(Crawler, ElsevierCrawlerMixin):
     no license: 9932421
     """
     name = "elsevier"
+
+    def canDo_url(self, url):
+        return self.isElsevierUrl(url)
 
     def crawl(self, url):
         if "www.nature.com" in url:
