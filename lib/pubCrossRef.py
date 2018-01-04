@@ -28,19 +28,19 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     logging.debug("Looking up DOI for article %s, %s with crossref links api" % (mid["authors"], mid["title"]))
     freeFormCitFields = [mid["authors"], '"%s"' % mid["title"], mid["journal"],mid["year"], "vol. "+mid["vol"], "no. "+ mid["issue"], "pp. "+mid["page"],  mid["printIssn"]]
     freeFormCitStr = ", ".join(freeFormCitFields)
-    queryData = {"q" : freeFormCitStr}
-    url = "http://search.crossref.org/links?"
-    jsonParam = json.dumps([freeFormCitStr])
-    logging.debug("JSON string %s" % jsonParam)
-    queryParam = {"q" : jsonParam}
+    logging.debug("crossref.org query %s" % freeFormCitStr)
+    url = "https://api.crossref.org/works"
+
+    geturl =  url + "?query=" + urllib2.quote(freeFormCitStr.encode('utf-8'))
 
     # send request
-    httpResp = maxCommon.retryHttpRequest(url, jsonParam, delaySecs=delaySecs, repeatCount=repeatCount)
+    httpResp = maxCommon.retryHttpRequest(geturl, None, delaySecs=delaySecs, repeatCount=repeatCount)
     if httpResp==None:
         logging.debug("HTTPError while sending crossref request")
         return None
 
     jsonStr = httpResp.read()
+    httpResp.close()
     xrdata = json.loads(jsonStr)
 
     # parse result
@@ -48,21 +48,19 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
         logging.debug("Empty cross reply")
         return None
 
-    if not xrdata["query_ok"]:
-        logging.debug("Query error from crossref")
+    try:
+        items = xrdata["message"]["items"]
+    except KeyError:
+        logging.debug("Unexpected JSON content from crossref")
         return None
-    elif "results" not in xrdata or len(xrdata["results"])<1:
+    if len(items) == 0:
         logging.debug("no results in crossref reply")
         return None
 
-    firstRes = xrdata["results"][0]
-    if not firstRes["match"]:
-        logging.debug("no match in crossref resply")
-        return None
+    firstRes = items[0]
 
     logging.debug("Best match from Crossref: %s" % firstRes)
-    doi = firstRes["doi"]
-    doi = doi.replace("http://dx.doi.org/","") # crossref now always adds the url, strip it
+    doi = firstRes["DOI"]
     logging.debug("Got DOI: %s" % doi)
     return doi
 
