@@ -1132,6 +1132,14 @@ def pdfIsCorrectFormat(fulltextData):
 
     return isPdf(fulltextData["main.pdf"])
 
+def isPdfUrl(url):
+    "is this a valid url and does it look like a pdf?"
+    p = urlparse.urlparse(url)
+    if (p.scheme is None) or (p.netloc is None) or (p.path is None):
+        return False
+    ext = os.path.splitext(p.path)[1]
+    return ext.lower() == '.pdf'
+
 def writeFilesToDisk(pmid, metaData, fulltextData, outDir):
     """ write files from dict (keys like main.html or main.pdf or s1.pdf, value is binary data)
     to directory <outDir>/files
@@ -3038,14 +3046,8 @@ class GenericCrawler(Crawler):
         metaUrl = getMetaPdfUrl(landPage)
 
         # some hosts do not have PDF links in the citation_pdf_url meta attribute
-        if metaUrl is not None:
-            isInvalidMeta = False
-            ignoreMetaHosts = ["cambridge.org", "degruyter.com", "frontiersin.org"]
-            for ignoreHost in ignoreMetaHosts:
-                if ignoreHost in metaUrl:
-                    isInvalidMeta = True
-            if not isInvalidMeta:
-                return metaUrl
+        if (metaUrl is not None) and isPdfUrl(metaUrl):
+            return metaUrl
 
         for urlRe in self.urlREs:
             pdfUrls = findLinksWithUrlRe(landPage, urlRe)
