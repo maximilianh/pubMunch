@@ -194,6 +194,9 @@ class pubGetError(Exception):
         self.longMsg = longMsg
         self.logMsg = logMsg
         self.detailMsg = detailMsg
+        logging.debug("pubGetError(longMsg={}; logMsg={}; detailMsg={})".format(longMsg, logMsg, detailMsg))
+        traceback.print_stack()
+
     def __str__(self):
         parts = [self.longMsg, self.logMsg, self.detailMsg]
         parts = [unidecode.unidecode(x) for x in parts if x!=None]
@@ -754,7 +757,7 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     page["metas"] = metaDict
     page["iframes"] = iframeDict
     page["frames"] = frameDict
-    logging.log(5, "HTML parsing finished")
+    logging.debug("HTML parsing finished")
     return page
 
 def recodeToUtf8(data):
@@ -1866,13 +1869,15 @@ class NpgCrawler(Crawler):
         htmlPage["data"] = self._npgStripExtra(origHtml)
         paperData["main.html"] = htmlPage
 
-        url = htmlPage["url"].rstrip("/")
-        if "data-sixpack-client" in origHtml:
-            # Scientific Reports have a different URL structure
-            logging.debug("Found a new-style NPG page")
-            pdfUrl = url+".pdf"
-        else:
-            pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
+        pdfUrl = getMetaPdfUrl(htmlPage)
+        if pdfUrl is None:
+            url = htmlPage["url"].rstrip("/")
+            if "data-sixpack-client" in origHtml:
+                # Scientific Reports have a different URL structure
+                logging.debug("Found a new-style NPG page")
+                pdfUrl = url+".pdf"
+            else:
+                pdfUrl = url.replace("/full/", "/pdf/").replace(".html", ".pdf")
 
         pdfPage = httpGetDelay(pdfUrl, delayTime)
         paperData["main.pdf"] = pdfPage
