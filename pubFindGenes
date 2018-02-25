@@ -18,7 +18,7 @@ sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
 import pubGeneric, maxCommon, pubConf, maxbio, pubAlg, maxTables, pslMapBed, pubMap
 import pubDnaFind
-from pycbio.hgdata.Psl import Psl
+from pm_pycbio.hgdata.Psl import Psl
 import geneFinder
 import tabfile
 #import kent.psl, kent.pslTransMap
@@ -98,7 +98,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
     for geneId, score in geneScores:
         rank += 1
         mentionList = geneSupp[geneId]
-            
+
         for markerType, idStr, locs in mentionList:
             logging.debug("Found matches for type %s, gene %s, marker %s" % (markerType, geneId, idStr))
             logging.debug("Text: %s" % [text[start:end] for start, end in locs])
@@ -115,7 +115,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
                 # old rule, for invitae
                     #mType=="symbol" and (len(locs)>(wordCount/1200)) or \
                     #mType=="symbolMaybe" and (len(locs)>10):
-                    
+
                 # accept anythin with more than x mentions
                 #if mType not in ["symbolMaybe", "symbol"] or \
                     #mType in ["symbol", "symbolMaybe"] and support > minSupport:
@@ -191,7 +191,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
                 print "** %s PDF corrupted?" % pmid
             if "Novel human pathological mutations" in text:
                 print "** %s Not a real article" % pmid
-                
+
             if pmid.isdigit() and int(pmid) in manualAnnots:
                 print "**", manualAnnots.get(int(pmid), "")
 
@@ -201,7 +201,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
 
     else:
         print "PMID %s NOT FOUND" % str(pmid)
-        
+
 
 def parsePaperData(inDir):
     fname = join(inDir, "textData.tab")
@@ -232,7 +232,7 @@ def findInLocalDir(inDir, refGenes, minScore, maxRank):
         if len(genes)!=0:
             newRefGenes[pmid]=genes
     refGenes = newRefGenes
-        
+
     print "----"
     global pmids
     print "total PMIDs searched: %d" % len(pmids)
