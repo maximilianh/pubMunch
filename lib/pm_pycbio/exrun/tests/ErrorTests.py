@@ -56,7 +56,7 @@ class ErrorTests(ExRunTestCaseBase):
             er.addRule(ErrorRule("cycleAll2", f2, f3))
             er.addRule(ErrorRule("cycleAll3", f3, f1))
             er.run()
-        except CycleException, ex:
+        except CycleException as ex:
             # order is not predictable
             expect = "cycle detected:\n  cycleAll3 ->\n  ErrorTests.ErrorTests.testCycleAll.file3 ->\n  cycleAll2 ->\n  ErrorTests.ErrorTests.testCycleAll.file2 ->\n  cycleAll1 ->\n  ErrorTests.ErrorTests.testCycleAll.file1 ->"
             self.failUnlessEqual(_sortMsg(str(ex)), _sortMsg(expect))
@@ -78,7 +78,7 @@ class ErrorTests(ExRunTestCaseBase):
             er.addRule(ErrorRule("cycle2", f2, f3))
             er.addRule(ErrorRule("cycle3", f3, f2))
             er.run()
-        except ExRunException, ex:
+        except ExRunException as ex:
             self.failUnlessEqual(str(ex), "Production ErrorTests.ErrorTests.testCycle.file2 producedBy link already set")
         if ex == None:
             self.fail("expected ExRunException")
@@ -94,7 +94,7 @@ class ErrorTests(ExRunTestCaseBase):
             r1 = er.addRule(TouchRule("noRule1", self, f3, f2))
             r2 = er.addRule(TouchRule("noRule2", self, f2, f1))
             er.run()
-        except ExRunException, ex:
+        except ExRunException as ex:
             self.failUnlessEqual(str(ex), "No rule to build production(s): ErrorTests.ErrorTests.testNoRule.file3")
         if ex == None:
             self.fail("expected ExRunException")

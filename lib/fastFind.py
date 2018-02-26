@@ -1,3 +1,4 @@
+from __future__ import print_function
 # fast search for combination of words using dictionaries
 
 import doctest, types, gzip, marshal, optparse, sys, codecs, logging
@@ -105,7 +106,7 @@ def recursiveFind(words, wordIdx, searchDict, results, flankCount=0, hitStart=No
     matchDict = searchDict.get(word, -1)
     if matchDict==-1: # -1 = not found
         return results
-    elif type(matchDict)==types.DictType:
+    elif type(matchDict)==dict:
         oldResCount = len(results)
         if oldResCount>0:
             lastMatch = results[-1]
@@ -322,6 +323,6 @@ if __name__ == "__main__":
                 data = [id, fname, str(start),str(end)]
                 data.append(text[start:end])
                 line = "\t".join(data)
-                print line.encode("utf8")
+                print(line.encode("utf8"))
 
 

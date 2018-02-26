@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
+from __future__ import print_function
 import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy, struct, hashlib
 from os.path import join, basename, isfile, dirname, abspath, splitext, isdir
 from collections import defaultdict
@@ -262,7 +263,7 @@ def runTests():
     varFinder.loadDb()
     variants  = varFinder.findVariantMentions(text)
     for v in variants:
-        print v
+        print(v)
 
 def main(args, options):
     if options.test:

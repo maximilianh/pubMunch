@@ -1,9 +1,10 @@
+from __future__ import absolute_import
 from xml.dom import Node
 
 import gettext
 _ = gettext.gettext
 
-import _base
+from . import _base
 from html5lib.constants import voidElements
 
 class TreeWalker(_base.NonRecursiveTreeWalker):

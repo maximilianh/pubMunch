@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is Mozilla Universal charset detector code.
 #
@@ -28,8 +29,8 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from constants import eStart, eError, eItsMe
-from charsetprober import CharSetProber
+from .constants import eStart, eError, eItsMe
+from .charsetprober import CharSetProber
 
 class MultiByteCharSetProber(CharSetProber):
     def __init__(self):

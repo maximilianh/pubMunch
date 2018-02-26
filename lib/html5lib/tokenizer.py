@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 try:
     frozenset
 except NameError:
@@ -7,16 +8,16 @@ except NameError:
 try:
     from collections import deque
 except ImportError:
-    from utils import deque
+    from .utils import deque
     
-from constants import spaceCharacters
-from constants import entitiesWindows1252, entities
-from constants import asciiLowercase, asciiLetters, asciiUpper2Lower
-from constants import digits, hexDigits, EOF
-from constants import tokenTypes, tagTokenTypes
-from constants import replacementCharacters
+from .constants import spaceCharacters
+from .constants import entitiesWindows1252, entities
+from .constants import asciiLowercase, asciiLetters, asciiUpper2Lower
+from .constants import digits, hexDigits, EOF
+from .constants import tokenTypes, tagTokenTypes
+from .constants import replacementCharacters
 
-from inputstream import HTMLInputStream
+from .inputstream import HTMLInputStream
 
 # Group entities by their first character, for faster lookups
 entitiesByFirstChar = {}

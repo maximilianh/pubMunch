@@ -1,3 +1,4 @@
+from __future__ import print_function
 # convert mutation finder patterns to our format
 replDict = {
     r"""(^|[\s\(\[\'"/,\-])""" : "{sep}",
@@ -16,4 +17,4 @@ for line in open("regex.txt"):
     for fromRepl, toRepl in replDict.iteritems():
         line = line.replace(fromRepl, toRepl)
     row = ["prot", "sub", "MF_"+desc, line]
-    print "\t".join(row)
+    print("\t".join(row))

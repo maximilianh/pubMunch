@@ -5,9 +5,10 @@
 # first load the standard libraries from python
 # we require at least python 2.5
 #from sys import *
+from __future__ import print_function
 import sys
 if sys.version_info[0]==2 and not sys.version_info[1]>=7:
-    print "Sorry, this program requires at least python 2.7"
+    print("Sorry, this program requires at least python 2.7")
     sys.exit(1)
 
 # load default python packages
@@ -639,7 +640,7 @@ def wordCountToSvml(dbList, pmidListDir, concatDir, bestWordsDir, svmlDir):
             pmidFh.write("%d\n" % pmid)
             rowCount +=1
             if rowCount % 1000 == 0:
-                print rowCount
+                print(rowCount)
         gc.enable()
 
 def getText(textDirs, dbList, pmidToDb, corpusDir):
@@ -656,7 +657,7 @@ def getText(textDirs, dbList, pmidToDb, corpusDir):
     logging.debug("Reading text from %s" % textDirs)
     for textDir in textDirs:
         #ar = pubStore.PubReaderFile(textDir)
-        print textDir
+        print(textDir)
         dataIter = pubStore.iterArticleDirList(textDir, onlyMain=True, preferPdf=True)
         #for article, fileList in ar.iterArticlesFileList(onlyMain=True, onlyBestMain=True):
         for article, fileList in dataIter:
@@ -975,7 +976,7 @@ def makeHtml(dbList, pmidDir, catFname, outDir):
 def compSvmlClasses(testSvmlDir, db):
     classFname = join(testSvmlDir, db+".predClasses")
     svmlFname  = join(testSvmlDir, db+".classes")
-    print classFname, svmlFname
+    print(classFname, svmlFname)
     classes = open(classFname).read().splitlines()
     svmls = open(svmlFname).read().splitlines()
     TP, FN, FP, TN = 0, 0, 0, 0
@@ -988,18 +989,18 @@ def compSvmlClasses(testSvmlDir, db):
             realPosCount += 1
         else:
             realNegCount += 1
-        print realVal, predVal
+        print(realVal, predVal)
         if predVal<0 and realVal<0:
-            print "tn"
+            print("tn")
             TN+=1
         if predVal>0 and realVal>0:
-            print "tp"
+            print("tp")
             TP+=1
         if predVal<0 and realVal>0:
-            print "fp"
+            print("fp")
             FP+=1
         if predVal>0 and realVal<0:
-            print "fn"
+            print("fn")
             FN+=1
     prec = float(TP) / float(TP+FP)
     rec =  float(TP) / float(TP+FN)

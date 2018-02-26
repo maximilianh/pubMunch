@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import gettext
 _ = gettext.gettext
 
@@ -8,7 +9,7 @@ except:
 import copy
 import re
 
-import _base
+from . import _base
 from html5lib.constants import voidElements
 
 tag_regexp = re.compile("{([^}]*)}(.*)")

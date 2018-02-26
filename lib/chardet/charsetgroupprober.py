@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is Mozilla Communicator client code.
 # 
@@ -26,7 +27,7 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from charsetprober import CharSetProber
+from .charsetprober import CharSetProber
 
 class CharSetGroupProber(CharSetProber):
     def __init__(self):

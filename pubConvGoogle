@@ -342,10 +342,10 @@ class PythonDownloader:
         try:
             logging.debug("Starting download of %s" % url)
             contentFile = util.httpGet(url)
-        except urllib2.HTTPError, ex:
+        except urllib2.HTTPError as ex:
             logging.debug("Download error (HttpError): %s" % str(ex))
             return None, None
-        except urllib2.URLError, ex:
+        except urllib2.URLError as ex:
             logging.debug("Download error (UrlError): %s" % str(ex))
             return None, None
         contentData = contentFile.read()
@@ -406,7 +406,7 @@ def googleIter(termString, maxResults=1000, logFh=None):
                 response = Search(id, size, start, termString)
                 total = int(response.total)
                 break
-            except Exception, err:
+            except Exception as err:
                 logging.info("Exception during Search(): %s" % err)
                 open("errorlog.txt","a").write(str(err)+"\n")
                 traceback.print_exc()

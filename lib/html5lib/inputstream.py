@@ -1,11 +1,12 @@
+from __future__ import absolute_import
 import codecs
 import re
 import types
 import sys
 
-from constants import EOF, spaceCharacters, asciiLetters, asciiUppercase
-from constants import encodings, ReparseException
-import utils
+from .constants import EOF, spaceCharacters, asciiLetters, asciiUppercase
+from .constants import encodings, ReparseException
+from . import utils
 
 #Non-unicode versions of constants for use in the pre-parser
 spaceCharactersBytes = frozenset([str(item) for item in spaceCharacters])
@@ -261,7 +262,7 @@ class HTMLInputStream:
             self.rawStream.seek(0)
             self.reset()
             self.charEncoding = (newEncoding, "certain")
-            raise ReparseException, "Encoding changed from %s to %s"%(self.charEncoding[0], newEncoding)
+            raise ReparseException("Encoding changed from %s to %s"%(self.charEncoding[0], newEncoding))
             
     def detectBOM(self):
         """Attempts to detect at BOM at the start of the stream. If
@@ -629,7 +630,7 @@ class EncodingParser(object):
         return self.handlePossibleTag(False)
 
     def handlePossibleEndTag(self):
-        self.data.next()
+        next(self.data)
         return self.handlePossibleTag(True)
 
     def handlePossibleTag(self, endTag):
@@ -677,7 +678,7 @@ class EncodingParser(object):
             elif c in spaceCharactersBytes:
                 #Step 6!
                 c = data.skip()
-                c = data.next()
+                c = next(data)
                 break
             elif c in ("/", ">"):
                 return "".join(attrName), ""
@@ -688,13 +689,13 @@ class EncodingParser(object):
             else:
                 attrName.append(c)
             #Step 5
-            c = data.next()
+            c = next(data)
         #Step 7
         if c != "=":
             data.previous()
             return "".join(attrName), ""
         #Step 8
-        data.next()
+        next(data)
         #Step 9
         c = data.skip()
         #Step 10
@@ -703,10 +704,10 @@ class EncodingParser(object):
             quoteChar = c
             while True:
                 #10.2
-                c = data.next()
+                c = next(data)
                 #10.3
                 if c == quoteChar:
-                    data.next()
+                    next(data)
                     return "".join(attrName), "".join(attrValue)
                 #10.4
                 elif c in asciiUppercaseBytes:
@@ -724,7 +725,7 @@ class EncodingParser(object):
             attrValue.append(c)
         # Step 11
         while True:
-            c = data.next()
+            c = next(data)
             if c in spacesAngleBrackets:
                 return "".join(attrName), "".join(attrValue)
             elif c in asciiUppercaseBytes:
@@ -775,7 +776,7 @@ class ContentAttrParser(object):
 def codecName(encoding):
     """Return the python codec name corresponding to an encoding or None if the
     string doesn't correspond to a valid encoding."""
-    if (encoding is not None and type(encoding) in types.StringTypes):
+    if (encoding is not None and type(encoding) in (str,)):
         canonicalName = ascii_punctuation_re.sub("", encoding).lower()
         return encodings.get(canonicalName, None)
     else:

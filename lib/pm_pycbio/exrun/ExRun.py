@@ -65,7 +65,7 @@ class _RuleTask(object):
         for p in self.rule.produces:
             try:
                 p.finishFail()
-            except Exception, ex:
+            except Exception as ex:
                 # FIXME: count these errors
                 ex = ExRunException("Error in Production.finishFail() for "+p.name,
                                     cause=ex)
@@ -74,7 +74,7 @@ class _RuleTask(object):
         for r in self.rule.requires:
             try:
                 r.finishRequire()
-            except Exception, ex:
+            except Exception as ex:
                 ex = ExRunException("Error in Production.finishRequire() for "+name,
                                     cause=ex)
                 self.verb.prall(str(ex))
@@ -92,7 +92,7 @@ class _RuleTask(object):
             self.__postEvalRuleCheck()
             self.rule.setState(RuleState.ok)
             self.verb.leave(Verb.trace, "done rule:", self.rule)
-        except Exception, ex:
+        except Exception as ex:
             ex = ExRunException("rule error: "+str(self.rule), cause=ex)
             self.verb.pr((Verb.trace,Verb.error), str(ex))
             self.verb.pr(Verb.error, ex.format())
@@ -106,7 +106,7 @@ class _RuleTask(object):
         try:
             self.rule.task = task
             self.__evalRule()
-        except Exception, ex:
+        except Exception as ex:
             self.exrun.flagError(ex)
         self.rule.task = None
         self.exrun.scheduleReady()

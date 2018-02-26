@@ -12,7 +12,7 @@ class AutoDict(dict):
     def obtain(self, key):
         """get the value for key, creating an empty entry if key is not in
         object"""
-        if self.has_key(key):
+        if key in self:
             val = dict.__getitem__(self, key)
         else:
             val = self[key] = self.entryFactory()

@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is mozilla.org code.
 #
@@ -26,12 +27,12 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from constants import eStart, eError, eItsMe
-from mbcharsetprober import MultiByteCharSetProber
-from codingstatemachine import CodingStateMachine
-from chardistribution import EUCJPDistributionAnalysis
-from jpcntx import EUCJPContextAnalysis
-from mbcssm import EUCJPSMModel
+from .constants import eStart, eError, eItsMe
+from .mbcharsetprober import MultiByteCharSetProber
+from .codingstatemachine import CodingStateMachine
+from .chardistribution import EUCJPDistributionAnalysis
+from .jpcntx import EUCJPContextAnalysis
+from .mbcssm import EUCJPSMModel
 
 class EUCJPProber(MultiByteCharSetProber):
     def __init__(self):

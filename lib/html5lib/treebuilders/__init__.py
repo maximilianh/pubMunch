@@ -29,6 +29,7 @@ The supplied simpletree module provides a python-only implementation
 of a full treebuilder and is a useful reference for the semantics of
 the various methods.
 """
+from __future__ import absolute_import
 
 treeBuilderCache = {}
 
@@ -58,7 +59,7 @@ def getTreeBuilder(treeType, implementation=None, **kwargs):
     treeType = treeType.lower()
     if treeType not in treeBuilderCache:
         if treeType == "dom":
-            import dom
+            from . import dom
             # XXX: Keep backwards compatibility by using minidom if no implementation is given
             if implementation == None:
                 from xml.dom import minidom
@@ -66,13 +67,13 @@ def getTreeBuilder(treeType, implementation=None, **kwargs):
             # XXX: NEVER cache here, caching is done in the dom submodule
             return dom.getDomModule(implementation, **kwargs).TreeBuilder
         elif treeType == "simpletree":
-            import simpletree
+            from . import simpletree
             treeBuilderCache[treeType] = simpletree.TreeBuilder
         elif treeType == "beautifulsoup":
-            import soup
+            from . import soup
             treeBuilderCache[treeType] = soup.TreeBuilder
         elif treeType == "lxml":
-            import etree_lxml
+            from . import etree_lxml
             treeBuilderCache[treeType] = etree_lxml.TreeBuilder
         elif treeType == "etree":
             # Come up with a sane default
@@ -88,7 +89,7 @@ def getTreeBuilder(treeType, implementation=None, **kwargs):
                         except ImportError:
                             import elementtree.ElementTree as ET
                 implementation = ET
-            import etree
+            from . import etree
             # NEVER cache here, caching is done in the etree submodule
             return etree.getETreeModule(implementation, **kwargs).TreeBuilder
         else:

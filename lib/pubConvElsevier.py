@@ -329,7 +329,7 @@ def parseElsevier(tree, data):
     for key, val in data.iteritems():
         if val==None:
             val="NotFound"
-        elif type(val) is not types.UnicodeType:
+        elif type(val) is not str:
             val = val.decode("utf8")
         val = val.replace("\t", " ")
         val = val.replace("\n", " ")

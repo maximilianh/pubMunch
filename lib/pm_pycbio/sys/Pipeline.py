@@ -37,7 +37,7 @@ def _setPgid(pid, pgid):
         try:
             os.setpgid(pid, pgid)
             return
-        except OSError, e:
+        except OSError as e:
             if os.getpgid(pid) == pgid:
                 return
             time.sleep(0.25) # sleep for retry
@@ -410,7 +410,7 @@ class DataWriter(Dev):
         try:
             self.fifo.getWfh().write(self.data)
             self.fifo.wclose()
-        except IOError, e:
+        except IOError as e:
             if e.errno != errno.EPIPE:
                 raise
 
@@ -512,9 +512,9 @@ class File(Dev):
             if isinstance(pio, PIn):
                 self.fd = os.open(self.path, os.O_RDONLY)
             elif self.append:
-                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_APPEND, 0666)
+                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_APPEND, 0o666)
             else:
-                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
+                self.fd = os.open(self.path, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0o666)
         return self.fd
         
     def getPath(self, pio):
@@ -647,7 +647,7 @@ class Proc(object):
             if stdfd == 0:  # stdin?
                 fd = os.open(spec, os.O_RDONLY)
             else:
-                fd = os.open(spec, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0666)
+                fd = os.open(spec, os.O_WRONLY|os.O_CREAT|os.O_TRUNC, 0o666)
         elif isinstance(spec, int):
             fd = spec
         if (fd != None) and (fd != stdfd):
@@ -679,7 +679,7 @@ class Proc(object):
         "start in child process"
         try:
             self.__doChildStart()
-        except Exception, ex:
+        except Exception as ex:
             # FIXME: use isinstance(ex, ProcException) causes error in python
             if type(ex) != ProcException:
                 ex = ProcException(str(self), cause=ex)
@@ -1043,7 +1043,7 @@ class ProcDag(object):
     def __cleanupDev(self, dev):
         try:
             dev.finish()
-        except Exception, e:
+        except Exception as e:
             # FIXME: make optional, or record, or something
             exi = sys.exc_info()
             stack = "" if exi == None else "".join(traceback.format_list(traceback.extract_tb(exi[2])))+"\n"
@@ -1052,7 +1052,7 @@ class ProcDag(object):
     def __cleanupProc(self, proc):
         try:
             proc._forceFinish()
-        except Exception, e:
+        except Exception as e:
             # FIXME: make optional
             sys.stderr.write("ProcDag proc cleanup exception: " +str(e)+"\n")
         
@@ -1103,7 +1103,7 @@ class ProcDag(object):
         "wait on the next process in group to complete, return False if no more"
         try:
             w = os.waitpid(-self.pgid, 0)
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.ECHILD:
                 return False
             raise
@@ -1249,7 +1249,7 @@ class Pipeline(Procline):
         return self.fh.__iter__()
 
     def next(self):
-        return self.fh.next()
+        return next(self.fh)
   
     def flush(self):
         "Flush the internal I/O buffer."

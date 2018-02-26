@@ -5,6 +5,7 @@
 """
 
 from pm_pycbio.sys.MultiDict import MultiDict
+import sys
 
 class dmpFileParser(object):
     "parse one of the dmp files"
@@ -30,8 +31,8 @@ class Node(object):
     def __init__(self, row):
         self.taxId = int(row[0])
         self.parentTaxId = int(row[1])
-        self.rank = intern(row[2])
-        self.emblCode = intern(row[3])
+        self.rank = sys.intern(row[2])
+        self.emblCode = sys.intern(row[3])
         self.divisionId = int(row[4])
         self.inheritedDivFlag = bool(row[5])
         self.geneticCodeId = int(row[6])
@@ -46,9 +47,9 @@ class Name(object):
     "A record from the names.dmp table"
     def __init__(self, row):
         self.taxId = int(row[0])
-        self.nameTxt = intern(row[1])
-        self.uniqueName = intern(row[2])
-        self.nameClass = intern(row[3])
+        self.nameTxt = sys.intern(row[1])
+        self.uniqueName = sys.intern(row[2])
+        self.nameClass = sys.intern(row[3])
 
 
 class Tree(object):

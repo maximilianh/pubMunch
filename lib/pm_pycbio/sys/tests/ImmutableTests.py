@@ -17,7 +17,7 @@ class ImmutableTests(TestCaseBase):
         ex = None
         try:
             obj.val = 111
-        except Exception, ex:
+        except Exception as ex:
             pass
         
         self.failUnlessEqual(obj.val, 10)
@@ -34,7 +34,7 @@ class ImmutableTests(TestCaseBase):
         ex = None
         try:
             obj.val = 111
-        except Exception, ex:
+        except Exception as ex:
             pass
         
         self.failUnlessEqual(obj.val, 10)

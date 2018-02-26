@@ -1,5 +1,6 @@
 # coding: utf-8
 #headers = ["start", "end", "mutation"]
+from __future__ import print_function
 headers = ["start", "end", "gene", "wtRes", "pos", "mutRes", "rsId", "text"]
 
 import pubConf
@@ -20,12 +21,12 @@ from java.io import FileInputStream, File
 from de.hu.berlin.wbi.objects import DatabaseConnection, dbSNP, UniprotFeature
 from seth import SETH
 
-print "init'ing seth"
+print("init'ing seth")
 # get some mutations from text
 seth = SETH(mutName)
 
 # setup db connection
-print "setup mysql connection"
+print("setup mysql connection")
 property = Properties()
 property.loadFromXML(FileInputStream(File(propName)))
 db = DatabaseConnection(property)
@@ -46,15 +47,15 @@ def test():
         normalized = mut.getNormalized()
         for snp in normalized:
             rsId = snp.getRsID()
-            print ",".join([start, end, wtRes, mutRes, pos, "rs"+str(rsId), text])
+            print(",".join([start, end, wtRes, mutRes, pos, "rs"+str(rsId), text]))
 
 # open a dbm with a pmid -> genes mapping
-print "opening dbm connections"
+print("opening dbm connections")
 mutDataDir = pubConf.getDataDir('mutations')
 entrezFname = join(mutDataDir, "pmid2entrez.marshal.gz")
-print "opening %s" % entrezFname
+print("opening %s" % entrezFname)
 pmidToGenes = marshal.loads(zlib.decompress(open(entrezFname).read()))
-print "seth ok"
+print("seth ok")
 # get some mutations from text
 
 def annotateFile(art, file):
@@ -72,7 +73,7 @@ def annotateFile(art, file):
         features = UniprotFeature.getFeatures(gene);
 
         for mut in mutations:
-            print "mutation found: ", str(mut)
+            print("mutation found: ", str(mut))
             start = mut.getStart()
             end = mut.getEnd()
             mut.normalizeSNP(potentialSNPs, features, False)

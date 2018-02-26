@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 try:
     frozenset
 except NameError:
@@ -6,7 +7,7 @@ except NameError:
 
 import re
 
-import _base
+from . import _base
 from html5lib.constants import rcdataElements, spaceCharacters
 spaceCharacters = u"".join(spaceCharacters)
 

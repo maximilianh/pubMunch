@@ -101,7 +101,7 @@ class TSVTable(list):
             self.colMap = reader.colMap
             self.__buildIndices(uniqKeyCols, multiKeyCols)
             self.__readBody(reader)
-        except Exception, e:
+        except Exception as e:
             raise TSVError("load failed", reader=reader, cause=e), None, sys.exc_info()[2]
 
     def addColumn(self, colName, initValue=None, colType=None):

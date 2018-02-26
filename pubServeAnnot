@@ -2,6 +2,7 @@
 # run python's built in webserver, accept data via a POST request, run annotators on it and return
 # the results
 
+from __future__ import print_function
 import SimpleHTTPServer as shs
 # load default python packages
 import SocketServer, cgi, json, os
@@ -42,7 +43,7 @@ Text:<p>
         self.wfile.write(html)
 
     def do_POST(self):
-        print "headers", (self.headers)
+        print("headers", (self.headers))
         form = cgi.FieldStorage(
             fp=self.rfile,
             headers=self.headers,
@@ -71,7 +72,7 @@ def main():
  
     Handler = ServerHandler
     httpd = SocketServer.TCPServer(("", PORT), Handler)
-    print "serving at port", PORT
+    print("serving at port", PORT)
     httpd.serve_forever()
 
 main()

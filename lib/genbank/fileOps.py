@@ -6,7 +6,7 @@ def ensureDir(dir):
     """Ensure that a directory exists, creating it (and parents) if needed."""
     try: 
         os.makedirs(dir)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST:
             raise e
 

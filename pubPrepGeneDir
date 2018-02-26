@@ -5,6 +5,7 @@
 # in this file the prefix "up" always refers to "uniProt" not to the word "up" (like "down")
 
 # load default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, re, zlib, cPickle
 import types, string, sqlite3
 import struct, itertools, dumbdbm
@@ -150,7 +151,7 @@ def getOmimGeneIds():
 
 def appendToDict(data, idList, acc, stripVer=False, prefix=None):
     " add an entry acc -> for all IDs in idList to data, which is a defaultdict of set"
-    assert(type(idList)==types.ListType)
+    assert(type(idList)==list)
     for id in idList:
         if stripVer:
             id = id.split(".")[0]
@@ -357,7 +358,7 @@ def parseEntrezGenePmids(taxIds, dbm):
     #data = {}
     for pmid, entrezList in pmidToEntrez.iteritems():
         if count%10000==0:
-            print count
+            print(count)
         pmid = str(pmid)
         entrezStr = ",".join(entrezList)
         dbm[pmid] = entrezStr
@@ -690,7 +691,7 @@ def dbSnp(taxId, geneDataDir):
 
     for line in open(snpFname):
         if count % 1000000 == 0:
-            print "%d" % count
+            print("%d" % count)
         chrom, start, end, rsId = line.rstrip("\n").split("\t")
         # ignore haps and _gl
         if "hap" in chrom or "_gl" in chrom:
@@ -707,7 +708,7 @@ def dbSnp(taxId, geneDataDir):
         count += 1
 
     # index by chrom pos
-    print "adding chrom position index"
+    print("adding chrom position index")
     db.con.execute("CREATE INDEX chromIdx ON data (chrom, start, end);")
     db.con.commit()
 
@@ -1553,7 +1554,7 @@ def makeCellNames():
             let1, num, let2 = m.groups()
             num = int(num)
             likeMuts.append( (let1, num, let2) )
-    print likeMuts
+    print(likeMuts)
 
 # ========= IMPORTING ACCESSIONS =======
 
@@ -1588,7 +1589,7 @@ def indexAccsGenbank():
     for line in gzip.open(tmpFname):
         i +=1
         if i%100000==0:
-            print "Read %d accessions" % i
+            print("Read %d accessions" % i)
             accs = []
         acc = line.split(",")[0]
         accChars, accDigits, _ = geneFinder.splitGenbankAcc(acc)
@@ -1633,7 +1634,7 @@ def indexAccsUniprot():
                 db[acc]= refs
             doneAccs.update(accs)
             if len(doneAccs)/50000!=lastChunk:
-                print "%d accessions done" % len(doneAccs)
+                print("%d accessions done" % len(doneAccs))
                 lastChunk = len(doneAccs)/50000
     db.close()
     logging.info("wrote %d accessions to %s.sqlite" % (len(doneAccs), dbFname))

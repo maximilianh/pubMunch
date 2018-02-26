@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is mozilla.org code.
 #
@@ -26,10 +27,10 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from constants import eStart, eError, eItsMe
-from charsetprober import CharSetProber
-from codingstatemachine import CodingStateMachine
-from mbcssm import UTF8SMModel
+from .constants import eStart, eError, eItsMe
+from .charsetprober import CharSetProber
+from .codingstatemachine import CodingStateMachine
+from .mbcssm import UTF8SMModel
 
 ONE_CHAR_PROB = 0.5
 

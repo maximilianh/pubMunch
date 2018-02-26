@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is Mozilla Universal charset detector code.
 #
@@ -26,9 +27,10 @@
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-from charsetprober import CharSetProber
-import constants
+from .charsetprober import CharSetProber
+from . import constants
 import operator
+from functools import reduce
 
 FREQ_CAT_NUM = 4
 

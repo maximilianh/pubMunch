@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Routines for handling fasta sequences and tab sep files
 
 # std packages
@@ -56,8 +57,8 @@ def parseFastaAsDict(fname, inDict=None):
     fr = FastaReader(fname)
     for (id, seq) in fr.parse():
         if id in inDict:
-            print inDict
-            print inDict[id]
+            print(inDict)
+            print(inDict[id])
             raise Exception("%s already seen before" % id)
         inDict[id]=seq
     return inDict
@@ -139,7 +140,7 @@ def outputFastaFile(id, seq, fname, width=80):
 
 def _makeGetter(var):
     """ returns the right getter, depending on the type of var """
-    if type(var)==types.StringType:
+    if type(var)==bytes:
         getter = operator.attrgetter(var) # to get elements from records with named fields
     else:
         getter = operator.itemgetter(var) # to get elements from lists
@@ -280,19 +281,19 @@ def benchmark(predDict, refDict):
     if TP+FP > 0:
         Prec    = float(TP) / (TP + FP)
     else:
-        print "Warning: Cannot calculate Prec because TP+FP = 0"
+        print("Warning: Cannot calculate Prec because TP+FP = 0")
         Prec = 0
 
     if TP+FN > 0:
         Recall  = float(TP) / (TP + FN)
     else:
-        print "Warning: Cannot calculate Recall because TP+FN = 0"
+        print("Warning: Cannot calculate Recall because TP+FN = 0")
         Recall = 0
         
     if Recall>0 and Prec>0:
         F       = 2 * (Prec * Recall) / (Prec + Recall)
     else:
-        print "Warning: Cannot calculate F because Recall and Prec = 0"
+        print("Warning: Cannot calculate F because Recall and Prec = 0")
         F = 0
 
     return BenchmarkResult(TP=TP, FN=FN, FP=FP, Prec=Prec, Recall=Recall, F=F, errList=errDetails, objCount=objCount)
@@ -303,7 +304,7 @@ def allToString(list):
     newList = []
     s = set()
     for e in list:
-        if type(e)==types.ListType or type(e)==type(s):
+        if type(e)==list or type(e)==type(s):
             newList.append(",".join(e))
         else:
             newList.append(str(e))
@@ -312,7 +313,7 @@ def allToString(list):
 def prettyPrintDict(dict):
     """ print dict to stdout """
     for key, value in dict.iteritems():
-        print key, value
+        print(key, value)
 
 def calcBinomScore(background, foreground, genes, backgroundProb):
     TP = len(genes.intersection(foreground))

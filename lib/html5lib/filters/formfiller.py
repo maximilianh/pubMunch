@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 #
 # The goal is to finally have a form filler where you pass data for
 # each form, using the algorithm for "Seeding a form with initial values"
 # See http://www.whatwg.org/specs/web-forms/current-work/#seeding
 #
 
-import _base
+from . import _base
 
 from html5lib.constants import spaceCharacters
 spaceCharacters = u"".join(spaceCharacters)
