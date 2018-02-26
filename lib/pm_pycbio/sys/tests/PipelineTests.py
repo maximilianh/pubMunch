@@ -103,7 +103,7 @@ class PipelineTests(TestCaseBase):
         e = None
         try:
             pl.wait()
-        except ProcException, e:
+        except ProcException as e:
             pass
         self.failUnless(e != None)
         # FIXME: should Procline keep an ordered list?

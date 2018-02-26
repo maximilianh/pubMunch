@@ -41,8 +41,8 @@ class TSVReader(object):
         if self.reader == None:
             return None
         try:
-            row = self.reader.next()
-        except Exception, e:
+            row = next(self.reader)
+        except Exception as e:
             self.close()
             if isinstance(e, StopIteration):
                 return None
@@ -69,7 +69,7 @@ class TSVReader(object):
         for col in columns:
             if self.columnNameMapper != None:
                 col = self.columnNameMapper(col)
-            col = intern(col)
+            col = sys.intern(col)
             self.columns.append(col)
             if col in self.colMap:
                 raise TSVError("Duplicate column name: " + col), None, sys.exc_info()[2]
@@ -136,7 +136,7 @@ class TSVReader(object):
             else:
                 self.__readHeader(allowEmpty)
             self.__initColTypes(typeMap, defaultColType)
-        except Exception, e:
+        except Exception as e:
             self.close()
             raise
 
@@ -154,7 +154,7 @@ class TSVReader(object):
     def next(self):
         try:
             row = self.__readRow()
-        except Exception,ex:
+        except Exception as ex:
             raise TSVError("Error reading TSV row", self, ex), None, sys.exc_info()[2]
         if row == None:
             raise StopIteration
@@ -166,7 +166,7 @@ class TSVReader(object):
                            reader=self), None, sys.exc_info()[2]
         try:
             return self.rowClass(self, row)
-        except Exception,ex:
+        except Exception as ex:
             raise TSVError("Error converting TSV row to object", self, ex), None, sys.exc_info()[2]
 
 

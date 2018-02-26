@@ -1,3 +1,4 @@
+from __future__ import print_function
 # library for convenience functionc related to html ouput
 import sys, codecs, urllib2, urllib, cgi, doctest, logging, re, os
 try:
@@ -128,11 +129,11 @@ def ucscUpload(db, data, hgsid=None, server="http://genome.ucsc.edu", name="User
     for l in html:
         if l.find("Manage Custom Tracks")!=-1:
             return hgsid
-    print "ERROR: Could not upload custom track into UCSC server at %s<br>\n" % server
-    print "Offending data was:<br>\n"
-    print data
-    print "Error Message was:<br>\n"
-    print "\n".join(html)
+    print("ERROR: Could not upload custom track into UCSC server at %s<br>\n" % server)
+    print("Offending data was:<br>\n")
+    print(data)
+    print("Error Message was:<br>\n")
+    print("\n".join(html))
     return None
 
 def getStylesheet(name):

@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import re
 import gettext
 _ = gettext.gettext
 
 from BeautifulSoup import BeautifulSoup, Declaration, Comment, Tag
 from html5lib.constants import namespaces
-import _base
+from . import _base
 
 class TreeWalker(_base.NonRecursiveTreeWalker):
     doctype_regexp = re.compile(

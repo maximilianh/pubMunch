@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is Mozilla Universal charset detector code.
 #
@@ -27,10 +28,10 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from latin1prober import Latin1Prober # windows-1252
-from mbcsgroupprober import MBCSGroupProber # multi-byte character sets
-from sbcsgroupprober import SBCSGroupProber # single-byte character sets
-from escprober import EscCharSetProber # ISO-2122, etc.
+from .latin1prober import Latin1Prober # windows-1252
+from .mbcsgroupprober import MBCSGroupProber # multi-byte character sets
+from .sbcsgroupprober import SBCSGroupProber # single-byte character sets
+from .escprober import EscCharSetProber # ISO-2122, etc.
 import re
 
 MINIMUM_THRESHOLD = 0.20

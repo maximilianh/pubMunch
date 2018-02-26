@@ -1,3 +1,4 @@
+from __future__ import print_function
 from maxCommon import *
 from collections import defaultdict
 
@@ -40,4 +41,4 @@ for row in iterTsvRows("authors.txt"):
 
 for fn, count in names.iteritems():
     if count>2:
-        print fn
+        print(fn)

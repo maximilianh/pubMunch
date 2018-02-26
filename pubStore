@@ -7,9 +7,10 @@
 # first load the standard libraries from python
 # we require at least python 2.7
 #from sys import *
+from __future__ import print_function
 import sys
 if sys.version_info[0]==2 and not sys.version_info[1]>=7:
-    print "Sorry, this program requires at least python 2.7"
+    print("Sorry, this program requires at least python 2.7")
     exit(1)
 
 # load default python packages
@@ -137,10 +138,10 @@ def main(args, options):
         inDirStr, whereExpr = args[1:]
         inDirs = inDirStr.split(",")
         for artDict, fileDicts in pubStore.lookupFullDocs(inDirs, whereExpr):
-            print pubStore.dictToMarkLines(artDict)
-            print
+            print(pubStore.dictToMarkLines(artDict))
+            print()
             for fileDict in fileDicts:
-                print pubStore.dictToMarkLines(fileDict)
+                print(pubStore.dictToMarkLines(fileDict))
 
     elif cmd=="addPmids":
         pubChange.addPmids(args[1])

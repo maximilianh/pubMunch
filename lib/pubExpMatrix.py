@@ -1,3 +1,4 @@
+from __future__ import print_function
 # library to create a term-document matrix for R from documents
 
 import re, os, logging, gzip, sys, codecs, array
@@ -11,7 +12,7 @@ import pubConf, pubGeneric, pubStore, maxCommon, maxRun, pubAlg, tabfile
 
 # ===== GLOBALS ======
 def chunkMatrix(inChunk, outName):
-    print inChunk, outName
+    print(inChunk, outName)
 
 # ===== FUNCTIONS ====
 def parsePmids(fname):

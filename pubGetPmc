@@ -2,6 +2,7 @@
 
 # first load the standard libraries from python
 #from sys import *
+from __future__ import print_function
 import sys, time
 import logging, optparse, os, glob, urllib2, tempfile, shutil, csv, re, collections
 import subprocess

@@ -1,4 +1,5 @@
 #!/cluster/software/bin/python
+from __future__ import print_function
 import cgitb
 cgitb.enable()
 
@@ -6,7 +7,7 @@ import os, re, cgi, urllib, sys, HTMLParser
 sys.path.append("/cluster/home/max/projects/pubs/tools/lib")
 import pubAlg, pubStore
 
-print "Content-Type: text/html; charset=UTF-8\n"
+print("Content-Type: text/html; charset=UTF-8\n")
 
 def printHeader():
     print("<html><head>")
@@ -35,7 +36,7 @@ def getVars():
     return text, algNames
 
 def showForm():
-    print """
+    print("""
     <form method="post" action="pubAnnot">
 
     Paste your text:<p>
@@ -48,7 +49,7 @@ def showForm():
     <input type="submit" name="submit" value="OK" />
 
     </form>
-    """
+    """)
 def main():
     text, algNames = getVars()
     if text==None:
@@ -60,6 +61,6 @@ def main():
         for algName in algNames:
             alg = pubAlg.getAlg(algName, defClass="Annotate")
             for row in pubAlg.runAnnotateIter(reader, alg, {}, False):
-                print row,"<br>"
+                print(row,"<br>")
     
 main()

@@ -23,7 +23,7 @@ class Coords(Immutable):
             self.start, self.end = str.split(rng, "-")
             self.start = int(self.start)
             self.end = int(self.end)
-        except Exception, e:
+        except Exception as e:
             raise CoordsError("invalid coordinates: \"" + str(coordsStr) + "\": " + str(e))
 
     def __init__(self, *args, **opts):
@@ -37,7 +37,7 @@ class Coords(Immutable):
                 self.chr = args[0]
                 self.start = int(args[1])
                 self.end = int(args[2])
-            except Exception, e:
+            except Exception as e:
                 raise CoordsError("invalid coordinates: \"" + str(args) + "\": " + str(e))
         else:
             raise CoordsError("Coords() excepts either one or three arguments")

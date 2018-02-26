@@ -217,7 +217,7 @@ def toUnicode(var):
     elif isinstance(var, str):
         try:
             var = var.decode("utf8")
-        except UnicodeDecodeError, msg:
+        except UnicodeDecodeError as msg:
             logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
             var = var.decode("latin1")
     return var
@@ -253,7 +253,7 @@ def removeTabNl(var):
     # there are more newlines than just \n and \m when one is using the
     # 'for line in file' construct in python
     # so we do this
-    if type(var)==types.IntType:
+    if type(var)==int:
         return str(var)
     cleanString = " ".join(var.splitlines()).replace("\t", " ")
     #logging.debug("cleaned string is %s" % repr(newStr))
@@ -1445,7 +1445,7 @@ def dictToMarkLines(d):
     keys = d.keys()
     for key in sorted(keys):
         val = d[key]
-        if type(val)==types.IntType:
+        if type(val)==int:
             val = str(val)
         if val=="":
             continue

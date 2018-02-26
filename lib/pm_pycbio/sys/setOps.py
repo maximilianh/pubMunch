@@ -1,9 +1,10 @@
 # Copyright 2006-2012 Mark Diekhans
 """Miscellaneous operations on sets"""
+from __future__ import absolute_import
 
 # FIXME: should not need `set' as part of function names, since qualified by
 # module. move mkset from typeOps. 
-import typeOps
+from . import typeOps
 
 def setJoin(s, sep=" "):
     "join a set into a sorted string, converting each element to a string"

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # library to crawl pdf and supplemental files from publisher websites using pubmed
 # It is possible to crawl millions of papers with it.
 
@@ -418,7 +419,7 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
 
     # html is transmitted as unicode, but we do bytes strings
     # so cast back to bytes
-    if type(page['data']) == types.UnicodeType:
+    if type(page['data']) == str:
         page['data'] = page['data'].encode('utf8')
     return page
 
@@ -596,7 +597,7 @@ def htmlFindLinkUrls(page, attrs={}):
     elList = bs.findAll("a", attrs=attrs)
     urls = []
     for el in elList:
-        if not el.has_key("href"):
+        if "href" not in el:
             continue
         url = el["href"]
         url = urlparse.urljoin(page["url"], url)
@@ -675,9 +676,9 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     try:
         fulltextLinks = BeautifulSoup(htmlString, smartQuotesTo=None, \
             convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=linkStrainer)
-    except ValueError, e:
+    except ValueError as e:
         raise pubGetError("Exception during bs html parse", "htmlParseException", e.message)
-    except TypeError, e:
+    except TypeError as e:
         raise pubGetError("Exception during bs html parse", "BeautifulSoupError", page["url"])
     logging.log(5, "bs parsing finished")
 
@@ -900,9 +901,9 @@ def downloadPubmedMeta(pmid):
     try:
         wait(3, "eutils.ncbi.nlm.nih.gov")
         ret = pubPubmed.getOnePmid(pmid)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError as e:
         raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError" , str(e.code))
-    except pubPubmed.PubmedError, e:
+    except pubPubmed.PubmedError as e:
         raise pubGetError(e.longMsg, e.logMsg)
 
     if ret==None:
@@ -1220,7 +1221,7 @@ def printFileHash(fulltextData, artMeta):
             mustBePdf(page, artMeta)
         sha1 = hashlib.sha1(page["data"]).hexdigest() # pylint: disable=E1101
         row = [crawlerName, ext, page["url"], str(len(page["data"])), sha1]
-        print "\t".join(row)
+        print("\t".join(row))
 
 def writePaperData(docId, pubmedMeta, fulltextData, outDir):
     " write all paper data to status and fulltext output files in outDir "
@@ -1688,7 +1689,7 @@ def addSuppZipFiles(suppZipUrl, paperData, delayTime):
     zipFile = cStringIO.StringIO(zipPage["data"]) # make it look like a file
     try:
         zfp = zipfile.ZipFile(zipFile, "r") # wrap a zipfile reader around it
-    except (zipfile.BadZipfile, zipfile.LargeZipFile), e:
+    except (zipfile.BadZipfile, zipfile.LargeZipFile) as e:
         logging.warn("Bad zipfile, url %s" % suppZipUrl)
         return paperData
 
@@ -3473,7 +3474,7 @@ def crawlDocuments(docIds, skipIssns, forceContinue):
             consecErrorCount = 0
             successCount += 1
 
-        except pubGetError, e:
+        except pubGetError as e:
             # track document failure
             consecErrorCount += 1
             docId = artMeta["pmid"]

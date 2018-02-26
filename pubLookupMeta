@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, collections, tarfile, mimetypes
 from os.path import *
 
@@ -51,7 +52,7 @@ for line in maxbio.openFile(inFname):
         continue
     if not headerWritten:
         #print "\t".join(artData._fields)
-        print "\t".join(artData.keys())
+        print("\t".join(artData.keys()))
         headerWritten = True
     row = ["\t".join([unicode(x).encode("utf8") for x in artData])]
-    print "\t".join(row)
+    print("\t".join(row))

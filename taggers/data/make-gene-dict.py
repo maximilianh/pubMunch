@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys, re
 sys.path.append("../../lib")
 import maxCommon, pubConf, fastFind, logging
@@ -43,7 +44,7 @@ debugMode = False
 def debug(msg):
     debug = False
     if debugMode==True:
-        print msg
+        print(msg)
     
 def prepNames(names):
     " filter out names that contain only numbers "
@@ -132,7 +133,7 @@ def parseBnc():
 
 
 uniprotFname = join(pubConf.dbRefDir, "uniprot.tab")
-print "Reading %s" % uniprotFname
+print("Reading %s" % uniprotFname)
 
 dictFh = open("uniProt.dict.tab", "w")
 
@@ -176,10 +177,10 @@ for row in maxCommon.iterTsvRows(uniprotFname):
     names = list(set(names))
     dictFh.write("\t".join( (row.acc, "|".join(names)) )+"\n")
 
-print "Wrote to %s" % (dictFh.name)
+print("Wrote to %s" % (dictFh.name))
 #fastFind.compileDict(dictFh.name, toLower=True)
-print "Compiling dict to gzipped marshal file"
+print("Compiling dict to gzipped marshal file")
 fastFind.compileDict(dictFh.name)
 ignoredWords = list(set(ignoredWords))
 ignoredWords.sort()
-print "Ignored these symbols:", ",".join(ignoredWords)
+print("Ignored these symbols:", ",".join(ignoredWords))

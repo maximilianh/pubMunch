@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # load default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, glob, shutil, gzip, subprocess, re
 import collections, marshal
 from os.path import *
@@ -287,9 +288,9 @@ def main(args, options):
     inFname, outDir = args
     if options.parse:
         for rec in parseImgt(open(inFname)):
-            print "KEYWORDS\t"+rec.id+"\t", "/".join(rec.keywords)
-            print "MAIN REF: ",str(rec.mainRef())
-            print "ALL REFS:", str(rec.refList)
+            print("KEYWORDS\t"+rec.id+"\t", "/".join(rec.keywords))
+            print("MAIN REF: ",str(rec.mainRef()))
+            print("ALL REFS:", str(rec.refList))
         sys.exit(0)
 
     keywords = set(options.keywords)

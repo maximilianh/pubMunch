@@ -3,6 +3,7 @@
 # a command line tool to load a pubtools database into solr
 
 # load default python packages
+from __future__ import print_function
 import logging, optparse, os, shutil, glob, tempfile, sys
 from os.path import *
 
@@ -40,8 +41,8 @@ def loadIntoSolr(inDirs):
                 docs.append(newDoc)
 
             if len(docs)>10000:
-                print "COMMIT", i
-                print solr.update(docs)
+                print("COMMIT", i)
+                print(solr.update(docs))
                 docs = []
 
 def main(args, options):

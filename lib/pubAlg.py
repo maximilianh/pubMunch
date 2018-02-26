@@ -1,3 +1,4 @@
+from __future__ import print_function
 # some algorithms to run over text files
 # -*- coding: iso-8859-15 -*-
 # coding=utf-8
@@ -108,9 +109,9 @@ def writeParamDict(paramDict, paramDictName):
     for key, val in paramDict.iteritems():
         if val==None:
             logging.debug("parameter %s: None" % (key))
-        elif type(val)==types.BooleanType:
+        elif type(val)==bool:
             logging.debug("parameter %s: value %s" % (key, str(val)))
-        elif type(val)!=types.IntType:
+        elif type(val)!=int:
             logging.debug("parameter %s: %d values" % (key, len(val)))
         else:
             logging.debug("parameter %s: value %d" % (key, val))
@@ -214,7 +215,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, \
             for inFile in baseNames:
                 inBase = splitext(basename(inFile))[0]
                 inBase = basename(inDir)+"_"+inBase
-                print "XX inBase is", inBase
+                print("XX inBase is", inBase)
                 outNames.add(inBase)
                 outFullname = join(outDir, inBase)+outExt
                 #mustNotExist(outFullname) # should not hurt to avoid this check...
@@ -412,7 +413,7 @@ def getHeaders(alg, addFields):
         logging.error("You need to define a variable 'headers' in your python file or class")
         sys.exit(1)
 
-    assert(type(alg.headers)==types.ListType)
+    assert(type(alg.headers)==list)
 
     headers = copy.copy(alg.headers)
     # if the algorithm is returning results in batch, it has to do IDs and snippets itself
@@ -795,9 +796,9 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
             if tuple==None:
                 logging.debug("Got None, not writing anything")
                 continue
-            if type(tuple)==types.StringType: # make sure that returned value is a list
+            if type(tuple)==bytes: # make sure that returned value is a list
                 tuple = [tuple]
-            if type(tuple)==types.IntType: # make sure that it's a string
+            if type(tuple)==int: # make sure that it's a string
                 tuple = [str(tuple)]
             tuple = [unicode(x).encode("utf8") for x in tuple] # convert to utf8
             if ofh!=None:
@@ -835,7 +836,7 @@ def getLastOutType(alg, paramDict):
     if "setup" in dir(alg):
         logging.debug("Running setup")
         alg.setup(paramDict)
-    assert(type(alg.outTypes)==types.ListType)
+    assert(type(alg.outTypes)==list)
     assert(len(set(alg.outTypes))==len(alg.outTypes)) # no duplicate out type
     outExt = alg.outTypes[-1]
     return outExt

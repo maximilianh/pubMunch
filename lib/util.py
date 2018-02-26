@@ -1,3 +1,4 @@
+from __future__ import print_function
 # utility, wrappers, convenience and helper functions 
 # some are dna related
 
@@ -78,7 +79,7 @@ def extractTar(tarObject, path="."):
             # Extract directories with a safe mode.
             directoryInfos.append(tarinfo)
             tarinfo = copy.copy(tarinfo)
-            tarinfo.mode = 0700
+            tarinfo.mode = 0o700
         tarObject.extract(tarinfo, path)
 
         if tarinfo.isfile():
@@ -713,7 +714,7 @@ def translate_dna(sequence):
     #loop to read DNA sequence in codons, 3 nucleotides at a time
     for n in range(0,len(sequence),3):
         #checking to see if the dictionary has the key
-        if gencode.has_key(sequence[n:n+3]) == True:
+        if (sequence[n:n+3] in gencode) == True:
             proteinseq += gencode[sequence[n:n+3]]
         else:
             proteinseq += "X" # modif max: to make it the same as ensembl

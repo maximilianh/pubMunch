@@ -1,3 +1,4 @@
+from __future__ import print_function
 # markov model for sequences and a classifier that is using them
 import gc, math, cPickle, operator, logging, itertools, re
 from os.path import basename, splitext
@@ -62,7 +63,7 @@ class Markov():
         seqProbs = self.logProbs.items()
         seqProbs.sort(key=operator.itemgetter(1), reverse=True)
         for seq, prob in seqProbs:
-            print seq, prob
+            print(seq, prob)
 
     def train(self, seqs):
         logging.info("Training of %d seqs..." % len(seqs))

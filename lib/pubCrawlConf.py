@@ -1,3 +1,4 @@
+from __future__ import print_function
 # per-publisher configuration for pubCrawl.py
 from os.path import *
 import logging, urllib2, urlparse, urllib, re
@@ -603,7 +604,7 @@ def prepConfigIndexByHost():
 def printConfig():
     print ("== PUBLISHER CONFIGS ==")
     for pubName, pubConf in confDict.iteritems():
-        print pubName, pubConf
+        print(pubName, pubConf)
         
     print ("== HOST TO PUBLISHER ASSIGNMENTS ==")
     for host, pubId in hostToPubId.iteritems():

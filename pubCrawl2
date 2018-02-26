@@ -34,7 +34,7 @@ def setOptions(options):
     if options.tryFaster:
         scrapeLib.ERRWAIT = 0
         scrapeLib.MAXCONSECERR = -1
-        scrapeLib.BIGWAITCONSECERR = sys.maxint
+        scrapeLib.BIGWAITCONSECERR = sys.maxsize
 
     if options.noProxy:
         scrapeLib.useProxy = False

@@ -94,7 +94,7 @@ class ReadTests(TestCaseBase):
         err = None
         try:
             tsv = TSVTable(self.getInputFile("mrna1.tsv"), multiKeyCols=("noCol",))
-        except TSVError,e:
+        except TSVError as e:
             err = e
         self.failIfEqual(err, None)
         # should have chained exception
@@ -162,7 +162,7 @@ class ReadTests(TestCaseBase):
         err = None
         try:
             tsv = TSVTable(self.getInputFile("dupCol.tsv"))
-        except TSVError,e:
+        except TSVError as e:
             err = e
         self.failIfEqual(err, None)
         self.failUnlessEqual(str(err), "Duplicate column name: col1")

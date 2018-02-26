@@ -1,3 +1,4 @@
+from __future__ import print_function
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
     os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil, atexit
 from types import *
@@ -104,7 +105,7 @@ def deleteFiles(fnames):
 
 def mustBeEmptyDir(path, makeDir=False):
     " exit if path does not exist or it not empty. do an mkdir if makeDir==True "
-    if type(path)==types.ListType:
+    if type(path)==list:
         for i in path:
             notEmptyDirs = []
             notExistDirs = []
@@ -319,7 +320,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             fields = [f(x) for f, x in zip(fieldTypes, fields)]
         try:
             rec = Record(*fields)
-        except Exception, msg:
+        except Exception as msg:
             logging.error("Exception occured while parsing line, %s" % msg)
             logging.error("Filename %s" % fh.name)
             logging.error("Line was: %s" % line)
@@ -395,18 +396,18 @@ def iterTsvJoin(files, **kwargs):
     f1, f2 = files
     iter1 = iterTsvGroups(f1, **kwargs)
     iter2 = iterTsvGroups(f2, **kwargs)
-    groupId1, recs1 = iter1.next()
-    groupId2, recs2 = iter2.next()
+    groupId1, recs1 = next(iter1)
+    groupId2, recs2 = next(iter2)
     while True:
         groupId1, groupId2 = int(groupId1), int(groupId2)
         if groupId1 < groupId2:
-            groupId1, recs1 = iter1.next()
+            groupId1, recs1 = next(iter1)
         elif groupId1 > groupId2:
-            groupId2, recs2 = iter2.next()
+            groupId2, recs2 = next(iter2)
         else:
             yield groupId1, [recs1, recs2]
-            groupId1, recs1 = iter1.next()
-            groupId2, recs2 = iter2.next()
+            groupId1, recs1 = next(iter1)
+            groupId2, recs2 = next(iter2)
 
 def runCommand(cmd, ignoreErrors=False, verbose=False):
     """ run command in shell, exit if not successful """
@@ -417,9 +418,9 @@ def runCommand(cmd, ignoreErrors=False, verbose=False):
     if verbose:
         logging.info(msg)
 
-    if type(cmd)==types.StringType:
+    if type(cmd)==bytes:
         ret = os.system(cmd)
-    elif type(cmd)==types.ListType:
+    elif type(cmd)==list:
         ret = subprocess.call(cmd)
         cmd = " ".join(cmd) # for debug output
     else:
@@ -496,7 +497,7 @@ class ProgressMeter:
             sys.stderr.flush()
         self.i += count
         if self.i==self.taskCount:
-            print ""
+            print("")
 
 def test():
     pm = ProgressMeter(2000)

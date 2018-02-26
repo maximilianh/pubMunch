@@ -10,6 +10,7 @@ cool things attempted:
 - Remove inline citations such as [17,18]: regular expression too slow, especially on matrices
 
 '''
+from __future__ import print_function
 import logging
 import sys
 import argparse
@@ -44,7 +45,7 @@ def main():
 	sentenceFile, geneFile = open(args.timestamp+'-sentence.txt', 'w'), open(args.timestamp+'-genes.txt', 'w')
 	for pmid, sentence, geneIds, geneNames, rawNames, relations in parseLines(args.inputFiles, entrez, relex, authors):
 		geneFile.write(formatMeta(pmid, geneIds, geneNames, rawNames, relations))
-		print formatMeta(pmid, geneIds, geneNames, rawNames, relations)
+		print(formatMeta(pmid, geneIds, geneNames, rawNames, relations))
 		sentenceFile.write(sentence + '\n')
 		geneFile.flush()
 	if len(nonamed) > 1:

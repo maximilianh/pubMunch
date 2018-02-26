@@ -1,3 +1,5 @@
+from __future__ import print_function
+from functools import reduce
 try:
     frozenset
 except NameError:
@@ -37,7 +39,7 @@ else:
                 try:
                     v = ord(v)
                 except:
-                    print v
+                    print(v)
                     raise
             if not v in encode_entity_map or k.islower():
                 # prefer &lt; over &LT; and similarly for &amp;, &gt;, etc.
@@ -150,7 +152,7 @@ class HTMLSerializer(object):
 
         .. _html5lib user documentation: http://code.google.com/p/html5lib/wiki/UserDocumentation
         """
-        if kwargs.has_key('quote_char'):
+        if 'quote_char' in kwargs:
             self.use_best_quote_char = False
         for attr in self.options:
             setattr(self, attr, kwargs.get(attr, getattr(self, attr)))

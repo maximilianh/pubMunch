@@ -1,7 +1,8 @@
+from __future__ import print_function
 import sys
 import os
 root = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-print root
+print(root)
 
 sys.path.append(root)
 
@@ -54,11 +55,11 @@ def test_incap_session():
 if __name__ == '__main__':
     logging.basicConfig(level=10)
     is_blocked = test_blocked()
-    print 'incap blocked:', is_blocked
+    print('incap blocked:', is_blocked)
     unblock()
     is_blocked = test_blocked()
-    print 'incap blocked after unblock:', is_blocked
-    print session.cookies
+    print('incap blocked after unblock:', is_blocked)
+    print(session.cookies)
 
     # incap_session_blocked = test_incap_session()
     # print 'incap session blocked:', incap_session_blocked

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Copyright 2006-2012 Mark Diekhans
 import unittest, sys
 if __name__ == '__main__':
@@ -58,7 +59,7 @@ class TargetToQueryTests(TestCaseBase):
         #print repr(got)
         pslNegMrna = pslNegMrna.reverseComplement()
         got = mapper.queryToTargetMap(pslNegMrna, 0, 100)
-        print repr(got)
+        print(repr(got))
         assert(False)
         self.failUnlessEqual(got, (('blk', 'NM_017651', 135818901, 135818902, 510, 0, 1),))
         # end MAX MOD

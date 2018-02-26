@@ -5,6 +5,7 @@
 
 # TODO: add index by pISSN to "here" 
 
+from __future__ import print_function
 from os.path import *
 import os, sys, optparse, logging, marshal, zlib, unicodedata, gc, cPickle, shutil, random, urllib2
 import glob, json, operator

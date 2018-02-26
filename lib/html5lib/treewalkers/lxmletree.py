@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 from lxml import etree
 from html5lib.treebuilders.etree import tag_regexp
 
 from gettext import gettext
 _ = gettext
 
-import _base
+from . import _base
 
 from html5lib.constants import voidElements
 from html5lib import ihatexml

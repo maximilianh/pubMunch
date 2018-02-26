@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, glob, zipfile, types, re, tempfile, shutil, codecs
 from os.path import *
 
@@ -80,7 +81,7 @@ def main(args, options):
     #maxSubmit = options.maxSubmit
 
     if not os.path.isdir(inDir):
-        print "first parameter must be a directory"
+        print("first parameter must be a directory")
         sys.exit(1)
 
     runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster, outDir=outDir)

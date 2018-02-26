@@ -1,3 +1,4 @@
+from __future__ import print_function
 # generic functions for all pubtools, like logging, finding files, 
 # ascii-conversion, section splitting etc
 
@@ -88,7 +89,7 @@ def runCommandTimeout(command, timeout=30, bufSize=128000, env=None, shell=True)
 
     returns stdout, stderr, ret
     """
-    if type(command)==types.ListType:
+    if type(command)==list:
         logging.log(5, "running command %s" % " ".join(command))
     else:
         logging.log(5, "running command %s" % command)
@@ -496,22 +497,22 @@ def forceToUnicode(text):
     " force to unicode string: try utf8 first, then latin1 "
     if text==None:
         return None
-    if type(text)==types.UnicodeType:
+    if type(text)==str:
         #logging.debug("text is unicode")
         return text
     try:
         text = text.decode("utf8")
-    except Exception, err:
+    except Exception as err:
         logging.debug("Could not convert to unicode using utf8, problem %s, traceback to stdout" % (err))
         #traceback.print_exception(*sys.exc_info())
         try:
             text = text.decode("latin1")
             logging.debug("Converted using latin1")
-        except Exception, err:
+        except Exception as err:
             logging.debug("Could not convert to unicode using latin1, problem %s" % err)
             try:
                 text = text.decode("cp1252")
-            except Exception, err:
+            except Exception as err:
                 logging.debug("Could not convert to unicode using cp1252, problem %s, traceback to stdout" % (err))
             pass
     return text
@@ -758,7 +759,7 @@ def concatIdentifiers(inDir, outDir, outFname):
     
 def parseDoneIds(fname):
     " parse all already converted identifiers from inDir "
-    print fname
+    print(fname)
     doneIds = set()
     if os.path.getsize(fname)==0:
         return doneIds

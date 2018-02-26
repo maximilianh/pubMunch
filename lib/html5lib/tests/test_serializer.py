@@ -1,6 +1,7 @@
+from __future__ import absolute_import
 import os
 import unittest
-from support import html5lib_test_files
+from .support import html5lib_test_files
 
 try:
     import json

@@ -3,6 +3,7 @@
 # first load the standard libraries from python
 # we require at least python 2.5
 #from sys import *
+from __future__ import print_function
 import sys
 
 # load default python packages
@@ -118,7 +119,7 @@ def convertFiles(inDir, outDir, minId):
                     writer.close()
                 chunkCount += 1
                 chunkId = "0_%05d" % chunkCount
-                print "making new writer"
+                print("making new writer")
                 writer = pubStore.PubWriterFile(join(outDir, chunkId))
                 
             articleId = int(artData["articleId"]) - pubConf.identifierStart["pmc"] + minId
@@ -148,8 +149,8 @@ def convertFiles(inDir, outDir, minId):
         writer.writeFile(articleId, fileId, fileData, externalId=pmcId)
         fileCount += 1
 
-    print "Articles processed: %d" % len(donePmcIds)
-    print "Articles not found: %d" % noInfo
+    print("Articles processed: %d" % len(donePmcIds))
+    print("Articles not found: %d" % noInfo)
     writer.close()
     
 def main(args, options):

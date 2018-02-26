@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is Mozilla Universal charset detector code.
 #
@@ -27,7 +28,7 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from charsetprober import CharSetProber
+from .charsetprober import CharSetProber
 
 SAMPLE_SIZE = 64
 SB_ENOUGH_REL_THRESHOLD = 1024

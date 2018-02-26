@@ -20,7 +20,7 @@ class ExceptTests(TestCaseBase):
         ex = None
         try:
             fn1()
-        except Exception, e:
+        except Exception as e:
             ex = e
         self.failUnless(ex != None)
         self.failUnlessEqual(str(ex), "testing 1 2 3")
@@ -30,14 +30,14 @@ class ExceptTests(TestCaseBase):
         def fn1():
             try:
                 fn2()
-            except Exception,e:
+            except Exception as e:
                 raise TestExcept("in-fn1", e)
         def fn2():
             fn3()
         def fn3():
             try:
                 fn4()
-            except Exception,e:
+            except Exception as e:
                 raise TestExcept("in-fn3", e)
         def fn4():
             fn5()
@@ -46,7 +46,7 @@ class ExceptTests(TestCaseBase):
         def fn6():
             try:
                 fn7()
-            except Exception,e:
+            except Exception as e:
                 raise TestExcept("in-fn6", e)
         def fn7():
             raise OSError("OS meltdown")
@@ -54,7 +54,7 @@ class ExceptTests(TestCaseBase):
         ex = None
         try:
             fn1()
-        except Exception, e:
+        except Exception as e:
             ex = e
         self.failUnless(ex != None)
         self.failUnlessEqual(str(ex), "in-fn1,\n    caused by: TestExcept: in-fn3,\n    caused by: TestExcept: in-fn6,\n    caused by: OSError: OS meltdown")

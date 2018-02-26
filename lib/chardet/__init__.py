@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -18,7 +19,7 @@
 __version__ = "1.0.1"
 
 def detect(aBuf):
-    import universaldetector
+    from . import universaldetector
     u = universaldetector.UniversalDetector()
     u.reset()
     u.feed(aBuf)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+from __future__ import print_function
 import sys, optparse, gzip
 from collections import defaultdict
 from pm_pycbio.hgdata.Psl import Psl

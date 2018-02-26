@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os, sqlite3
 from cPickle import loads, dumps
 from time import sleep
@@ -111,7 +112,7 @@ class JobQueue(object):
                 conn.execute(self._write_lock)
                 cursor = conn.execute(self._popleft_get)
                 try:
-                    id, obj_buffer, batchId = cursor.next()
+                    id, obj_buffer, batchId = next(cursor)
                     keep_pooling = False
                 except StopIteration:
                     conn.commit() # unlock the database
@@ -169,7 +170,7 @@ class JobQueue(object):
         with self._get_conn() as conn:
             cursor = conn.execute(self._batch_status, (batchId,))
             try:
-                res = cursor.next()
+                res = next(cursor)
                 #if res==0:
                     #return "batch does not exist"
                 hasFailed, jobCount, jobDoneCount, concatStarted, concatDone = res
@@ -196,15 +197,15 @@ def test():
     q.batchIncreaseCount("batch2")
 
     e = q.popleft()
-    print e
+    print(e)
     assert(e==(1, "mybatch"))
 
     e = q.popleft()
-    print e
+    print(e)
     assert(e==(2, "mybatch"))
 
     e = q.popleft()
-    print e
+    print(e)
     assert(e==(3, "mybatch"))
 
     assert(1== q.peek())
@@ -214,7 +215,7 @@ def test():
     assert( q.activeConcats("mybatch")==1)
     q.batchIncreaseCount("mybatch")
     q.batchIncreaseCount("mybatch")
-    print q.getStatus("batch2")
+    print(q.getStatus("batch2"))
     q.deleteBatch("mybatch")
 
 if __name__=="__main__":

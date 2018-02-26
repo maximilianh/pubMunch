@@ -44,8 +44,8 @@ class TabFileReader(object):
         if self.csvRdr == None:
             return None
         try:
-            row = self.csvRdr.next()
-        except Exception, e:
+            row = next(self.csvRdr)
+        except Exception as e:
             self.close()
             if isinstance(e, StopIteration):
                 return None

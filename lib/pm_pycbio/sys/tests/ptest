@@ -73,13 +73,13 @@ if opts.sleepTime != None:
 if opts.stdinCnt != None:
     try:
         rdLines(sys.stdin, opts.stdinCnt)
-    except Exception, ex:
+    except Exception as ex:
         err(opts.name, "error reading stdin", ex)
 
 if opts.stdoutCnt != None:
     try:
         wrLines(sys.stdout, opts.stdoutCnt)
-    except Exception, ex:
+    except Exception as ex:
         err(opts.name, "error writing stdout", ex)
 
 if opts.fifoRdCnt != None:
@@ -87,7 +87,7 @@ if opts.fifoRdCnt != None:
         fh = file(opts.fifo)
         rdLines(fh, opts.fifoRdCnt)
         fh.close()
-    except Exception, ex:
+    except Exception as ex:
         err(opts.name, "error reading " + opts.fifo, ex)
 
 if opts.fifoWrCnt != None:
@@ -95,5 +95,5 @@ if opts.fifoWrCnt != None:
         fh = file(opts.fifo, "w")
         wrLines(fh, opts.fifoWrCnt)
         fh.close()
-    except Exception, ex:
+    except Exception as ex:
         err(opts.name, "error writing " + opts.fifo, ex)

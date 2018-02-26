@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is mozilla.org code.
 #
@@ -25,7 +26,7 @@
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-from constants import eStart, eError, eItsMe
+from .constants import eStart, eError, eItsMe
 
 # BIG5 
 

@@ -92,7 +92,7 @@ class Task(threading.Thread):
             try:
                 self.__receive()
                 self.runFunc(self)
-            except Exception, e:
+            except Exception as e:
                 sys.stderr.write("Fatal error: unhandled exception in task:\n")
                 traceback.print_exc(sys.stderr)
                 os._exit(1)

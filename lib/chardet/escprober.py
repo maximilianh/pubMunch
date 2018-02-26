@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 ######################## BEGIN LICENSE BLOCK ########################
 # The Original Code is mozilla.org code.
 #
@@ -26,9 +27,9 @@
 ######################### END LICENSE BLOCK #########################
 
 import constants, sys
-from escsm import HZSMModel, ISO2022CNSMModel, ISO2022JPSMModel, ISO2022KRSMModel
-from charsetprober import CharSetProber
-from codingstatemachine import CodingStateMachine
+from .escsm import HZSMModel, ISO2022CNSMModel, ISO2022JPSMModel, ISO2022KRSMModel
+from .charsetprober import CharSetProber
+from .codingstatemachine import CodingStateMachine
 
 class EscCharSetProber(CharSetProber):
     def __init__(self):

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Python bytecode 2.7 (decompiled from Python 2.7)
 # Embedded file name: /cluster/home/max/projects/pubs/tools/lib/pubCrawlLib.py
 # Compiled at: 2016-07-12 00:58:53
@@ -174,7 +175,7 @@ def getLandingUrlSearchEngine(articleData):
     else:
         landingUrl = resolvePmidWithSfx(pubConf.crawlSfxServer, articleData['pmid'])
     if landingUrl == None:
-        raise pubGetError('No fulltext for this article', 'noOutlinkOrDoi'), landingUrl
+        raise pubGetError('No fulltext for this article', 'noOutlinkOrDoi')(landingUrl)
     return landingUrl
 
 def getDelaySecs(host, forceDelaySecs):
@@ -248,7 +249,7 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
         page['url'] = browser.current_url
         page['data'] = browser.page_source
         page['mimeType'] = 'unknown'
-        if type(page['data']) == types.UnicodeType:
+        if type(page['data']) == str:
             page['data'] = page['data'].encode('utf8')
         return page
 
@@ -386,7 +387,7 @@ def htmlFindLinkUrls(page, attrs={}):
     elList = bs.findAll('a', attrs=attrs)
     urls = []
     for el in elList:
-        if not el.has_key('href'):
+        if 'href' not in el:
             continue
         url = el['href']
         url = urlparse.urljoin(page['url'], url)
@@ -922,7 +923,7 @@ def printFileHash(fulltextData, artMeta):
          page['url'],
          str(len(page['data'])),
          sha1]
-        print '\t'.join(row)
+        print('\t'.join(row))
 
 
 def writePaperData(docId, pubmedMeta, fulltextData, outDir):

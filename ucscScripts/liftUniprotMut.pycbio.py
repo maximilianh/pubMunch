@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+from __future__ import print_function
 import sys
 sys.path.append("../lib/")
 import maxCommon, pubConf
@@ -32,7 +33,7 @@ if __name__ == '__main__':
         for psl in mapPsls:
             bed = mapper.mapQuery(psl, mutPos, mutPos+3)
             if bed==None:
-                print "Could not map: ", mut
+                print("Could not map: ", mut)
                 continue
             bed[3] = " ".join((mut.disease.split("|")[0]).replace("-", " ").replace(" type", "").split()[:3])
             bed.append(mut.disease)
@@ -46,5 +47,5 @@ if __name__ == '__main__':
             count +=1
             mapper.clear()
             #print psl.tName
-    print "%d features written to %s" % (count, ofh.name)
-    print "%d sequences not mapped to genome" % len(notMapped)
+    print("%d features written to %s" % (count, ofh.name))
+    print("%d sequences not mapped to genome" % len(notMapped))

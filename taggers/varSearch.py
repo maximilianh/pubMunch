@@ -1,3 +1,4 @@
+from __future__ import print_function
 import geneFinder, varFinder
 import pubNlp
 
@@ -49,8 +50,8 @@ def findVarDisGeneDrug(pmid, text):
         # check if we still have a disease and drug left
         if len(conds)==0 or len(drugs)==0:
             continue
-        print "drugs", drugs
-        print "diseases", conds
+        print("drugs", drugs)
+        print("diseases", conds)
 
         geneSnips = pubNlp.rangeTexts(sentText, genes)
         condSnips = pubNlp.rangeTexts(sentText, conds)
@@ -67,7 +68,7 @@ def findVarDisGeneDrug(pmid, text):
             continue
 
         for variant, mentions in variants["prot"]:
-            print "grounding variant", variant, mentions
+            print("grounding variant", variant, mentions)
             groundedMuts, ungroundVar, beds = \
                 varFinder.groundVariant(pmid, sentText, variant, mentions, [], entrezIds)
 

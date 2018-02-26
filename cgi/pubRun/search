@@ -1,5 +1,6 @@
 #!/cluster/software/bin/python2.7
 # format python errors as html
+from __future__ import print_function
 import cgitb
 cgitb.enable()
 
@@ -402,16 +403,16 @@ def printSnippets(markerType, dataType, markerId):
         url = article["fulltextUrl"]
 
         titleLine = '<a href="%(url)s">%(title)s</a>\n' % locals()
-        print titleLine
+        print(titleLine)
         authorLine = '<br><small style="color: grey">%(authors)s - %(journal)s - %(year)s</small>' % locals()
-        print authorLine
+        print(authorLine)
 
         artSnips = snippets[article["articleId"]]
         if len(artSnips)>3:
             artSnips = artSnips[-3:]
-        print "<br>"
-        print "...".join(artSnips)
-        print "<p>"
+        print("<br>")
+        print("...".join(artSnips))
+        print("<p>")
 
 def printQueryForm():
     h = html.htmlWriter()
@@ -447,8 +448,8 @@ def printQueryForm():
 
 # ====== MAIN =======
 def main():
-    print "Content-Type: text/html; charset=utf8"     # HTML is following
-    print                               # blank line, end of headers
+    print("Content-Type: text/html; charset=utf8")     # HTML is following
+    print()                               # blank line, end of headers
 
     form = cgi.FieldStorage()
     if "query" in form:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # example file for pubtools
 
 # this file can search articles for a list of keywords contained in a separate

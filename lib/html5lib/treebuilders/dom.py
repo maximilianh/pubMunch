@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 
 from xml.dom import minidom, Node, XML_NAMESPACE, XMLNS_NAMESPACE
 try:
@@ -7,7 +8,7 @@ except:
 import re
 import weakref
 
-import _base
+from . import _base
 from html5lib import constants, ihatexml
 from html5lib.constants import namespaces
 
@@ -160,7 +161,7 @@ def getDomBuilder(DomImplementation):
     
         def insertText(self, data, parent=None):
             data=data
-            if parent <> self:
+            if parent != self:
                 _base.TreeBuilder.insertText(self, data, parent)
             else:
                 # HACK: allow text nodes as children of the document node
@@ -252,7 +253,7 @@ def getDomBuilder(DomImplementation):
             attr = node.getAttributeNode(attrname)
             if attr.namespaceURI == None and ':' in attr.nodeName:
               prefix = attr.nodeName.split(':')[0]
-              if nsmap.has_key(prefix):
+              if prefix in nsmap:
                 del attributes[(attr.namespaceURI, attr.nodeName)]
                 attributes[(nsmap[prefix],attr.nodeName)]=attr.nodeValue
     

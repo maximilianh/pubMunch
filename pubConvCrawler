@@ -3,6 +3,7 @@
 # first load the standard libraries from python
 # we require at least python 2.5
 #from sys import *
+from __future__ import print_function
 import sys
 
 # load default python packages
@@ -136,12 +137,12 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
 
             missFields = set(allFields) - set(rowDict.keys())
             if len(missFields)!=0:
-                print "missing fields:", missFields
+                print("missing fields:", missFields)
                 assert False
 
             excessFields = set(rowDict.keys()) - set(allFields)
             if len(excessFields)!=0:
-                print "excess fields:", missFields
+                print("excess fields:", missFields)
                 assert False
 
 
@@ -217,7 +218,7 @@ def submitJobs(inDir, outDir, useCluster, chunkSize, doImages):
     if isdir(buildDir):
         text = "%s already exists. Looks like a previous run crashed or is ongoing. Do rm -rf %s if you are sure no conversion is going on now" % (buildDir, buildDir)
         logging.error(text)
-        raise(Exception(text))
+        raise Exception
 
     # get already done PMIDs if we're not running for the first time
     logging.info("Looking for already converted files in %s", outDir)
