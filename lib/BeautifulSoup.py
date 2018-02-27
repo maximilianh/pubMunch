@@ -87,7 +87,6 @@ __license__ = "New-style BSD"
 from sgmllib import SGMLParser, SGMLParseError
 import codecs
 import markupbase
-import types
 import re
 import sgmllib
 try:

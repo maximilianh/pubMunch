@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import logging, sys, optparse
+import logging, sys
 import urllib
 import urllib2
 import xml.etree.ElementTree as et
@@ -51,8 +51,8 @@ def eSearch(db, query, retMax):
     return gis
 
 def accsToGis_oneByOne(db, accs):
-    """ if accs are old/supressed or with version number at the end, need to use this, a lot slower 
-    
+    """ if accs are old/supressed or with version number at the end, need to use this, a lot slower
+
     """
     logging.info("Getting GIs for %d accessions, rate %d req/sec, one dot = 50 requests" % (len(accs), MAXRATE))
     gis = []
@@ -68,7 +68,7 @@ def accsToGis_oneByOne(db, accs):
     return gis
 
 def accsToGis(db, accs):
-    """ search for accessions and post to eutils history server 
+    """ search for accessions and post to eutils history server
     return webenv, key, count
     """
     # query and put into eutils history
@@ -114,7 +114,7 @@ def eFetch(db, gis, outFh, retType="fasta", retMax=500):
         resp = urllib2.urlopen(req).read()
         outFh.write(resp)
         wait(DELAY)
-    
+
 def downloadFromEutils(db, accs, outFh, retType="fasta", retMax=1000, oneByOne=False):
     """ combine an esearch with efetch to download from eutils
     If version numbers are included in the accession list, you need to set oneByOne=True
@@ -125,4 +125,3 @@ def downloadFromEutils(db, accs, outFh, retType="fasta", retMax=1000, oneByOne=F
         gis = accsToGis(db, accs)
     logging.info("Got %d GIs" % len(gis))
     eFetch(db, gis, outFh, retType, retMax)
-

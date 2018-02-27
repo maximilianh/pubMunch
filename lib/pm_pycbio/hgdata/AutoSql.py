@@ -1,6 +1,5 @@
 # Copyright 2006-2012 Mark Diekhans
 """support classes for parsing autoSql generated objects"""
-import string
 
 def strArraySplit(commaStr):
      "parser for comma-separated string list into a list"
@@ -12,7 +11,7 @@ def strArraySplit(commaStr):
 def strArrayJoin(strs):
      "formatter for a list into a comma seperated string"
      if strs != None:
-          return string.join(strs,",") + ","
+          return ",".join(strs) + ","
      else:
           return ","
 
@@ -32,7 +31,7 @@ def intArrayJoin(ints):
           strs = []
           for i in ints:
                strs.append(str(i))
-          return string.join(strs,",") + ","
+          return ",".join(strs) + ","
      else:
           return ","
 

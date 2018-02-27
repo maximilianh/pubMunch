@@ -9,12 +9,11 @@ from __future__ import print_function
 # information as we can from local sources and cache as aggressively as possible,
 # to avoid sending any http query twice.
 
-import logging, os, shutil, tempfile, codecs, re, types, datetime, \
+import logging, os, shutil, codecs, re, types, datetime, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
     sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, json, traceback
 from os.path import *
 from collections import defaultdict, OrderedDict
-from distutils.spawn import find_executable
 from socket import timeout
 from maxWeb import httpStartsWith
 

@@ -1,10 +1,13 @@
 from __future__ import print_function
-# generic functions for all pubtools, like logging, finding files, 
+from __future__ import division
+# generic functions for all pubtools, like logging, finding files,
 # ascii-conversion, section splitting etc
 
+from builtins import range
+from past.utils import old_div
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
     glob, operator, doctest, ftplib, random, shutil, atexit, pickle
-import pubConf, pubXml, maxCommon, orderedDict, pubStore, maxRun, maxTables, pubKeyVal
+import pubConf, pubXml, maxCommon, pubStore, maxRun, maxTables, pubKeyVal
 from os.path import *
 from distutils.spawn import find_executable
 
@@ -19,11 +22,11 @@ except:
 forceHeadnode = None
 
 # some data for countBadChars
-all_chars = (unichr(i) for i in xrange(0x110000))
+all_chars = (chr(i) for i in range(0x110000))
 specCodes = set(range(0,32))
 goodCodes = set([7,9,10,11,12,13]) # BELL, TAB, LF, NL, FF (12), CR are not counted
 badCharCodes = specCodes - goodCodes
-control_chars = ''.join(map(unichr, badCharCodes))
+control_chars = ''.join(map(chr, badCharCodes))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 def getFastUniqueTempFname():
@@ -115,12 +118,12 @@ def runCommandTimeout(command, timeout=30, bufSize=128000, env=None, shell=True)
     return stdout, stderr, proc.returncode
 
 def findFiles(dir, extensions):
-    """ find all files in or below dir with one of several extensions 
+    """ find all files in or below dir with one of several extensions
     extensions is a list, e.g. [".tab", ".txt"] or just a string like ".psl"
 
     returns typles: (relative directory to dir, full file path)
     """
-    if isinstance(extensions, str): 
+    if isinstance(extensions, str):
         extensions = [extensions]
     logging.debug("Reading filenames in %s with extensions %s" % (dir, str(extensions)))
     result = set()
@@ -141,7 +144,7 @@ def findFiles(dir, extensions):
 
 def setupLoggingOptions(options):
     setupLogging("", options)
-    
+
 def verboseFunc(message):
     " we add this to logging "
     logging.log(5, message)
@@ -239,7 +242,7 @@ def setupLogging(progName, options, parser=None, logFileName=None, \
     # tell the handler to use this format
     console.setFormatter(formatter)
     console.setLevel(stdoutLevel)
-    # make sure that the root logger gets verbose messages 
+    # make sure that the root logger gets verbose messages
     logging.getLogger('').setLevel(min(stdoutLevel, fileLevel))
     # add the handler to the root logger
     rootLog.addHandler(console)
@@ -359,8 +362,8 @@ def getFileExt(fileData, locFname, mimeType):
 def toAscii(fileData, mimeType=None, \
         maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxTxtFileSize, \
         minTxtFileSize=pubConf.minTxtFileSize):
-    """ pick out the content from the fileData dictionary, 
-    write it to a local file in tempDir and convert it to 
+    """ pick out the content from the fileData dictionary,
+    write it to a local file in tempDir and convert it to
     ASCII format. Put output back into the content field.
 
     mimeType will be used if specified, otherwise try to guess
@@ -399,7 +402,7 @@ def toAscii(fileData, mimeType=None, \
     if cmdLine=="COPY":
         # fileData["content"] already contains ASCII text
         pass
-        
+
     elif cmdLine=="XMLTEXT" or cmdLine=="NXMLTEXT":
         logging.debug("stripping XML tags")
         if cmdLine=="NXMLTEXT":
@@ -447,7 +450,7 @@ def toAscii(fileData, mimeType=None, \
     return fileData
 
 def toAsciiEscape(fileData, mimeType=None, maxBinFileSize=pubConf.maxBinFileSize, maxTxtFileSize=pubConf.maxBinFileSize, minTxtFileSize=pubConf.minTxtFileSize):
-    """ convert to ascii, escape special characters 
+    """ convert to ascii, escape special characters
         returns a fileData dict
     """
     fileData = toAscii(fileData, mimeType=mimeType,\
@@ -456,8 +459,8 @@ def toAsciiEscape(fileData, mimeType=None, maxBinFileSize=pubConf.maxBinFileSize
     return fileData
 
 def stringListToDict(paramList):
-    """ splits all strings at '=' and returns a dict from these 
-    input: ["a=3", "b=bla"] 
+    """ splits all strings at '=' and returns a dict from these
+    input: ["a=3", "b=bla"]
     output: {"a":"3","b":"bla"}
     """
     paramItems = [string.split("=", 1) for string in paramList]
@@ -520,13 +523,13 @@ def forceToUnicode(text):
 def dictToUnicode(dict):
     " forcing all values of dict to unicode strings "
     result = {}
-    for key, val in dict.iteritems():
+    for key, val in dict.items():
         result[key] = forceToUnicode(val)
     return result
 
 def recursiveSubmit(runner, parameterString):
     """ call the program from sys.argv[0] with the given parameterString
-      using maxRun.Runner 
+      using maxRun.Runner
     """
     progFile = os.path.abspath(sys.argv[0])
     python = sys.executable
@@ -534,7 +537,7 @@ def recursiveSubmit(runner, parameterString):
     runner.submit(cmd)
 
 def makeClusterRunner(scriptName, maxJob=None, runNow=True, algName=None, headNode=None, maxRam=None, outDir=None):
-    """ create a default runner to submit jobs to cluster system 
+    """ create a default runner to submit jobs to cluster system
     outDir is the directory where the output files go. A directory
     "<outDir>/clusterBatch" will be created with the tracking info for the
     cluster jobs, e.g. the parasol status files
@@ -637,7 +640,7 @@ def getFtpDir(server, path):
     logging.info("Getting FTP directory server %s, %s" % (server, path))
     ftp = ftplib.FTP(server, user="anonymous", passwd=pubConf.email, timeout=60)
     ftp.cwd(path)
-    dirLines = ftp.nlst() 
+    dirLines = ftp.nlst()
     #fnames = [split(line)[0] for line in dirLines]
     logging.debug("Found files %s" % dirLines)
     return dirLines
@@ -664,14 +667,14 @@ def splitAnnotId(annotId):
     articleDigits = pubConf.ARTICLEDIGITS
 
     annotIdInt = int(annotId)
-    articleId  = annotIdInt / 10**(fileDigits+annotDigits)
+    articleId  = old_div(annotIdInt, 10**(fileDigits+annotDigits))
     fileAnnotId= annotIdInt % 10**(fileDigits+annotDigits)
-    fileId     = fileAnnotId / 10**(annotDigits)
+    fileId     = old_div(fileAnnotId, 10**(annotDigits))
     annotId    = fileAnnotId % 10**(annotDigits)
     return articleId, fileId, annotId
 
 def splitAnnotIdString(annotIdString):
-    """ split annot as a string into three parts 
+    """ split annot as a string into three parts
     >>> splitAnnotId("200616640112350013")
     (2006166401, 123, 50013)
     """
@@ -697,9 +700,9 @@ def makeTempDir(prefix, tmpDir=None):
     return dirName
 
 def makeTempFile(prefix, suffix=".psl"):
-    """ create tempfile in pubtools tempdir dir with given prefix. 
+    """ create tempfile in pubtools tempdir dir with given prefix.
     Return tuple (file object , name).
-    Tempfile will auto-delete when file object is destructed, unless debug mode is set. 
+    Tempfile will auto-delete when file object is destructed, unless debug mode is set.
     """
     tmpDir=pubConf.getTempDir()
     if pubConf.debug:
@@ -756,7 +759,7 @@ def concatIdentifiers(inDir, outDir, outFname):
     ofh.close()
 
     return outPath
-    
+
 def parseDoneIds(fname):
     " parse all already converted identifiers from inDir "
     print(fname)
@@ -768,9 +771,9 @@ def parseDoneIds(fname):
         doneIds.add(row.externalId)
     logging.info("Found %d identifiers of already parsed articles" % len(doneIds))
     return doneIds
-            
+
 def concatDelIdFiles(inDir, outDir, outFname):
-    """ concat all id files in outDir, write to outFname, delete all id files when finished 
+    """ concat all id files in outDir, write to outFname, delete all id files when finished
     """
     outPath = join(outDir, outFname)
     inMask = join(inDir, "*ids.tab")
@@ -783,7 +786,7 @@ def concatDelIdFiles(inDir, outDir, outFname):
 lockFnames = []
 
 def setLockFile(outDir, lockName):
-    """ 
+    """
     create lock file. die if already exists
     """
     global lockFnames
@@ -796,7 +799,7 @@ def setLockFile(outDir, lockName):
     atexit.register(removeLockFiles)
 
 def removeLockFiles():
-    """ 
+    """
     remove all lock files. Die if not exists.
     """
     for lockFname in lockFnames:

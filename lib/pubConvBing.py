@@ -1,14 +1,13 @@
-import zipfile, glob, logging, sys, atexit, shutil, gzip, re, HTMLParser, datetime, operator
+import zipfile, glob, logging, sys, shutil, gzip, re, HTMLParser, datetime, operator
 import lxml.html
 import unidecode
 from lxml.html.clean import Cleaner
 from os.path import *
-from collections import defaultdict
 
-import pubGeneric, maxCommon, pubGeneric, pubStore, pubConvElsevier, pubXml, pubCompare
+import pubGeneric, maxCommon, pubGeneric, pubStore, pubXml, pubCompare
 
 def indexTsv(zipFname, tsvName, outFname):
-    """ unzip a zipfile, recompress all the tsvs inside 
+    """ unzip a zipfile, recompress all the tsvs inside
     with gzip and create an .index.gz for them"""
 
     #def indexTsv(zipFname, tsvName, outFname, bgzipPath):
@@ -49,10 +48,10 @@ def indexTsv(zipFname, tsvName, outFname):
     cmd = "gzip %s -c > %s" % (tmpFname, finalFname)
     maxCommon.runCommand(cmd)
     shutil.rmtree(tmpDir)
-        
+
 def rewriteIndexesFindDuplicates(inDir):
     """
-      read all index.gz files, sorted by date, mark all duplicated urls with ! as the first 
+      read all index.gz files, sorted by date, mark all duplicated urls with ! as the first
       letter. Mark all but the last occurence.
     """
     logging.info("rewriting indices in reverse chronological order, prefixing duplicate URLs with '!'")
@@ -93,8 +92,8 @@ def rewriteIndexesFindDuplicates(inDir):
 
 
 def createIndexJobs(runner, inDir):
-    """ 
-        submit jobs to cluster to index tsv files within zip files 
+    """
+        submit jobs to cluster to index tsv files within zip files
     """
     zipFnames = glob.glob(join(inDir, "*.zip"))
     # keep order of input of input files for first run
@@ -115,7 +114,7 @@ def createIndexJobs(runner, inDir):
             #params = [zipFname, tsvName, outFname, bgzipPath]
             runner.submitPythonFunc("pubConvBing.py", "indexTsv", params)
     runner.finish()
-            
+
     #pubStore.appendToUpdatesTxt(finalOutDir, updateId, maxArticleId, processFiles)
 
 #def concatUrls(inDir, outDir, outFname):
@@ -204,7 +203,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
 def diacToUnicode(textOrig):
     """ in theory DC uses standard html diacritics
     http://dublincore.org/documents/2000/07/16/usageguide/simple-html.shtml#one
-    but nature does it like this 
+    but nature does it like this
     Bj|[ouml]|rn Bauer
     we support both
     """
@@ -224,7 +223,7 @@ def parseMetaData(metaTags, artDict):
         attribs = metaTag.attrib
         if not ("name" in attribs and "content" in attribs):
             continue
-        
+
         name = attribs["name"]
         content = attribs["content"]
         name = name.lower()
@@ -323,16 +322,16 @@ def minimalHtmlToDicts(url, content):
 def convertMicrosoft(content):
     content = content.replace("#N#", "\n") # Microsoft replaces special chars
     content = content.replace("#R#", "\n") # why oh why?
-    content = content.replace("#M#", "\n") # 
-    content = content.replace("#TAB#", " ") # 
+    content = content.replace("#M#", "\n") #
+    content = content.replace("#TAB#", " ") #
     return content
 
 def convertHtmlToDicts(url, content):
-    """ given a url and content, create file and article dictionaries 
+    """ given a url and content, create file and article dictionaries
     content has to include normal newlines, no \a or #N# replacers
 
     returns None, None on error
-    
+
     """
     # lxml does not like unicode if the document has an explicit encoding
     if " encoding=" not in content:
@@ -356,7 +355,7 @@ def convertHtmlToDicts(url, content):
     else:
         logging.debug("No title found?")
         title = ""
-        
+
     metaTags = tree.findall("head/meta")
     artDict = parseMetaData(metaTags, artDict)
     logging.debug("Cleaning html tree")
@@ -365,7 +364,7 @@ def convertHtmlToDicts(url, content):
     cleaner.style = True
     cleaner.meta = True
     cleaner.embedded = True
-    cleaner.page_structure=True 
+    cleaner.page_structure=True
     #cleaner.remove_tags = ["a", "li", "td"]
     cleanTree = cleaner.clean_html(tree)
     logging.debug("Cleaning done, now converting to ASCII")
@@ -386,7 +385,7 @@ def convertHtmlToDicts(url, content):
     fileDict = pubStore.createEmptyFileDict(url=url, content=asciiText, mimeType="text/html")
     logging.debug("meta data extract success: %s" % artDict)
     return artDict, fileDict
-        
+
 def convertOneChunk(gzDir, idFname, inIndexFile, outFile):
     # for each row in index:
     store = pubStore.PubWriterFile(outFile)
@@ -441,4 +440,3 @@ def convertOneChunk(gzDir, idFname, inIndexFile, outFile):
         store.writeFile(articleId, fileId, fileDict)
         store.writeArticle(articleId, artDict)
     store.close()
-    

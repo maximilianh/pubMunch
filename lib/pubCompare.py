@@ -1,9 +1,9 @@
 # Create medline fingerprints
 
 # Try to find PMID for an article by comparing fingerprints of article data against medline
-# fingerprints. 
+# fingerprints.
 
-import logging, optparse, sys, os, marshal, unicodedata, gdbm, unidecode, gzip
+import logging, optparse, sys, os, marshal, unicodedata, unidecode, gzip
 import pubGeneric, pubConf, maxCommon, pubStore, pubKeyVal
 from os.path import isfile, join
 
@@ -62,7 +62,7 @@ def removePrefixes(famNameStr):
     return famNameStr
 
 def getFingerprint2(row):
-    """ fp2 is: first five authors, year, first and last word of title, separated by | 
+    """ fp2 is: first five authors, year, first and last word of title, separated by |
     returns None if authors or title is too short or no year.
     """
     if row.year=="" or row.title==None:
@@ -105,7 +105,7 @@ def lookupFprint(fprint, artMap, artIds):
         logging.debug("fingerprint is empty")
         return None
     # does not work with gdmb:
-    # artId = artMap.get(fprint, None) 
+    # artId = artMap.get(fprint, None)
     # gdbm does not implement __contains__ so might be better to use has_key() instead of "in"
     #if artMap.has_key(fprint):
     artId = artMap.get(fprint, None)
@@ -171,7 +171,7 @@ def writeDicts(mapList, outFname, articleIds):
     fprintType = 0
     typeDesc = {0:"doi", 1:"issn|vol|issue|page", 2:"author|year|titlewords"}
     for fprints in mapList:
-        
+
         logging.info("Writing %d fingerprints, type %s" % (len(fprints), typeDesc[fprintType]))
         pm = maxCommon.ProgressMeter(len(fprints))
         for fprint, artId in fprints.iteritems():
@@ -254,11 +254,11 @@ def createWriteFingerprints(textDir, updateIds=[]):
         saveMergeFingerprints(artIds, map0, map1, map2, textDir)
 
 def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
-    """ 
+    """
     Resolve articleData to articleIds by mapping through fingerprints in the map0-2 dicts.
 
     if artIds is not None:
-        Return a tuple with fingerprintUsed, artId, extId, doi, pmid 
+        Return a tuple with fingerprintUsed, artId, extId, doi, pmid
     if artIds is None:
         Return just the value in the maps (PMID)
 
@@ -289,7 +289,7 @@ def lookupArtIds(articleData, map0, map1, map2, artIds, noPrints, noMatches):
     if matchData!=None:
         return matchData
 
-    # if still no match (strange page numbers etc), try fingerprint2 
+    # if still no match (strange page numbers etc), try fingerprint2
     logging.debug("Trying authors,title,year")
     fprint2 = getFingerprint2(articleData)
     if fprint1==None and fprint1b==None and fprint2==None:
@@ -312,9 +312,9 @@ class PmidFinder:
         self.db = pubGeneric.openKeyValDb(fname)
         self.noPrints = []
         self.noMatches = []
-        
+
     def lookupPmid(self, articleDict):
-        """ lookup the pmid on-disk using fingerprints in dbm files 
+        """ lookup the pmid on-disk using fingerprints in dbm files
         """
         if self.db==None:
             logging.debug("no db, not returning any pmid")
@@ -335,5 +335,3 @@ class PmidFinder:
 
     def close(self):
         self.db.close()
-
-    

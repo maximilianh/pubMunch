@@ -1,14 +1,12 @@
 from __future__ import print_function
-# utility, wrappers, convenience and helper functions 
+# utility, wrappers, convenience and helper functions
 # some are dna related
 
-import random
 from sys import *
 import os, logging
 import re
-import shutil, tarfile
+import shutil
 import math, socket
-import urllib
 import urllib2
 from math import *
 import ftplib
@@ -100,10 +98,10 @@ def extractTar(tarObject, path="."):
         directories.append(os.path.join(path, tarinfo.name))
 
     return directories, filenames
- 
+
 
 def revComp(seq):
-    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
+    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n",
             "Y":"R", "R" : "Y", "M" : "K", "K" : "M", "W":"W", "S":"S",
             "H":"D", "B":"V", "V":"B", "D":"H", "y":"r", "r":"y","m":"k",
             "k":"m","w":"w","s":"s","h":"d","b":"v","d":"h","v":"b","y":"r","r":"y" }
@@ -261,7 +259,7 @@ def getFtpDir(ftp, dir, onlySubdirs=False):
         print ("error: directory %s does not seemt to exist on host %s" % (dir, ftp.host))
         return None
     lines = []
-    dirs = [] 
+    dirs = []
     ftp.retrlines('LIST', lines.append)     # list directory contents
     for l in lines:
         if onlySubdirs and not l.startswith("d"):
@@ -312,7 +310,7 @@ def httpMatches(url, reStr):
     html= html.readlines()
     regex = re.compile(reStr)
     matches = []
-    for l in html: 
+    for l in html:
         matches.extend(regex.findall(l))
     return matches
 
@@ -335,7 +333,7 @@ def httpDownload(url, fname, verbose=False):
             logging.info("Retrying download of %s" % url)
             tryCount =- 1
             pass
-            
+
     if not success:
         logging.error("Unable to download %s" % url)
         return False
@@ -413,7 +411,7 @@ def sql(db, sql, fields=None):
                 newCols = []
                 for col in row:
                     if type(col)==arrayType:
-                       newCols.append(col.tostring()) 
+                       newCols.append(col.tostring())
                     else:
                         newCols.append(col)
                 newRows.append(newCols)
@@ -494,7 +492,7 @@ def hitStats(all, predicts, targets, notTargets=None, notPredicts=None):
         TN = len(notTargets.intersection(notPredicts))
         FN = len(targets.intersection(notPredicts))
 
-        #TP = float(TP) 
+        #TP = float(TP)
         #FP = float(FP)
         #TN = float(TN)
         #FN = float(FN)
@@ -509,7 +507,7 @@ def hitStats(all, predicts, targets, notTargets=None, notPredicts=None):
         stats.PPV  = divide(TP , (TP + FP))      # PRECISION aka Positive Predictive Value
         # Precision measures the proportion of the claimed true functional sites that are indeed true functional sites.
         stats.PC   = divide(TP , (TP + FP) )
-        # Accuracy  measures the proportion of predictions, both for true functional sites and false functional sites that are correct. 
+        # Accuracy  measures the proportion of predictions, both for true functional sites and false functional sites that are correct.
         stats.Acc  = divide((TP + TN) , (TP + FP + FN + TN))
 
         CC_top = TP * TN - FN * FP
@@ -554,7 +552,7 @@ def hypergProbSum(k, N, m, n):
     for i in range(0, k):
         sum += hypergProb(i, N, m, n)
     return sum
-    
+
 def factorial(n, _known=[1]):
     assert isinstance(n, int), "Need an integer. This isn't a gamma"
     assert n >= 0, "Sorry, can't factorilize a negative"
@@ -588,7 +586,7 @@ def binProbGt(k, size, prob):
 
     # -- using scipy, not exact enough:
     # 1.0 - cdf is not  as exact as sf
-    #return 1.0 - scipy.stats.distributions.binom.cdf(k-1, n, p) 
+    #return 1.0 - scipy.stats.distributions.binom.cdf(k-1, n, p)
 
     # scipy is too complicated to compile on the cluster
     #return scipy.stats.distributions.binom.sf(k, size, prob)
@@ -628,30 +626,30 @@ def statsAddPVal(stats,flankingTargetGenes, flankingAnnotatedGenes, geneHasTarge
     else:
         p = 0.0
 
-    #pVal_bp = 1.0 - util.binProbSum(n, p, k) 
-    pVal_bp = util.binProbGt(k, size=n, prob=p) 
+    #pVal_bp = 1.0 - util.binProbSum(n, p, k)
+    pVal_bp = util.binProbGt(k, size=n, prob=p)
 
     stats.bnpPval = pVal_bp
     stats.bnpParams  = {'n': n, 'k' : k, 'pVal' : pVal_bp, 'p' : p}
-    pVal_poiss = 1.0 - util.poissProbSum(n, p, k) 
+    pVal_poiss = 1.0 - util.poissProbSum(n, p, k)
     stats.pVal_poisson = pVal_poiss
     stats.poissParams  = {'lambda' : n*p, 'n': n, 'k' : k, 'pVal' : pVal_poiss, 'p' : p}
 
     # corrected binom. probab., using relation target CNS len / all CNS len as p
     if geneScores:
-        targetScore       = sum([geneScores.get(g,0) for g in geneHasTargetAnnot]) 
-        annotScore        = sum([geneScores.get(g,0) for g in geneHasAnnot]) 
-        flankAnnotScore   = sum([geneScores.get(g,0) for g in flankingAnnotatedGenes]) 
-        flankTargetScore  = sum([geneScores.get(g,0) for g in flankingTargetGenes]) 
+        targetScore       = sum([geneScores.get(g,0) for g in geneHasTargetAnnot])
+        annotScore        = sum([geneScores.get(g,0) for g in geneHasAnnot])
+        flankAnnotScore   = sum([geneScores.get(g,0) for g in flankingAnnotatedGenes])
+        flankTargetScore  = sum([geneScores.get(g,0) for g in flankingTargetGenes])
         avg_All_Score = float(annotScore)/  N
         avg_Trg_Score = float(targetScore)/ m
 
         corrFactor = (avg_Trg_Score / (avg_All_Score+1))
         corr_p =  corrFactor * p
 
-        #corr_pVal_bp = 1.0 - util.binProbSum(n, corr_p, k) 
+        #corr_pVal_bp = 1.0 - util.binProbSum(n, corr_p, k)
         #corr_pVal_bp = 9999.0
-        corr_pVal_bp = util.binProbGt(k, size=n, prob=corr_p) 
+        corr_pVal_bp = util.binProbGt(k, size=n, prob=corr_p)
         stats.corr_bnpPval    = corr_pVal_bp
         stats.corr_bnpParams  = {'consTarget': targetScore, 'consAnnot' : annotScore, 'consFlankAnnot' : flankAnnotScore, 'consFlankTarget' : flankTargetScore, 'avgConsTarget' : avg_Trg_Score, 'avgConsAnnot' : avg_All_Score,'n': n, 'k' : k, 'pVal' : corr_pVal_bp, 'p' : corr_p, 'corrFactor' : corrFactor}
 
@@ -689,7 +687,7 @@ def translate_dna(sequence):
     'ACA':'T', 'ACC':'T', 'ACG':'T', 'ACT':'T',
     'AAC':'N', 'AAT':'N', 'AAA':'K', 'AAG':'K',
     'AGC':'S', 'AGT':'S', 'AGA':'R', 'AGG':'R',
-    'CTA':'L', 'CTC':'L', 'CTG':'L', 'CTT':'L', 
+    'CTA':'L', 'CTC':'L', 'CTG':'L', 'CTT':'L',
     'CTN':'L',
     'CCA':'P', 'CCC':'P', 'CCG':'P', 'CCT':'P',
     'CCN':'P',
@@ -709,7 +707,7 @@ def translate_dna(sequence):
     'TAC':'Y', 'TAT':'Y', 'TAA':'_', 'TAG':'_',
     'TGC':'C', 'TGT':'C', 'TGA':'_', 'TGG':'W',
     }
-    
+
     proteinseq = ''
     #loop to read DNA sequence in codons, 3 nucleotides at a time
     for n in range(0,len(sequence),3):
@@ -809,8 +807,8 @@ def makeDirs(dir):
     if not os.path.isdir(dir):
         #path=shell.SHGetFolderPath(0, shellcon.CSIDL_PERSONAL, None, 0)
         log("creating %s" % dir)
-        os.makedirs(dir) 
-    return dir 
+        os.makedirs(dir)
+    return dir
 
 def sortTable(inFname, outFname, fieldIdx):
     """ use unix sort to sort a tab sep table by a given field. FieldIdx is 1-based. """
@@ -818,4 +816,3 @@ def sortTable(inFname, outFname, fieldIdx):
     logging.info("Sorting %s to %s on field %d" % (inFname, outFname, fieldIdx))
     cmd = "sort -t'\t' --key=%d %s -o %s" % (fieldIdx, inFname, outFname)
     execCmdLine(cmd)
-    

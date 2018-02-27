@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import glob, sys, os, logging, optparse
+import glob, sys, os, logging
 from os.path import *
 from itertools import groupby
 
@@ -15,7 +15,7 @@ import bigBlatJob
 
 # mark's libraries
 GENBANKDIR = "/cluster/data/genbank"
-# read the locations of 2bit/nib files and the lft files 
+# read the locations of 2bit/nib files and the lft files
 GBCONFFILE     = GENBANKDIR+"/etc/genbank.conf"
 
 # import mark's libraries
@@ -25,7 +25,7 @@ import genbank.GenomePartition
 
 cluster = "ku"
 
-# convenience functions 
+# convenience functions
 
 def mustBeEmptyDir(path):
     if not isdir(path):
@@ -36,7 +36,7 @@ def mustBeEmptyDir(path):
         sys.exit(1)
 
 def prefixEmpty(prefix, string, commaAppend=None):
-    """ return string with prefix, unless string is None 
+    """ return string with prefix, unless string is None
       append commaAppend at the with comma-sep, unless is None
     """
     if string==None or string=="":
@@ -95,7 +95,7 @@ class GenomeSplitter(genbank.GenomePartition.GenomePartition):
             if liftFile == None:
                 raise Exception(db + ".align.unplacedChroms requires " + db + ".lift")
             unplacedChroms = genbank.GenomePartition.UnplacedChroms(unSpecs)
-        
+
         if not db.endswith("2bit"):
             self.twoBitFname = conf.getDbStr(db, "clusterGenome")
         else:
@@ -115,7 +115,7 @@ class GenomeSplitter(genbank.GenomePartition.GenomePartition):
 def findJobWithRoom(maxJobSize, pending, need):
     """find a job with room for this window, allowing jobs to overflow
     by the overlap amount. Returns None if none found, or index in
-    pending list 
+    pending list
     >>> pending = [[('chr1', 1, 10000000)], [('chr2', 1, 8900000)]]
     >>> findJobWithRoom(10000000, pending, 100000000)
     >>> findJobWithRoom(10000000, pending, 8000)
@@ -130,7 +130,7 @@ def findJobWithRoom(maxJobSize, pending, need):
     return None
 
 def splitTargetDbSpecs(target, conf, params):
-    """ given a db, split the db into overlapping pieces and return 
+    """ given a db, split the db into overlapping pieces and return
     a list of specs for blat in the format
     (twoBitFname, list of "job")
     "job" is a list of tuples (chromosome, start, end)
@@ -259,8 +259,8 @@ def findChromSizes(twoBitFname):
     return sizeFname
 
 def findOocFname(conf, target, twoBitFname):
-    """ try to find name of .ooc file, from either genbank config or other guesses 
-    
+    """ try to find name of .ooc file, from either genbank config or other guesses
+
     >>> conf = genbank.Config.Config(GBCONFFILE)
     >>> findOocFname(conf, "hg19", "/scratch/data/hg19/11.ooc")
     '/scratch/data/hg19/11.ooc'
@@ -297,7 +297,7 @@ def runCommand(cmd):
 
 def fasta_iter(fasta_name):
     """
-    from http://www.biostars.org/p/710/ 
+    from http://www.biostars.org/p/710/
     given a fasta file. yield tuples of header, sequence
     """
     fh = open(fasta_name)
@@ -348,7 +348,7 @@ def doChain(target, outDir):
 
 def doSwapNetSubset(target, outDir):
     """
-    concats and swaps the input chains, nets the result, subsets the input chains with the net 
+    concats and swaps the input chains, nets the result, subsets the input chains with the net
     and swaps the result again.
     """
     # cat and swap chains to create query-based chains
@@ -418,7 +418,7 @@ def doPslCat(target, outDir, pslOptions=None, singleOutFname=None):
             filtOpt = bigBlatJob.splitAddDashes(pslOptions)
             sortCmd = " | sort -k10,10 | pslCDnaFilter %s stdin stdout " % (filtOpt)
 
-        # yield job line: 
+        # yield job line:
         # queryPath filtOpt pslCatName
         cmd = "cat %(queryPath)s/* %(sortCmd)s %(pipeOp)s %(pslCatName)s" % locals()
         runCommand(cmd)
@@ -472,8 +472,8 @@ def toTwoBit(qFastas, twoBitDir):
         runCommand(cmd)
 
 def splitQuery(qFastas, outDir):
-    """ split query fas into one fa per input file but split into 5kbp pieces, 
-    also write query sizes to sizeDir and a twoBit version of the unsplit seqs to 
+    """ split query fas into one fa per input file but split into 5kbp pieces,
+    also write query sizes to sizeDir and a twoBit version of the unsplit seqs to
     twoBitDir.
 
     returns a 2-tuple. list of fa filenames and the directory of the sizes-files.
@@ -527,7 +527,7 @@ def splitQuery(qFastas, outDir):
         splitFh.close()
         sizeFh.close()
         allSizeFh.close()
-        
+
         #cmd = "gzip %s" % splitName
         #runCommand(cmd)
     return splitFnames, qSizeDir
@@ -541,8 +541,8 @@ def splitQuery(qFastas, outDir):
     #return splitFnames
 
 #def prepQuery(qFastas, outDir):
-    #""" 
-    #convert query fas to 2bit and create .sizes for them 
+    #"""
+    #convert query fas to 2bit and create .sizes for them
     #
     #creates directories qTwoBit and qSizes in outdir
     #"""
@@ -574,8 +574,8 @@ def splitQuery(qFastas, outDir):
     #return twoBitNames, sizeNames
 
 def chunkTargetWriteSpecs(target, outDir, conf):
-    """ create spec files for target, 
-    returns twoBitFilename, oocFilename, sizeFname, list of spec filenames 
+    """ create spec files for target,
+    returns twoBitFilename, oocFilename, sizeFname, list of spec filenames
     """
     # write target specs to outdir/chunks/hg19/
     specDir = abspath(join(outDir, "chunks", basename(target)))
@@ -604,15 +604,15 @@ def getJoblines(targetList, queryFnames, outDir, params={}, \
     - outDir must be an empty directory
     - psl results go to outDir/psl/<basename(query)>/<db>/
     - splitTarget: blatSpec files go to outDir/blatSpec/<db>/
-    - params is a dictionary with keys "window", "overlap", "maxGap" 
+    - params is a dictionary with keys "window", "overlap", "maxGap"
       and "minUnplacedSize" and integer values
       for each parameter, see /cluster/genbank/genbank/etc/genbank.conf for details. Defaults are:
       window=80000000, overlap=300000, maxGap=300000, minUnplacedSize=900
 
-    - blatOpt and pslFilterOpt are comma-sep strings without leading dashes, 
+    - blatOpt and pslFilterOpt are comma-sep strings without leading dashes,
       e.g. minId=20,minCover=0.8
     - if sizeDir is set to a directory, will also lift query subranges.
-    """ 
+    """
 
     if isinstance(targetList, str): # targetList can be a string
         targetList = targetList.split(",")
@@ -699,4 +699,3 @@ def writeJoblist(dbList, faQuery, outDir, params={}, \
 if __name__=="__main__":
     import doctest
     doctest.testmod()
-

@@ -1,6 +1,5 @@
 """Tests to ensure that the lxml tree builder generates good trees."""
 
-import re
 import warnings
 
 try:
@@ -72,4 +71,3 @@ class LXMLXMLTreeBuilderSmokeTest(SoupTest, XMLTreeBuilderSmokeTest):
     @property
     def default_builder(self):
         return LXMLTreeBuilderForXML()
-

@@ -1,5 +1,7 @@
 # Copyright 2006-2012 Mark Diekhans
 import copy
+from future import standard_library
+standard_library.install_aliases()
 from pm_pycbio.hgdata.AutoSql import intArraySplit, intArrayJoin, strArraySplit, strArrayJoin
 from pm_pycbio.sys import fileOps, dbOps
 from pm_pycbio.sys.MultiDict import MultiDict
@@ -96,7 +98,7 @@ class Psl(object):
         if haveSeqs:
             qSeqs = strArraySplit(qSeqsStr)
             tSeqs = strArraySplit(tSeqsStr)
-        for i in xrange(self.blockCount):
+        for i in range(self.blockCount):
             self.blocks.append(PslBlock(self, qStarts[i], tStarts[i], blockSizes[i],
                                         (qSeqs[i] if haveSeqs else None),
                                         (tSeqs[i] if haveSeqs else None)))
@@ -231,7 +233,7 @@ class Psl(object):
             b.qStart *= 3
             b.qEnd   *= 3
             b.size   *= 3
-            
+
     def naToProt(self):
         """ convert nucleotide alignment to protein alignment """
         self.qStart /= 3
@@ -278,11 +280,11 @@ class Psl(object):
             row.append(strArrayJoin([b.qSeq for b in self.blocks]))
             row.append(strArrayJoin([b.tSeq for b in self.blocks]))
         return str.join("\t", row)
-        
+
     def write(self, fh):
         """write psl to a tab-seperated file"""
         fh.write(str(self))
-        fh.write('\n')        
+        fh.write('\n')
 
     @staticmethod
     def queryCmp(psl1, psl2):
@@ -306,7 +308,7 @@ class Psl(object):
 
     def sameAlign(self, other):
         "compare for equality of alignment.  The stats fields are not compared."
-        if ((other == None) 
+        if ((other == None)
             or (self.strand != other.strand)
             or (self.qName != other.qName)
             or (self.qSize != other.qSize)
@@ -318,7 +320,7 @@ class Psl(object):
             or (self.tEnd != other.tEnd)
             or (self.blockCount != other.blockCount)):
             return False
-        for i in xrange(self.blockCount):
+        for i in range(self.blockCount):
             if not self.blocks[i].sameAlign(other.blocks[i]):
                 return False
         return True
@@ -361,7 +363,7 @@ class Psl(object):
         rc.tEnd = self.tEnd
         rc.blockCount = self.blockCount
         rc.blocks = []
-        for i in xrange(self.blockCount-1,-1,-1):
+        for i in range(self.blockCount-1,-1,-1):
             rc.blocks.append(self.blocks[i].reverseComplement(rc))
         return rc
 
@@ -377,7 +379,7 @@ class Psl(object):
         return qs+ts
 
     def swapSides(self, keepTStrandImplicit=False):
-        """Create a new PSL with target and query swapped, 
+        """Create a new PSL with target and query swapped,
 
         If keepTStrandImplicit is True the psl has an implicit positive target strand, reverse
         complement to keep the target strand positive and implicit.
@@ -386,7 +388,7 @@ class Psl(object):
         alignments to keep target positive strand.  This will make the target
         strand explicit."""
         doRc = (keepTStrandImplicit and (len(self.strand) == 1) and (self.getQStrand() == "-"))
-        
+
         swap = Psl(None)
         swap.match = self.match
         swap.misMatch = self.misMatch
@@ -409,10 +411,10 @@ class Psl(object):
         swap.blocks = []
 
         if doRc:
-            for i in xrange(self.blockCount-1,-1,-1):
+            for i in range(self.blockCount-1,-1,-1):
                 swap.blocks.append(self.blocks[i].swapSidesReverseComplement(swap))
         else:
-            for i in xrange(self.blockCount):
+            for i in range(self.blockCount):
                 swap.blocks.append(self.blocks[i].swapSides(swap))
         return swap
 
@@ -491,7 +493,7 @@ class PslDbReader(object):
         query += " from " + table + " where " \
             + Binner.getOverlappingSqlExpr("tName", "bin", "tStart", "tEnd", tName, tStart, tEnd)
         return PslDbReader(conn, query)
-                
+
 
 class PslTbl(list):
     """Table of PSL objects loaded from a tab-file
@@ -521,7 +523,7 @@ class PslTbl(list):
 
     def haveQName(self, qName):
         return (self.qNameMap.get(qName) != None)
-        
+
     def getByQName(self, qName):
         """generator to get all PSL with a give qName"""
         ent = self.qNameMap.get(qName)
@@ -537,7 +539,7 @@ class PslTbl(list):
 
     def haveTName(self, tName):
         return (self.tNameMap.get(qName) != None)
-        
+
     def getByTName(self, tName):
         """generator to get all PSL with a give tName"""
         ent = self.tNameMap.get(tName)

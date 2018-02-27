@@ -7,12 +7,9 @@ __all__ = [
     'additional_tests',
     ]
 
-import atexit
 import doctest
-import os
 #from pkg_resources import (
 #    resource_filename, resource_exists, resource_listdir, cleanup_resources)
-import unittest
 
 DOCTEST_FLAGS = (
     doctest.ELLIPSIS |

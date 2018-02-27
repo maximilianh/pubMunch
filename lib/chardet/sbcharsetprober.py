@@ -15,19 +15,20 @@ from __future__ import absolute_import
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation; either
 # version 2.1 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
 # 02110-1301  USA
 ######################### END LICENSE BLOCK #########################
 
-import constants, sys
+import sys
+from . import constants
 from .charsetprober import CharSetProber
 
 SAMPLE_SIZE = 64
@@ -38,7 +39,7 @@ SYMBOL_CAT_ORDER = 250
 NUMBER_OF_SEQ_CAT = 4
 POSITIVE_CAT = NUMBER_OF_SEQ_CAT - 1
 #NEGATIVE_CAT = 0
- 
+
 class SingleByteCharSetProber(CharSetProber):
     def __init__(self, model, reversed=constants.False, nameProber=None):
         CharSetProber.__init__(self)

@@ -2,7 +2,7 @@ from __future__ import print_function
 # library to crawl pdf and supplemental file from publisher websites using pubmed
 
 # load our own libraries
-import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
+import pubConf, pubGeneric, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
     pubCrossRef, html, maxCommon, pubCrawlConf
 import chardet # library for guessing encodings
 import unidecode
@@ -10,9 +10,9 @@ import unidecode
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 from maxWeb import httpStartsWith
 
-import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
-    traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, copy, random
+import logging, optparse, os, shutil, tempfile, sys, codecs, types, re, \
+    urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
+    sqlite3, doctest, urllib
 from os.path import *
 
 # ===== GLOBALS ======

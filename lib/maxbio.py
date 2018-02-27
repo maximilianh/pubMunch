@@ -1,17 +1,19 @@
 from __future__ import print_function
+from __future__ import division
 # Routines for handling fasta sequences and tab sep files
 
 # std packages
-import sys, textwrap, operator, types, doctest,logging, gzip, struct, cPickle, gc, itertools, math
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from past.utils import old_div
+import sys, textwrap, operator, types, doctest,logging, gzip, struct, pickle, gc, itertools, math
 from collections import defaultdict
 from types import *
 from os.path import basename, splitext
 
 # external packages
-try:
-    import namedtuple 
-except:
-    pass
+from collections import namedtuple
 
 try:
     import dist, math
@@ -38,7 +40,7 @@ def openFile(fname, mode="r"):
 def flattenValues(dict):
     """ return all values in dictionary (key -> list) as one long flat list """
     list = []
-    for value in dict.values():
+    for value in list(dict.values()):
         list.extend(value)
     return list
 
@@ -68,8 +70,8 @@ def parseFasta(fname):
     for (id, seq) in fr.parse():
         yield id, seq
 
-class FastaReader:
-    """ a class to parse a fasta file 
+class FastaReader(object):
+    """ a class to parse a fasta file
     Example:
         fr = maxbio.FastaReader(filename)
         for (id, seq) in fr.parse():
@@ -155,7 +157,7 @@ def sortList(list, field, reverse=True, key=None):
 
 def bestIdentifiers(scoredList):
     """
-    given a list of tuples with a numeric last field and an id field, return the id fields with 
+    given a list of tuples with a numeric last field and an id field, return the id fields with
     the highest last field.
     >>> bestIdentifiers ([("clinton", 1), ("obama", 3), ("washington", 10), ("lincoln", 10)])
     ['washington', 'lincoln']
@@ -166,9 +168,9 @@ def bestIdentifiers(scoredList):
     return bestElements
 
 def bestScoreElements(list, scoreField):
-    """ return only those tuples in a list that contain a score >= the best score in the list 
-    >>> import namedtuple
-    >>> tuple = namedtuple.namedtuple("test", "f1, f2")
+    """ return only those tuples in a list that contain a score >= the best score in the list
+    >>> from collections import namedtuple
+    >>> tuple = namedtuple("test", "f1, f2")
     >>> tuples = [tuple(1, 6), tuple(4, 7), tuple(2, 7)]
     >>> print bestScoreElements(tuples, scoreField="f2")
     [test(f1=4, f2=7), test(f1=2, f2=7)]
@@ -188,10 +190,10 @@ def indexByField(list, field):
     return map
 
 def bestTuples(list, idField, scoreField):
-    """ Index a list of a key-value-tuples, keep only the best tuples per value and return their keys. 
-    
-    >>> import namedtuple
-    >>> tuple = namedtuple.namedtuple("test", "f1, f2")
+    """ Index a list of a key-value-tuples, keep only the best tuples per value and return their keys.
+
+    >>> from collections import namedtuple
+    >>> tuple = namedtuple("test", "f1, f2")
     >>> tuples = [tuple(1, 6), tuple(1, 3), tuple(2, 7), tuple(2,1000)]
     >>> print bestTuples(tuples, idField="f1", scoreField="f2")
     [test(f1=1, f2=6), test(f1=2, f2=1000)]
@@ -199,7 +201,7 @@ def bestTuples(list, idField, scoreField):
     """
     map = indexByField(list, idField)
     filteredList = []
-    for id, idList in map.iteritems():
+    for id, idList in map.items():
         bestElements = bestScoreElements(idList, scoreField)
         filteredList.extend(bestElements)
     return filteredList
@@ -214,11 +216,11 @@ def removeBigSets(predDict, limit):
 
 
 # return types for benchmark()
-BenchmarkResult = namedtuple.namedtuple("BenchResultRec", "TP, FN, FP, Prec, Recall, F, errList, objCount")
-ErrorDetails    = namedtuple.namedtuple("ErrorDetails", "id, expected, predicted")
+BenchmarkResult = namedtuple("BenchResultRec", "TP, FN, FP, Prec, Recall, F, errList, objCount")
+ErrorDetails    = namedtuple("ErrorDetails", "id, expected, predicted")
 
 def benchmark(predDict, refDict):
-    """ returns a class with attributes for TP, FN, FP and various other counts and information about prediction errors 
+    """ returns a class with attributes for TP, FN, FP and various other counts and information about prediction errors
     >>> benchmark({"a" : set([1,2,3]), "b" : set([3,4,5])}, {"a":set([1]), "b":set([4])})
     BenchResultRec(TP=2, FN=0, FP=4, Prec=0.3333333333333333, Recall=1.0, F=0.5, errList=[ErrorDetails(id='a', expected=set([1]), predicted=set([1, 2, 3])), ErrorDetails(id='b', expected=set([4]), predicted=set([3, 4, 5]))], objCount=2)
     """
@@ -230,21 +232,21 @@ def benchmark(predDict, refDict):
 
     errDetails = []
     completeMatch = 0
-    completeMismatch = 0 
+    completeMismatch = 0
     tooManyPred = 0
     notEnoughPred = 0
     limitPassed = 0
-    predCount = 0 
+    predCount = 0
 
     # iterate over objects and update counters
-    for obj, predSet in predDict.iteritems():
+    for obj, predSet in predDict.items():
         if obj not in refDict:
             logging.debug("%s not in reference, skipping" % obj)
             continue
 
         refSet = refDict[obj]
         objCount+=1
-        
+
         perfectMatch=False
         partialMatch=False
 
@@ -256,8 +258,8 @@ def benchmark(predDict, refDict):
         fpSet = predSet.difference(refSet)  # false positives: are in prediction but not in refernce
 
         TP += len (tpSet)
-        FN += len (fnSet) 
-        FP += len (fpSet) 
+        FN += len (fnSet)
+        FP += len (fpSet)
         if len(tpSet)>0:
             atLeastOneHit+=1
             partialMatch=True
@@ -279,17 +281,17 @@ def benchmark(predDict, refDict):
         return None
 
     if TP+FP > 0:
-        Prec    = float(TP) / (TP + FP)
+        Prec    = old_div(float(TP), (TP + FP))
     else:
         print("Warning: Cannot calculate Prec because TP+FP = 0")
         Prec = 0
 
     if TP+FN > 0:
-        Recall  = float(TP) / (TP + FN)
+        Recall  = old_div(float(TP), (TP + FN))
     else:
         print("Warning: Cannot calculate Recall because TP+FN = 0")
         Recall = 0
-        
+
     if Recall>0 and Prec>0:
         F       = 2 * (Prec * Recall) / (Prec + Recall)
     else:
@@ -312,7 +314,7 @@ def allToString(list):
 
 def prettyPrintDict(dict):
     """ print dict to stdout """
-    for key, value in dict.iteritems():
+    for key, value in dict.items():
         print(key, value)
 
 def calcBinomScore(background, foreground, genes, backgroundProb):
@@ -356,10 +358,10 @@ def unpackChromCoord(arr):
         chrom = "chr"+chr(chrom)
     else:
         chrom = "chr"+str(chrom)
-    return chrom, start, end, 
+    return chrom, start, end,
 
 def revComp(seq):
-    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n", 
+    table = { "a":"t", "A":"T", "t" :"a", "T":"A", "c":"g", "C":"G", "g":"c", "G":"C", "N":"N", "n":"n",
             "Y":"R", "R" : "Y", "M" : "K", "K" : "M", "W":"W", "S":"S",
             "H":"D", "B":"V", "V":"B", "D":"H", "y":"r", "r":"y","m":"k",
             "k":"m","w":"w","s":"s","h":"d","b":"v","d":"h","v":"b","y":"r","r":"y" }
@@ -368,8 +370,7 @@ def revComp(seq):
        newseq += table[nucl]
     return "".join(newseq)
 
-# ----- 
+# -----
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-
