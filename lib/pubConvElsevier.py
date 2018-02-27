@@ -1,6 +1,6 @@
-import logging, optparse, os, glob, zipfile, types, re, tempfile, shutil, sys, gzip
+import logging, optparse, os, glob, zipfile, types, re, shutil, sys, gzip
 from os.path import *
-import pubGeneric, maxRun, pubStore, pubConf, maxCommon, pubXml, pubCompare
+import pubGeneric, maxRun, pubStore, maxCommon, pubXml, pubCompare
 
 # load lxml parser, with fallback to default python parser
 try:
@@ -10,11 +10,11 @@ except ImportError:
     import xml.etree.cElementTree as etree # this is the slower, python2.5 default package
 
 # === CONSTANTS ===================================
-# the types of elsevier articles to parse, 
+# the types of elsevier articles to parse,
 # for a reference, see tag-by-tag 5.0
 # http://www.elsevier.com/framework_authors/DTDs/ja50_tagbytag5.pdf
 # format:
-# (article-type, True if this type is parsed / False to ignore it 
+# (article-type, True if this type is parsed / False to ignore it
 # WE IGNORE: indexes and bibliographies!
 ELSEVIER_ARTICLE_TAGS = [
         ("converted-article", True),
@@ -37,9 +37,9 @@ ELSEVIER_ARTICLE_TAGS = [
 
 # ==== FUNCTIONs =====
 def createIndexFile(inDir, zipFilenames, indexFilename, updateId, minId, chunkSize):
-    """ 
+    """
     write filenames in zipfiles in inDir to indexFilename in format
-    (numId, inDir, zipName, fileName), starting id is minId 
+    (numId, inDir, zipName, fileName), starting id is minId
 
     returns the last articleId that was assigned
     """
@@ -303,7 +303,7 @@ def parseElsevier(tree, data):
                 data["authors"]="; ".join(authorNames)
             # leave this commented out: the head contains special characters
             # the RDF has translated these already to ASCII
-            #data["title"] = findText(headEl, "title") # 
+            #data["title"] = findText(headEl, "title") #
 
             abstractElList = headEl.findall("abstract")
             abstractString = ""
@@ -325,7 +325,7 @@ def parseElsevier(tree, data):
 
     cleanMetaDict = {}
 
-    # XX do we need this? 
+    # XX do we need this?
     for key, val in data.iteritems():
         if val==None:
             val="NotFound"
@@ -371,10 +371,10 @@ def createFileData(articleData, mimeType, asciiString):
     #return data
 
 def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
-    """ 
-    get files from inIndexFile, parse Xml, 
+    """
+    get files from inIndexFile, parse Xml,
     write everything to outfile in ascii format
-    """ 
+    """
     store = pubStore.PubWriterFile(outFile)
     # read all already done IDs
     donePiis = pubGeneric.parseDoneIds(inIdFile)
@@ -440,7 +440,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
             continue
         store.writeArticle(articleId, articleData)
 
-        # write IDs to separate file 
+        # write IDs to separate file
         idRow = [str(articleData["articleId"]), articleData["doi"], articleData["externalId"], str(articleData["pmid"])]
         idFh.write("\t".join(idRow))
         idFh.write("\n")
@@ -454,7 +454,7 @@ def convertOneChunk(zipDir, inIndexFile, inIdFile, outFile):
     idFh.close()
 
 def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
-    """ convert Consyn ZIP files from inDir to outDir 
+    """ convert Consyn ZIP files from inDir to outDir
         split files into chunks and submit chunks to cluster system
         write first to temporary dir, and copy over at end of all jobs
     """
@@ -496,7 +496,7 @@ def createChunksSubmitJobs(inDir, outDir, minId, runner, chunkSize):
     pubGeneric.concatDelIdFiles(buildDir, finalOutDir, "%d_ids.tab" % updateId)
     pubGeneric.concatDelLogs(buildDir, finalOutDir, "%d.log" % updateId)
 
-    if isdir(indexSplitDir): # necessary? how could it not be there? 
+    if isdir(indexSplitDir): # necessary? how could it not be there?
         logging.info("Deleting directory %s" % indexSplitDir)
         shutil.rmtree(indexSplitDir) # got sometimes exception here...
     pubStore.moveFiles(buildDir, finalOutDir)

@@ -24,7 +24,6 @@ __license__ = "MIT"
 
 __all__ = ['BeautifulSoup']
 
-import re
 import warnings
 
 from .builder import builder_registry

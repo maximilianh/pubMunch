@@ -9,7 +9,6 @@ Sci-API Unofficial API
 from __future__ import print_function
 
 import os
-import re
 import logging
 import hashlib
 import argparse
@@ -28,7 +27,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:27.0) Gecko/2011110
 
 class SciHub(object):
     """
-    SciHub class can search for papers on Google Scholars 
+    SciHub class can search for papers on Google Scholars
     and fetch/download papers from sci-hub.io
     """
     def __init__(self):
@@ -52,33 +51,33 @@ class SciHub(object):
 
             s = self._get_soup(res.content)
             papers = s.find_all('div', class_="gs_r")
-            
+
             if not papers:
                 if 'CaptchaRedirect' in res.content:
                     results['err'] = 'Failed to complete search with query %s (captcha)' % query
                 return results
-            
+
             for paper in papers:
                 if not paper.find('table'):
                     source = None
                     pdf = paper.find('div', class_='gs_ggs gs_fl')
                     link = paper.find('h3', class_='gs_rt')
-                    
+
                     if pdf:
                         source = pdf.find('div', class_='gs_md_wp gs_ttss').find('a')['href']
                     elif link.find('a'):
                         source = link.find('a')['href']
                     else:
                         continue
-                    
+
                     results['papers'].append({
                         'name': link.text,
                         'url': source
                     })
-                    
+
                     if len(results['papers']) >= limit:
                         return results
-            
+
             start += 10
 
     def download(self, identifier, destination='', path=None):
@@ -90,9 +89,9 @@ class SciHub(object):
         data = self.fetch(identifier)
 
         if not 'err' in data:
-            self._save(data['pdf'], 
+            self._save(data['pdf'],
                        os.path.join(destination, path if path else data['name']))
-        
+
         return data
 
     def fetch(self, identifier):
@@ -104,7 +103,7 @@ class SciHub(object):
         url = self._get_direct_url(identifier)
 
         try:
-            # verify=False is dangerous but sci-hub.io 
+            # verify=False is dangerous but sci-hub.io
             # requires intermediate certificates to verify
             # and requests doesn't know how to download them.
             # as a hacky fix, you can add them to your store
@@ -117,7 +116,7 @@ class SciHub(object):
             }
         except requests.exceptions.RequestException as e:
             return {
-                'err': 'Failed to fetch pdf with identifier %s (resolved url %s) due to %s' 
+                'err': 'Failed to fetch pdf with identifier %s (resolved url %s) due to %s'
                    % (identifier, url, 'failed connection' if url else 'captcha')
             }
 
@@ -174,7 +173,7 @@ class SciHub(object):
 
     def _generate_name(self, res):
         """
-        Generate unique filename for paper. Returns a name by calcuating 
+        Generate unique filename for paper. Returns a name by calcuating
         md5 hash of file contents, then appending the last 20 characters
         of the url which typically provides a good paper identifier.
         """
@@ -196,7 +195,7 @@ def main():
     parser.add_argument('-l', '--limit', metavar='N', help='the number of search results to limit to', default=10, type=int)
     parser.add_argument('-o', '--output', metavar='path', help='directory to store papers', default='', type=str)
     parser.add_argument('-v', '--verbose', help='increase output verbosity', action='store_true')
-    
+
     args = parser.parse_args()
 
     if args.verbose:

@@ -1,6 +1,6 @@
 from __future__ import print_function
 # library for convenience functionc related to html ouput
-import sys, codecs, urllib2, urllib, cgi, doctest, logging, re, os
+import sys, codecs, urllib2, urllib, cgi, doctest, logging, os
 try:
     from BeautifulSoup import BeautifulStoneSoup
 except:
@@ -140,15 +140,15 @@ def getStylesheet(name):
     " return a stylesheet "
     if name=="dent":
         stylesheet="""
-body { 
-    font: 10pt/11pt sans-serif; 
-    color: #555753; 
+body {
+    font: 10pt/11pt sans-serif;
+    color: #555753;
     margin-left: 0em;
 }
-p { 
-    font: 10pt/12pt sans-serif; 
-    margin-top: 1em; 
-    margin-left: 1em; 
+p {
+    font: 10pt/12pt sans-serif;
+    margin-top: 1em;
+    margin-left: 1em;
     text-align: justify;
 }
 p.five{
@@ -166,22 +166,22 @@ h1{
   font-size:40px;
 }
 h2 {
-    font: bold normal 14pt sans-serif; 
-    letter-spacing: 1px; 
+    font: bold normal 14pt sans-serif;
+    letter-spacing: 1px;
     color: #555753;
 }
-h3 { 
-    font: bold 12pt sans-serif; 
-    letter-spacing: 1px; 
-    margin-left: 4px; 
-    margin-bottom: 4px; 
+h3 {
+    font: bold 12pt sans-serif;
+    letter-spacing: 1px;
+    margin-left: 4px;
+    margin-bottom: 4px;
     color: #7D775C;
 }
-h4 { 
-    font: bold 11pt sans-serif; 
-    letter-spacing: 1px; 
-    margin-left: 4px; 
-    margin-bottom: 4px; 
+h4 {
+    font: bold 11pt sans-serif;
+    letter-spacing: 1px;
+    margin-left: 4px;
+    margin-bottom: 4px;
     color: #5e5944;
 }
 
@@ -258,8 +258,8 @@ tr.alt{
 .urbangreymenu .headerbar{
     font: bold 13px Verdana;
     color: white;
-    /* background: #606060 url(media/arrowstop.gif) no-repeat 8px 6px; /*last 2 values are the x and y coordinates of bullet image*/ 
-    background: #606060;  /*last 2 values are the x and y coordinates of bullet image*/ 
+    /* background: #606060 url(media/arrowstop.gif) no-repeat 8px 6px; /*last 2 values are the x and y coordinates of bullet image*/
+    background: #606060;  /*last 2 values are the x and y coordinates of bullet image*/
     margin-bottom: 0; /*bottom spacing between header and rest of content*/
     /* text-transform: uppercase; */
     padding: 7px 0 7px 8px; /*31px is left indentation of header text*/
@@ -306,12 +306,12 @@ Released for free under a Creative Commons Attribution 2.5 License
 
 body {
 	/* background: #6E6E6E url(img1.jpg) repeat-x; */
-	background: #EEEEEE; 
+	background: #EEEEEE;
 	margin: 0px;
-    margin-left: 190px; 
+    margin-left: 190px;
 	text-align: left;
 	font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
-	font-size: smaller; 
+	font-size: smaller;
 	color: #333333;
     width: 800px;
 }
@@ -337,7 +337,7 @@ table {
     table-layout:fixed;
 }
 
-th { background : #BBBBBB; 
+th { background : #BBBBBB;
 }
 
 tr { background : #DDDDDD;
@@ -550,7 +550,7 @@ class htmlWriter:
                 self.f.write("""<script type="text/javascript" src="%s"></script>\n""" % script)
         for meta, val in metaTags:
             self.f.write("""<meta http-equiv="%s" content="%s">\n""" % (meta, val))
-            
+
         self.f.write ("""</head>\n""")
 
     def endHtml(self):
@@ -667,7 +667,7 @@ class htmlWriter:
             self.tableData(cell, col)
         self.endTr()
 
-    ## TEXT FORMATTING 
+    ## TEXT FORMATTING
     def link(self, url, text):
         self.write('<a href="%s">%s</a>' % (url, text))
 
@@ -713,7 +713,7 @@ class htmlWriter:
         self.f.write("</ul>\n")
 
 
-    ## FORMS 
+    ## FORMS
 
     def startForm(self, action, method="get"):
         self.writeLn('<form name="input" action="%s" method="%s">\n' % (action, method))
@@ -791,7 +791,7 @@ class htmlWriter:
 
     def ensemblMCUrl(self, baseName, compName, basePair, compPair):
         """ return string with html-link to ensembl multicontigview from two genes given genes and organism names """
-        urlMask = "http://www.ensembl.org/%s/multicontigview?s1=%s;w=%d;c=%s:%d:1;w1=%d;c1=%s:%d:1;action=%s;id=1"  
+        urlMask = "http://www.ensembl.org/%s/multicontigview?s1=%s;w=%d;c=%s:%d:1;w1=%d;c1=%s:%d:1;action=%s;id=1"
         baseSize = (basePair.right.end - basePair.left.start) * 2
         baseChrom = basePair.left.chrom.replace("chr","")
         basePos = basePair.left.start
@@ -831,4 +831,3 @@ def unicodeToHTMLEntities(text):
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
-

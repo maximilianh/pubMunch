@@ -5,7 +5,7 @@
 # based on Hiram's runOne script in /hive/data/genomes/hg19/bed/fosEndPairs/mapEnds/run4M/
 # spiced up with some markd-things
 
-import sys, os, logging, tempfile, optparse
+import sys, os, logging, optparse
 from os.path import *
 from tempfile import *
 
@@ -33,8 +33,7 @@ def readSizes(querySizeFname):
         name, size = line.rstrip().split()
         sizes[name] = int(size)
     return sizes
-        
-from itertools import groupby
+
 
 #def write5kbSpec(querySpecFile, qFname, querySizes):
     #" write specs of 5kbp chunk of querySizes to querySpecFile and return file name "
@@ -53,7 +52,7 @@ from itertools import groupby
 
 # ===== MAIN ====
 if __name__ == "__main__":
-    parser = optparse.OptionParser("""usage: %prog [options] <genomeSpec> <queryFile> <outFile> <pslOptions> - run blat on a piece of a twoBit file, lift if necessary, filter with pslCdnaFilter and copy to outFile. 
+    parser = optparse.OptionParser("""usage: %prog [options] <genomeSpec> <queryFile> <outFile> <pslOptions> - run blat on a piece of a twoBit file, lift if necessary, filter with pslCdnaFilter and copy to outFile.
 
     genomeSpec format is one of the following:
     - <dbFile>
@@ -104,7 +103,7 @@ if __name__ == "__main__":
         #tEnd = startEnd[1]
         #tChromSize = str(int(tEnd)-int(tStart))
         #tChromSize = chromSize
-        #seqFrag = ":".join([chrom, chromRange]) 
+        #seqFrag = ":".join([chrom, chromRange])
 
         # create a temp liftUp file
         #liftData = [tStart, seqFrag, tChromSize, chrom, tChromSize]
@@ -135,7 +134,7 @@ if __name__ == "__main__":
 
     else:
         raise Exception("illegal format for target spec")
-        
+
     blatOptString = splitAddDashes(options.blatOptions)
     filterOptString = splitAddDashes(options.filterOptions)
 

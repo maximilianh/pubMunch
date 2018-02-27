@@ -1,10 +1,10 @@
 from __future__ import print_function
 # fast search for combination of words using dictionaries
 
-import doctest, types, gzip, marshal, optparse, sys, codecs, logging
+import doctest, gzip, marshal, optparse, sys, codecs, logging
 from os.path import *
 
-# as we use the regexes only to find \w, the original re module 
+# as we use the regexes only to find \w, the original re module
 # is 3 times faster than re2
 # It is also 2 times faster than the regex module
 import re
@@ -20,7 +20,7 @@ DASHWORDRE = re.compile(r"[\w'-]+")
 
 def recursiveAdd(dict, wordList, id):
     """
-    recursively add the words from wordList to dictionary 
+    recursively add the words from wordList to dictionary
     """
     if len(wordList)==0:
         if None in dict:
@@ -43,7 +43,7 @@ def onlyWords(words):
     return [w[-1] for w in words]
 
 def leftFlank(l, pos, dist):
-    """ get dist elements to the left of pos in list l 
+    """ get dist elements to the left of pos in list l
     (pos itself is not included)
     >>> leftFlank("12345", 2, 2)
     '12'
@@ -64,13 +64,13 @@ def rightFlank(l, pos, dist):
     fromPos = min(pos+1, len(l))
     maxPos = min(pos+dist+1, len(l))
     return l[fromPos:maxPos]
-    
+
 def constructLex(keywordList, wordRe=WORDRE):
     """
     converts a list of textstrings and identifiers to
     nested dictionaries that allow faster matching
     Careful: always use the same wordRe expression for constructing the lexicon
-    and when matching. 
+    and when matching.
     >>> constructLex( [("q1", ["how are you"]), ("q2", ["do you"])] )
     {'how': {'are': {'you': {0: 'q1'}}}, 'do': {'you': {0: 'q2'}}}
     """
@@ -90,7 +90,7 @@ def recursiveFind(words, wordIdx, searchDict, results, flankCount=0, hitStart=No
     Look for longest non-overlapping matches.
 
     recursive calls set:
-    - hitStart to keep track of the start of the first initial match. 
+    - hitStart to keep track of the start of the first initial match.
     - hitStartIdx to keep track of the word index of the first match
     """
     if wordIdx >= len(words):
@@ -111,7 +111,7 @@ def recursiveFind(words, wordIdx, searchDict, results, flankCount=0, hitStart=No
         if oldResCount>0:
             lastMatch = results[-1]
         recursiveFind(words, wordIdx+1, matchDict, results, flankCount, start, hitStartIdx)
-        # accept, if no other (=longer) match found and 
+        # accept, if no other (=longer) match found and
         # word is last of search string (matchDict contains 0)
         # and lastMatch is not overlapping with this match
         if oldResCount==len(results) and \
@@ -215,8 +215,8 @@ def fastFindFlankWords(text, lex, wordDist=1, wordRe=WORDRE, toLower=True):
     #return annotMatches
 
 def _lexIter(fileObj, toLower=False):
-    """ parse a tab-sep file (identifier<tab>name1|name2|name3|...) 
-    or alternatively a file with just one identifier per line 
+    """ parse a tab-sep file (identifier<tab>name1|name2|name3|...)
+    or alternatively a file with just one identifier per line
     and yield as a list of tuples [(name1, identifier), ...]
     """
     strings = []
@@ -247,9 +247,9 @@ def loadLex(fname):
 
 def parseDict(fname, wordRe=WORDRE, toLower=False):
     """
-    reads file (identifier<tab>name1|name2|name3|...) 
+    reads file (identifier<tab>name1|name2|name3|...)
     and return as nested dictionaries for fastFind()
-    """ 
+    """
     if fname.endswith(".gz"):
         fileObj = gzip.open(fname)
     else:
@@ -289,8 +289,8 @@ def writeLex(lex, fname):
 
 def compileDict(dictFname, wordRe=WORDRE, toLower=False):
     """
-    convert dictionary file to memory data structure and write to gzipped marshalled file 
-    dictionary file lines have format <identifier> tab <name1>|<name2>|... 
+    convert dictionary file to memory data structure and write to gzipped marshalled file
+    dictionary file lines have format <identifier> tab <name1>|<name2>|...
     """
     lex = parseDict(dictFname, wordRe, toLower)
     dictBase = basename(dictFname).split(".")[0]
@@ -302,9 +302,9 @@ def compileDict(dictFname, wordRe=WORDRE, toLower=False):
     writeLex(lex, fname)
 
 if __name__ == "__main__":
-    parser = optparse.OptionParser("usage: %prog [options] dictFile files - scan files for strings") 
-    #parser.add_option("d", "--dictDir", dest="test", action="store_true", help="do something") 
-    parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests") 
+    parser = optparse.OptionParser("usage: %prog [options] dictFile files - scan files for strings")
+    #parser.add_option("d", "--dictDir", dest="test", action="store_true", help="do something")
+    parser.add_option("-t", "--test", dest="test", action="store_true", help="run tests")
     (options, args) = parser.parse_args()
     if options.test:
         _test()
@@ -324,5 +324,3 @@ if __name__ == "__main__":
                 data.append(text[start:end])
                 line = "\t".join(data)
                 print(line.encode("utf8"))
-
-

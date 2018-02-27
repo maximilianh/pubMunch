@@ -1,6 +1,6 @@
 # a few convenience functions to query the new crossref API
 
-import urllib, urllib2, json, doctest, logging
+import urllib2, json, doctest, logging
 import maxCommon
 
 #def dois(issn):

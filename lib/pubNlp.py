@@ -5,15 +5,16 @@
 #>>> logger = logging.getLogger().setLevel(5)
 #>>> logger = logging.getLogger().setLevel(logging.INFO)
 
-import re, logging, gzip, array, operator, orderedDict, string
+import re, logging, array, operator, string
+from collections import OrderedDict
 from os.path import join
-import pubGeneric, pubConf, fastFind
+import pubConf, fastFind
 import unidecode
 
 # GLOBALS
 
 # - for sentSplitter:
-# adapted from 
+# adapted from
 # http://stackoverflow.com/questions/25735644/python-regex-for-splitting-text-into-sentences-sentence-tokenizing
 sentSplitRe = re.compile(r'(?<!\w\.\w.)(?<!no\.)(?<![A-Z][a-z]\.)(?<![A-Z]\.)(?<!F[iI][gG]\.)(?<! al\.)(?<=\.|\?|\!|:)\s+')
 
@@ -26,10 +27,10 @@ wordRe = re.compile("[\w_]+", re.LOCALE)
     #""" split a string into sentences, returns a list of strings. """
     #return sentSplitRe.split(text)
 
-# FUNCTIONS 
+# FUNCTIONS
 
 def wordSplitter(text):
-    """ trivial splitting of text into words using a regex, yields start, end, word 
+    """ trivial splitting of text into words using a regex, yields start, end, word
     """
     for match in wordRe.finditer(text):
         word = match.group()
@@ -37,7 +38,7 @@ def wordSplitter(text):
         yield start, end, word
 
 def wordSet(text):
-    """ returns the set of words in a string, all are lower-cased. 
+    """ returns the set of words in a string, all are lower-cased.
     Underscore is considered part of words, as it's not used in science text.
     >>> sorted(wordSet("Red is my favorite. Blue-green are great. Red_blue not."))
     ['are', 'blue', 'favorite', 'great', 'green', 'is', 'my', 'not', 'red', 'red_blue']
@@ -72,7 +73,7 @@ MINSECLEN = 400
 # main function: sectionSplitter
 # - based on keywords that have to appear at the beginning of lines
 # - additional filtering to ignore the pseudo-sections in structured abstracts
-# - reference section uses a completely different approach based on clusters 
+# - reference section uses a completely different approach based on clusters
 #   of family names
 # sub functions: sectionRangesKeyword and findRefSection
 
@@ -107,7 +108,7 @@ sectionRes = [(name, start, end, re.compile(prefix+pat+suffix, flags)) for (name
 
 def removeCloserThan(namePosList, minDist, exceptList=shortSections):
     """
-    given a sorted list of (name, pos) tuples, remove all elements that are 
+    given a sorted list of (name, pos) tuples, remove all elements that are
     closer than minDist to either the preceding or the following element.
     The idea is to remove matches to keywords that are too close together, like
     in tables of contents or other lists that we are not interested in.
@@ -144,7 +145,7 @@ def sectionRangesKeyword(text, minDist=MINSECLEN, doRefs=True):
     'discussion', 'methods', 'ack', 'refs', 'conclusions', 'footer'.
     'refs' is only added if "doRefs" is True.
 
-    return a list of (start, end, name) 
+    return a list of (start, end, name)
     >>> sectionRangesKeyword("some text\\nIntroduction\\nResults\\n\\nNothing\\nAcknowledgements\\nReferences\\nRef text", minDist=1)
     [(0, 10, 'header'), (10, 23, 'intro'), (23, 40, 'results'), (40, 57, 'ack'), (57, 76, 'refs')]
     >>> text = "hihihi sflkjdf\\n Results and Discussion\\nbla bla results results results bla\\nI. Methods\\n123. Bibliography\\n haha ahahah ahah test test\\n"
@@ -193,7 +194,7 @@ def sectionRangesKeyword(text, minDist=MINSECLEN, doRefs=True):
 
     # convert to dict of starts for section
     # create dict like {'discussion' : [200, 500, 300]}
-    sectionStartDict = orderedDict.OrderedDict()
+    sectionStartDict = OrderedDict()
     for section, secStart in sectionStarts:
         sectionStartDict.setdefault(section, [])
         sectionStartDict[section].append( secStart )
@@ -263,14 +264,14 @@ def _readFamNames():
     logging.info("Reading family names from %s for reference finder" % fname)
     for l in open(fname):
         famNames.add(l.rstrip("\n").decode("utf8").lower())
-    # not family names, but useful to delimit the start of the reference 
+    # not family names, but useful to delimit the start of the reference
     # section
     famNames.update(["references", "bibliography", "literature", "refereces"])
     logging.info("Loaded %d family names" % len(famNames))
 
 def skipForwMax(text, start, maxDist):
     """ skip forward to next linebreak from start to start+maxDist
-    Return start if not found, otherwise position of linebreak 
+    Return start if not found, otherwise position of linebreak
     >>> skipForwMax("hi there \\nis no linebreak", 3, 20)
     9
     >>> skipForwMax("hi there \\nis no linebreak", 3, 2)
@@ -280,12 +281,12 @@ def skipForwMax(text, start, maxDist):
         if text[i] in ["\a", "\n", "\r"]:
             return i
     return start
-        
+
 def _findLongestRun(arr):
-    """ find longest run of 1s in mask 
-    >>> _findLongestRun([0,0,0,0,1,1,1,1,0,1,1,0,0,0,1,1]) 
+    """ find longest run of 1s in mask
+    >>> _findLongestRun([0,0,0,0,1,1,1,1,0,1,1,0,0,0,1,1])
     (4, 8)
-    >>> _findLongestRun([0,0,0,0,1,1,1,1,0,1,1,1,1,1,1,1]) 
+    >>> _findLongestRun([0,0,0,0,1,1,1,1,0,1,1,1,1,1,1,1])
     (9, 15)
     """
     size = 0
@@ -311,9 +312,9 @@ def _findLongestRun(arr):
         bestStart, bestEnd = runStart, i
 
     return bestStart, bestEnd
-                
+
 def findRefSection(text, nameExt=250):
-    """ 
+    """
     Finds a single reference section in text, based on dense clusters of
     family names.
 
@@ -323,7 +324,7 @@ def findRefSection(text, nameExt=250):
     The first family name starts the section, the last family name is extended
     to the end of the line. Special names are references and bibliography that
     are not family names but are treated as such.
-    
+
     Uses a strange bitmask-approach but that keeps the algorithm simple.
     Returns a tuple (start, end)
     >>> text = "                                                     some test text\\nmore test text\\nreferences\\nhaussler brian raney mueller a great paper\\nsome more text"
@@ -372,7 +373,7 @@ def findRefSection(text, nameExt=250):
     return refStart, refEnd
 
 def appendAndCutAll(sections, addStart, addEnd, addName):
-    """ 
+    """
     given a list of (start, end, name), add (addStart, addEnd, addName) to
     them, but shorten all other elements or remove them so nothing is
     overlapping in the end.
@@ -396,10 +397,10 @@ def appendAndCutAll(sections, addStart, addEnd, addName):
     return newSections
 
 def trimRange(start, end, secName, refStart, refEnd):
-    """ 
+    """
     trim down range (start,end) so it does not overlap (refStart,refEnd).
     Can potentially split the start-end range into two.
-    So returns a list of (start, end, name) features. 
+    So returns a list of (start, end, name) features.
     Can also return an empty list, if start-end is completely covered.
 
     >>> trimRange(1, 30, "t", 5, 15) # included
@@ -444,13 +445,13 @@ def trimRange(start, end, secName, refStart, refEnd):
     return sections
 
 def sectionSplitter(text, fileType, minLen=4000, refMinLen=500, minDist=MINSECLEN):
-    """ 
-    split file into sections. yields tuples with (start, end, section) 
+    """
+    split file into sections. yields tuples with (start, end, section)
     Based on keywords that have to appear at the beginning of lines
     Additional filtering to ignore the pseudo-sections in structured abstracts
     Sections closer together than minDist are ignored (must be TOCs).
 
-    The reference section uses a completely different approach based on clusters 
+    The reference section uses a completely different approach based on clusters
     of family names
     Used like this:
     sections = sectionSplitter(text, fileData.fileType)
@@ -519,7 +520,7 @@ def isCommonWord(w):
 # FUNCTIONS TO WORK WITH RANGES -----
 
 def rangeIntersection(start1, end1, start2, end2):
-    """ return amount that two ranges intersect, <0 if no intersection 
+    """ return amount that two ranges intersect, <0 if no intersection
     >>> rangeIntersection(1,10, 9, 20)
     1
     """
@@ -542,8 +543,8 @@ def rangeAnyOverlap(start, end, coords):
     return False
 
 def rangeRemoveOverlaps(list1, list2):
-    """ given tuples that have (start, end) as their (0,1) elements, 
-    remove from list1 all that overlap any in list2 and return a new filtered 
+    """ given tuples that have (start, end) as their (0,1) elements,
+    remove from list1 all that overlap any in list2 and return a new filtered
     list1. Does not assume sorted lists.  Careful: Stupid brute-force. quadratic runtime.
     >>> rangeRemoveOverlaps( [(1,10), (10,20)], [])
     [(1, 10), (10, 20)]
@@ -559,7 +560,7 @@ def rangeRemoveOverlaps(list1, list2):
         if not rangeAnyOverlap(start1, end1, list2):
             newList2.append(el1)
     return newList2
-            
+
 def rangeTexts(text, rangeList):
     """ given a list of (start, end, ...) tuples, return a list of text substrings
     >>> rangeTexts("Hallo World!", [(0,5), (6,13)])
@@ -571,7 +572,7 @@ def rangeTexts(text, rangeList):
         snip = text[start:end]
         textList.append(snip)
     return textList
-            
+
 def rangeToPosSet(rows):
     """ given rows with fields(0,1) as (start, end), return a set of all positions from start to end.
     (zero-based, half-open). The set can be used to make fast lookups if a position is overlapped
@@ -592,12 +593,12 @@ descTbl = string.maketrans('-|:', '   ')
 def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
         minWords=5, maxLines=10, minSpaces=4, mustHaveVerb=True, skipSections=["refs","ack"]):
     """
-    Try split the text into sections and these into clean 
+    Try split the text into sections and these into clean
     grammatically parsable English sentences. Skip the reference
     section of the text. Skip too long, too short
     and sentences that go over too many lines or sentences that don't contain a
     common English word.  These are all most likely garbage (e.g. html menus,
-    TOCs, figures, tables etc).   
+    TOCs, figures, tables etc).
     Yields tuples (section, start, end, sentence). Sentence has newline replaced
     with space.
     >>> text = "           \\nIntroduction\\n                                                         \\nMethods\\n no. yes. palim palim. We did something great and were right.\\nResults\\nOur results are very solid\\nand strong and reliable."
@@ -631,7 +632,7 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
                 if len(commSentWords)==0:
                     logging.debug("Sentence skipped, no verb: %s" % sentence)
                     continue
-                
+
             nlCount = sentence.count("\n")
             if nlCount > maxLines:
                 logging.debug("Sentence spread over too many lines: %s" % sentence)
@@ -646,17 +647,17 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
                 # UC library login part on Highwire pages
                 logging.debug("Too many stars")
                 continue
-                
+
             sentence = sentence.replace("\n", " ")
             # replace all special chars with long forms (e.g. alpha, beta etc)
             sentence = unidecode.unidecode(sentence)
             yield [section, secStart+sentStart, secStart+sentEnd, sentence]
 
-# disease dictionary 
+# disease dictionary
 disLex = None
 
 def findDiseases(text):
-    """ find diseases in string and return as (start, end, diseaseName) 
+    """ find diseases in string and return as (start, end, diseaseName)
     >>> list(findDiseases("AlzhEImer's Disease"))
     [(0, 19, 'Alzheimer Disease')]
     """
@@ -667,14 +668,14 @@ def findDiseases(text):
 
     for (start, end, name) in fastFind.fastFind(text, disLex, toLower=True):
         yield start, end, name
-        
-# drug dictionary 
+
+# drug dictionary
 drugLex = None
 
 drugBlacklist = set(["Nitric Oxide"])
 
 def findDrugs(text):
-    """ find drugs in string and return as (start, end, drugbankName) 
+    """ find drugs in string and return as (start, end, drugbankName)
     >>> list(findDrugs("Acetaminophen, Penicillin V and Herceptin."))
     [(0, 13, 'Acetaminophen'), (15, 27, 'Penicillin V'), (32, 41, 'Trastuzumab')]
     """
@@ -687,10 +688,9 @@ def findDrugs(text):
         if name.lower() in drugBlacklist:
             continue
         yield start, end, name
-        
+
 
 
 if __name__ == "__main__":
    import doctest
    doctest.testmod()
- 
