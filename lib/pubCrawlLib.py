@@ -1038,11 +1038,13 @@ def blacklistIssnYear(outDir, issnYear, journal):
 def writeDocIdStatus(outDir, pmid, status, msg="", crawler="", journal="", year="", numFiles=0, detail=""):
     " append a line to doc status file in outDir "
     def fixCol(c):
+        "empty if None, ensure unicode and remove newlines and tables that break parsing"
+        cleanRe = "[\n\t\r]+"
         try:
-            return "" if c is None else unicode(c)  # make characters
+            return "" if c is None else re.sub(cleanRe, ' ', unicode(c))  # make characters
         except UnicodeDecodeError:
             # had URL that was str but had non-ascii characters
-            return "%r" % c
+            return re.sub(cleanRe, ' ', ("%r" % c))
 
     fname = join(outDir, PMIDSTATNAME)
     with codecs.open(fname, "a", encoding="utf8") as outFh:
