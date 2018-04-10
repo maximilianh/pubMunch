@@ -303,7 +303,7 @@ def getLandingUrlSearchEngine(articleData):
         logging.exception(ex)
         # capture information on what happened to save to docStatus.tab
         raise pubGetError("failed to get landing URL for PMID: {}, DOI: {}".format(articleData["pmid"], articleData["doi"]),
-                          "LANDING_URL_FAILURE")
+                          "landingUrlFailure")
 
 
 
