@@ -191,10 +191,14 @@ metaHeaders.extend(addHeaders)
 
 class pubGetError(Exception):
     def __init__(self, longMsg, logMsg, detailMsg=None):
-        self.longMsg = longMsg
-        self.logMsg = logMsg
-        self.detailMsg = detailMsg
-        logging.debug(u"pubGetError(longMsg={}; logMsg={}; detailMsg={})".format(longMsg, logMsg, detailMsg))
+        # this code use to use
+        #   logging.debug(u"pubGetError(longMsg={}; logMsg={}; detailMsg={})".format(longMsg, logMsg, detailMsg))
+        # however this cause UnicodeDecodeError: 'ascii' codec for reasons that don't seem
+        # right.  Gave up truing to right it out and just store decoded
+        self.longMsg = longMsg.decode('latin-1')
+        self.logMsg = logMsg.decode('latin-1')
+        self.detailMsg = detailMsg.decode('latin-1') if detailMsg is not None else None
+        logging.debug(u"pubGetError(longMsg={0.longMsg}; logMsg={0.logMsg}; detailMsg={0.detailMsg})".format(self))
 
     def __str__(self):
         parts = [self.longMsg, self.logMsg, self.detailMsg]
@@ -234,7 +238,7 @@ def resolveWithSfx(sfxServer, xmlQuery):
     url = urls[0].encode("utf8")
     return url
 
-def getLandingUrlSearchEngine(articleData):
+def _getLandingUrlSearchEngine(articleData):
     """ given article meta data, try to find landing URL via a search engine:
     - medline's DOI
     - a Crossref search with medline data
@@ -286,6 +290,23 @@ def getLandingUrlSearchEngine(articleData):
         raise pubGetError("No fulltext for this article", "noOutlinkOrDoi")
 
     return landingUrl
+
+def getLandingUrlSearchEngine(articleData):
+    """see _getLandingUrlSearchEngine, this just ensure that unhanded errors
+    get logged in some useful way."""
+
+    try:
+        return _getLandingUrlSearchEngine(articleData)
+    except pubGetError:
+        raise  # already captured
+    except Exception as ex:
+        logging.exception(ex)
+        # capture information on what happened to save to docStatus.tab
+        raise pubGetError("failed to get landing URL for PMID: {}, DOI: {}".format(articleData["pmid"], articleData["doi"]),
+                          "LANDING_URL_FAILURE")
+
+
+
 
 def parseWgetLog(logFile, origUrl):
     " parse a wget logfile and return final URL (after redirects) and mimetype as tuple"
@@ -2528,9 +2549,9 @@ class LwwCrawler(Crawler):
         ovidMetaResult = httpGetDelay(ovidMetaUrl)
         try:
             ovidMeta = json.loads(ovidMetaResult["data"], "UTF8")
-        except json.decoder.JSONDecodeError as ex:
+        except ValueError as ex:  # will throw JSONDecodeError in py3
             raise pubGetError("error parsing OVID metadata JSON from {}: {}".format(ovidMetaUrl, str(ex)),
-                              "ovidMetaParseFailed")
+                              "ovidMetaParseFailed", ovidMetaResult["data"])
         pdfUrl = ovidMeta.get("ArticlePDFUri", None)
         if pdfUrl is None:
             logging.debug("Can't fine OVID ArticlePDFUri metadata field in response from {}".format(ovidMetaUrl))
