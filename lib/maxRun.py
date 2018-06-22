@@ -105,7 +105,7 @@ class Runner:
         elif self.clusterType=="auto":
             # if we got a headNode, but no cluster system, need to ssh there
             if self.headNode is not None:
-                prefixCmd = "ssh %s " % self.headNode
+                prefixCmd = "ssh -n %s " % self.headNode
             else:
                 prefixCmd = ""
 
@@ -267,7 +267,7 @@ class Runner:
                 #else:
                 #cleanCmd = ""
 
-                cmd = "ssh %s 'cd %s; %s %s'" % \
+                cmd = "ssh -n %s 'cd %s; %s %s'" % \
                     (self.headNode, sshDir, cleanCmd, cmd)
                 logging.debug("headnode set, full command is %s" % cmd)
 

@@ -575,6 +575,8 @@ def lftpGet(remoteUrl, locDir, fileNames, connCount):
     lFile = open(scriptPath, "w")
     lFile.write("set net:socket-buffer 32000000\n")
     lFile.write("set cmd:parallel %d\n" % int(connCount))
+    lFile.write("set xfer:use-temp-file yes\n")  # atomic download
+    lFile.write("set xfer:clobber yes\n")
     lFile.write("open %s\n" % remoteUrl)
     lFile.write("set xfer:log true\n")
     lFile.write("lcd %s\n" % locDir)

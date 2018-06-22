@@ -1,14 +1,18 @@
 from os.path import expanduser, join, isdir, isfile, normpath, dirname, abspath
-from os import makedirs
+from os import makedirs, getenv
 import logging
 from maxCommon import getAppDir
 
-# first parse the user config file
-confName = expanduser("~/.pubConf")
+# first parse the user config file. The variables will later be re-applied
+# after the setting in this file
+confName = getenv("PUBMUNCH_CONF")
+if (confName is not None) and not isfile(confName):
+    raise Exception("configuration file specified in PUBMUNCH_CONF environment variable ({}) does not exist".format(confName))
+if confName is None:
+    confName = expanduser("~/.pubConf")
 newVars = {}
 if isfile(confName):
-    dummy = {}
-    execfile(confName, dummy, newVars)
+    execfile(confName, {}, newVars)
     for key, value in newVars.iteritems():
         locals()[key] = value
 

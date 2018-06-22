@@ -39,18 +39,21 @@ If a new baseline comes in from NCBI (december):
 parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages") 
 #parser.add_option("", "--parse", dest="parse", action="store_true", help="for debugging, just parse one single xml file", default=None) 
 parser.add_option("-p", "--parallelConnections", dest="connCount", action="store", type="int", help="use X number of connections, default %default", default=8)
-#parser.add_option("", "--full", dest="full", action="store_true", help="also download the baseline medline files for the current year")
+parser.add_option("--maxFiles", dest="maxFiles", action="store", type="int", help="only download this number of article files from MEDLINE for testing purposes", default=None)
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
 
-def downloadBaseline(outDir, connCount):
+def downloadBaseline(outDir, connCount, maxFiles):
     " download current baseline into outDir "
     baselineFnames = pubGeneric.getFtpDir(medlineSrv, baselinePath)
     baselineFnames = [basename(fname) for fname in baselineFnames if fname.endswith(".xml.gz")]
+    if maxFiles is not None:
+        baselineFnames = baselineFnames[0:maxFiles]
     logging.info("Found %d filenames on ftp server" % len(baselineFnames))
     medlineUrl = "ftp://"+medlineSrv+"/"+baselinePath,
     pubGeneric.lftpGet(medlineUrl, outDir, baselineFnames, connCount)
+    return len(baselineFnames)
     
 def ftpBaselineEqLocal(outDir):
     prefixLen = 9 # medline12.....
@@ -65,14 +68,17 @@ def ftpBaselineEqLocal(outDir):
     logging.debug("%s %s", ftpVer, localVer)
     return ftpVer, localVer
 
-def downloadUpdates(outDir, connCount):
+def downloadUpdates(outDir, connCount, maxFiles):
     """ Download updates from Medline into outDir """
     logging.debug("Downloading updates")
     updateFnames = pubGeneric.getFtpDir(medlineSrv, updatePath)
     updateFnames = [basename(fname) for fname in updateFnames if fname.endswith(".xml.gz")]
+    if maxFiles is not None:
+        updateFnames = updateFnames[0:maxFiles]
     logging.info("Found %d updates on ftp server" % len(updateFnames))
     medlineUrl = "ftp://"+medlineSrv+"/"+updatePath,
     pubGeneric.lftpGet(medlineUrl, outDir, updateFnames, connCount)
+    return len(updateFnames)
 
 # ----------- MAIN --------------
 def main():
@@ -85,6 +91,7 @@ def main():
     pubGeneric.setupLogging(progFile, options)
 
     outDir = args[0]
+    maxFiles = options.maxFiles
 
     ftpVer, localVer = ftpBaselineEqLocal(outDir)
     if not ftpVer==localVer:
@@ -102,7 +109,11 @@ def main():
         open(flagFname, "w").write("")
         logging.info("getting new baseline now")
 
-    downloadBaseline(outDir, options.connCount)
-    downloadUpdates(outDir, options.connCount)
+    downloadedCount = downloadBaseline(outDir, options.connCount, maxFiles)
+    if maxFiles is not None:
+        maxFiles -= downloadedCount
+    downloadedCount = downloadUpdates(outDir, options.connCount, maxFiles)
+    if maxFiles is not None:
+        maxFiles -= downloadedCount
 
 main()

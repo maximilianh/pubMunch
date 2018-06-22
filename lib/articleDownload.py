@@ -2,17 +2,18 @@ from optparse import OptionParser
 import util, maxXml
 import urllib2, cookielib, urllib, re, time, sgmllib, os, sys, glob, urlparse,\
 socket, tempfile, time, subprocess, fcntl, logging
+from maxWeb import httpStartsWith
 
 SLEEPSECONDS = 5 # how long to sleep between two http requests
 
 # a python library to download the fulltext of an article from the internet.
 # call like this:
-# 
+#
 # browser = FulltextDownloader(statusFilename="/tmp/fulltextDownload")
 # ft = browser.downloadFulltext(9808786)
-# 
-# 
-# 
+#
+#
+#
 # CHANGES:
 # Thu Dec  9 23:09:46 GMT 2010:  Almost complete rewrite, now part of pubtools
 # id to test: 9808786
@@ -28,7 +29,7 @@ SLEEPSECONDS = 5 # how long to sleep between two http requests
 # Thu May  1 10:57:17 CEST 2008: added timeout for all sockets (not checked, problem occurs randomly)
 # Fri May  9 14:02:00 CEST 2008: make http downloader timeout, not compat. with windows anymore
 #                                due to fork() system calls
-# Fri May  9 14:08:46 CEST 2008: interrupt with ctrl+c 
+# Fri May  9 14:08:46 CEST 2008: interrupt with ctrl+c
 
 def readLines(filename):
     """ return first field of lines as set, if exists """
@@ -70,7 +71,7 @@ def getPubmedOutlinks(pmid, preferPmc=True):
             continue
         else:
             outlinks.append(url)
-    
+
     logging.debug("Found %d outlinks" % len(outlinks))
     logging.log(5, "Outlinks: %s" % str(outlinks))
     if len(outlinks)==0:
@@ -79,7 +80,7 @@ def getPubmedOutlinks(pmid, preferPmc=True):
            "ukpmc" in aggregatorOutlinks[0]: # let's get rid of UKPMC
             aggregatorOutlinks.pop(0)
         for outlink in aggregatorOutlinks:
-            if preferPmc and outlink.startswith("http://www.ncbi.nlm.nih.gov/pmc"):
+            if preferPmc and httpStartsWith("http://www.ncbi.nlm.nih.gov/pmc", outlink):
                 logging.debug("Found PMC outlink")
                 return outlink
         logging.debug("No PMC outlink")
@@ -92,7 +93,7 @@ def getPubmedOutlinks(pmid, preferPmc=True):
         outlink = outlinks[0]
         logging.debug("Using outlink: %s" % outlink)
         return outlink
-            
+
 def getPubmedDoi(pmid):
     """ retrieve doi for pmid via http eutils"""
     url = 'http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&email=maximilianh@gmail.com&retmode=xml&id=%s' % pmid
@@ -117,7 +118,7 @@ class HtmlParser(sgmllib.SGMLParser):
         self.foundAccess=False
         if htmlData:
             self.parseLines(htmlData)
-            
+
 
     def titleContains(self, text):
         return self.title.find(text)!=-1
@@ -164,7 +165,7 @@ class HtmlParser(sgmllib.SGMLParser):
                 url = url.replace("&amp;", "&")
                 if url.endswith("+html"): # for oxf journals, e.g. pmid 17032682
                     url = url.replace("+html","")
-                if not url.startswith("http"): # adding base url to url 
+                if not url.startswith("http"): # adding base url to url
                     url = urlparse.urljoin(self.baseUrl, url)
                 if url==self.baseUrl or not urlparse.urlparse(url)[1]==urlparse.urlparse(self.baseUrl)[1]: # has to be on same server
                     logging.log(5, "Ignoring link: %s" % url)
@@ -218,7 +219,7 @@ class HTTPSpecialErrorHandler(urllib2.HTTPDefaultErrorHandler):
 
 class FulltextLinkTable:
     """ stores all fulltext link data for a single article located at baseUrl
-    
+
     contains URLs and information about them and the content of the URLs, retrieved by http-get requests """
     def __init__(self, pmid, baseUrl=""):
         self.urlInfo = {} # format: url -> (fileType, isSuppData)
@@ -230,7 +231,7 @@ class FulltextLinkTable:
     def notDownloadable(self, reason):
         logging.debug("Marking PMID %s as undownloadable, reason: %s"  % (self.pmid,  reason))
         self.notDownloadReason = reason
-        
+
     def toString(self):
         lines = []
         # write error message if downloading was not successfull
@@ -253,11 +254,11 @@ class FulltextLinkTable:
             if onlyFileType and onlyFileType!=fileType:
                 continue
             yield url, fileType, isSuppData, self.httpData[url]
-        
+
     def hasPdfData(self):
         hasPdf =  len(list(self.getData(onlyFileType="pdf")))>0
         return hasPdf
-        
+
     def contains(self, url):
         """ check if url is part of table"""
         return url in self.urlInfo
@@ -277,7 +278,7 @@ class FulltextLinkTable:
         self.urlInfo[url]          = (fileType, isSupp)
         realUrl, contentType, data = httpRequester.get(url)
         self.httpData[url]         = data
-            
+
     def appendToFile(self, filename):
         """ write table to file """
         logging.debug("Writing all links for PMID %s to %s" % (self.pmid, filename))
@@ -285,17 +286,17 @@ class FulltextLinkTable:
         fh.write(self.toString()+"\n")
 
 class HttpRequester:
-    """ class to send requests via http and potentially save cookies 
+    """ class to send requests via http and potentially save cookies
         caches requests dictionary "httpData"
-    
+
     """
 
     def __init__(self):
         self.clearCache()
 
     def clearCache(self):
-        self.httpData = {}  
-        
+        self.httpData = {}
+
     def loginInist(self, user, passw):
         """ french national research service fulltext access system """
         logging.debug("Login into inist.fr")
@@ -306,7 +307,7 @@ class HttpRequester:
     def get(self, url, data=None):
         """
             http get/post request with mozilla headers(get if data==None, post if data!=None)
-            returns tuple (url, contentType, data) 
+            returns tuple (url, contentType, data)
         """
         if url in self.httpData:
             logging.debug("Getting data from cache for %s" % url)
@@ -343,7 +344,7 @@ class FulltextDownloader:
             self.httpRequester.loginInist(user, passw)
 
     def pmidToUrl(self, pmid):
-        """ for a PMID: try to find first outlink or alternatively DOI as referenced from pubmed 
+        """ for a PMID: try to find first outlink or alternatively DOI as referenced from pubmed
         """
         outlink = getPubmedOutlinks(pmid)
 
@@ -369,7 +370,7 @@ class FulltextDownloader:
             logging.debug("Found citation_pdf_url meta information")
             pdfurl= parser.metaInfo["citation_pdf_url"]
             # HANDLE WILEY: for PDF Iframe
-            if pdfurl.startswith("http://onlinelibrary.wiley.com"):
+            if httpStartsWith("http://onlinelibrary.wiley.com", pdfurl):
                 logging.debug("Detected Wiley IFrame")
                 url, contentType, htmlData = self.httpRequester.get(pdfurl)
                 parser = HtmlParser(pdfurl, htmlData=htmlData)
@@ -383,8 +384,8 @@ class FulltextDownloader:
             else:
                 pdfurl = urlparse.urljoin(parser.baseUrl, pdfurl)
                 fulltextLinkTable.add(pdfurl, isSupp, self.httpRequester)
-                
-        
+
+
         # get first link to a .pdf file
         urls = parser.getLinksWith([".pdf"], "url")
         # HANDLE SCIENCEDIRECT: keep only first link to pdf (remove references' links)
@@ -402,7 +403,7 @@ class FulltextDownloader:
                 #else:
                     #newUrls.append(url)
             #urls = newUrls
-            
+
         # add all office files
         urls = parser.getLinksWith([".doc", ".xls"], "url")
         fulltextLinkTable.addAll(urls, True, self.httpRequester)
@@ -448,7 +449,7 @@ class FulltextDownloader:
     def crawl(self, url, fulltextLinkTable, depth, isSupp=False):
         """ recursively crawl pdf/doc/xls files and "Supplemental"-like links
         from url with maximum depth returns, a dict with 'pdf' -> url, 'html' ->
-        url, suppFiles -> list of urls 
+        url, suppFiles -> list of urls
         """
         logging.debug("Crawling %s" % url)
         url, contentType, data = self.httpRequester.get(url)
@@ -506,12 +507,12 @@ class FulltextDownloader:
         return fulltextLinkTable
 
     def getFulltextFileUrls(self, pmid):
-        """ get links from Pubmed and recursively search them for links to 
+        """ get links from Pubmed and recursively search them for links to
         pdf/doc/xls files, returns a dictionary with keys:
         'pdf' -> pdfUrl
         'html' -> htmlUrl
         <anyOtherDesc> -> suppUrl
-        
+
         """
         outlink = self.pmidToUrl(pmid)
         fulltextLinksTable = FulltextLinkTable(pmid, outlink)
@@ -536,8 +537,8 @@ class FulltextDownloader:
         f.close()
 
     def downloadFulltext(self, pmid):
-         """ force = download even if in cache 
-        
+         """ force = download even if in cache
+
          """
          self.httpRequester.clearCache()
          pmid = str(pmid)
