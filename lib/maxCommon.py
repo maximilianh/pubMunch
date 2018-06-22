@@ -283,7 +283,9 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         headers = [h.strip() for h in headers]
         headers = [re.sub("[^a-zA-Z0-9_]","_", h) for h in headers]
         newHeaders = []
-        for h in headers:
+        for i, h in enumerate(headers):
+            if h=="":
+                h = "noName_"+str(i)
             if h[0].isdigit():
                 h = "n"+h
             newHeaders.append(h)

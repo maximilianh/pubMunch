@@ -62,7 +62,7 @@ inventoryDir = join(pubsDataDir, "inventory")
 dbRefDir = '/hive/data/inside/pubs/parsedDbs'
 
 # directories with a local copy of PDB and uniprot, ncbi genes, refseq
-uniProtBaseDir = '/hive/data/outside/uniProtCurrent'
+uniProtBaseDir = '/hive/data/outside/uniGene/current'
 pdbBaseDir = '/hive/data/outside/pdb'
 ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
 #ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/release/vertebrate_mammalian'
@@ -668,6 +668,11 @@ def getStaticDataDir():
     """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
     """
     return staticDataDir
+
+def getStaticFile(subDir, fname):
+    """ returns the data dir that is part of the code repo with all static data, e.g. train pmids
+    """
+    return join(staticDataDir, subDir, fname)
 
 def defaultInOutDirs(datasetName):
     " return the default input and the default output directory for a dataset "
