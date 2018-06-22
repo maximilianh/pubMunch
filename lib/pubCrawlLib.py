@@ -1909,6 +1909,10 @@ class ElsevierCrawler(Crawler):
         pList = ["10.1378", "10.1016", "10.1038"]
         for prefix in pList:
             if artMeta["doi"].startswith(prefix):
+                if artMeta["eIssn"]=="2045-2322":
+                    # scientific reports is not elsevier anymore
+                    return False
+
                 return True
 
         return None
