@@ -258,7 +258,7 @@ def getLandingUrlSearchEngine(articleData):
     if articleData["doi"] in ["", None]:
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData["doi"] = xrDoi.replace("http://dx.doi.org/","")
+            articleData["doi"] = xrDoi.replace("https://doi.org/","")
             landingUrl = resolveDoi(xrDoi)
             if landingUrl!=None:
                 return landingUrl
@@ -1396,7 +1396,7 @@ def resolveDoi(doi):
     u'http://onlinelibrary.wiley.com/doi/10.1111/j.1440-1754.2010.01952.x/abstract'
     """
     logging.debug("Resolving DOI %s" % doi)
-    doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
+    doiUrl = "https://doi.org/" + urllib.quote(doi.encode("utf8"))
     #resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
     #if resp==None:
         #return None

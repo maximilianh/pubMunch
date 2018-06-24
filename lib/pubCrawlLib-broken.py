@@ -155,7 +155,7 @@ def getLandingUrlSearchEngine(articleData):
     if articleData['doi'] == '':
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData['doi'] = xrDoi.replace('http://dx.doi.org/', '')
+            articleData['doi'] = xrDoi.replace('https://doi.org/', '')
             landingUrl = resolveDoi(xrDoi)
             if landingUrl != None:
                 return landingUrl
@@ -1082,7 +1082,7 @@ def resolveDoi(doi):
     >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x")
     """
     logging.debug('Resolving DOI %s' % doi)
-    doiUrl = 'http://dx.doi.org/' + urllib.quote(doi.encode('utf8'))
+    doiUrl = 'https://doi.org/' + urllib.quote(doi.encode('utf8'))
     page = httpGetDelay(doiUrl)
     trgUrl = page['url']
     logging.debug('DOI %s redirects to %s' % (doi, trgUrl))
