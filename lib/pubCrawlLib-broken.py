@@ -155,7 +155,7 @@ def getLandingUrlSearchEngine(articleData):
     if articleData['doi'] == '':
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData['doi'] = xrDoi.replace('https://doi.org/', '')
+            articleData['doi'] = re.sub('https?://(dx\.)?doi.org/', '', xrDoi)
             landingUrl = resolveDoi(xrDoi)
             if landingUrl != None:
                 return landingUrl
