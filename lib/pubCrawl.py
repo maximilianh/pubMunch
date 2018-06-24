@@ -215,7 +215,7 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
     if landingUrl==None and articleData["doi"]=="" and not (preferPmc and articleData["pmcId"]!=""):
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData["doi"] = xrDoi.replace("https://doi.org/","")
+            articleData["doi"] = re.sub("https?://(dx\.)?doi.org/", "", xrDoi)
             landingUrl, crawlConfig = resolveDoiRewrite(xrDoi, crawlConfig)
 
     # try pubmed's outlink
