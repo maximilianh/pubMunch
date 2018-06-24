@@ -457,7 +457,8 @@ def appendTsvDict(filename, inDict, headers):
         headers = inDict.keys()
 
     for head in headers:
-        values.append(inDict.get(head, ""))
+        sanitizedValue = inDict.get(head, "").replace("\r\n", " ").replace("\n", " ").replace("\t", " ")
+        values.append(sanitizedValue)
 
     logging.log(5, "order of headers is: %s" % headers)
 
