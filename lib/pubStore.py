@@ -61,11 +61,11 @@ articleFields=[
 #"pmidVersion",     # PubmedID version
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
-"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
+#"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
 "fulltextUrl",     # URL to fulltext of article
-"medlineCreatedDate",  # date medline entry was created
-"medlineCompletedDate", # date medline entry was completed
-"medlineRevisedDate", # date medline entry was last revised
+#"medlineCreatedDate",  # date medline entry was created
+#"medlineCompletedDate", # date medline entry was completed
+#"medlineRevisedDate", # date medline entry was last revised
 "time",     # entry creation time (conversion time)
 "offset",   # offset in .files, number of bytes (NOT number of unicode characters).
 "size",      # total size (in bytes, not utf8 characters) of all files in this article + size of abstract
