@@ -58,7 +58,7 @@ articleFields=[
 "issue",    # issue
 "page",            # first page of article, can be ix, x, or S4
 "pmid",            # PubmedID if available
-"pmidVersion",     # PubmedID version
+#"pmidVersion",     # PubmedID version
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
 "pii",             # Publisher Item Identifier, only used by Elsevier and ACM
