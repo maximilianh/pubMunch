@@ -141,7 +141,7 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
 
             excessFields = set(rowDict.keys()) - set(allFields)
             if len(excessFields)!=0:
-                print "excess fields:", missFields
+                print "excess fields:", excessFields
                 assert False
 
 
