@@ -26,7 +26,8 @@ if "pubsDataDir" not in locals():
 # static data, accessible from cluster, but part of distribution
 # these are basic files like gene lists, marker lists, journal lists
 # Some of it can be updated with pubPrepXXX commands
-staticDataDir = join(getAppDir(), "data")
+if "staticDataDir" not in locals():
+    staticDataDir = join(getAppDir(), "data")
 
 # scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
