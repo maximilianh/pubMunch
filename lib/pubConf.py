@@ -32,9 +32,6 @@ if "staticDataDir" not in locals():
 # scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
 
-# external tools
-extToolDir = normpath(join(dirname(__file__), "..", "ext"))
-
 # a directory with files that associate publishers with journals
 # one of them is the NLM Catalog, others we got from publishers or created them semi-
 # manually
@@ -252,7 +249,9 @@ identifierStart = {
     # the "free" entry is necessary to indicate the range of the 2nd to last entry
 }
 
-extToolDir = _sourceDir+"/external"
+# external tools
+if "extToolDir" not in locals():
+    extToolDir = _sourceDir+"/external"
 
 # commands to convert various filetypes to ascii text 
 # $in and $out will be replaced with temp filenames
