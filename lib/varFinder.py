@@ -327,6 +327,10 @@ class SeqData(object):
 
     def getCdsStart(self, refseqId):
         " return refseq CDS start position "
+        if refseqId not in self.refSeqCds:
+            logger.warn("{} not in refseqInfo.tab, skipping".format(refseqId))
+            return -1
+
         cdsStart = self.refSeqCds[refseqId]
         return cdsStart
 
@@ -1125,6 +1129,8 @@ def isSeqCorrect(seqId, variant, insertion_rv):
 
     if variant.seqType == "dna":
         cdsStart = geneData.getCdsStart(seqId)
+        if cdsStart == -1:
+            return False
     else:
         cdsStart = 0
     genomeSeq = seq[vStart + cdsStart:vEnd + cdsStart].upper()
