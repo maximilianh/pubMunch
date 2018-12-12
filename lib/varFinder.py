@@ -995,8 +995,10 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     nuclSeq = cdnaSeq[nuclStart:nuclEnd]
     foundAa = translate(nuclSeq)
     logger.debug("CDS start is %d, nucl pos is %d, codon is %s" % (cdsStart, nuclStart, nuclSeq))
-    if not doShuffle:
-        assert(foundAa == expectAa)
+    if not doShuffle and (foundAa != expectAa):
+        logger.warn("foundAa != expectAa")
+        return None, None, None
+        # assert(foundAa == expectAa)
     return nuclSeq, nuclStart, nuclEnd
 
 def mapToCodingAndRna(protVars):
