@@ -2526,7 +2526,7 @@ class LwwCrawler(Crawler):
         ovidMetaResult = httpGetDelay(ovidMetaUrl)
         try:
             ovidMeta = json.loads(ovidMetaResult["data"], "UTF8")
-        except json.decoder.JSONDecodeError as ex:
+        except ValueError as ex:
             raise pubGetError("error parsing OVID metadata JSON from {}: {}".format(ovidMetaUrl, str(ex)),
                               "ovidMetaParseFailed")
         pdfUrl = ovidMeta.get("ArticlePDFUri", None)
