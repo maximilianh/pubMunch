@@ -2443,7 +2443,7 @@ class SpringerCrawler(Crawler):
 
         absPage = httpGetDelay(url, delayTime)
         if pageContains(absPage, ["make a payment", "purchase this article", "Buy now", "Buy article (PDF)"]):
-            return None
+            raise pubGetError("no Springer License", "noSpringerLicense")
 
         # landing page has only abstract
         fullUrl = url+"/fulltext.html"
