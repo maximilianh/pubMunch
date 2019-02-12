@@ -2428,7 +2428,7 @@ class SpringerCrawler(Crawler):
         delayTime = crawlDelays["springer"]
 
         absPage = httpGetDelay(url, delayTime)
-        if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
+        if pageContains(absPage, ["make a payment", "purchase this article", "Buy now", "Buy article (PDF)"]):
             return None
 
         # landing page has only abstract
