@@ -216,7 +216,7 @@ def findLandingUrl(articleData, crawlConfig, preferPmc):
     if landingUrl==None and articleData["doi"]=="" and not (preferPmc and articleData["pmcId"]!=""):
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData["doi"] = xrDoi.replace("http://dx.doi.org/","")
+            articleData["doi"] = re.sub("https?://(dx\.)?doi.org/", "", xrDoi)
             landingUrl, crawlConfig = resolveDoiRewrite(xrDoi, crawlConfig)
 
     # try pubmed's outlink
@@ -1503,7 +1503,7 @@ def resolveDoi(doi):
     >>> resolveDoi("10.1111/j.1440-1754.2010.01952.x")
     """
     logging.debug("Resolving DOI %s" % doi)
-    doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
+    doiUrl = "https://doi.org/" + urllib.quote(doi.encode("utf8"))
     resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
     if resp==None:
         return None

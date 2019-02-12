@@ -360,7 +360,7 @@ class FulltextDownloader:
                 return None
             else:
                 logging.debug("%s: Using DOI" % (pmid))
-                url = "http://dx.doi.org/"+doi
+                url = "https://doi.org/"+doi
                 return url
 
     def searchFileLinks(self, parser, fulltextLinkTable, isSupp):

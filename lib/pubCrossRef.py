@@ -38,9 +38,13 @@ def lookupDoi(metaInfoDict, repeatCount=2, delaySecs=5):
     if httpResp==None:
         logging.debug("HTTPError while sending crossref request")
         return None
-
-    jsonStr = httpResp.read()
-    httpResp.close()
+    jsonStr = ""
+    try:
+        jsonStr = httpResp.read()
+        httpResp.close()
+    except:
+        logging.debug("sslError while reading httpResp")
+        return None
     xrdata = json.loads(jsonStr)
 
     # parse result

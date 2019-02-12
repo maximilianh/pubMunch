@@ -290,7 +290,9 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         headers = [h.strip() for h in headers]
         headers = [re.sub("[^a-zA-Z0-9_]","_", h) for h in headers]
         newHeaders = []
-        for h in headers:
+        for i, h in enumerate(headers):
+            if h=="":
+                h = "noName_"+str(i)
             if h[0].isdigit():
                 h = "n"+h
             newHeaders.append(h)
@@ -462,7 +464,8 @@ def appendTsvDict(filename, inDict, headers):
         headers = list(inDict.keys())
 
     for head in headers:
-        values.append(inDict.get(head, ""))
+        sanitizedValue = inDict.get(head, "").replace("\r\n", " ").replace("\n", " ").replace("\t", " ")
+        values.append(sanitizedValue)
 
     logging.log(5, "order of headers is: %s" % headers)
 

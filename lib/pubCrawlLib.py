@@ -262,7 +262,7 @@ def _getLandingUrlSearchEngine(articleData):
     if articleData["doi"] in ["", None]:
         xrDoi = pubCrossRef.lookupDoi(articleData)
         if xrDoi != None:
-            articleData["doi"] = xrDoi.replace("http://dx.doi.org/","")
+            articleData["doi"] = re.sub("https?://(dx\.)?doi.org/", "", xrDoi)
             landingUrl = resolveDoi(xrDoi)
             if landingUrl!=None:
                 return landingUrl
@@ -1419,7 +1419,7 @@ def resolveDoi(doi):
     u'http://onlinelibrary.wiley.com/doi/10.1111/j.1440-1754.2010.01952.x/abstract'
     """
     logging.debug("Resolving DOI %s" % doi)
-    doiUrl = "http://dx.doi.org/" + urllib.quote(doi.encode("utf8"))
+    doiUrl = "https://doi.org/" + urllib.quote(doi.encode("utf8"))
     #resp = maxCommon.retryHttpHeadRequest(doiUrl, repeatCount=2, delaySecs=4, userAgent=userAgent)
     #if resp==None:
         #return None
@@ -1909,6 +1909,7 @@ class NpgCrawler(Crawler):
         return paperData
 
 class ElsevierCrawlerMixin(object):
+
     def canDo_article(self, artMeta):
         " return true if DOI prefix is by elsevier "
         pList = ["10.1378", "10.1016", "10.1038"]
@@ -1956,6 +1957,19 @@ class ElsevierCrawler(Crawler, ElsevierCrawlerMixin):
     no license: 9932421
     """
     name = "elsevier"
+
+    def canDo_article(self, artMeta):
+        " return true if DOI prefix is by elsevier "
+        pList = ["10.1378", "10.1016", "10.1038"]
+        for prefix in pList:
+            if artMeta["doi"].startswith(prefix):
+                if artMeta["eIssn"]=="2045-2322":
+                    # scientific reports is not elsevier anymore
+                    return False
+
+                return True
+
+        return None
 
     def canDo_url(self, url):
         return self.isElsevierUrl(url)
