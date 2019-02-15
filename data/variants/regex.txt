@@ -7,6 +7,7 @@ dna	del	True	c.123delT	{sep}c\.{pos}del{origDnas}
 dna	del	True	c.123_125delAT	{sep}c\.{fromPos}_{toPos}del{origDnas}
 dna	del	True	10083731	deletion of nt{pos}{origDnas}
 dna	del	True	6174delT	{sep}{pos}del{origDnas}
+dna	ins	True	5382insC	{sep}{pos}ins{origDnas}
 dna	ins	True	c.123_124insGC	{sep}c\.{fromPos}_{toPos}ins{dnas}
 dna	dup	True	c.123dupA	{sep}c\.{pos}dup{origDna}
 dna	dup	True	c.123_125dupAT	{sep}c\.{fromPos}_{toPos}dup{origDnas}
