@@ -1,3 +1,5 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import os
 import sys
 import traceback
@@ -7,8 +9,8 @@ import re
 
 warnings.simplefilter("error")
 
-from support import html5lib_test_files as data_files
-from support import TestData, convert, convertExpected
+from .support import html5lib_test_files as data_files
+from .support import TestData, convert, convertExpected
 import html5lib
 from html5lib import html5parser, treebuilders, constants
 
@@ -124,15 +126,15 @@ def test_parser():
         
         for index, test in enumerate(tests):
             input, errors, innerHTML, expected = [test[key] for key in
-                                                      'data', 'errors',
+                                                      ('data', 'errors',
                                                       'document-fragment',
-                                                      'document']
+                                                      'document')]
             if errors:
                 errors = errors.split("\n")
 
             for treeName, treeCls in treeTypes.iteritems():
                 for namespaceHTMLElements in (True, False):
-                    print input
+                    print(input)
                     yield (runParserTest, innerHTML, input, expected, errors, treeCls,
                            namespaceHTMLElements)
                     break

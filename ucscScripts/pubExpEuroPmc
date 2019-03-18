@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
+from __future__ import print_function
 import logging, optparse, sys, os, glob
 from os.path import *
 
@@ -34,11 +35,11 @@ def main(args, options):
             for row in maxCommon.iterTsvRows(bedFname, noHeaderCount=25):
                 articleIds.add(row[3])
 
-        print """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>"""
-        print """<links>"""
+        print("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""")
+        print("""<links>""")
         for artId in articleIds:
             url = "http://hgwdev-max.cse.ucsc.edu/cgi-bin/hgc?c=0&amp;l=0&amp;r=0&amp;g=pubsDevBlat&amp;i=%s" % artId
-            print """<link providerId="1045">
+            print("""<link providerId="1045">
             <resource>
                 <title>DNA or protein sequence that matches genome</title>
                 <url>%s</url>
@@ -46,9 +47,9 @@ def main(args, options):
             <record>
                 <source>PMC</source>
                 <id>PMC%s</id>
-            </record>\n""" % (url, artToPmc[artId])
-            print """</link>\n""" 
-        print "</links>"
+            </record>\n""" % (url, artToPmc[artId]))
+            print("""</link>\n""") 
+        print("</links>")
                 
 
 

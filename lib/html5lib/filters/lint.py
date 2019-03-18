@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 from gettext import gettext
 _ = gettext
 
-import _base
+from . import _base
 from html5lib.constants import cdataElements, rcdataElements, voidElements
 
 from html5lib.constants import spaceCharacters

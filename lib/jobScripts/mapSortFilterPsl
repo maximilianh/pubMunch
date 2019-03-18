@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import tempfile, os, shutil, subprocess, sys, optparse, glob
 from os.path import join, splitext, basename
 

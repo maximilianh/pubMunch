@@ -1,7 +1,7 @@
-import maxCommon, re, sys, logging
+import maxCommon, re, logging
 
 def hasCdr3Len(seq):
-    return len(seq)>7 and len(seq)<26 
+    return len(seq)>7 and len(seq)<26
 
 # top 90% cdr3 prefixes according to adaptive TCR list of 2mil seqs
 prefixes = set("ASS ASR SAR AST ASG AIS ATS AWS ASK ASN".split(" "))
@@ -27,7 +27,7 @@ def hasCdr3Prefix(seq):
         return False
 
 def splitAndKeep(text, regex):
-    """ split on string but keep the strings in the parts 
+    """ split on string but keep the strings in the parts
     >>> splitAndKeep("CASSactyhacthCSARACTGACT", cdr3Regex)
     ['CASSactyhacth', 'CSARACTGACT']
     """
@@ -88,4 +88,3 @@ def iterCdr3Rows(fname):
 if __name__=="__main__":
     import doctest
     doctest.testmod()
-

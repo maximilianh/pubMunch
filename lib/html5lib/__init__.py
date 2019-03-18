@@ -10,8 +10,9 @@ import html5lib
 f = open("my_document.html")
 tree = html5lib.parse(f) 
 """
+from __future__ import absolute_import
 __version__ = "0.95-dev"
-from html5parser import HTMLParser, parse, parseFragment
-from treebuilders import getTreeBuilder
-from treewalkers import getTreeWalker
-from serializer import serialize
+from .html5parser import HTMLParser, parse, parseFragment
+from .treebuilders import getTreeBuilder
+from .treewalkers import getTreeWalker
+from .serializer import serialize

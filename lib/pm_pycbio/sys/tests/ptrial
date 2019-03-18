@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+# Copyright 2006-2012 Mark Diekhans
+# try out various ways to link procs by fifos
+import sys, os
+
+
+class Ptest(object):
+    def __addOptIf(self, name, value):
+        if value != None:
+            self.cmd.append("--"+name+"="+str(value))
+        
+    def __init__(self, name, stdin=None, stdout=None, fifo=None,
+                 stdinCnt=None, stdoutCnt=None,
+                 fifoRdCnt=None, fifoWrCnt=None,
+                 childSleep=None):
+        self.name = name
+        self.cmd = ["./ptest"]
+        self.__addOptIf("stdinCnt", stdinCnt)
+        self.__addOptIf("stdoutCnt", stdoutCnt)
+        self.__addOptIf("fifoRdCnt", fifoRdCnt)
+        self.__addOptIf("fifoWrCnt", fifoWrCnt)
+        self.__addOptIf("sleep", childSleep)
+
+        self.cmd.append(name)
+        if fifo != None:
+            self.cmd.append(fifo)
+        sys.stdout.write(" ".join(self.cmd) + "\n")
+        self.pid = os.fork()
+        if self.pid == 0:
+            self.__child(stdin, stdout)
+
+    @staticmethod
+    def __dupIf(fd, stdfd):
+        if fd != None:
+            os.dup2(fd, stdfd)
+            os.close(fd)
+
+    def __child(self, stdin, stdout):
+        self.__dupIf(stdin, 0)
+        self.__dupIf(stdout, 1)
+
+        for fd in xrange(3,10):
+            try:
+                os.close(fd)
+            except:
+                pass
+        os.execvp(self.cmd[0], self.cmd)
+
+    def wait(self):
+        w = os.waitpid(self.pid, 0)
+        if w[1] != 0:
+            raise Exception("proc " + self.name + " failed: " + str(w) )
+
+def close(*args):
+    for fh in args:
+        if isinstance(fh, int):
+            os.close()
+        else:
+            fh.close()
+
+nextFifoNum = 0
+
+def fifoGet():
+    global nextFifoNum
+    fpath = "/var/tmp/ptrial." + str(nextFifoNum) + ".tmp"
+    nextFifoNum += 1
+    if os.path.exists(fpath):
+        os.unlink(fpath)
+    os.mkfifo(fpath, 0o600)
+    return fpath
+
+def fifoOpenFd(path, mode):
+    "open a FIFO file descriptor without blocking during open"
+    # FIXME: O_NONBLOCK not right for write, maybe just drop this
+    omode = os.O_RDONLY if (mode.startswith("r")) else os.O_WRONLY
+    fd = os.open(path, omode|os.O_NONBLOCK)
+    try:
+        fcntl.fcntl(fd, fcntl.F_SETFL, omode) # clear O_NONBLOCK
+    except:
+        try:
+            os.close(fd)
+        finally: pass
+        raise
+    return fh
+
+def fifoOpen(path, mode):
+    "open a FIFO without blocking during open"
+    return os.fdopen(fifoOpenFd(path, mode), mode)
+
+class Pipe(object):
+    def __init__(self):
+        (self.rfd, self.wfd) = os.pipe()
+
+    def __getPath(self, fd):
+        return "/proc/" + str(os.getpid()) + "/fd/" + str(fd)
+
+    def readPath(self):
+        return self.__getPath(self.rfd)
+    def writePath(self):
+        return self.__getPath(self.wfd)
+    def closeRfd(self):
+        os.close(self.rfd)
+        self.rfd = None
+    def closeWfd(self):
+        os.close(self.wfd)
+        self.wfd = None
+    def close(self):
+        if self.rfd != None:
+            self.closeRfd()
+        if self.wfd != None:
+            self.closeWfd()
+def prSep():
+    sys.stdout.write("---------------------------------\n")
+
+def trialp1(name):
+    "p1 stdout to p2 stdin with pipe"
+    prSep()
+    p = Pipe()
+    p1 = Ptest(name+"-p1", stdout=p.wfd, stdoutCnt=10)
+    p2 = Ptest(name+ "-p2`", stdin=p.rfd, stdinCnt=10)
+    p.close()
+    p1.wait()
+    p2.wait()
+
+def trialp2(name):
+    "p1 stdout to p2 arg with pipe"
+    prSep()
+    p = Pipe()
+    p1 = Ptest(name+"-p1", stdout=p.wfd, stdoutCnt=10)
+    p2 = Ptest(name+"-p2`", fifo=p.readPath(), fifoRdCnt=10)
+    #p.close()
+    p.closeWfd()
+    p1.wait()
+    p2.wait()
+    p.close()
+
+def trialp3(name,child1Sleep=None,child2Sleep=None):
+    "p1 arg to p2 arg stdin pipe"
+    prSep()
+    p = Pipe()
+    p1 = Ptest(name+"-p1", fifo=p.writePath(), fifoWrCnt=10, childSleep=child1Sleep)
+    p2 = Ptest(name+"-p2`", stdin=p.rfd, stdinCnt=10, childSleep=child2Sleep)
+    p.closeRfd()
+    p1.wait()
+    p.close()
+    p2.wait()
+
+
+# use pipes for all, get name from /proc
+if False:
+    trialp1("tp1")
+    trialp2("tp2")
+    trialp3("tp3")
+
+trialp3("tp3s1",child1Sleep=1)
+trialp3("tp3s2",child2Sleep=1)

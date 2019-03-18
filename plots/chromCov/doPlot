@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os,sys,glob,shutil
 from os.path import *
 
@@ -16,7 +17,7 @@ if "sql" in cmds:
     for year in range(1994, 2012, 6):
             yearEnd = year+6
             cmd = "hgsql hg19 -NB -e 'select chrom, chromStart, chromEnd, name from pubsDevBlat where year>=%(year)d and year<%(yearEnd)d' > data/%(year)d.bed" % locals()
-            print cmd
+            print(cmd)
             os.system(cmd)
 
 if "bed" in cmds:
@@ -31,7 +32,7 @@ if "bw" in cmds:
     for fname in fnames:
         fbase = splitext(basename(fname))[0]
         cmd = "bedGraphToBigWig data/%s.wig /scratch/data/hg19/chrom.sizes data/%s.bw" % (fbase, fbase)
-        print cmd
+        print(cmd)
         os.system(cmd)
 
 if "hub" in cmds:
@@ -41,7 +42,7 @@ if "hub" in cmds:
         os.makedirs(trackDir)
     
     cmd = "cp data/*.bw %s" % trackDir
-    print cmd
+    print(cmd)
     os.system(cmd)
 
     ofh = open("%s/trackDb.txt" % trackDir, "w")
@@ -91,7 +92,7 @@ color %(color)s
     open(genomesFname, "w").write("""genome hg19
     trackDb hg19/trackDb.txt
         """)
-    print "http://hgwdev.soe.ucsc.edu/~max/pubs/plots/chromCov/hub.txt"
+    print("http://hgwdev.soe.ucsc.edu/~max/pubs/plots/chromCov/hub.txt")
 
 if "barplot" in cmds:
     cmd = "bedChromDensity -d 500000 data/*.bed -p chr21.png -c chr21"

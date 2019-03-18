@@ -1,6 +1,7 @@
+from __future__ import print_function
 # library to create a term-document matrix for R from documents
 
-import re, os, logging, gzip, sys, codecs, array
+import re, os, logging, gzip, sys, codecs
 from os.path import *
 
 # load our own libraries
@@ -11,7 +12,7 @@ import pubConf, pubGeneric, pubStore, maxCommon, maxRun, pubAlg, tabfile
 
 # ===== GLOBALS ======
 def chunkMatrix(inChunk, outName):
-    print inChunk, outName
+    print(inChunk, outName)
 
 # ===== FUNCTIONS ====
 def parsePmids(fname):
@@ -72,7 +73,7 @@ def expData(inDirs, pmidListFname, outBase):
     negFname = outBase+".neg.tab"
     posFh = codecs.open(posFname, "w", encoding="utf8")
     negFh = codecs.open(negFname, "w", encoding="utf8")
-    
+
     for dataDir in inDirs:
         logging.debug(dataDir)
         for article, fileList in pubStore.iterArticleDirList(dataDir):
@@ -114,9 +115,9 @@ def isAscii(word):
         return False
     else:
         return True
-    
+
 MINWORDLEN = 5
-MINCOUNT = 10 
+MINCOUNT = 10
 #stemmer = nltk.stem.porter.PorterStemmer()
 #stemmer = nltk.stem.snowball.EnglishStemmer()
 nonLetterRe = re.compile(r'[^A-Za-z-]') # non-alphanumeric/non-dash characters
@@ -143,17 +144,17 @@ def iterWords(text):
         if not isAscii(word):
             continue
         if len(word) < MINWORDLEN or len(word) > 30:
-            continue 
+            continue
         stemWord = stemmer.stem(word)
         if nonLetterRe.search(stemWord)!=None:
             continue
         if len(stemWord) < MINWORDLEN:
-            continue 
+            continue
         #print word, stemWord
         yield stemWord
 
 class WordCounter:
-    """ 
+    """
     map-reduce algorithm to create a list of words and count number of articles where word occurs
     """
     def __init__(self):
@@ -197,7 +198,7 @@ class WordCounter:
             yield [word, str(articleCount)]
 
 class AnnotMaker:
-    """ 
+    """
     annotation algorithm to reformat text
     """
     def __init__(self):
@@ -208,7 +209,7 @@ class AnnotMaker:
             yield articleData.pmid, fileData.content
 
 class MatrixMaker:
-    """ 
+    """
     map-reduce algorithm to output term-document-matrix given a wordlist and an optional list of PMIDs
     """
     def __init__(self):
@@ -237,7 +238,7 @@ class MatrixMaker:
         if file.fileType!="main":
             logging.info("not main")
             return
-            
+
         # if any pmids were provided, ignore non-PMID articles
         if (self.posPmids!=None and self.negPmids!=None) or \
                 (len(self.posPmids)!=0 and len(self.negPmids)!=0) :
@@ -251,7 +252,7 @@ class MatrixMaker:
         if self.posPmids!=None and pmid not in self.negPmids and pmid not in self.posPmids:
             logging.debug("neither in pos nor in neg set")
             return
-            
+
         termRow = []
         for term in iterWords(text):
             if term in self.termSet:
@@ -277,7 +278,7 @@ class MatrixMaker:
             self.docIdOfh = None
         else:
             self.docIdOfh = open(paramDict["docIdOutFname"], "w")
-        
+
         self.docIdCount = 0
 
     def _termsToArff(self, pmid, isPos, termIdSet):

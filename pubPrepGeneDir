@@ -5,6 +5,7 @@
 # in this file the prefix "up" always refers to "uniProt" not to the word "up" (like "down")
 
 # load default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, glob, shutil, gzip, collections, marshal, re, zlib, cPickle
 import types, string, sqlite3
 import struct, itertools, dumbdbm
@@ -28,7 +29,7 @@ import pubConf, pubGeneric, util, maxbio, maxCommon, pslMapBed, pubEutils, geneF
 import pubKeyVal
 from maxCommon import runCommand, makeOrCleanDir
 from os.path import *
-from pycbio.hgdata import Psl
+from pm_pycbio.hgdata import Psl
 from Bio import SeqIO
 import fastFind
 
@@ -41,22 +42,22 @@ varBuildDir = pubConf.varBuildDir
 DBSNPVERSION = "142"
 # all possible commands for this script
 allSteps = ["genePmids", "entrez", "refseq", "seqs",
-    "uniprot", "refseqMap", "uniprotMap", "snp", 
+    "uniprot", "refseqMap", "uniprotMap", "snp",
     "omim",
-    "geneNames", "geneDict", 
+    "geneNames", "geneDict",
     "lociNames", "bandLoci",
-    "cells", 
+    "cells",
     "accsGenbank", "accsUniprot", "accsPdb", "accsSts",
     # not used anymore
     "oldRefseqProtGet", "oldRefseqProtMap",
     "oldRefseqGet", "oldRefseqMap",
-    "genbankProtGet", "genbankProtParse", "genbankProtMap", 
+    "genbankProtGet", "genbankProtParse", "genbankProtMap",
     ]
 
 genbankDir = "/hive/data/outside/genbank/data/download/genbank.208.0"
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
-parser = optparse.OptionParser("""usage: %prog [step] - reformat various gene-centric databases into tables or DBM filesfor gene/mutation finding or resolution. 
+parser = optparse.OptionParser("""usage: %prog [step] - reformat various gene-centric databases into tables or DBM filesfor gene/mutation finding or resolution.
 Output goes to directory {}.
 
 Possible steps are:
@@ -87,7 +88,7 @@ for the disambiguation and sequence lookup steps of the gene finder:
 for variant finding and resolution:
 - cells: get a list of cell names from cellosaurus, used as a blacklist for mutations
 - snp: index dbSNP data, coord -> identifier and identifier -> coord
-- refseqMap: get refSeq PSL for hg19 
+- refseqMap: get refSeq PSL for hg19
 - seqs: load human refseq sequences into a DBM database
 - entrez: table with entrezId,symbol,refseqProtIds,refseqIds,cdsStart
 
@@ -114,7 +115,7 @@ varDataDir = pubConf.varDataDir
 def writeGzDict(data, fname, appendFnames=None, toLower=False):
     logging.info("Writing %d keys to %s" % (len(data), fname))
     ofh = gzip.open(fname, "w")
-        
+
     for key, valList in data.iteritems():
         for val in valList:
             assert("|" not in val)
@@ -130,7 +131,7 @@ def writeGzDict(data, fname, appendFnames=None, toLower=False):
     ofh.close()
 
 def getOmimGeneIds():
-    """ 
+    """
     return list of omim gene IDs
     """
     tmpFname = join(geneDataDir, "omim.genemap2.tmp")
@@ -150,7 +151,7 @@ def getOmimGeneIds():
 
 def appendToDict(data, idList, acc, stripVer=False, prefix=None):
     " add an entry acc -> for all IDs in idList to data, which is a defaultdict of set"
-    assert(type(idList)==types.ListType)
+    assert(type(idList)==list)
     for id in idList:
         if stripVer:
             id = id.split(".")[0]
@@ -168,7 +169,7 @@ def parseUniprotLinks(uniprotDir, taxId):
             upToGbs: upId -> list of gbank accessions
             upToGbProts: upId -> list of protein gb accessions
             upToRefseqProt: upId -> list of refseq protein IDs
-            accToUps: any accession -> list of uniprots. 
+            accToUps: any accession -> list of uniprots.
                      versions are stripped from refseq and genbank, omim and entrez
                      are prefixd with "omim" and "entrez" to distinguish them
     """
@@ -314,7 +315,7 @@ def parseEntrezGeneRefseq(outFname):
        if refProtId!="-":
            refprots.setdefault(int(geneId), set()).add(refProtId)
 
-    # output dicts to tab sep file 
+    # output dicts to tab sep file
     logging.info("tab output...")
     ofh = open(outFname, "w")
     ofh.write("\t".join(["entrezId", "sym", "refseqIds", "refseqProtIds"]))
@@ -336,7 +337,7 @@ def parseEntrezGeneRefseq(outFname):
     #data["entrez2sym"] = refsym
     #marshal.dump(data, open(outFname, "w"))
     #logging.info("Wrote %s" % outFname)
-    
+
 def parseEntrezGenePmids(taxIds, dbm):
     " convert pmid <-> gene assignments from entrez genes to a dbm file "
     pmid2geneFname = join(pubConf.ncbiGenesDir, "gene2pubmed.gz")
@@ -357,7 +358,7 @@ def parseEntrezGenePmids(taxIds, dbm):
     #data = {}
     for pmid, entrezList in pmidToEntrez.iteritems():
         if count%10000==0:
-            print count
+            print(count)
         pmid = str(pmid)
         entrezStr = ",".join(entrezList)
         dbm[pmid] = entrezStr
@@ -420,9 +421,9 @@ def parseRaWriteToTab(raName, tabName):
     return accList
 
 def makeOldToNewAccs(accs):
-    """ given a list of new things like NM_000325.5, 
+    """ given a list of new things like NM_000325.5,
     return dict with mapping old -> new, like
-    "NM_000325.4": "NM_000325.5", "NM_000325.3" : "NM_000325.5", etc. 
+    "NM_000325.4": "NM_000325.5", "NM_000325.3" : "NM_000325.5", etc.
     """
     oldToNew = {}
     for newAcc in accs:
@@ -507,14 +508,14 @@ def writeUpRefseqPairs(taxId, uniprotDir, proteinType, pairFname):
         upToProts = upData["upToIsos"]
     elif proteinType=="genbank":
         upToProts = upData["upToGbProts"]
-        
+
     for upId, refseqIds in upToRefseq.iteritems():
         for refseq in refseqIds:
             for protId in upToProts.get(upId, []):
                 ofh.write("%s\t%s\n" % (protId, refseq))
     ofh.close()
     return ofh.name
-        
+
 def mapProtToRefseqIndex(taxId, protType, protFname, uniprotDir, stripVersion=False):
     """ map from proteins given protein fa and pairs to refseq.
     create psl and compressed dbm of psls
@@ -548,7 +549,7 @@ def mapDnaToRefseq(taxId, tmpDir, dnaFaName):
     logging.info("Copying %s to %s" % (refseqFname, targetFname))
     shutil.copy(refseqFname, targetFname)
 
-    # split query into pieces 
+    # split query into pieces
     queryDir = join(tmpDir, "queries")
     makeOrCleanDir(queryDir)
     if dnaFaName.endswith(".gz"):
@@ -572,7 +573,7 @@ def mapDnaToRefseq(taxId, tmpDir, dnaFaName):
     runner.finish(wait=True)
 
 def mapProtToRefseq(taxId, tmpDir, protFaName):
-    """ create a psl file with the best mapping protein -> refseq 
+    """ create a psl file with the best mapping protein -> refseq
     input is protein fa , output goes into tmpDir/psl
     """
     logging.debug("mapping %s to refseq, tmpdir %s" % (protFaName, tmpDir))
@@ -582,7 +583,7 @@ def mapProtToRefseq(taxId, tmpDir, protFaName):
     logging.info("Copying %s to %s" % (refseqFname, targetFname))
     shutil.copy(refseqFname, targetFname)
 
-    # split uniprot into pieces 
+    # split uniprot into pieces
     queryDir = join(tmpDir, "queries")
     makeOrCleanDir(queryDir)
     if protFaName.endswith(".gz"):
@@ -615,7 +616,7 @@ class FastSqlite:
     " a wrapper around sqlite to load data in the fastest way possible "
 
     def __init__(self, fname, tableCreateSql, batchSize=100000):
-        """ open sqlite db in the fastest mode possible, insert row in batches 
+        """ open sqlite db in the fastest mode possible, insert row in batches
         The db contains only one table and it must be called "data".
         """
         self.batch = []
@@ -665,10 +666,10 @@ class FastSqlite:
         logging.info("Copying %s to %s" % (self.tmpFname, self.dbFname))
         shutil.copy(self.tmpFname, self.dbFname)
         os.remove(self.tmpFname)
-    
+
 def dbSnp(taxId, geneDataDir):
-    """ index dbSnp data, most of these won't be used as they're in intergenic 
-    regions but we keep them for now 
+    """ index dbSnp data, most of these won't be used as they're in intergenic
+    regions but we keep them for now
     """
     assert(taxId==9606)
     tmpDir = varBuildDir
@@ -690,7 +691,7 @@ def dbSnp(taxId, geneDataDir):
 
     for line in open(snpFname):
         if count % 1000000 == 0:
-            print "%d" % count
+            print("%d" % count)
         chrom, start, end, rsId = line.rstrip("\n").split("\t")
         # ignore haps and _gl
         if "hap" in chrom or "_gl" in chrom:
@@ -707,7 +708,7 @@ def dbSnp(taxId, geneDataDir):
         count += 1
 
     # index by chrom pos
-    print "adding chrom position index"
+    print("adding chrom position index")
     db.con.execute("CREATE INDEX chromIdx ON data (chrom, start, end);")
     db.con.commit()
 
@@ -794,7 +795,7 @@ def mapOldRefseqToNewRefseqIndex(seqType, faFname, taxId, dbmFname):
         mapProtToRefseq(taxId, tmpDir, faFname)
     else:
         mapDnaToRefseq(taxId, tmpDir, faFname)
-        
+
     filterPsls(tmpDir, pairFname, mapFname)
     loadPslToDbm(mapFname, dbmFname)
 
@@ -881,7 +882,7 @@ def writeUniprotEntrezSymGbLinks(taxId, uniprotDir):
             isoIds = upData["upToIsos"][upId]
             row = [str(geneId), upId, "|".join(isoIds), sym, gbAccs, gbProtAccs]
             ofh.write("\t".join(row)+"\n")
-            
+
     ofh.close()
     logging.info("No sym: %d" % noSym)
     logging.info("Wrote to %s" % mutDataFname)
@@ -920,7 +921,7 @@ def getGenbankAccs(taxId, outFname):
     logging.info("Wrote %d uniprot genbank DNA/RNA accs to %s" % (len(gbAccs), outFname))
     #return gbAccs
 
-    
+
 def getGenbankSeqs(gbIdFname, gbOutFname):
     " get genbank seqs with markd's tool "
     #cmd = "gbGetSeqs -accFile=%s -allowMissing -gbRoot=/hive/data/outside/genbank genbank mrna %s -get=seq -db=hg19 -inclVersion -native" % (gbIdFname, gbFname)
@@ -958,7 +959,7 @@ def writeFa(data, outFname):
     for id, seq in data.iteritems():
         ofh.write(">%s\n%s\n" % (id, seq))
     ofh.close()
-    
+
 def loadFaSeqs(protFaFname):
     " load (append) seqs in a fasta file into a dbm file as compressed sequences "
     dbmFname = join(geneDataDir, "seqs")
@@ -969,7 +970,7 @@ def loadFaSeqs(protFaFname):
     dbm.close()
 
 def removeBrackets(s):
-    """ remove nested brackets from string s 
+    """ remove nested brackets from string s
     >>> removeBrackets("hello world (no way)")
     'hello world'
     """
@@ -996,17 +997,17 @@ def updateDict(big, small):
 blackList = set(['dynamin', 'superoxide dismutase', 'renal cell carcinoma', 'collagenase', 'intercellular adhesion molecule', 'hormone receptor', 'serine threonine kinase', 'differentiation', 'cyclin dependent kinase', 'epidermal growth factor', 'mitogen activated protein kinase', 'aquaporin', 'calmodulin', 'toll like receptor', 'transmembrane protein', 'adenylyl cyclase', 'poly adp ribose polymerase', 'heat shock protein', 'platelet derived growth factor', 'complement component', 'angiotensin ii', 'ifn gamma', 'adenylate cyclase', 'caspase 3', 'proteoglycan', 'g protein', 'aurora', 'polypeptide', 'atp binding cassette', 'insulin like', 'argonaute', 'neuronal differentiation', 'kinesin', 'tumor necrosis factor alpha', 'nf kappab', 'chloride channel', 'transforming growth factor beta', 'tropomyosin', 'growth hormone', 'serine protease', 'transferrin', 'receptor tyrosine kinase', 'cyclooxygenase 2', 'rna binding protein', 'dna ligase', 'proline rich', 'tyrosine kinase', 'calpain', 'glycoprotein', 'nadph oxidase', 'aspartate aminotransferase', 'interferon alpha', 'amyotrophic lateral sclerosis', 'neurofilament', 'claudin', 'fibronectin', 'estrogen receptor', 'metabotropic glutamate receptor', 'cell adhesion molecule', 'adiponectin', 'prostate cancer', 'interleukin 6', 'midline', 'thrombocytopenia', 'kallikrein', 'gtp binding protein', 'vascular endothelial growth factor', 'zinc finger protein', 'interferon gamma', 'endothelin', 'p glycoprotein', 'vimentin', 'peroxiredoxin', 'epidermal growth factor receptor', 'insulin like growth factor', 'zinc finger', 'neurotrophin', 'cysteine protease', 'splicing factor', 'integral membrane protein', 'glutathione s transferase', 'nitric oxide synthase', 'keratin', 'proto oncogene', 'atp synthase', 'heavy chain', 'glutamate receptor', 'potassium channel', 'death receptor', 'ribonuclease', 'glycogen synthase', 'angiotensin converting enzyme', 'trypsin', 'protein can', 'dynactin', 'thrombospondin', 'tnf alpha', 'transferrin receptor', 'histone deacetylase', 'calcium binding protein', 'aldolase', 'glutathione peroxidase', 'hydroxysteroid dehydrogenase', 'progesterone receptor', 'myosin heavy chain', 'alzheimer disease', 'protease inhibitor', 'a protein kinase', 'alanine aminotransferase', 'transglutaminase', 'beta catenin', 'c reactive protein', 'hepatocellular carcinoma', 'cadherin', 'albumin', 'programmed cell death', 'ubiquitin like', 'fibroblast growth factor', 'a kinase', 'carbonic anhydrase', 'parathyroid hormone', 'g protein coupled receptor', 'matrix metalloproteinase', 'parkinson disease', 'tumor necrosis factor', 'muscle specific', 'exonuclease', 'pierce', 'homeobox', 'microtubule associated protein', 'salvador', 'map kinase', 'tumor suppressor', 'lysozyme', 'interferon regulatory factor', 'syntaxin', 'c jun n terminal kinase', 'tetraspanin', 'modifier', 'signal transducer and activator of transcription', 'insulin receptor substrate', 'nucleolar protein', 'catenin', 'extracellular signal regulated kinase', 'osteosarcoma', 'f box protein', 'macrophage inflammatory protein', 'bone morphogenetic protein', 'aldehyde dehydrogenase', 'interleukin 2', 'protein tyrosine kinase', 'breast cancer cell', 'proteinase', 'abc transporter', 'thioredoxin', 'membrane bound', 'acute myeloid leukemia', 'interleukin', 'retinoblastoma', 'activator', 'dna methyltransferase', 'transcription factor', 'surface antigen', 'alcohol dehydrogenase', 'catalase', 'cytochrome c', 'neuraminidase', 'importin', 'cytochrome p450', 'cyclin d1', 'e cadherin', 'cytokeratin', 'mitogen activated protein kinase kinase', 'cell cycle progression', 'nuclear protein', 'hexokinase', 'nadh dehydrogenase', 'serum albumin', 'focal adhesion kinase', 'nerve growth factor'])
 
 def cleanupNames(descToAccs):
-    """ 
-    given a dict with name -> list of accs, clean up the names by various means 
+    """
+    given a dict with name -> list of accs, clean up the names by various means
     and separate the names into LONG names and SHORT symbols.
     Also keep track which symbols/names are not unique for a gene.
 
-    return: 
+    return:
     - accToNames: dictionary with entrez gene to list of (long) gene names
     - symToSyns: dictionary with entrez gene to list of (short) gene synonyms
                  (for ambiguous symbols, can contain multiple IDs separated by a slash)
     - nonUniqueSyms: list of symbol synonyms that are used by several genes
-    
+
     """
     # only the X most common English words
     bncCutoff = 5000
@@ -1048,7 +1049,7 @@ def cleanupNames(descToAccs):
     for n, accs in descToAccs.iteritems():
         if n=="" or len(n)<=maxLen:
             tooShortSyms.add(n)
-            continue 
+            continue
         # distinguish between gene symbols (short or all-uppercase) and gene names
         if len(n)<8 or (n.upper()==n and not " " in n and not "," in n):
             symToAccs[n].update(accs)
@@ -1113,11 +1114,11 @@ def cleanupNames(descToAccs):
             blackListed.add(name)
             continue
         accToNames["/".join(accs)].append(name)
-    
+
     # B) Clean up gene symbols
     # symbol table is: synonym -> list of official symbols
     # ERV46 -> set('ERGIC3')
-    # now inverse this symbol table 
+    # now inverse this symbol table
     # for non-unique symbols, add all possible symbols as /-separated
     # (slash is not a valid character in official hgnc symbols)
     nonUniqueSyms = {}
@@ -1214,11 +1215,11 @@ def parseUniprotNames(taxIds, uniprotDir, nameToAccs, hgncSyms):
     logging.info("total name count: %d" % len(nameToAccs))
     return nameToAccs
 
-        
+
 def parseEntrezNames(taxIds, symToEntrez, nameToAccs):
     " fill dict with name -> official symbols"
     headers = "tax_id GeneID Symbol LocusTag Synonyms dbXrefs chromosome map_location description type_of_gene Symbol_from_nomenclature_authority Full_name_from_nomenclature_authority Nomenclature_status Other_designations Modification_date".split()
-    fname = join(pubConf.ncbiGenesDir, "gene_info.9606.gz") 
+    fname = join(pubConf.ncbiGenesDir, "gene_info.9606.gz")
     logging.info("Parsing %s" % fname)
     data = {}
     likeSym = defaultdict(list)
@@ -1377,7 +1378,7 @@ def readList(fname):
     logging.info("Reading %s" % fname)
     for line in open(fname):
         yield line.strip().split()[0]
-    
+
 def makeLociNames():
     """ split human genome into separate regions around genes and assign them to a gene symbol """
     hgncFn = pubConf.hgncFname
@@ -1388,8 +1389,8 @@ def makeLociNames():
     exonFname = join(pubConf.getTempDir(), "exons.bed")
     cmd = """
     hgsql hg19 -NB -e 'select geneSymbol, knownGene.* from knownGene JOIN knownCanonical ON (name=transcript) JOIN kgXref ON (name=kgId);' |
-    grep -v hap | grep -v _gl | lstOp filter stdin %(symFname)s | 
-    tawk '{$2=$1; print}' | cut -f2- | cut -f-10 | 
+    grep -v hap | grep -v _gl | lstOp filter stdin %(symFname)s |
+    tawk '{$2=$1; print}' | cut -f2- | cut -f-10 |
     genePredToBed stdin stdout | bedToExons stdin stdout |
     tawk '($4~/^[A-Z0-9]+$/)' |
     sort -k1,1 -k2,2n > %(exonFname)s
@@ -1462,8 +1463,8 @@ def makeBandLoci():
     #logging.info("band->entrez mapping written as binary to %s" % outFname)
 
 def makeGeneDict():
-    """ create fastFind dict for genes: 
-    long names AND unambigous AND rare symbols are taken as they are 
+    """ create fastFind dict for genes:
+    long names AND unambigous AND rare symbols are taken as they are
     short and ambiguous symbols are prefixed with "?"
     Also convert all HGNC symbols to entrez IDs
 
@@ -1502,7 +1503,7 @@ def makeGeneDict():
     # parse symbol dict using the two sets
     fname = join(geneDataDir, "symbols.hgnc.dict.gz")
     readDict(fname, symToEntrez, nameDict, ambiguous=ambSymbols, justPass=goodSymbols)
-    
+
     #bandLociFname = join(geneDataDir, "bandGenes.dict")
     fname = join(geneDataDir, "symbols.dict.gz")
     #writeGzDict(nameDict, fname, appendFnames={bandLociFname:"*"})
@@ -1511,7 +1512,7 @@ def makeGeneDict():
     #fnameLow = fname.replace(".dict.gz", "Low.dict.gz")
     #writeGzDict(nameDict, fnameLow, toLower=True)
     #fastFind.compileDict(fnameLow)
-    
+
 def mapRefseqOldToNewLoad(seqType, taxId):
     " create psl from old to new refseqs and load into dbm, load old refseqs into seq dbm "
     oldRefseqFname = join(varBuildDir, "oldRefseq.%d.%s.gb" % (taxId, seqType))
@@ -1544,7 +1545,7 @@ def makeCellNames():
             syns = syns.split("; ")
             for s in syns:
                 names.append(s)
-        
+
     likeMuts = []
     mutRe = re.compile("^([ABCDEFGHIKLMNPQRSTVWXY])([0-9]{1,5})([ABCDEFGHIKLMNPQRSTVWXY])$")
     for n in names:
@@ -1553,7 +1554,7 @@ def makeCellNames():
             let1, num, let2 = m.groups()
             num = int(num)
             likeMuts.append( (let1, num, let2) )
-    print likeMuts
+    print(likeMuts)
 
 # ========= IMPORTING ACCESSIONS =======
 
@@ -1586,14 +1587,14 @@ def indexAccsGenbank():
     accs = []
     i = 0
     for line in gzip.open(tmpFname):
-        i +=1 
+        i +=1
         if i%100000==0:
-            print "Read %d accessions" % i
+            print("Read %d accessions" % i)
             accs = []
         acc = line.split(",")[0]
         accChars, accDigits, _ = geneFinder.splitGenbankAcc(acc)
         accLens[accChars].add(len(accDigits))
-            
+
     # now write to text file
     dbInfoFname = join(pubConf.accDataDir, "genbankFormat.txt")
     ofh = open(dbInfoFname, "w")
@@ -1633,7 +1634,7 @@ def indexAccsUniprot():
                 db[acc]= refs
             doneAccs.update(accs)
             if len(doneAccs)/50000!=lastChunk:
-                print "%d accessions done" % len(doneAccs)
+                print("%d accessions done" % len(doneAccs))
                 lastChunk = len(doneAccs)/50000
     db.close()
     logging.info("wrote %d accessions to %s.sqlite" % (len(doneAccs), dbFname))
@@ -1682,7 +1683,7 @@ def indexAccsSts():
         i+=1
     db.close()
     logging.info("Wrote %d sts accessions to %s" % (i, db.dispName()))
-        
+
 
 def main(args, options):
     pubGeneric.setupLogging(progFile, options)
@@ -1737,7 +1738,7 @@ def main(args, options):
         refseqMap(taxId, varDataDir)
 
     if step=="uniprotMap" or step=="all":
-        # create PSLs uniprot -> refseq 
+        # create PSLs uniprot -> refseq
         upFaName  = join(uniprotDir, "uniprot.%d.var.fa.gz" % taxId)
         mapProtToRefseqIndex(taxId, "uniprot", upFaName, uniprotDir)
 
@@ -1841,7 +1842,7 @@ def main(args, options):
         #indexAccsSts()
 
     #if step=="ncbi" or step=="all":
-        #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz") 
+        #entrezTabFname = join(pubConf.ncbiGenesDir, "gene2refseq.gz")
         #logging.info("Parsing gene<->refseq ids out of %s" % entrezTabFname)
         #rnaIds = []
         #protIds = []
@@ -1889,4 +1890,3 @@ if len(args)==0:
     exit(1)
 
 main(args, options)
-

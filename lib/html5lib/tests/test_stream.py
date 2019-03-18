@@ -1,4 +1,5 @@
-import support
+from __future__ import absolute_import
+from . import support
 import unittest, codecs
 
 from html5lib.inputstream import HTMLInputStream

@@ -4,6 +4,7 @@
 # first param is a sqlite db
 # for multicores, start several of these
 
+from __future__ import print_function
 from jobQueue import JobQueue
 import time, sys, os, glob, gzip, random
 
@@ -14,7 +15,7 @@ batchBaseDir = sys.argv[2]
 jobOutPath = sys.argv[3]
 
 def concatOutputAndSample(batchId, batchDir, jobOutPath, sampleSize=100):
-    print "concatting"
+    print("concatting")
     ofh = gzip.open(os.path.join(jobOutPath, batchId+".tab.gz"), "w")
     headersDone = False
     batchOutMask = os.path.join(batchDir, "out/*.tab")
@@ -41,13 +42,13 @@ def concatOutputAndSample(batchId, batchDir, jobOutPath, sampleSize=100):
             lineCount+=1
                 
     ofh.close()
-    print "Wrote %s" % ofh.name
+    print("Wrote %s" % ofh.name)
 
     ofh = open(os.path.join(jobOutPath, batchId+".randomLines.tab"), "w")
     for line in reservoir:
         ofh.write(line)
     ofh.close()
-    print "Wrote %s" % ofh.name
+    print("Wrote %s" % ofh.name)
         
 def main():
     q = JobQueue(jobDb)
@@ -61,7 +62,7 @@ def main():
                 q.batchFailed(batchId)
                 continue
             else:
-                print "increasing job counter of batch %s" % batchId
+                print("increasing job counter of batch %s" % batchId)
                 q.batchIncreaseCount(batchId)
             if q.noJobsLeft(batchId) and q.activeConcats(batchId)==0:
                 print("starting concat for batch %s" % batchId)
@@ -70,7 +71,7 @@ def main():
                     concatOutputAndSample(batchId, batchDir, jobOutPath)
                     q.concatFinished(batchId)
                 else:
-                    print "not concatting, race condition"
+                    print("not concatting, race condition")
                 print("deleting batch %s" % batchId)
                 print("not deleting DEBUG")
                 #q.deleteBatch(batchId)

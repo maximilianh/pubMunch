@@ -3,14 +3,15 @@
 # first load the standard libraries from python
 # we require at least python 2.7
 #from sys import *
+from __future__ import print_function
 import sys
 if sys.version_info[0]==2 and not sys.version_info[1]>=5:
-    print "Sorry, this program requires at least python 2.5"
-    print "You can download a more current python version from python.org and compile it"
-    print "into your homedir (or anywhere) with 'configure --prefix ~/python27'; make;"
-    print "then run this program by specifying your own python executable like this: "
-    print "   ~/python27/bin/python <scriptFile>"
-    print "or add ~/python27/bin to your PATH before /usr/bin"
+    print("Sorry, this program requires at least python 2.5")
+    print("You can download a more current python version from python.org and compile it")
+    print("into your homedir (or anywhere) with 'configure --prefix ~/python27'; make;")
+    print("then run this program by specifying your own python executable like this: ")
+    print("   ~/python27/bin/python <scriptFile>")
+    print("or add ~/python27/bin to your PATH before /usr/bin")
     exit(1)
 
 # load default python packages

@@ -1,4 +1,5 @@
-import support
+from __future__ import absolute_import
+from . import support
 from html5lib import html5parser
 from html5lib.constants import namespaces
 from html5lib.treebuilders import dom

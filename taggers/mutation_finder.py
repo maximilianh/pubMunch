@@ -18,6 +18,7 @@ expressions in response to a feature request.
 Copyright (c) 2007 Regents of the University of Colorado
 Please refer to licensing agreement at MUTATIONFINDER_HOME/doc/license.txt
 """
+from __future__ import print_function
 # Define the extension that should be used when creating mutation 
 # finder output files -- the default is 'mf'
 mutation_finder_output_file_extension = 'mf'
@@ -37,7 +38,7 @@ version_number = '1.0'
 try:
     from re2 import compile, VERBOSE, IGNORECASE
 except:
-    print "Failed to import module re2, falling back to re module (a lot slower)"
+    print("Failed to import module re2, falling back to re module (a lot slower)")
     from re import compile, VERBOSE, IGNORECASE
 
 from os.path import exists
@@ -98,25 +99,25 @@ class Mutation(object):
         try:
             self.__position = int(Position)
         except ValueError:
-            raise MutationError, "Position must be an integer"
+            raise MutationError("Position must be an integer")
         if self.__position < 1:
-            raise MutationError, "Position must be greater than 0"
+            raise MutationError("Position must be greater than 0")
     
     def _get_position(self):
         return self.__position
     Position = property(_get_position)
 
     def __str__(self):
-        raise NotImplementedError, 'Mutation subclasses must override str()'
+        raise NotImplementedError('Mutation subclasses must override str()')
 
     def __eq__(self,other):
-        raise NotImplementedError, 'Mutation subclasses must override =='
+        raise NotImplementedError('Mutation subclasses must override ==')
 
     def __ne__(self,other):
-        raise NotImplementedError, 'Mutation subclasses must override !-'
+        raise NotImplementedError('Mutation subclasses must override !-')
 
     def __hash__(self):
-        raise NotImplementedError, 'Mutation subclasses must override hash()'
+        raise NotImplementedError('Mutation subclasses must override hash()')
 
 class PointMutation(Mutation):
     """ A class for storing information about protein point mutations
@@ -166,13 +167,12 @@ class PointMutation(Mutation):
         except AttributeError:
                 # if residue cannot be converted to uppercase, it is not a 
                 # string, so raise an error
-                raise MutationError, 'Residue must be a string'
+                raise MutationError('Residue must be a string')
         except KeyError:
                 # if residue is not a key in self._abbreviation_lookup, it
                 # it is not a standard amino acid residue, so raise an error
-                raise MutationError, \
-                 'Input residue not recognized, must be a standard residue: '\
-                  + residue
+                raise MutationError('Input residue not recognized, must be a standard residue: '\
+                  + residue)
 
     def _get_wt_residue(self):
         return self.__wt_residue
@@ -224,7 +224,7 @@ def PointMutation_from_wNm(wNm):
     try:
         return PointMutation(int(wNm[1:-1]),wNm[0],wNm[-1])
     except ValueError:
-        raise MutationError, 'Improperly formatted mutation mention:  ' + wNm
+        raise MutationError('Improperly formatted mutation mention:  ' + wNm)
 #######
 
 class MutationExtractor(object):
@@ -565,11 +565,11 @@ def mutation_finder_from_regex_filepath(\
     try:
         regular_expressions_file = open(regular_expression_filepath)
     except IOError:
-        print 'Can not open the regular expression file:', \
-            regular_expression_filepath
-        print 'If using the default regular expression file and you are running',\
+        print('Can not open the regular expression file:', \
+            regular_expression_filepath)
+        print('If using the default regular expression file and you are running',\
             'mutation finder from a directory other than where it is insalled,',\
-            'be sure to set the mutation_finder_home variable in mutation_finder.py'
+            'be sure to set the mutation_finder_home variable in mutation_finder.py')
         exit(-1)
     
     regular_expressions = []
@@ -715,9 +715,8 @@ def extract_mutations_from_lines_to_file(lines,output_filepath,\
                     # store spans from a MutationExtractor which does not support 
                     # spans
                     except TypeError:
-                        raise MutationFinderError,\
-                         'Attempting to access spans from a MutationExtractor ' +\
-                         'which cannot store them.'
+                        raise MutationFinderError('Attempting to access spans from a MutationExtractor ' +\
+                         'which cannot store them.')
                 else:
                     # For MutationExtractors which support spans, determine the
                     # number of mentions by counting the spans. Write the 
@@ -760,8 +759,7 @@ def build_output_filepath(output_dir,input_filepath):
             ''.join([filename_from_filepath(input_filepath),'.',\
                 mutation_finder_output_file_extension])
     else:
-        raise MutationFinderError,\
-            'Must pass non-empty input filepath to construct output filename'
+        raise MutationFinderError('Must pass non-empty input filepath to construct output filename')
 
     if output_dir.endswith('/'):
         join_text = ''
@@ -788,14 +786,14 @@ if __name__ == "__main__":
         try:
             input_file = open(input_filepath)
         except IOError:
-            print 'Can not open specified input file: ', input_filepath
+            print('Can not open specified input file: ', input_filepath)
             exit(1)
 
         #output_filepath = build_output_filepath(opts.output_dir,input_filepath)
            
         for row in extract_mutations_from_lines_to_file(input_file,None,\
             mutation_extractor,opts.store_spans,opts.output_normalized_mutations):
-            print row
+            print(row)
     
     # All done, exit cleanly
     exit(0)

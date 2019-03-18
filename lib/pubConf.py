@@ -10,14 +10,16 @@ if (confName is not None) and not isfile(confName):
     raise Exception("configuration file specified in PUBMUNCH_CONF environment variable ({}) does not exist".format(confName))
 if confName is None:
     confName = expanduser("~/.pubConf")
-newVars = {}
+# include path to file, in case it needs to file relative file
+newVars = {"PUBMUNCH_CONF": confName}
 if isfile(confName):
-    execfile(confName, {}, newVars)
-    for key, value in newVars.iteritems():
+    with open(confName) as fh:
+        exec(fh.read(), {}, newVars)
+    for key, value in newVars.items():
         locals()[key] = value
 
 # GENERAL SETTINGS   ================================================
-# baseDir for internal data, accessible from cluster 
+# baseDir for internal data, accessible from cluster
 # used for data created during pipeline runs
 # Preference is given to a locally defined directory
 if "pubsDataDir" not in locals():
@@ -73,7 +75,7 @@ ncbiGenesDir = '/hive/data/outside/ncbi/genes/'
 ncbiRefseqDir = '/hive/data/outside/ncbi/refseq/H_sapiens/mRNA_Prot'
 
 # VARIANT MAPPING ========================================================
-# directory for files that are needed to build the variants at UCSC but not needed 
+# directory for files that are needed to build the variants at UCSC but not needed
 # to run the programs. Examples are the PSL alignments built at UCSC, before they are
 # indexed into sqlite
 varBuildDir = '/hive/data/inside/pubs/variants'
@@ -99,7 +101,7 @@ medlineDbPath = join(textDir, "medline", "medline.db")
 # CRAWLER SETTINGS ==================================================
 
 # only needed for Elsevier crawling.
-# get your own key from 
+# get your own key from
 # https://www.elsevier.com/about/company-information/policies/text-and-data-mining
 # then paste it here
 elsevierApiKey = None
@@ -152,7 +154,7 @@ crawlSuppExts = set(['gif', 'svg', 'tiff', 'tif', 'jpg', 'xls', 'doc', 'pdf', 'p
 # DOWNLOAD SETTINGS ==================================================
 
 # for Elsevier updates:
-# We need the URL to the Consyn Update RSS feed. 
+# We need the URL to the Consyn Update RSS feed.
 # Login to consyn.elsevier.com, click on batches/RSS feed, paste the URL here
 # they look like https://consyn.elsevier.com/batch/atom?key=XXXXXXXXXXXXXXXXXXX
 # (at UCSC: this is defined in ~/.pubTools.conf)
@@ -225,14 +227,14 @@ eutilsDelaySecs = 3
 # identifiers for articles, files and annotations are all in 64bit space.
 # a certain number of digits are used for articles, files and annotations
 # 10 digits for articles,
-# 3 for files 
+# 3 for files
 # 5 for annotations
 # that means that each publisher cannot have more than one billion articles,
 # one article not more than 1000 files and one algorithm cannot return more than
 # 100.000 annotations per file
-ARTICLEDIGITS=10 # number of digits to use for annotation ID 
-FILEDIGITS=3 # number of digits to use for annotation ID 
-ANNOTDIGITS=5 # number of digits to use for annotation ID 
+ARTICLEDIGITS=10 # number of digits to use for annotation ID
+FILEDIGITS=3 # number of digits to use for annotation ID
+ANNOTDIGITS=5 # number of digits to use for annotation ID
 
 # articleIds should start at which position in our namespace?
 # this is to make sure that articleIds are unique
@@ -253,7 +255,7 @@ identifierStart = {
 
 extToolDir = _sourceDir+"/external"
 
-# commands to convert various filetypes to ascii text 
+# commands to convert various filetypes to ascii text
 # $in and $out will be replaced with temp filenames
 # pdf2 is only used if output of pdf contains more than 10 unprintable characters
 # as pdfbox is quite slow
@@ -280,7 +282,7 @@ CONVERTERS = {
     "pdf2":"java -Xmx512m -jar %(extToolDir)s/pdfbox-app-1.6.0.jar ExtractText $in $out -encoding utf8"
 }
 
-# sometimes (e.g. if downloaded from the web) we don't have a file extension, but only 
+# sometimes (e.g. if downloaded from the web) we don't have a file extension, but only
 # a mime-type. The following list maps from mime types to file extensions = converters
 MIMEMAP = {
     "application/msword":"doc",
@@ -296,13 +298,13 @@ MIMEMAP = {
 
 # override the weird highwire delay times for certain URLs with lower values
 # you need to check with Highwire on these first
-# at ucsc, this is overriden with our local .pubConf 
+# at ucsc, this is overriden with our local .pubConf
 highwireDelayOverride = {
 }
 
 # when splitting text files for cluster jobs,
 # how many "chunks" should be created?
-# chunkCount = 2000 # XXX  not used 
+# chunkCount = 2000 # XXX  not used
 # when creating chunks, how many files should go into one chunk?
 # used by pubConvCrawl
 chunkArticleCount = 400
@@ -339,7 +341,7 @@ pubMapBaseDir = "./map/"
 cdr3Dir = pubMapBaseDir + "cdr3Export/"
 
 # this is the genbank mapping config file by Mark Diekhans' pipeline
-# it is required for genome partitioning 
+# it is required for genome partitioning
 # current one can be downloaded from:
 # http://genome-source.cse.ucsc.edu/gitweb/?p=kent.git;a=blob_plain;f=src/hg/makeDb/genbank/etc/genbank.conf;hb=HEAD
 GBCONFFILE     = "/cluster/data/genbank/etc/genbank.conf"
@@ -476,7 +478,7 @@ protBlatOptions = {
 # distance for chaining psls from same article into bed
 maxChainDist={'default': 50000, 'sacCer2' : 5000}
 
-# maximum number of matches for an article per DB, articles with 
+# maximum number of matches for an article per DB, articles with
 # more matches will be ignored (before chaining)
 maxDbMatchCount=1000
 
@@ -490,18 +492,18 @@ minChainCoverage=23
 # maximum length of chain
 # this can sometimes happen if a chain contains many individual
 # matches spread evenly over a very long locus
-# we eliminate these very long chains, they are likely to be 
+# we eliminate these very long chains, they are likely to be
 # not very informative
 maxChainLength=3000000
 
 # when splitting the big psl file, how many chunks should be fused into one?
 # this is used to separate the big psl file onto smaller cluster jobs
-# e.g. when this is 10 and we have 2000 total chunks, the chaining 
-# will run on 200 pieces 
+# e.g. when this is 10 and we have 2000 total chunks, the chaining
+# will run on 200 pieces
 chunkDivider = 10
 
 # which alignment table shall we use for cdna mapping?
-# (this is used by pubPrepCdnaDir to download mRNA alignmenst 
+# (this is used by pubPrepCdnaDir to download mRNA alignmenst
 # and mRNA fasta files
 cdnaTable = 'refSeqAli'
 
@@ -542,7 +544,7 @@ genomeDataDir = "/hive/data/genomes"
 #blastBinDir = "/cluster/bin/blast/x86_64/blast-2.2.20/bin"
 blastBinDir = '/hive/data/outside/blast229'
 
-# default Mysql database 
+# default Mysql database
 mysqlDb = 'publications'
 
 # UNIPROT PARSING ============================
@@ -587,16 +589,22 @@ accDataDir = join(staticDataDir, "accessions")
 # directory with lots of data about genes
 geneDataDir = join(staticDataDir, "genes")
 
-# directory with data required to detect variants
+# directory with static data required to detect variants (regexps)
 varDataDir = join(staticDataDir, "variants")
+
+# directory with gene/genome data required to detect variants
+mutDataDir = varDataDir
+
+# genome twobit file to use with variant detection
+genomeTwoBit = join(varDataDir, "hg19.2bit")
 
 # the british national corpus is a list of 30k common words in English
 # used for symbol filtering
 bncFname = '/hive/data/outside/pubs/wordFrequency/bnc/bnc.txt'
 
-# now overwrite all variables with those defined in local 
+# now overwrite all variables with those defined in local
 # config file ( see start of this file )
-for key, value in newVars.iteritems():
+for key, value in newVars.items():
     locals()[key] = value
 
 # SOLR =======
@@ -606,7 +614,7 @@ solrUrl="http://hgwdev.soe.ucsc.edu:8983/solr"
 
 debug = False
 
-import sys, logging, time, random
+import logging, time, random
 
 def getConverters():
     return CONVERTERS
@@ -630,7 +638,7 @@ def getTempDir():
 
 def getUcscScriptDir():
     dirname(__file__)
-    
+
 def getMaxBinFileSize():
     return maxBinFileSize
 
@@ -688,4 +696,3 @@ def defaultInOutDirs(datasetName):
 	#return join(staticDataDir, "mutFinder")
     #else:
         #assert(False)
-

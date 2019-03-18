@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 try:
     frozenset
 except NameError:
@@ -30,21 +31,21 @@ except:
 import sys
 import types
 
-import inputstream
-import tokenizer
+from . import inputstream
+from . import tokenizer
 
-import treebuilders
-from treebuilders._base import Marker
-from treebuilders import simpletree
+from . import treebuilders
+from .treebuilders._base import Marker
+from .treebuilders import simpletree
 
-import utils
-import constants
-from constants import spaceCharacters, asciiUpper2Lower
-from constants import formattingElements, specialElements
-from constants import headingElements, tableInsertModeElements
-from constants import cdataElements, rcdataElements, voidElements
-from constants import tokenTypes, ReparseException, namespaces, spaceCharacters
-from constants import htmlIntegrationPointElements, mathmlTextIntegrationPointElements
+from . import utils
+from . import constants
+from .constants import spaceCharacters, asciiUpper2Lower
+from .constants import formattingElements, specialElements
+from .constants import headingElements, tableInsertModeElements
+from .constants import cdataElements, rcdataElements, voidElements
+from .constants import tokenTypes, ReparseException, namespaces, spaceCharacters
+from .constants import htmlIntegrationPointElements, mathmlTextIntegrationPointElements
 
 def parse(doc, treebuilder="simpletree", encoding=None,
           namespaceHTMLElements=True):
@@ -114,7 +115,7 @@ class HTMLParser(object):
             try:
                 self.mainLoop()
                 break
-            except ReparseException, e:
+            except ReparseException as e:
                 self.reset()
 
     def reset(self):

@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 import sys
-import array, logging
+import logging
 
 # comment the following line if you don't have numpy installed
 import numpy # numpy is not really needed, you can uncomment some lines below to use native python code
@@ -38,8 +38,8 @@ def writeDictFeats(chromFeats, outf):
                 outf.write("\n")
 
 def removeOverlaps(chromFeats):
-    """ 
-    remove overlaps from chrom -> list of (start, end, name) features 
+    """
+    remove overlaps from chrom -> list of (start, end, name) features
 
     if some features overlap, flatten them, assign space by length of features, shortest first
 
@@ -62,7 +62,7 @@ def removeOverlaps(chromFeats):
             arrSize = max(arrSize, fEnd)
 
         # create array of unsigned ints
-        # this array will hold the one-baed index of the feature with the shortest length 
+        # this array will hold the one-baed index of the feature with the shortest length
         # for each basepair and one beyond, the index 0 means unassigned
         # version without numpy
         #levels = array.array("I", (arrSize+1)*[0])
@@ -102,12 +102,12 @@ def removeOverlaps(chromFeats):
 
 
 def parseBedMids(lines):
-    """ 
+    """
     Input are bed lines with exons
-    returns a dict with chrom -> list of (midpoint of feature, feature name) 
+    returns a dict with chrom -> list of (midpoint of feature, feature name)
     for included features, split into three parts.
     for overlapping features, split the overlap halfways
-    
+
     """
     # parse into dict chrom -> (start, end, name)
     chromFts = defaultdict(list)
@@ -195,4 +195,3 @@ def outputLoci(mids, chromSizes, outf, flankSize=100000, nameRewriteDict=None):
 if __name__=="__main__":
     import doctest
     doctest.testmod()
-

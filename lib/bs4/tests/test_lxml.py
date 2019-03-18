@@ -1,12 +1,11 @@
 """Tests to ensure that the lxml tree builder generates good trees."""
 
-import re
 import warnings
 
 try:
     from bs4.builder import LXMLTreeBuilder, LXMLTreeBuilderForXML
     LXML_PRESENT = True
-except ImportError, e:
+except ImportError as e:
     LXML_PRESENT = False
 
 from bs4 import (
@@ -72,4 +71,3 @@ class LXMLXMLTreeBuilderSmokeTest(SoupTest, XMLTreeBuilderSmokeTest):
     @property
     def default_builder(self):
         return LXMLTreeBuilderForXML()
-

@@ -1,10 +1,12 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import warnings
 import re
 
-import _base
+from . import _base
 from html5lib.constants import DataLossWarning
 import html5lib.constants as constants
-import etree as etree_builders
+from . import etree as etree_builders
 from html5lib import ihatexml
 
 try:
@@ -306,7 +308,7 @@ class TreeBuilder(_base.TreeBuilder):
         try:
             root = etree.fromstring(docStr)
         except etree.XMLSyntaxError:
-            print docStr
+            print(docStr)
             raise
         
         #Append the initial comments:

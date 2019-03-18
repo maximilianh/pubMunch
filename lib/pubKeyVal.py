@@ -1,5 +1,4 @@
-import logging, random, socket, atexit, sqlite3, os, time, shutil, types, zlib
-from collections import Counter
+import logging, random, socket, atexit, sqlite3, os, time, shutil, zlib
 from os.path import join, dirname, basename, isdir, isfile, abspath
 
 import maxCommon, maxTables
@@ -26,9 +25,9 @@ def openDb(dbName, newDb=False, singleProcess=False, prefer=None):
         return SqliteKvDb(dbName, newDb=newDb, singleProcess=singleProcess)
 
 def findFreePort(port=None):
-    """ 
+    """
     returns free port on local host or None if specified port is taken
-   
+
     >>> findFreePort(8080)
     """
     portFound = False
@@ -58,7 +57,7 @@ def shutdownRedisServers():
         #r.quit()
 
 def startRedis(dbFname):
-    """ starts redis on current server as daemon. 
+    """ starts redis on current server as daemon.
     Creates status files with filename dbName".pid" and dbName".host". Returns the port.
 
     >>> import pubGeneric
@@ -111,7 +110,7 @@ def startRedis(dbFname):
     return "localhost", port
 
 class RedisDb(object):
-    """ wrapper around redis. Will startup a redis server on localhost and write a dbFname.host 
+    """ wrapper around redis. Will startup a redis server on localhost and write a dbFname.host
         file so that clients can find this server. if dbFname.host already exists, we just connect
         to the redis server.
         This can load ~60000 genbank ids/sec on hgwdev
@@ -151,14 +150,14 @@ class RedisDb(object):
 
     def __setitem__(self, key, val):
         self.redis.set(key, val)
-               
+
     def __delitem__(self, key):
         self.redis.delete(key)
-             
+
     def update(self, keyValPairs):
         d = dict(keyValPairs)
         self.redis.mset(d)
-        
+
     def keys(self):
         " not advised with redis "
         return self.redis.keys("*")
@@ -174,7 +173,7 @@ class RedisDb(object):
 class SqliteKvDb(object):
     """ wrapper around sqlite to create an on-disk key/value database (or just keys)
         Uses batches when writing.
-        On ramdisk, this can write 50k pairs / sec, tested on 40M uniprot pairs  
+        On ramdisk, this can write 50k pairs / sec, tested on 40M uniprot pairs
         set onlyUnique if you know that the keys are unique.
     """
     def __init__(self, fname, singleProcess=False, newDb=False, tmpDir=None, onlyKey=False, compress=False, keyIsInt=False, eightBit=False, onlyUnique=False):
@@ -191,6 +190,7 @@ class SqliteKvDb(object):
         self.singleProcess = singleProcess
         if singleProcess:
             isolLevel = "exclusive"
+        self.con = None
         if not os.path.isfile(self.dbName) and tmpDir!=None:
             # create a new temp db on ramdisk
             self.finalDbName = self.dbName
@@ -200,12 +200,11 @@ class SqliteKvDb(object):
             if isfile(self.dbName):
                 os.remove(self.dbName)
             maxCommon.delOnExit(self.dbName) # make sure this is deleted on exit
-            self.con = sqlite3.connect(self.dbName, isolation_level=isolLevel)
-        else:
-            try:
-                self.con = sqlite3.connect(self.dbName)
-            except sqlite3.OperationalError:
-                logging.warn("Could not open %s" % self.dbName)
+        try:
+            self.con = sqlite3.connect(self.dbName)
+        except sqlite3.OperationalError:
+            logging.error("Could not open %s" % self.dbName)
+            raise
 
         logging.debug("Opening sqlite DB %s" % self.dbName)
 
@@ -229,7 +228,7 @@ class SqliteKvDb(object):
 
         if eightBit:
             self.con.text_factory = str
-    
+
     def get(self, key, default=None):
         try:
             val = self[key]
@@ -240,7 +239,7 @@ class SqliteKvDb(object):
     def __contains__(self, key):
         row = self.con.execute("select key from data where key=?",(key,)).fetchone()
         return row!=None
-    
+
     def dispName(self):
         " return a name for log messages "
         if self.finalDbName is not None:
@@ -251,11 +250,11 @@ class SqliteKvDb(object):
     def __getitem__(self, key):
         row = self.con.execute("select value from data where key=?",(key,)).fetchone()
         if not row: raise KeyError
-        value = str(row[0])
+        value = maxCommon.toAscii(row[0])
         if self.compress:
             value = zlib.decompress(value)
         return value
-    
+
     def __setitem__(self, key, value):
         if self.compress:
             value = zlib.compress(value)
@@ -263,14 +262,14 @@ class SqliteKvDb(object):
         if len(self.batch)>self.batchMaxSize:
             self.update(self.batch)
             self.batch = []
-               
+
     def __delitem__(self, key):
         if self.con.execute("select key from data where key=?",(key,)).fetchone():
             self.con.execute("delete from data where key=?",(key,))
             self.con.commit()
         else:
              raise KeyError
-             
+
     #def add(self, keys):
         #" can only be used if db has been opened with onlyKey=True "
         #assert(self.onlyKey==True) # you can only use this on onlyKey-databases
@@ -281,7 +280,7 @@ class SqliteKvDb(object):
         #keys = [(k,) for k in keys]
         #self.cur.executemany(sql, keys)
         #self.cur.commit()
-        
+
     def update(self, keyValPairs):
         " add many key,val pairs at once "
         logging.debug("Writing %d key-val pairs to db" % len(keyValPairs))
@@ -294,7 +293,7 @@ class SqliteKvDb(object):
         #except sqlite3.IntegrityError:
             #raise Exception("duplicate key %s" % keyValPairs)
         self.cur.commit()
-        
+
     def keys(self):
         return [row[0] for row in self.con.execute("select key from data").fetchall()]
 
@@ -323,14 +322,14 @@ class LevelDb(object):
 
     def put(self, key, val):
         return self.db.Put(key, val, sync=self.sync)
-        
+
     def get(self, key, default=None):
         try:
             val = self.db.Get(key)
         except KeyError:
             val = default
         return val
-    
+
     def has_key(self, key):
         # old python way
         self.__contains__(key)
@@ -364,7 +363,7 @@ def indexKvFile(fname, startOffset=0, prefer=None, newDb=False):
     if startOffset!=0:
         logging.info("file offset is %d" % startOffset)
     chunkSize = 500000
-            
+
     pairs = []
     for line in ifh:
         if line.startswith("#"):

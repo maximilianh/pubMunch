@@ -1,6 +1,8 @@
+from __future__ import print_function
+from __future__ import absolute_import
 import os
 import unittest
-from support import html5lib_test_files, TestData, test_dir
+from .support import html5lib_test_files, TestData, test_dir
 
 from html5lib import HTMLParser, inputstream
 
@@ -41,7 +43,7 @@ def buildTestSuite():
             assert encoding[0].lower() == "big5"
         setattr(Html5EncodingTestCase, 'test_chardet', test_chardet)
     except ImportError:
-        print "chardet not found, skipping chardet tests"
+        print("chardet not found, skipping chardet tests")
         
 
     return unittest.defaultTestLoader.loadTestsFromName(__name__)

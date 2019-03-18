@@ -61,7 +61,7 @@ class UnifyAuthors:
         " given the article data, return the first author family name, as ASCII "
         nonLetterRe = re.compile('\W', re.U) # non-alphanumeric character in unicode set, uff.
         firstAuthor=articleData.authors.split(";")[0].split(",")[0].replace(" ","")
-        assert(type(firstAuthor)==types.UnicodeType)
+        assert(type(firstAuthor)==str)
         if firstAuthor=="":
             #firstAuthor=articleData.externalId
             firstAuthor="NoAuthor"

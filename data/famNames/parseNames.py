@@ -1,3 +1,4 @@
+from __future__ import print_function
 from collections import defaultdict
 
 # parse the author names from pubTools format to a simple list of 
@@ -14,4 +15,4 @@ for line in open("authors.txt"):
 
 for name, count in counter.iteritems():
     row = [ name, str(count), str(len(name))]
-    print "\t".join(row)
+    print("\t".join(row))

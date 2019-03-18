@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 from optparse import OptionParser
 import glob, os.path
@@ -120,8 +121,8 @@ def filterConvertImgt(inFname, filterWords, species="Homo sapiens"):
                 
         geneString = "_".join(list(rec.genes.iteritems()))
         id = rec.id.split()[0]
-        print ">"+(id+"|"+refString+"|"+geneString).replace(" ","_")
-        print seq
+        print(">"+(id+"|"+refString+"|"+geneString).replace(" ","_"))
+        print(seq)
 
 
 # ----------- MAIN --------------

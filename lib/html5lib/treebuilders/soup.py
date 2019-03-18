@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import warnings
 
 warnings.warn("BeautifulSoup 3.x (as of 3.1) is not fully compatible with html5lib and support will be removed in the future", DeprecationWarning)
 
 from BeautifulSoup import BeautifulSoup, Tag, NavigableString, Comment, Declaration
 
-import _base
+from . import _base
 from html5lib.constants import namespaces, DataLossWarning
 
 class AttrList(object):

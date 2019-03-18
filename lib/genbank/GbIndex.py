@@ -120,7 +120,7 @@ class GbUpdate(str):
                 self.procParts.append(GbProcessedPart(self, MRNA))
             for gbIdx in globSort(procDir + "/est.*.gbidx"):
                 names = os.path.basename(gbIdx).split(".")
-                self.procParts.append(GbProcessedPart(self, EST, intern(names[1])))
+                self.procParts.append(GbProcessedPart(self, EST, sys.intern(names[1])))
 
     def _addAlignedPart(self, cdnaType, orgCat, accPrefix=None):
         # create new or add orgCat
@@ -142,10 +142,10 @@ class GbUpdate(str):
             alnDir = "data/aligned/" + self.rel + "/" + db + "/" + self
             for alIdx in globSort(alnDir + "/mrna.*.alidx"):
                 names = os.path.basename(alIdx).split(".")
-                self._addAlignedPart(MRNA, intern(names[1]))
+                self._addAlignedPart(MRNA, sys.intern(names[1]))
             for alIdx in globSort(alnDir + "/est.*.*.alidx"):
                 names = os.path.basename(alIdx).split(".")
-                self._addAlignedPart(EST, intern(names[2]), intern(names[1]))
+                self._addAlignedPart(EST, sys.intern(names[2]), sys.intern(names[1]))
 
     def getProcAlignedPart(self, procPart):
         """get GbAlignedPart object corresponding to procPart, and orgCat

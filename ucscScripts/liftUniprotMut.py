@@ -1,4 +1,5 @@
 #!/usr/bin/env python2.7
+from __future__ import print_function
 import sys
 sys.path.append("../lib/")
 import maxCommon, pubConf
@@ -20,7 +21,7 @@ def htmlLink(urlType, accs):
 def run(cmd):
     ret = system(cmd)
     if ret!=0:
-        print "Could not run %s" % cmd
+        print("Could not run %s" % cmd)
         sys.exit(1)
 
 if __name__ == '__main__':
@@ -92,7 +93,7 @@ if __name__ == '__main__':
         ofh.write(bedLine)
         count += 1
 
-    print "%d features written to %s" % (count, ofh.name)
+    print("%d features written to %s" % (count, ofh.name))
     ofh.close()
 
     #print "%d sequences not mapped to genome" % len(notMapped)

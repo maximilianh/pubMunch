@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import sys
 import os
 import unittest
@@ -10,7 +11,7 @@ try:
 except ImportError:
     import simplejson as json
 
-from support import html5lib_test_files
+from .support import html5lib_test_files
 from html5lib.tokenizer import HTMLTokenizer
 from html5lib import constants
 

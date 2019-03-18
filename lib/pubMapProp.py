@@ -1,6 +1,6 @@
-import os, logging, time, json
+import os, logging, json
 from os.path import join, isfile, isdir, basename
-import pubGeneric, maxTables, pubStore, pubConf, maxCommon
+import pubGeneric, pubStore, pubConf, maxCommon
 
 # name of marker counts file
 MARKERCOUNTSBASE = "markerCounts.tab"
@@ -41,9 +41,9 @@ def getAllUpdateIds(datasets):
     outFname = join(batchDir, "updateIds.json")
     json.dumps(textUpdateIds, open(outFname, "w"), sort_keys=True, indent=4, )
     return textUpdateIds
-         
+
 def readUpdateIds(batchDir):
-    """ read text-dataset names and update IDs from all existing batches 
+    """ read text-dataset names and update IDs from all existing batches
     returns a dict textDataset -> list of updateIds
     """
     ret = defaultdict(list)
@@ -52,7 +52,7 @@ def readUpdateIds(batchDir):
     if not isfile(inFname):
         return None
     return json.load(open(inFname))
-    
+
 def iterBatchDirs(batchBaseDir):
     " yield all batch directories "
     for batchDir in glob.glob(join(batchBaseDir, "*")):
@@ -61,7 +61,7 @@ def iterBatchDirs(batchBaseDir):
         yield batchDir
 
 def allBatchesAreComplete(batchBaseDir):
-    """     
+    """
     check if all batches are past the 'tables' step
     """
     allComplete = True
@@ -75,7 +75,7 @@ def allBatchesAreComplete(batchBaseDir):
             allComplete = False
             break
     return allComplete
-        
+
 def createNewBatch(bundle):
     " create new batch under a directory mapBaseDir/bundle/batches "
     batchBaseDir = join(mapBaseDir, bundle, "batches")
@@ -100,7 +100,7 @@ def createNewBatch(bundle):
         batchUpd = loadUpdateIds(batchDir)
 
 class PipelineConfig:
-    """ a simple class with attributes = all directories used by the pipeline 
+    """ a simple class with attributes = all directories used by the pipeline
         Most of these are relative to a BATCH (=one full run of the pipeline)
 
         When you create the object, you only supply the main output directory outDir/bundle.
@@ -149,8 +149,8 @@ class PipelineConfig:
         return batchId
 
     def _defineBatchDirectories(self):
-        """ 
-        Set attributes for all input and output directories relative to self.batchDir 
+        """
+        Set attributes for all input and output directories relative to self.batchDir
         """
         logging.debug("Defining batch directories for %s" % self.pubMapBaseDir)
 
@@ -162,7 +162,7 @@ class PipelineConfig:
             return
         else:
             batchDir = self.batchDir
-            
+
         # --- now define all other directories relative to batchDir
 
         # pipeline progress table file
@@ -179,7 +179,7 @@ class PipelineConfig:
         self.protAnnotDir   = join(batchDir, "annots", "prot") # same for proteins
         self.markerAnnotDir = join(batchDir, "annots", "markers") # same for markers
 
-        # tables for genome browser 
+        # tables for genome browser
         self.tableDir     = join(batchDir, "tables")
 
         # non-blat files
@@ -281,8 +281,8 @@ class PipelineConfig:
         return os.listdir(self.progressDir)
 
     def getUpdateIds(self, batchIds):
-        """ 
-        go over all subdirs of baseDirBatches, read the updateIds.txt files and return 
+        """
+        go over all subdirs of baseDirBatches, read the updateIds.txt files and return
         their values. Can be limited to a given set of batchDirs.
         """
         # parse tracking file and get all updateIds
@@ -322,7 +322,7 @@ class PipelineConfig:
         #batchFh.write("\t".join(row)+"\n")
 
     def findUnannotatedUpdateIds(self):
-        """ 
+        """
         find out which text-updates we have already annotated in any batch.
         Update self.updateIds with the these updateIds.
         """
@@ -336,7 +336,7 @@ class PipelineConfig:
     def findTableFiles(self, ignoreFilenames):
         """ find all table files across all batches in batchDir, find all files.
             create fileDict as (tableName, fileExt) -> dict of db -> list of files
-            returns fileDict. 
+            returns fileDict.
 
         >>> findTableFiles("/hive/data/inside/literature/blat/miniEls", ["0"])
         """
@@ -397,7 +397,7 @@ class PipelineConfig:
         return okBatchIds
 
     def readMarkerCounts(self, counts):
-        """ 
+        """
         go over all batches and get the total count for all markers in all updates
         uses markerCountFname, a table with <marker>tab<count> created by the 'tables' step
         """
@@ -426,4 +426,3 @@ def addCounts(countDict, fname):
         count = int(count)
         countDict[id]+=count
     return countDict
-

@@ -13,7 +13,7 @@ except ImportError:
     import re
 
 from pubSeqTables import threeToOneLower, threeToOne, oneToThree, aaToDna, dnaToAa
-from pycbio.hgdata.Psl import Psl
+from pm_pycbio.hgdata.Psl import Psl
 import pslMapBed, pubAlg, maxbio, pubConf, maxCommon, pubKeyVal
 
 from pygr.seqdb import SequenceFileDB
@@ -28,7 +28,7 @@ allowTwoBpVariants = False
 # ===== DATA TYPES ========
 Mention = namedtuple("Mention", "patName,start,end")
 
-""" A mapped variant is a type-range-sequence combination from a text, 
+""" A mapped variant is a type-range-sequence combination from a text,
     can be located on none, one or multiple types of sequences
     All positions are 0-based
 """
@@ -361,7 +361,7 @@ class VariantDescription(object):
         the mutation e.g. ("R", "S"). The class can generate a descriptive name
         for the mutation like "p.R123S"
 
-        It can optionally include a sequence ID, when the sequence ID was part of the 
+        It can optionally include a sequence ID, when the sequence ID was part of the
         mutation description in the text, e.g. the HGVS "NM_000925:p.R123S"
 
     >>> VariantDescription("sub", "prot", 10, 11, "R", "S")
@@ -408,7 +408,7 @@ class VariantDescription(object):
 class SeqVariantData(object):
     """ the full information about variant located on a sequence, with mentions from the text that support it
         This is the final output of this module, including all information about mapped variants and their genes.
-    
+
     """
     __slots__ = mutFields
 
@@ -483,7 +483,7 @@ class SeqVariantData(object):
 # ===== FUNCTIONS =================
 # helper methods for SeqData
 def getPsls(qId, cache, dbm, stripVersion=False):
-    """ load psls from compressed dbm, create Psl objects, use a cache 
+    """ load psls from compressed dbm, create Psl objects, use a cache
     reverse complement is on negative strand
     """
     qId = str(qId)
@@ -580,7 +580,7 @@ def parseRegex(mutDataDir):
     return regexList
 
 def parseMatchRsId(match, patName):
-    """ given a regular expression match object, 
+    """ given a regular expression match object,
     return special mutation object for rsIds
     that includes the chromosome coordinates """
     groups = match.groupdict()
@@ -693,7 +693,7 @@ def parseMatchDel(match, patName, seqType, isCoding):
         pos = int(groups["pos"])
         seqStart = pos
         seqEnd = pos + 1
-    
+
     if "origAasShort" in groups:
         origSeq = groups["origAasShort"]
     if "origAasLong" in groups:
@@ -801,7 +801,7 @@ def isOverlapping(match, exclPos):
     return False
 
 def findVariantDescriptions(text, exclPos=set()):
-    """ put mutation mentions from document together into dicts indexed by normal form 
+    """ put mutation mentions from document together into dicts indexed by normal form
         return dict of "prot"|"dna"|"dbSnp" -> list of (VariantDescription, list of Mention)
         uses global variable "regexes", see loadDb()
 
@@ -894,7 +894,7 @@ def firstDiffNucl(str1, str2, maxDiff=1):
     return None
 
 def possibleDnaChanges(origAa, mutAa, origDna):
-    """ figure out which nucleotides were possibly mutated by an amino acid change 
+    """ figure out which nucleotides were possibly mutated by an amino acid change
     will only look for single-bp mutations
     returns list of: position of nucleic acid, original and new basepair
     >>> possibleDnaChanges("V", "V", "GTA")
@@ -942,8 +942,8 @@ def newToOldRefseqs(accs):
     return oldAccs
 
 def backTrans(aa):
-    """ back translate protein to all nucleotide strings 
-    Returns the back-translated nucleotide sequences for a protein and codon 
+    """ back translate protein to all nucleotide strings
+    Returns the back-translated nucleotide sequences for a protein and codon
     table combination.
     copied from http://www.biostars.org/p/3129/
     >>> protein = 'FVC'
@@ -975,7 +975,7 @@ def translate(dna):
     return "".join(aaSeq)
 
 def dnaAtCodingPos(refseqId, start, end, expectAa):
-    """ 
+    """
     get nucleotide at CODING position in refseqId, check against expected aa
     also return positions on cdna
     """
@@ -996,7 +996,7 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     return nuclSeq, nuclStart, nuclEnd
 
 def mapToCodingAndRna(protVars):
-    """ given ref protein positions and refseq proteinIds, try to figure out the nucleotide 
+    """ given ref protein positions and refseq proteinIds, try to figure out the nucleotide
     changes on the refseq cdna sequence and add these to the variant object
     """
     codVars = []
@@ -1013,7 +1013,7 @@ def mapToCodingAndRna(protVars):
             pos + len(protVar.origSeq), protVar.origSeq)
         if origDnaSeq == None:
             return None, None
-        
+
         if protVar.mutType == "del" and protVar.mutSeq is None:
             # the salomonian solution ... I don't exactly know where this deletion starts and ends,
             # at least some papers (25278557) do a poor job of telling you what's going on, so just settling
@@ -1022,7 +1022,7 @@ def mapToCodingAndRna(protVars):
             cdEnd = cdStart + 3 * len(protVar.origSeq)
             codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, origDnaSeq, None, transId, origStr=protVar.origStr)
             codVars.append(codVar)
-            
+
             cdnaNuclStart = cdnaStart
             cdnaNuclEnd = cdnaNuclStart + 3 * len(protVar.origSeq)
             rnaVar = VariantDescription(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
@@ -1035,7 +1035,7 @@ def mapToCodingAndRna(protVars):
                 cdEnd = cdStart + len(oldNucl)
                 codVar = VariantDescription(protVar.mutType, "cds", cdStart, cdEnd, oldNucl, newNucl, transId, origStr=protVar.origStr)
                 codVars.append(codVar)
-    
+
                 cdnaNuclStart = cdnaStart + relPos
                 cdnaNuclEnd = cdnaNuclStart + len(newNucl)
                 rnaVar = VariantDescription(protVar.mutType, "rna", cdnaNuclStart, cdnaNuclEnd, \
@@ -1149,9 +1149,9 @@ def hasSeqAtPos(seqIds, variant, insertion_rv):
     return foundIds
 
 def checkVariantAgainstSequence(variant, entrezGene, sym, insertion_rv, seqDbs=["refseq"]):
-    """ given a variant and a gene ID, 
-    try to resolve gene to transcript sequence via  various protein databases 
-    and check if they have matches for the wildtype aa at the right position 
+    """ given a variant and a gene ID,
+    try to resolve gene to transcript sequence via  various protein databases
+    and check if they have matches for the wildtype aa at the right position
     seqDbs can be any of "refseq", "oldRefseq", "uniprot", "genbank"
     - variant is a namedtuple with VariantFields defined above
     - entrezGene has to be a number as a string or a list of numbers separated by "/"
@@ -1258,7 +1258,7 @@ def mapToGenome(rnaVars, bedName):
     return beds
 
 def getSnpMentions(mappedRsIds, varList):
-    """ find all variants + their mentions with any of the mapped rsIds 
+    """ find all variants + their mentions with any of the mapped rsIds
         returns dict rsId -> list of mentions
     """
     if len(varList) == 0:
@@ -1287,7 +1287,7 @@ def findClosestGeneMention(mentions, entrezGenes):
         logger.error(str(mentions))
         for entrezGene in entrezGenes:
             gene = entrezGenes[entrezGene]
-            geneMentions = sum([sum((x[1] for x in gene[key]), []) for key in gene], []) 
+            geneMentions = sum([sum((x[1] for x in gene[key]), []) for key in gene], [])
             for geneMention in geneMentions:
                 distance = min(abs(int(geneMention[0])-int(mention.start)), abs(int(geneMention[1])-int(mention.end)))
                 if distance < closestDistance:
@@ -1297,9 +1297,9 @@ def findClosestGeneMention(mentions, entrezGenes):
     return closestGene
 
 def groundVariant(docId, text, variant, mentions, snpMentions, entrezGenes, insertion_rv):
-    """ 
+    """
     ground mutations onto genes and return a tuple of:
-    (list of grounded SeqVariantData objects, list of ungrounded SeqVariantData, 
+    (list of grounded SeqVariantData objects, list of ungrounded SeqVariantData,
     list of genome coordinate tuples in BED format)
 
     >>> text = "The R71G BRCA1 mutation"

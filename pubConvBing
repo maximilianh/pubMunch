@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, glob, zipfile, types, re, tempfile, shutil, codecs
 from os.path import *
 import pubConvBing
@@ -45,7 +46,7 @@ if options.parse:
     data = pubConvBing.convertMicrosoft(data)
     artDict, fileDict = pubConvBing.convertHtmlToDicts("http://www.sgi.com", data)
     for key, val in artDict.items():
-        print key, val
+        print(key, val)
     #print fileDict
     exit(0)
 
@@ -62,7 +63,7 @@ maxCommon.mustExist(inDir)
 minId = options.minId
 
 if not os.path.isdir(inDir):
-    print "first parameter must be a directory"
+    print("first parameter must be a directory")
     sys.exit(1)
 
 runner = pubGeneric.makeClusterRunner(__file__, maxJob=pubConf.convertMaxJob, headNode=options.cluster)

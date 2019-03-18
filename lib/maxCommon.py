@@ -1,7 +1,13 @@
+from __future__ import print_function
+from __future__ import division
+import six
+from future import standard_library
+standard_library.install_aliases()
+from past.utils import old_div
 import logging, os, sys, tempfile, csv, collections, types, codecs, gzip, \
-    os.path, re, glob, time, urllib2, doctest, httplib, socket, StringIO, subprocess, shutil, atexit
+    os.path, re, glob, time, urllib.request, urllib.error, urllib.parse, doctest, http.client, socket, subprocess, shutil, atexit
 from types import *
-from os.path import isfile, isdir, getsize, abspath, join, realpath, dirname
+from os.path import isfile, isdir, getsize, abspath, realpath, dirname
 from collections import defaultdict
 
 # global flag to suppress all removal of temporary files, only useful for debugging
@@ -104,7 +110,7 @@ def deleteFiles(fnames):
 
 def mustBeEmptyDir(path, makeDir=False):
     " exit if path does not exist or it not empty. do an mkdir if makeDir==True "
-    if type(path)==types.ListType:
+    if type(path)==list:
         for i in path:
             notEmptyDirs = []
             notExistDirs = []
@@ -200,7 +206,7 @@ def fastIterTsvRows(inFname):
     for line in lines[1:]:
         yield Record(*line.split("\t")), line
 
-class TsvReader():
+class TsvReader(object):
     """ yields namedtuple objects from a tab-sep file. Was necessary as I needed a .seek function. """
     def __init__(self, ifh, encoding="utf8"):
         self.fieldNames = ifh.readline().lstrip("#").rstrip("\n").split("\t")
@@ -218,7 +224,7 @@ class TsvReader():
         if len(cols)!=self.fieldCount:
             raise Exception("headers not in sync with column count. headers: %s, column: %s" % (self.fieldNames, cols))
 
-        cols = [c.decode("utf8") for c in cols]
+        cols = [six.u(c) for c in cols]
         row = self.Rec(*cols)
         return row
 
@@ -252,8 +258,8 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
     """
 
     if noHeaderCount:
-        numbers = range(0, noHeaderCount)
-        headers = ["col" + unicode(x) for x in numbers]
+        numbers = list(range(0, noHeaderCount))
+        headers = ["col{}".format(x) for x in numbers]
 
     if format=="psl":
         headers =      ["score", "misMatches", "repMatches", "nCount", "qNumInsert", "qBaseInsert", "tNumInsert", "tBaseInsert", "strand",    "qName",    "qSize", "qStart", "qEnd", "tName",    "tSize", "tStart", "tEnd", "blockCount", "blockSizes", "qStarts", "tStarts"]
@@ -262,7 +268,7 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
         headers =      ["chrom", "chromStart", "chromEnd", "name", "score", "strand", "thickStart", "thickEnd", "itemRgb",    "blockCount",    "blockSizes", "blockStarts"]
         fieldTypes =   [StringType, IntType,    IntType,    StringType,IntType,StringType,IntType,   IntType,      StringType,  IntType,        StringType, StringType]
 
-    if isinstance(inFile, str):
+    if isinstance(inFile, six.string_types):
         if inFile.endswith(".gz") or isGzip:
             #zf = gzip.open(inFile, 'rb')
             fh = gzip.open(inFile, 'rb')
@@ -312,14 +318,15 @@ def iterTsvRows(inFile, headers=None, format=None, noHeaderCount=None, fieldType
             continue
         line = line.strip("\n")
         fields = line.split(fieldSep)
-        if encoding!=None:
+        # FIXME: this is not right if encode is not utf-8, should just open
+        # with the right encode.  Ask Max.
+        if six.PY2 and (encoding!=None):
             fields = [f.decode(encoding) for f in fields]
-        #fields = [x.decode(encoding) for x in fields]
         if fieldTypes:
             fields = [f(x) for f, x in zip(fieldTypes, fields)]
         try:
             rec = Record(*fields)
-        except Exception, msg:
+        except Exception as msg:
             logging.error("Exception occured while parsing line, %s" % msg)
             logging.error("Filename %s" % fh.name)
             logging.error("Line was: %s" % line)
@@ -395,18 +402,18 @@ def iterTsvJoin(files, **kwargs):
     f1, f2 = files
     iter1 = iterTsvGroups(f1, **kwargs)
     iter2 = iterTsvGroups(f2, **kwargs)
-    groupId1, recs1 = iter1.next()
-    groupId2, recs2 = iter2.next()
+    groupId1, recs1 = next(iter1)
+    groupId2, recs2 = next(iter2)
     while True:
         groupId1, groupId2 = int(groupId1), int(groupId2)
         if groupId1 < groupId2:
-            groupId1, recs1 = iter1.next()
+            groupId1, recs1 = next(iter1)
         elif groupId1 > groupId2:
-            groupId2, recs2 = iter2.next()
+            groupId2, recs2 = next(iter2)
         else:
             yield groupId1, [recs1, recs2]
-            groupId1, recs1 = iter1.next()
-            groupId2, recs2 = iter2.next()
+            groupId1, recs1 = next(iter1)
+            groupId2, recs2 = next(iter2)
 
 def runCommand(cmd, ignoreErrors=False, verbose=False):
     """ run command in shell, exit if not successful """
@@ -417,9 +424,9 @@ def runCommand(cmd, ignoreErrors=False, verbose=False):
     if verbose:
         logging.info(msg)
 
-    if type(cmd)==types.StringType:
+    if type(cmd)==bytes:
         ret = os.system(cmd)
-    elif type(cmd)==types.ListType:
+    elif type(cmd)==list:
         ret = subprocess.call(cmd)
         cmd = " ".join(cmd) # for debug output
     else:
@@ -454,7 +461,7 @@ def appendTsvDict(filename, inDict, headers):
     " append a dict to a file in the order of headers"
     values = []
     if headers==None:
-        headers = inDict.keys()
+        headers = list(inDict.keys())
 
     for head in headers:
         sanitizedValue = inDict.get(head, "").replace("\r\n", " ").replace("\n", " ").replace("\t", " ")
@@ -474,13 +481,13 @@ def appendTsvDict(filename, inDict, headers):
 def appendTsvOrderedDict(filename, orderedDict):
     appendTsvDict(filename, orderedDict, None)
 
-class ProgressMeter:
+class ProgressMeter(object):
     """ prints a message "x%" every stepCount/taskCount calls of taskCompleted()
     """
     def __init__(self, taskCount, stepCount=20, quiet=False):
         self.taskCount=taskCount
         self.stepCount=stepCount
-        self.tasksPerMsg = taskCount/stepCount
+        self.tasksPerMsg = old_div(taskCount,stepCount)
         self.i=0
         self.quiet = quiet
         #print "".join(9*["."])
@@ -490,13 +497,13 @@ class ProgressMeter:
             return
         #logging.debug("task completed called, i=%d, tasksPerMsg=%d" % (self.i, self.tasksPerMsg))
         if self.tasksPerMsg!=0 and self.i % self.tasksPerMsg == 0:
-            donePercent = (self.i*100) / self.taskCount
+            donePercent = old_div((self.i*100), self.taskCount)
             #print "".join(5*[chr(8)]),
             sys.stderr.write("%.2d%% " % donePercent)
             sys.stderr.flush()
         self.i += count
         if self.i==self.taskCount:
-            print ""
+            print("")
 
 def test():
     pm = ProgressMeter(2000)
@@ -505,7 +512,7 @@ def test():
 
 def parseConfig(f):
     " parse a name=value file from file-like object f and return as dict"
-    if isinstance(f, str):
+    if isinstance(f, six.string_types):
         logging.debug("parsing config file %s" % f)
         f = open(os.path.expanduser(f))
     result = {}
@@ -523,7 +530,7 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
     #>>> retryHttpHeadRequest("http://www.test.com", repeatCount=1, delaySecs=1)
     """
 
-    class HeadRequest(urllib2.Request):
+    class HeadRequest(urllib.request.Request):
         def get_method(self):
             return u'HEAD'
 
@@ -542,17 +549,17 @@ def retryHttpRequest(url, params=None, repeatCount=15, delaySecs=120, userAgent=
             if onlyHead:
                 req = HeadRequest(url, params)
             else:
-                req = urllib2.Request(url, params)
+                req = urllib.request.Request(url, params)
             if userAgent != None:
                 req.add_header('User-Agent', userAgent)
-            opener = urllib2.build_opener()
+            opener = urllib.request.build_opener()
             ret = opener.open(req, timeout=20)
             #ret = urllib2.urlopen(url, params, 20)
-        except urllib2.HTTPError as ex:
+        except urllib.error.HTTPError as ex:
             count = handleEx(ex, count)
-        except httplib.HTTPException as ex:
+        except http.client.HTTPException as ex:
             count = handleEx(ex, count)
-        except urllib2.URLError as ex:
+        except urllib.error.URLError as ex:
             count = handleEx(ex, count)
         except socket.timeout as ex:
             count = handleEx(ex, count)
@@ -589,6 +596,14 @@ def getAppDir():
         # unfrozen
         appDir = abspath(dirname(dirname(realpath(__file__))))
     return appDir
+
+def toAscii(val):
+    """Convert bytes or bytearray to ASCII in a PY2/PY3 compatible manner"""
+    if six.PY2:
+        return str(val)
+    else:
+        return val.decode('latin-1')
+
 
 if __name__=="__main__":
     #test()
