@@ -211,19 +211,16 @@ def toUnicode(var):
     """
     if string is not already a unicode strin (can happen due to upstream programming error):
     force variable to a unicode string, by decoding from utf8 first, then latin1 """
-    if isinstance(var, str):
+    if isinstance(var, unicode):
         return var
-    elif type(var)==type(1):
-        var = str(var)
-    elif var==None:
-        var = "NotSpecified"
     elif isinstance(var, str):
-        try:
-            var = var.decode("utf8")
-        except UnicodeDecodeError as msg:
-            logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
-            var = var.decode("latin1")
-    return var
+        return var.decode("utf-8")
+    elif type(var)==type(1):
+        return str(var).decode("utf-8")
+    elif var==None:
+        return u"NotSpecified"
+    else:
+        raise Exception("Could not decode %s as utf8" % var)
 
 def listToUtf8Escape(list):
     """ convert list of variables to utf8 string as well as possible and replace \n and \t"""
