@@ -327,6 +327,10 @@ class SeqData(object):
 
     def getCdsStart(self, refseqId):
         " return refseq CDS start position "
+        if refseqId not in self.refSeqCds:
+            logger.warn("{} not in refseqInfo.tab, skipping".format(refseqId))
+            return -1
+
         cdsStart = self.refSeqCds[refseqId]
         return cdsStart
 
@@ -991,8 +995,10 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     nuclSeq = cdnaSeq[nuclStart:nuclEnd]
     foundAa = translate(nuclSeq)
     logger.debug("CDS start is %d, nucl pos is %d, codon is %s" % (cdsStart, nuclStart, nuclSeq))
-    if not doShuffle:
-        assert(foundAa == expectAa)
+    if not doShuffle and (foundAa != expectAa):
+        logger.warn("foundAa != expectAa")
+        return None, None, None
+        # assert(foundAa == expectAa)
     return nuclSeq, nuclStart, nuclEnd
 
 def mapToCodingAndRna(protVars):
@@ -1125,6 +1131,8 @@ def isSeqCorrect(seqId, variant, insertion_rv):
 
     if variant.seqType == "dna":
         cdsStart = geneData.getCdsStart(seqId)
+        if cdsStart == -1:
+            return False
     else:
         cdsStart = 0
     genomeSeq = seq[vStart + cdsStart:vEnd + cdsStart].upper()

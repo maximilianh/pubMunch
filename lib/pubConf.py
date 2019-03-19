@@ -28,13 +28,11 @@ if "pubsDataDir" not in locals():
 # static data, accessible from cluster, but part of distribution
 # these are basic files like gene lists, marker lists, journal lists
 # Some of it can be updated with pubPrepXXX commands
-staticDataDir = join(getAppDir(), "data")
+if "staticDataDir" not in locals():
+    staticDataDir = join(getAppDir(), "data")
 
 # scripts only used at UCSC
 ucscScriptDir = normpath(join(dirname(__file__), "..", "ucscScripts"))
-
-# external tools
-extToolDir = normpath(join(dirname(__file__), "..", "ext"))
 
 # a directory with files that associate publishers with journals
 # one of them is the NLM Catalog, others we got from publishers or created them semi-
@@ -253,7 +251,9 @@ identifierStart = {
     # the "free" entry is necessary to indicate the range of the 2nd to last entry
 }
 
-extToolDir = _sourceDir+"/external"
+# external tools
+if "extToolDir" not in locals():
+    extToolDir = _sourceDir+"/external"
 
 # commands to convert various filetypes to ascii text
 # $in and $out will be replaced with temp filenames
@@ -262,7 +262,7 @@ extToolDir = _sourceDir+"/external"
 # you can define variables and use them, see extToolDir
 CONVERTERS = {
     "doc":"catdoc $in > $out",
-    "docx":"%(extToolDir)s/docx2txt-1.2/docx2txt.pl < $in > $out",
+    "docx":"%(extToolDir)s/docx2txt-1.4/docx2txt.pl < $in > $out",
     "xls":"xls2csv $in > $out",
     "xlsx":"ssconvert $in $out",
     "ppt":"catppt $in > $out",
@@ -279,7 +279,7 @@ CONVERTERS = {
     "xml":"XMLTEXT",
     "nxml":"NXMLTEXT",
     "pdf":"pdftotext -q -nopgbrk -enc UTF-8 -eol unix $in $out",
-    "pdf2":"java -Xmx512m -jar %(extToolDir)s/pdfbox-app-1.6.0.jar ExtractText $in $out -encoding utf8"
+    "pdf2":"java -Xmx512m -jar %(extToolDir)s/pdfbox-app-2.0.11.jar ExtractText $in $out -encoding utf8"
 }
 
 # sometimes (e.g. if downloaded from the web) we don't have a file extension, but only
