@@ -3,10 +3,11 @@ dna	sub	True	c.123T>A	{sep}c\.{pos}{origDna}{rightArrow}{mutDna}
 dna	sub	True	somename	substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}
 dna	sub	True	859G>A	{sep}{pos}{origDna}{rightArrow}{mutDna}
 #dna	sub	True	2521del5insT	{pos}del{delLen}ins{mutDna}
-dna	del	True	c.123delT	{sep}c\.{pos}del{origDna}
+dna	del	True	c.123delT	{sep}c\.{pos}del{origDnas}
 dna	del	True	c.123_125delAT	{sep}c\.{fromPos}_{toPos}del{origDnas}
 dna	del	True	10083731	deletion of nt{pos}{origDnas}
-dna	del	True	6174delT	{sep}{pos}del{origDna}
+dna	del	True	6174delT	{sep}{pos}del{origDnas}
+dna	ins	True	5382insC	{sep}{pos}ins{origDnas}
 dna	ins	True	c.123_124insGC	{sep}c\.{fromPos}_{toPos}ins{dnas}
 dna	dup	True	c.123dupA	{sep}c\.{pos}dup{origDna}
 dna	dup	True	c.123_125dupAT	{sep}c\.{fromPos}_{toPos}dup{origDnas}

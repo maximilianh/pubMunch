@@ -61,14 +61,14 @@ articleFields=[
 "issue",    # issue
 "page",            # first page of article, can be ix, x, or S4
 "pmid",            # PubmedID if available
-"pmidVersion",     # PubmedID version
+#"pmidVersion",     # PubmedID version
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
-"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
+#"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
 "fulltextUrl",     # URL to fulltext of article
-"medlineCreatedDate",  # date medline entry was created
-"medlineCompletedDate", # date medline entry was completed
-"medlineRevisedDate", # date medline entry was last revised
+#"medlineCreatedDate",  # date medline entry was created
+#"medlineCompletedDate", # date medline entry was completed
+#"medlineRevisedDate", # date medline entry was last revised
 "time",     # entry creation time (conversion time)
 "offset",   # offset in .files, number of bytes (NOT number of unicode characters).
 "size",      # total size (in bytes, not utf8 characters) of all files in this article + size of abstract
@@ -211,19 +211,16 @@ def toUnicode(var):
     """
     if string is not already a unicode strin (can happen due to upstream programming error):
     force variable to a unicode string, by decoding from utf8 first, then latin1 """
-    if isinstance(var, str):
+    if isinstance(var, unicode):
         return var
-    elif type(var)==type(1):
-        var = str(var)
-    elif var==None:
-        var = "NotSpecified"
     elif isinstance(var, str):
-        try:
-            var = var.decode("utf8")
-        except UnicodeDecodeError as msg:
-            logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
-            var = var.decode("latin1")
-    return var
+        return var.decode("utf-8")
+    elif type(var)==type(1):
+        return str(var).decode("utf-8")
+    elif var==None:
+        return u"NotSpecified"
+    else:
+        raise Exception("Could not decode %s as utf8" % var)
 
 def listToUtf8Escape(list):
     """ convert list of variables to utf8 string as well as possible and replace \n and \t"""
