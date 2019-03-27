@@ -995,10 +995,12 @@ def dnaAtCodingPos(refseqId, start, end, expectAa):
     nuclSeq = cdnaSeq[nuclStart:nuclEnd]
     foundAa = translate(nuclSeq)
     logger.debug("CDS start is %d, nucl pos is %d, codon is %s" % (cdsStart, nuclStart, nuclSeq))
-    if not doShuffle and (foundAa != expectAa):
-        logger.warn("foundAa != expectAa")
-        return None, None, None
-        # assert(foundAa == expectAa)
+    if not doShuffle:
+        # CTG is translated to M instead of L if it is the start codon
+        if start == 0 and expectAa == "M" and foundAa == "L":
+            logger.debug("Variant at start codon")
+        else:
+            assert(foundAa == expectAa)
     return nuclSeq, nuclStart, nuclEnd
 
 def mapToCodingAndRna(protVars):
