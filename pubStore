@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # general tool to extract from, rewrite or add to text collection files
 # that are split into "chunks". This is our primary text storage format

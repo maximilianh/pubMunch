@@ -134,10 +134,14 @@ def splitCrawlerMeta(crawlDir, jobDir, minId, updateId, chunkSize, donePmids, ta
             if "publisher" not in rowDict or rowDict["publisher"] == "":
                 rowDict["publisher"] = basename(subPath)
 
-            missFields = set(allFields) - set(rowDict.keys())
-            if len(missFields)!=0:
-                print "missing fields:", missFields
-                assert False
+            missFields = list(set(allFields) - set(rowDict.keys()))
+            # older files don't always have the pii field
+            if missFields==["pii"]:
+                rowDict["pii"] = ""
+            else:
+                if len(missFields)!=0:
+                    print "missing fields:", missFields
+                    assert False
 
             excessFields = set(rowDict.keys()) - set(allFields)
             if len(excessFields)!=0:

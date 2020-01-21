@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # load default python packages
 import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy, struct, operator
@@ -74,7 +74,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
 
     seqCacheFname = join(dirname(inFname), "seqCache.gdbm")
     logging.debug("Opening seqCache %s" % seqCacheFname)
-    seqCache = gdbm.open(seqCacheFname, "w")
+    seqCache = gdbm.open(seqCacheFname, "c")
 
     #genes = geneFinder.findGenesResolveByType(text, pmid=pmid, seqCache=seqCache)
     geneScores, geneSupp = geneFinder.rankGenes(text, pmid, seqCache)

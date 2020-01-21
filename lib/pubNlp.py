@@ -5,7 +5,7 @@
 #>>> logger = logging.getLogger().setLevel(5)
 #>>> logger = logging.getLogger().setLevel(logging.INFO)
 
-import re, logging, gzip, array, operator, orderedDict, string
+import re, logging, gzip, array, operator, orderedDict, string, itertools, collections
 from os.path import join
 import pubGeneric, pubConf, fastFind
 import unidecode
@@ -15,7 +15,10 @@ import unidecode
 # - for sentSplitter:
 # adapted from 
 # http://stackoverflow.com/questions/25735644/python-regex-for-splitting-text-into-sentences-sentence-tokenizing
-sentSplitRe = re.compile(r'(?<!\w\.\w.)(?<!no\.)(?<![A-Z][a-z]\.)(?<![A-Z]\.)(?<!F[iI][gG]\.)(?<! al\.)(?<=\.|\?|\!|:)\s+')
+# added < as possible whitespace, because of pieces of HTML sometimes still in medline like <br> etc.
+# changed (?<![A-Z]\.) to (?<!\w[A-Z]\.) so "is ATX. Bla" is treated as two sentences.
+#sentSplitRe = re.compile(r'(?<!\w\.\w.)(?<!no\.)(?<![A-Z][a-z]\.)(?<![A-Z]\.)(?<!F[iI][gG]\.)(?<! al\.)(?<=\.|\?|\!|:)[<\s]+')
+sentSplitRe = re.compile(r'(?<!\w\.\w.)(?<!no\.)(?<![A-Z][a-z]\.)(?<!\s[A-Z]\.)(?<!F[iI][gG]\.)(?<! al\.)(?<=\.|\?|\!|:)[<\s]+')
 
 # - for wordSplitter
 # _ is considered part of word as it's mostly used for internal processing
@@ -50,7 +53,7 @@ def sentSplitter(text):
     """
     split a text into sentences, yield tuples of (start, end, sentence)
 
-    >>> text = "Mr. Smith bought cheapsite.com for 1.5 million dollars, i.e. he paid a lot for it.  Come here, dog no. 5! Did he mind? Adam Jones Jr. thinks he didn't. In any case, this isn't true... Well, with a probability of .9 it isn't. The U.S.A. is a big country. C. elegans is tricky on Fig. 5 so is B. subtilis. Kent et al. is just a reference."
+    >>> text = "Mr. Smith bought cheapsite.com for 1.5 million dollars, i.e. he paid a lot for it.  Come here, dog no. 5! Did he mind? Adam Jones Jr. thinks he didn't. In any case, this isn't true... Well, with a probability of .9 it isn't. The U.S.A. is a big country. C. elegans is tricky on Fig. 5 so is B. subtilis. Kent et al. is just a reference. ATX is a marker for mouse models of ALS. This is another phrase."
     >>> list(sentSplitter(text))
     [(0, 82, 'Mr. Smith bought cheapsite.com for 1.5 million dollars, i.e. he paid a lot for it.'), (84, 105, 'Come here, dog no. 5!'), (106, 118, 'Did he mind?'), (119, 151, "Adam Jones Jr. thinks he didn't."), (152, 183, "In any case, this isn't true..."), (184, 224, "Well, with a probability of .9 it isn't."), (225, 253, 'The U.S.A. is a big country.'), (254, 303, 'C. elegans is tricky on Fig. 5 so is B. subtilis.'), (304, 336, 'Kent et al. is just a reference.')]
     >>> text = "(Crous  et al.  2004a), is a segregation "
@@ -600,7 +603,7 @@ def sectionSentences(text, fileType="", minSectDist=MINSECLEN, minChars=30, \
     TOCs, figures, tables etc).   
     Yields tuples (section, start, end, sentence). Sentence has newline replaced
     with space.
-    >>> text = "           \\nIntroduction\\n                                                         \\nMethods\\n no. yes. palim palim. We did something great and were right.\\nResults\\nOur results are very solid\\nand strong and reliable."
+    >>> text = "           \\nIntroduction\\n                                                         \\nMethods\\n no. yes. palim palim. We did something great and were right.\\nResults\\nOur results are very solid\\nand robust and reliable."
     >>> list(sectionSentences(text, minSectDist=1))
     [['methods', 114, 152, 'We did something great and were right.'], ['results', 160, 212, ' Our results are very solid and strong and reliable.']]
     """
@@ -680,15 +683,111 @@ def findDrugs(text):
     """
     global drugLex
     if drugLex==None:
-        drugPath = join(pubConf.staticDataDir, "drugs", "drugbank.marshal.gz")
+        drugPath = pubConf.getStaticFile("drugs", "drugbank.marshal.gz")
         drugLex = fastFind.loadLex(drugPath)
 
     for (start, end, name) in fastFind.fastFind(text, drugLex, toLower=True):
         if name.lower() in drugBlacklist:
             continue
         yield start, end, name
-        
 
+cellLex = None
+
+cellBlackList = set([])
+
+def findCells(text):
+    """ find cell types
+    >>> list(findCells("Oligodendrocytes and neural progenitors."))
+    [(0, 16, 'oligodendrocyte')]
+    """
+    global cellLex
+    dictFname = pubConf.getStaticFile("cellTypes", "cellTypes.marshal")
+    if cellLex is None:
+        cellLex = fastFind.loadLex(dictFname)
+
+    for (start, end, name) in fastFind.fastFind(text.lower(), cellLex):
+        if name.lower() in cellBlackList:
+            continue
+        yield start, end, name
+
+def sumBasic(sentences, commonWords):
+    """ given probabilities of words, rank sentences by average prob
+    (removing commonWords).
+    Sentences is a list of list of words
+    Algorithm is described in http://ijcai.org/papers07/Papers/IJCAI07-287.pdf
+    Returns list of sentences sorted by score and length, so if several have a highest score, shorter ones are preferred
+    """
+    if len(sentences)==0:
+        return ""
+    sentWordsList = [set(wordRe.findall(sentence)) for sentence in sentences]
+    words = list(itertools.chain.from_iterable(sentWordsList))
+    wordProbs = {word: float(count)/len(words) for word, count in collections.Counter(words).items()}
+
+    # create the list of sentences
+    scoredSentences = []
+    for sentWords, sentence in zip(sentWordsList, sentences):
+        mainWords = sentWords - commonWords
+        if len(mainWords)==0:
+            continue
+        avgProb = sum([wordProbs[word] for word in mainWords]) / len(mainWords)
+        scoredSentences.append((avgProb, len(sentence), sentence, sentWords))
+
+    # happens rarely: all words are common English words
+    if len(scoredSentences)==0:
+        return ""
+
+    # sort these by length and sentence length, such that shortest sentences come first
+    scoredSentences.sort(key=operator.itemgetter(0,1), reverse=True)
+
+    # remove unneeded fields
+    ret = [s[2] for s in scoredSentences]
+    return ret
+
+    #topScore = scoredSentences[0][0]
+    #topSents = [(sent, words) for score, sent, words in scoredSentences if score >= topScore]
+
+    # sort these by length and pick shortest one
+    #topSentLens = [(len(s), s, w) for s, w in topSents]
+    #topSentLens.sort(key=operator.itemgetter(0))
+    #topLen, topSent, topWords = topSentLens[0]
+
+    # update word frequencies
+    #for word in topWords:
+        #wordProbs[word] *= wordProbs[word]
+
+    #return topSent
+
+bncWords = None
+
+def runSumBasic(descSentList, n=3):
+    """ Given a dict with desc -> list of (docId, sentence), pick the best n sentences for
+    each desc and return a dict with desc -> [(sentence1, docId1), (sentence2, doc2), ...]
+    """
+    # get list of very common English words
+    global bncWords
+    if bncWords is None:
+        wordFname = pubConf.getStaticFile("bnc", "bnc.txt")
+        bncWords = set([line.split()[0] for line in open(wordFname).read().splitlines()])
+        logging.info("Loaded %d common English words from %s" % (len(bncWords), wordFname))
+
+    logging.info("Running SumBasic on sentences")
+    bestSentences = {}
+    for desc, rows in descSentList.iteritems():
+        sentSet = set() # make sure we don't have duplicate sentences
+        sentToDocId = {} # a big wasteful, but keeps sumBasic() easier to read
+        for (docId, sent) in rows:
+            sentSet.add(sent)
+            sentToDocId[sent] = docId
+
+        sentences = list(sentSet)
+        bestSents = sumBasic(sentences, bncWords)[:n]
+        sentList = []
+        for bestSent in bestSents:
+            docId = sentToDocId[bestSent]
+            sentList.append( (docId, bestSent) )
+        bestSentences[desc]=sentList
+
+    return bestSentences
 
 if __name__ == "__main__":
    import doctest

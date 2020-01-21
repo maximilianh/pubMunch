@@ -198,7 +198,7 @@ faDir = pubsDataDir + "/fastaExport/"
 logDir = pubsDataDir + "/log/"
 
 # head node of cluster
-clusterHeadNode = "ku.sdsc.edu"
+clusterHeadNode = "localhost"
 # type of cluster, either parasol or sge or local (single CPU) or localhost:5 for five CPUs
 clusterType = "localhost"
 

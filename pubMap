@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # first load the standard libraries from python
 # we require at least python 2.7
@@ -135,7 +135,6 @@ def main(args, options):
 
     allSteps = ["annot", "annotMarkerDbg", "annotSeqDbg", "filter", "blat", "sort",
         "chain", "identifiers", "tables", "load"]
-
 
     if "-" in command:
         stepFrom, stepTo = command.split("-")
