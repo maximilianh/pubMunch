@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Routines for reading/writing tables from/to textfiles or databases
 
 import sys, textwrap, operator, types, logging, re, os, collections, codecs, time, gzip, shutil
@@ -230,7 +231,7 @@ class TableParser:
                 return 
             yield self.parseLine(line)
 
-    def column(self, columnName, dataType=types.StringType):
+    def column(self, columnName, dataType=bytes):
         """ Generator: return values of a given column (name) """
         for row in self.lines():
             yield dataType(row._asdict()[columnName])
@@ -363,7 +364,7 @@ class SqlTableReader_BigTable(SqlTableReaderGeneric):
             except _mysql_exceptions.OperationalError:
                     errCount+=1
                     if errCount==100:
-                        raise Exception, "mysql connection error, even after retrials"
+                        raise Exception("mysql connection error, even after retrials")
                         break
                     else:
                         logging.info("Mysql connection problems, will reconnect in 10 secs")
@@ -426,7 +427,7 @@ def concatHeaderTabFiles(filenames, outFilename, keyColumn=None, progressDots=No
             lno+=1
             count+=1
             if progressDots!=None and count% progressDots==0:
-                print ".",
+                print(".", end=' ')
                 sys.stdout.flush()
         fno+=1
 

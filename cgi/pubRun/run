@@ -1,5 +1,6 @@
 #!/cluster/software/bin/python2.7
 # format python stacktraces as html
+from __future__ import print_function
 import cgitb
 cgitb.enable()
 
@@ -63,9 +64,9 @@ textarea,input  {
 
 def printHeaders(redirectUrl=None):
     if redirectUrl:
-        print "Refresh: 0; url=%s" % redirectUrl
-    print "Content-Type: text/html; charset=utf8"     # HTML is following
-    print                               # blank line, end of headers
+        print("Refresh: 0; url=%s" % redirectUrl)
+    print("Content-Type: text/html; charset=utf8")     # HTML is following
+    print()                               # blank line, end of headers
 
 def printJobStatus(jobId, status):
     statusMsg, sampleLines, allResultsUrl = status
@@ -91,7 +92,7 @@ def printJobStatus(jobId, status):
                 else:
                     newRows.append(row)
                 
-            print "\t".join(newRows)+"<br>"
+            print("\t".join(newRows)+"<br>")
 
 # ====== MAIN =======
 def main():

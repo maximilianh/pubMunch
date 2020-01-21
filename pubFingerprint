@@ -3,6 +3,7 @@
 # try to infer PMIDs by comparing issn/vol/issue/page against medline
 
 # load default python packages
+from __future__ import print_function
 import logging, optparse, sys, os, marshal, unicodedata
 from os.path import *
 
@@ -20,7 +21,7 @@ def main(args, options):
         pf = pubCompare.PmidFinder()
         ad = pubStore.createEmptyArticleDict()
         ad["doi"] = dataSet1
-        print "PMID:", pf.lookupPmid(ad)
+        print("PMID:", pf.lookupPmid(ad))
         sys.exit(0)
 
     dir1 = pubConf.resolveTextDir(dataSet1)

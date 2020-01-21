@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 try:
     from types import ModuleType
 except:
@@ -5,7 +6,7 @@ except:
 import re
 import types
 
-import _base
+from . import _base
 from html5lib import ihatexml
 from html5lib import constants
 from html5lib.constants import namespaces
@@ -224,7 +225,7 @@ def getETreeBuilder(ElementTreeImplementation, fullTree=False):
             elif element.tag == ElementTree.Comment:
                 rv.append("|%s<!-- %s -->"%(' '*indent, element.text))
             else:
-                assert type(element.tag) in types.StringTypes, "Expected unicode, got %s"%type(element.tag)
+                assert type(element.tag) in (str,), "Expected unicode, got %s"%type(element.tag)
                 nsmatch = tag_regexp.match(element.tag)
 
                 if nsmatch is None:

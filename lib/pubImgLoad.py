@@ -1,3 +1,4 @@
+from __future__ import print_function
 # extract images from PDFs and load them into a sqlite database
 
 from os.path import *
@@ -105,7 +106,7 @@ def getImages(pdfName):
         pngBlob = open(outFname).read()
         md5Str = makeMd5(pngBlob)
 
-        print "XX", md5Str, list(md5Blacklist)[:10]
+        print("XX", md5Str, list(md5Blacklist)[:10])
         if md5Str in md5Blacklist:
             logging.debug("Image MD5 is blacklisted")
             continue

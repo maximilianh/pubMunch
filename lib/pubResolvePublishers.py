@@ -1,14 +1,14 @@
 # routines to parse NLM Catalog and other journal lists (HIGHWIRE, wiley) and sort journals by publisher
 # output to tab sep tables
 # load default python packages
-import logging, optparse, os, sys, collections, gzip, re, codecs, operator, glob, random
+import logging, os, sys, collections, gzip, re, codecs, operator, glob
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
 
 # load our own libraries
-import pubConf, pubGeneric, tabfile, maxCommon, pubPubmed
+import pubGeneric, maxCommon, pubPubmed
 from urllib2 import urlparse
 
 import xml.etree.cElementTree as etree
@@ -143,7 +143,7 @@ def recIter(tree):
                     majMeshes.append(desc.text)
         majMesh = "|".join(majMeshes)
         data["majMeshList"] = majMesh
-                
+
         issns = rec.findall("ISSN")
         data["eIssn"] = ""
         data["pIssn"] = ""
@@ -164,7 +164,7 @@ def recIter(tree):
         else:
             #data["linkIssn"]=data["pIssn"]
             data["linkIssn"]=""
-            
+
         data["source"] = "NLM"
         data["correctPublisher"] = ""
         row = Rec(**data)
@@ -172,7 +172,7 @@ def recIter(tree):
         yield row
 
 def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
-    """ write list of records to file. If headers is specified, 
+    """ write list of records to file. If headers is specified,
     reformat to fit into tab-sep headers. Optionally set the field source to some value."""
     logging.info("Exporting to tab-sep file %s" % outFname)
     openMode = "w"
@@ -193,7 +193,7 @@ def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
                 #continue
             if headers!=None:
                 recDict = rec._asdict()
-                # create a new dict with all defined fields and 
+                # create a new dict with all defined fields and
                 # all required fields set to "", drop all non-reqired fields
                 filtRecDict = {}
                 for d in recDict:
@@ -300,7 +300,7 @@ def findBestGroupForServer(pubGroups):
     for server, bestGroup in serverToBestGroup.iteritems():
         logging.debug("%s --> %s" % (server, bestGroup))
     return serverToBestGroup
-        
+
 def regroupByServer(pubGroups, serverToBestGroup):
     " if a publisher has only one server, then assign it to the biggest group for this server "
     newGroups = {}
@@ -428,7 +428,7 @@ def groupPublishersByName(journals):
     "10.1007" : "springer",
     }
 
-    # some manual rules for grouping, to force to a given final publisher if a certain keyword is found 
+    # some manual rules for grouping, to force to a given final publisher if a certain keyword is found
     # if KEY is part of publisher name, publisher is grouped into VAL
     pubReplaceDict = {
         "Academic Press" : "Elsevier",
@@ -547,7 +547,7 @@ def parseNlmCatalog(inFname):
         data = gzip.open(inFname).read()
     else:
         data = open(inFname).read()
-        
+
     logging.info("Parsing XML file %s into memory" % inFname)
     #data = "<nlm>"+data+"</nlm>"
     tree = etree.fromstring(data)
@@ -555,7 +555,7 @@ def parseNlmCatalog(inFname):
     return journals
 
 def journalToBestWebserver(journals):
-    """ given a list of journal records create a mapping journal -> webserver 
+    """ given a list of journal records create a mapping journal -> webserver
     We will assign a journal to the biggest webserver, if there are several ones """
     # count journals per webserver
     serverCounts = collections.defaultdict(int)
@@ -589,7 +589,7 @@ def journalToBestWebserver(journals):
     return journalToServer
 
 def convertNlmAndTab(nlmCatalogFname, tabSepFnames, journalFname, pubFname):
-    """ init outDir by parsing journal list files. generate journal and publisher 
+    """ init outDir by parsing journal list files. generate journal and publisher
         tables from it.
     """
 
@@ -620,7 +620,7 @@ def initJournalDir(journalInDir, nlmCatalogFname, journalFname, pubFname):
 
     otherTabFnames = glob.glob(join(listDir, "*.tab"))
     convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalFname, pubFname)
-    
+
 if __name__=="__main__":
     import doctest
     doctest.testmod()

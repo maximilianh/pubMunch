@@ -1,3 +1,4 @@
+from __future__ import division
 # Classes to read and write documents to directories
 
 # gzipfiles are stored in "chunks" of x documents, usually to get around 2000
@@ -10,7 +11,9 @@
 # xxxx.files, xxxx.articles
 # then gzips them and copies gzipfiles to shared cluster filesystem
 
-import os, logging, sys, collections, time, codecs, shutil, tarfile, csv, glob, operator, types
+from builtins import range
+from past.utils import old_div
+import os, logging, sys, time, codecs, shutil, csv, glob, operator, types
 import zipfile, gzip, re, random, tempfile, copy, string
 try:
     import sqlite3
@@ -58,14 +61,14 @@ articleFields=[
 "issue",    # issue
 "page",            # first page of article, can be ix, x, or S4
 "pmid",            # PubmedID if available
-"pmidVersion",     # PubmedID version
+#"pmidVersion",     # PubmedID version
 "pmcId",           # Pubmed Central ID
 "doi",             # DOI, without leading doi:
-"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
+#"pii",             # Publisher Item Identifier, only used by Elsevier and ACM
 "fulltextUrl",     # URL to fulltext of article
-"medlineCreatedDate",  # date medline entry was created
-"medlineCompletedDate", # date medline entry was completed
-"medlineRevisedDate", # date medline entry was last revised
+#"medlineCreatedDate",  # date medline entry was created
+#"medlineCompletedDate", # date medline entry was completed
+#"medlineRevisedDate", # date medline entry was last revised
 "time",     # entry creation time (conversion time)
 "offset",   # offset in .files, number of bytes (NOT number of unicode characters).
 "size",      # total size (in bytes, not utf8 characters) of all files in this article + size of abstract
@@ -183,7 +186,7 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
         if chunkSize==None and chunkCount==None:
             chunkId = row.chunkId
         elif chunkSize!=None:
-            chunkId = "%05d" % (i / chunkSize)
+            chunkId = "%05d" % (old_div(i, chunkSize))
         elif chunkCount!=None:
             chunkId = "%05d" % (i % chunkSize)
         data.setdefault(str(chunkId), []).append("\t".join(row)+"\n")
@@ -192,7 +195,7 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
     # write to outDir
     logging.info("Splitting file data, Writing to %d files in %s/xxxx.tgz" % (len(data), outDir))
     pm = maxCommon.ProgressMeter(len(data))
-    for chunkIdString, lines in data.iteritems():
+    for chunkIdString, lines in data.items():
         outfname = os.path.join(outDir, chunkIdString)
         logging.debug("Writing to %s" % outfname)
         fh = open(outfname, "w")
@@ -202,7 +205,7 @@ def splitTabFileOnChunkId(filename, outDir, chunkSize=None, chunkCount=None):
         fh.close()
         pm.taskCompleted()
 
-    return data.keys()
+    return list(data.keys())
 
 def toUnicode(var):
     """
@@ -210,17 +213,14 @@ def toUnicode(var):
     force variable to a unicode string, by decoding from utf8 first, then latin1 """
     if isinstance(var, unicode):
         return var
-    elif type(var)==type(1):
-        var = unicode(var)
-    elif var==None:
-        var = "NotSpecified"
     elif isinstance(var, str):
-        try:
-            var = var.decode("utf8")
-        except UnicodeDecodeError, msg:
-            logging.debug("Could not decode %s as utf8, error msg %s" % (var, msg))
-            var = var.decode("latin1")
-    return var
+        return var.decode("utf-8")
+    elif type(var)==type(1):
+        return str(var).decode("utf-8")
+    elif var==None:
+        return u"NotSpecified"
+    else:
+        raise Exception("Could not decode %s as utf8" % var)
 
 def listToUtf8Escape(list):
     """ convert list of variables to utf8 string as well as possible and replace \n and \t"""
@@ -239,7 +239,7 @@ def dictToUtf8Escape(dict):
     if dict==None:
         return None
     utf8Dict={}
-    for key, var in dict.iteritems():
+    for key, var in dict.items():
         var = toUnicode(var)
         var = replaceSpecialChars(var)
         utf8Dict[key]=var
@@ -253,7 +253,7 @@ def removeTabNl(var):
     # there are more newlines than just \n and \m when one is using the
     # 'for line in file' construct in python
     # so we do this
-    if type(var)==types.IntType:
+    if type(var)==int:
         return str(var)
     cleanString = " ".join(var.splitlines()).replace("\t", " ")
     #logging.debug("cleaned string is %s" % repr(newStr))
@@ -267,7 +267,7 @@ def articleDictToTuple(artDict):
     artTuple = ArticleRec(**artDict)
     return artTuple
 
-class PubWriterFile:
+class PubWriterFile(object):
     """
     a class that stores article and file data into tab-sep files
     that are located in a subdirectory.
@@ -341,7 +341,7 @@ class PubWriterFile:
     def _removeSpecChar(self, lineDict):
         " remove tab and NL chars from values of dict "
         newDict = {}
-        for key, val in lineDict.iteritems():
+        for key, val in lineDict.items():
             newDict[key] = removeTabNl(val)
         return newDict
 
@@ -508,7 +508,7 @@ def createPseudoFile(articleData):
     fileTuple = FileDataRec(**fileData)
     return fileTuple
 
-class PubReaderFile:
+class PubReaderFile(object):
     """
     read articles from tab-sep files
     """
@@ -589,7 +589,7 @@ class PubReaderFile:
             return newFiles
 
         if len(mainFiles)==1:
-            newFiles.insert(0, mainFiles.values()[0])
+            newFiles.insert(0, list(mainFiles.values())[0])
             return newFiles
 
         # remove the pdf if there are better files
@@ -616,7 +616,7 @@ class PubReaderFile:
             logging.error("no main file: in %s out %s " % (files, mainFiles))
             raise Exception("no main file left")
 
-        newFiles.insert(0, mainFiles.values()[0])
+        newFiles.insert(0, list(mainFiles.values())[0])
         return newFiles
 
     def iterArticlesFileList(self, algPrefs):
@@ -734,7 +734,7 @@ class PubReaderFile:
 #
 #        yield art, [fileObj]
 
-class PubReaderTest:
+class PubReaderTest(object):
     """ reads a single text file or a directory of text files"""
     def __init__(self, fname, text=None):
         if fname!=None:
@@ -753,7 +753,7 @@ class PubReaderTest:
 
 
     def _makeArtFile(self, text, fname):
-        class C:
+        class C(object):
             def _replace(self, content=None):
                 return self
 
@@ -874,8 +874,8 @@ def iterArticleDataDir(textDir, type="articles", filterFname=None, updateIds=Non
             assert(False) # illegal type parameter
         pm.taskCompleted()
 
-all_chars = (unichr(i) for i in xrange(0x110000))
-control_chars = ''.join(map(unichr, range(0,7) + range(8,32) + range(127,160)))
+all_chars = (chr(i) for i in range(0x110000))
+control_chars = ''.join(map(chr, list(range(0,7)) + list(range(8,32)) + list(range(127,160))))
 control_char_re = re.compile('[%s]' % re.escape(control_chars))
 
 def replaceSpecialChars(string):
@@ -957,10 +957,10 @@ def listAllUpdateIds(textDir):
     inFname = join(textDir, "updates.tab")
     updateIds = set()
     if not isfile(inFname):
-	logging.info("Could not find %s, using filenames to get updates" % inFname)
+        logging.info("Could not find %s, using filenames to get updates" % inFname)
         inNames = glob.glob(join(textDir, "*.articles.gz"))
         updateIds = set([basename(x).split("_")[0] for x in inNames])
-	logging.info("Found text update ids from filenames: %s" % updateIds)
+        logging.info("Found text update ids from filenames: %s" % updateIds)
         return updateIds
 
     for row in maxTables.TableParser(inFname).lines():
@@ -1035,7 +1035,7 @@ def articleIdToDataset(articleId):
     """
     articleId = int(articleId)
     restList = []
-    for datasetName, artIdStart in pubConf.identifierStart.iteritems():
+    for datasetName, artIdStart in pubConf.identifierStart.items():
         rest = articleId - artIdStart
         if rest>0:
             restList.append( (datasetName, rest) )
@@ -1227,7 +1227,7 @@ def setupDatasetRanges():
     if datasetRanges!=None:
         return
 
-    datasetStarts = pubConf.identifierStart.items()
+    datasetStarts = list(pubConf.identifierStart.items())
     datasetStarts.sort(key=operator.itemgetter(1))
     assert(datasetStarts[-1][0]=="free")
 
@@ -1344,7 +1344,7 @@ def iterArticlesWhere(con, cur, whereExpr):
     for row in rows:
         # convert sqlite object to normal dict with strings
         rowDict = {}
-        for key, val in zip(row.keys(), row):
+        for key, val in zip(list(row.keys()), row):
             rowDict[key] = val
         yield rowDict
 
@@ -1442,10 +1442,10 @@ def iterPubReaders(inDir):
 def dictToMarkLines(d):
     """ convert a dict to newline-sep strings like '||key: value' and return long string """
     lines = []
-    keys = d.keys()
+    keys = list(d.keys())
     for key in sorted(keys):
         val = d[key]
-        if type(val)==types.IntType:
+        if type(val)==int:
             val = str(val)
         if val=="":
             continue

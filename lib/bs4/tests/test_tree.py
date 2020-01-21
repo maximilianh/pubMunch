@@ -1559,7 +1559,7 @@ class TestSoupSelector(TreeTest):
         for el in els:
             self.assertEqual(el.name, 'p')
         self.assertEqual(els[1]['class'], ['onep'])
-        self.assertFalse(els[0].has_key('class'))
+        self.assertFalse('class' in els[0])
 
     def test_a_bunch_of_emptys(self):
         for selector in ('div#main del', 'div#main div.oops', 'div div#main'):

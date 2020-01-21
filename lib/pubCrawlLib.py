@@ -1,3 +1,4 @@
+from __future__ import print_function
 # library to crawl pdf and supplemental files from publisher websites using pubmed
 # It is possible to crawl millions of papers with it.
 
@@ -8,12 +9,11 @@
 # information as we can from local sources and cache as aggressively as possible,
 # to avoid sending any http query twice.
 
-import logging, os, shutil, tempfile, codecs, re, types, datetime, \
+import logging, os, shutil, codecs, re, types, datetime, \
     urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
     sqlite3, doctest, urllib, hashlib, string, copy, cStringIO, mimetypes, httplib, json, traceback
 from os.path import *
 from collections import defaultdict, OrderedDict
-from distutils.spawn import find_executable
 from socket import timeout
 from maxWeb import httpStartsWith
 
@@ -191,10 +191,14 @@ metaHeaders.extend(addHeaders)
 
 class pubGetError(Exception):
     def __init__(self, longMsg, logMsg, detailMsg=None):
-        self.longMsg = longMsg
-        self.logMsg = logMsg
-        self.detailMsg = detailMsg
-        logging.debug(u"pubGetError(longMsg={}; logMsg={}; detailMsg={})".format(longMsg, logMsg, detailMsg))
+        # this code use to use
+        #   logging.debug(u"pubGetError(longMsg={}; logMsg={}; detailMsg={})".format(longMsg, logMsg, detailMsg))
+        # however this cause UnicodeDecodeError: 'ascii' codec for reasons that don't seem
+        # right.  Gave up truing to right it out and just store decoded
+        self.longMsg = longMsg.decode('latin-1')
+        self.logMsg = logMsg.decode('latin-1')
+        self.detailMsg = detailMsg.decode('latin-1') if detailMsg is not None else None
+        logging.debug(u"pubGetError(longMsg={0.longMsg}; logMsg={0.logMsg}; detailMsg={0.detailMsg})".format(self))
 
     def __str__(self):
         parts = [self.longMsg, self.logMsg, self.detailMsg]
@@ -234,7 +238,7 @@ def resolveWithSfx(sfxServer, xmlQuery):
     url = urls[0].encode("utf8")
     return url
 
-def getLandingUrlSearchEngine(articleData):
+def _getLandingUrlSearchEngine(articleData):
     """ given article meta data, try to find landing URL via a search engine:
     - medline's DOI
     - a Crossref search with medline data
@@ -286,6 +290,23 @@ def getLandingUrlSearchEngine(articleData):
         raise pubGetError("No fulltext for this article", "noOutlinkOrDoi")
 
     return landingUrl
+
+def getLandingUrlSearchEngine(articleData):
+    """see _getLandingUrlSearchEngine, this just ensure that unhanded errors
+    get logged in some useful way."""
+
+    try:
+        return _getLandingUrlSearchEngine(articleData)
+    except pubGetError:
+        raise  # already captured
+    except Exception as ex:
+        logging.exception(ex)
+        # capture information on what happened to save to docStatus.tab
+        raise pubGetError("failed to get landing URL for PMID: {}, DOI: {}".format(articleData["pmid"], articleData["doi"]),
+                          "landingUrlFailure")
+
+
+
 
 def parseWgetLog(logFile, origUrl):
     " parse a wget logfile and return final URL (after redirects) and mimetype as tuple"
@@ -418,7 +439,7 @@ def httpGetSelenium(url, delaySecs, mustGet=False):
 
     # html is transmitted as unicode, but we do bytes strings
     # so cast back to bytes
-    if type(page['data']) == types.UnicodeType:
+    if type(page['data']) == str:
         page['data'] = page['data'].encode('utf8')
     return page
 
@@ -596,7 +617,7 @@ def htmlFindLinkUrls(page, attrs={}):
     elList = bs.findAll("a", attrs=attrs)
     urls = []
     for el in elList:
-        if not el.has_key("href"):
+        if "href" not in el:
             continue
         url = el["href"]
         url = urlparse.urljoin(page["url"], url)
@@ -675,9 +696,9 @@ def parseHtmlLinks(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     try:
         fulltextLinks = BeautifulSoup(htmlString, smartQuotesTo=None, \
             convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=linkStrainer)
-    except ValueError, e:
+    except ValueError as e:
         raise pubGetError("Exception during bs html parse", "htmlParseException", e.message)
-    except TypeError, e:
+    except TypeError as e:
         raise pubGetError("Exception during bs html parse", "BeautifulSoupError", page["url"])
     logging.log(5, "bs parsing finished")
 
@@ -900,9 +921,9 @@ def downloadPubmedMeta(pmid):
     try:
         wait(3, "eutils.ncbi.nlm.nih.gov")
         ret = pubPubmed.getOnePmid(pmid)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError as e:
         raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError" , str(e.code))
-    except pubPubmed.PubmedError, e:
+    except pubPubmed.PubmedError as e:
         raise pubGetError(e.longMsg, e.logMsg)
 
     if ret==None:
@@ -1038,11 +1059,13 @@ def blacklistIssnYear(outDir, issnYear, journal):
 def writeDocIdStatus(outDir, pmid, status, msg="", crawler="", journal="", year="", numFiles=0, detail=""):
     " append a line to doc status file in outDir "
     def fixCol(c):
+        "empty if None, ensure unicode and remove newlines and tables that break parsing"
+        cleanRe = "[\n\t\r]+"
         try:
-            return "" if c is None else unicode(c)  # make characters
+            return "" if c is None else re.sub(cleanRe, ' ', unicode(c))  # make characters
         except UnicodeDecodeError:
             # had URL that was str but had non-ascii characters
-            return "%r" % c
+            return re.sub(cleanRe, ' ', ("%r" % c))
 
     fname = join(outDir, PMIDSTATNAME)
     with codecs.open(fname, "a", encoding="utf8") as outFh:
@@ -1220,7 +1243,7 @@ def printFileHash(fulltextData, artMeta):
             mustBePdf(page, artMeta)
         sha1 = hashlib.sha1(page["data"]).hexdigest() # pylint: disable=E1101
         row = [crawlerName, ext, page["url"], str(len(page["data"])), sha1]
-        print "\t".join(row)
+        print("\t".join(row))
 
 def writePaperData(docId, pubmedMeta, fulltextData, outDir):
     " write all paper data to status and fulltext output files in outDir "
@@ -1688,7 +1711,7 @@ def addSuppZipFiles(suppZipUrl, paperData, delayTime):
     zipFile = cStringIO.StringIO(zipPage["data"]) # make it look like a file
     try:
         zfp = zipfile.ZipFile(zipFile, "r") # wrap a zipfile reader around it
-    except (zipfile.BadZipfile, zipfile.LargeZipFile), e:
+    except (zipfile.BadZipfile, zipfile.LargeZipFile) as e:
         logging.warn("Bad zipfile, url %s" % suppZipUrl)
         return paperData
 
@@ -2419,8 +2442,8 @@ class SpringerCrawler(Crawler):
         delayTime = crawlDelays["springer"]
 
         absPage = httpGetDelay(url, delayTime)
-        if pageContains(absPage, ["make a payment", "purchase this article", "Buy now"]):
-            return None
+        if pageContains(absPage, ["make a payment", "purchase this article", "Buy now", "Buy article (PDF)"]):
+            raise pubGetError("no Springer License", "noSpringerLicense")
 
         # landing page has only abstract
         fullUrl = url+"/fulltext.html"
@@ -2526,9 +2549,9 @@ class LwwCrawler(Crawler):
         ovidMetaResult = httpGetDelay(ovidMetaUrl)
         try:
             ovidMeta = json.loads(ovidMetaResult["data"], "UTF8")
-        except json.decoder.JSONDecodeError as ex:
+        except ValueError as ex:  # will throw JSONDecodeError in py3
             raise pubGetError("error parsing OVID metadata JSON from {}: {}".format(ovidMetaUrl, str(ex)),
-                              "ovidMetaParseFailed")
+                              "ovidMetaParseFailed", ovidMetaResult["data"])
         pdfUrl = ovidMeta.get("ArticlePDFUri", None)
         if pdfUrl is None:
             logging.debug("Can't fine OVID ArticlePDFUri metadata field in response from {}".format(ovidMetaUrl))
@@ -3473,7 +3496,7 @@ def crawlDocuments(docIds, skipIssns, forceContinue):
             consecErrorCount = 0
             successCount += 1
 
-        except pubGetError, e:
+        except pubGetError as e:
             # track document failure
             consecErrorCount += 1
             docId = artMeta["pmid"]

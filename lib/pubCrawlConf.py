@@ -1,10 +1,11 @@
+from __future__ import print_function
 # per-publisher configuration for pubCrawl.py
 from os.path import *
-import logging, urllib2, urlparse, urllib, re
-import pubConf, pubGeneric, maxCommon, maxCommon
+import logging, urllib2, urlparse, re
+import pubConf, maxCommon, maxCommon
 from collections import OrderedDict
 
-# this file mostly is dealing with the problem that we need to figure out which journals 
+# this file mostly is dealing with the problem that we need to figure out which journals
 # correpond to a publisher.
 
 # it maps full publisher name to our internal publisher ID
@@ -57,7 +58,7 @@ crawlPubIds = {
 # crawler delay config, values in seconds
 # these overwrite the default set with the command line switch to pubCrawl
 # special case is highwire, handled in the code:
-# (all EST): mo-fri: 9-5pm: 120 sec, mo-fri 5pm-9am: 10 sec, sat-sun: 5 sec (no joke) 
+# (all EST): mo-fri: 9-5pm: 120 sec, mo-fri 5pm-9am: 10 sec, sat-sun: 5 sec (no joke)
 crawlDelays = {
     "www.nature.com"              : 5,
     "onlinelibrary.wiley.com" : 1,
@@ -72,9 +73,9 @@ crawlDelays = {
 }
 
 def parseHighwire():
-    """ create two dicts 
-    printIssn -> url to pmidlookup-cgi of highwire 
-    and 
+    """ create two dicts
+    printIssn -> url to pmidlookup-cgi of highwire
+    and
     publisherName -> top-level hostnames
     >>> temps, domains = parseHighwire()
     >>> temps['0270-6474']
@@ -97,12 +98,12 @@ def parseHighwire():
         issns = [i.strip() for i in row.journalIssns.split("|")]
         servers = row.webservers.split("|")
         for issn, server in zip(issns, servers):
-            template = "http://www."+server+"/cgi/pmidlookup?view=long&pmid=%(pmid)s" 
+            template = "http://www."+server+"/cgi/pmidlookup?view=long&pmid=%(pmid)s"
             templates[issn] = template
             domains.setdefault(pubName, set()).add(server)
             #logging.debug("HIGHWIRE CONFIG %s, %s, %s" % (pubName, template, domains[pubName]))
     return templates, domains
-     
+
 def makeHighwireConfig(domains, templates):
     " create a dict that configures a highwire publisher "
     return {
@@ -118,8 +119,8 @@ def makeHighwireConfig(domains, templates):
         }
 
 def highwireConfigs():
-    """ return dict publisher name -> config for all highwire publishers 
-    >>> r=highwireConfigs() 
+    """ return dict publisher name -> config for all highwire publishers
+    >>> r=highwireConfigs()
     >>> r["American Association for the Advancement of Science"]["hostnames"]
     set([u'sageke.sciencemag.org', u'sciencemag.org', u'stke.sciencemag.org'])
     >>> r["asbmb"]
@@ -143,7 +144,7 @@ def highwireConfigs():
                 if domain in templUrl:
                     templates[issn]=templUrl
                     break
-                    
+
         # translate long Highwire publisher name to short pubId from config file
         pubId = crawlPubIds.get("HIGHWIRE "+pubName, pubName)
         res[pubId] = makeHighwireConfig(domains, templates)
@@ -155,7 +156,7 @@ confDict = None
 hostToPubId = None
 
 def initConfig():
-    """ define config, compile regexes and index by hostname 
+    """ define config, compile regexes and index by hostname
     >>> initConfig()
     """
     global confDict
@@ -166,7 +167,7 @@ def initConfig():
     #print hostToPubId["sciencemag.org"
 
 def defineConfDict():
-    """ returns the dictionary of config statements 
+    """ returns the dictionary of config statements
     >>> d = defineConfDict()
     """
     # first setup all highwire publishers
@@ -187,9 +188,9 @@ def defineConfDict():
     confDict.update(
     {
     "pmc" :
-    # not used at UCSC, we get the files via pubGetPmc/pubConvPmc, 
+    # not used at UCSC, we get the files via pubGetPmc/pubConvPmc,
     # this was only a quick hack for an NIH project
-    # caveats: we always keep html, can't distinguish between PDF-only and 
+    # caveats: we always keep html, can't distinguish between PDF-only and
     # and HTML/PDF articles
     # supplementals might not always work, tested only on PLOS
     # only gets the first supplemental file
@@ -223,10 +224,10 @@ def defineConfDict():
     # at UCSC we don't use this, we get elsevier data via consyn.elsevier.dom
     # this is mostly for off-site use or for the odd project that doesn't
     # want to pull from consyn
-    # caveats:  
+    # caveats:
     # * we cannot download text html (no function to add np=y to landing url)
-    # * we don't know if we actually have access to an article 
-    # * no supplemental files 
+    # * we don't know if we actually have access to an article
+    # * no supplemental files
     {
         "hostnames" : ["www.sciencedirect.com"],
         #only pdfs "landingUrl_replaceREs" : {"$" : "?np=y"}, # switch sd to screen reader mode
@@ -239,7 +240,7 @@ def defineConfDict():
 
     # example suppinfo links 20967753 - major type of suppl, some also have "legacy" suppinfo
     # example spurious suppinfo link 8536951
-    # 
+    #
     "wiley" :
     {
         "hostnames" : ["onlinelibrary.wiley.com"],
@@ -352,7 +353,7 @@ def defineConfDict():
     # PMID 15824131 - with separate suppl files
     # PMID 8636223  - landing page is full (via Pubmed), abstract via DOI
     # cannot do suppl zip files like this one http://jcb.rupress.org/content/169/1/35/suppl/DC1
-    # 
+    #
     "rupress" :
     {
         "hostnames" : ["rupress.org", "jcb.org"],
@@ -385,7 +386,7 @@ def defineConfDict():
         "landingPage_suppFileList_urlREs" : [".*suppl/DCSupplemental"],
         "suppListPage_suppFile_urlREs" : [".*/content/suppl/.*"],
     },
-    # 
+    #
     # American Assoc of Cancer Research
     # 21159627 http://cancerres.aacrjournals.org/content/70/24/10024.abstract has suppl file
     "aacr" :
@@ -401,9 +402,9 @@ def defineConfDict():
         "suppListPage_suppFile_urlREs" : [".*/content[0-9/]*suppl/.*"],
         "landingPage_stopPhrases" : ["Purchase Short-Term Access"]
     },
-    # 1995 PMID 7816814 
+    # 1995 PMID 7816814
     # 2012 PMID 22847410 has one supplement, has suppl integrated in paper
-    #"cshlp" : 
+    #"cshlp" :
     #{
         #"hostnames" : ["cshlp.org"],
         #"landingUrl_templates" : {"1355-8382" : "http://rnajournal.cshlp.org/content/%(vol)s/%(issue)s/%(firstPage)s.full"},
@@ -497,7 +498,7 @@ def defineConfDict():
     },
     # Society of General Microbiology
     # PMID 22956734
-    # THEY USE DC1 AND DC2 !!! Currently we're missing the DC1 or DC2 files... 
+    # THEY USE DC1 AND DC2 !!! Currently we're missing the DC1 or DC2 files...
     # todo: invert linkdict to link -> text and not text -> link
     # otherwise we miss one link if we see twice "supplemental table" (see example)
     "sgm" :
@@ -578,7 +579,7 @@ def compileRegexes():
 
 
 def prepConfigIndexByHost():
-    """ compile regexes in config and return dict publisherId -> config and hostname -> config 
+    """ compile regexes in config and return dict publisherId -> config and hostname -> config
     these make it possible to get the config either by hostname (for general mode)
     or by publisher (for per-publisher mode)
     >>> initConfig()
@@ -603,12 +604,12 @@ def prepConfigIndexByHost():
 def printConfig():
     print ("== PUBLISHER CONFIGS ==")
     for pubName, pubConf in confDict.iteritems():
-        print pubName, pubConf
-        
+        print(pubName, pubConf)
+
     print ("== HOST TO PUBLISHER ASSIGNMENTS ==")
     for host, pubId in hostToPubId.iteritems():
-        print("%s\t%s" % (host, pubId)) 
-    
+        print("%s\t%s" % (host, pubId))
+
 if __name__=="__main__":
     import doctest
     doctest.testmod()

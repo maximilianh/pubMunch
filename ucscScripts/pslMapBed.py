@@ -1,8 +1,9 @@
 #!/usr/bin/env python2.7
+from __future__ import print_function
 import sys, optparse
 from collections import defaultdict
-from pycbio.hgdata.Psl import Psl
-from pycbio.hgdata.PslMap import PslMap
+from pm_pycbio.hgdata.Psl import Psl
+from pm_pycbio.hgdata.PslMap import PslMap
 
 def indexPsls(fname):
     " parse Psls and index by query name, return as a dict query -> list of Psl objects "
@@ -11,7 +12,7 @@ def indexPsls(fname):
         psl = Psl(line.strip("\n").split("\t"))
         psls[psl.qName].append(psl)
     return psls
-        
+
 class PslMapBedMaker(object):
     " object that collects blocks from pslMap and creates a bed in the end"
     __slots__ = ("chrom", "chromStart", "chromEnd", "name", "score", "strand", "thickStart", "thickEnd", "itemRgb", "blockCount", "blockSizes", "blockStarts", "mapper")
@@ -81,7 +82,7 @@ def parseBed(fname):
 
 if __name__ == '__main__':
     parser = optparse.OptionParser("usage: %prog [options] inBed mapPsl outBed - map bed features through psl")
-    #parser.add_option("-f", "--file", dest="file", action="store", help="run on file") 
+    #parser.add_option("-f", "--file", dest="file", action="store", help="run on file")
     (options, args) = parser.parse_args()
     if args==[]:
         parser.print_help()

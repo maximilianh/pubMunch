@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import logging, re, urllib
+import logging, urllib
 import xml.etree.cElementTree as etree
 
 class XmlParser(object):

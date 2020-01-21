@@ -1,4 +1,5 @@
-import _base
+from __future__ import absolute_import
+from . import _base
 from html5lib.constants import voidElements, namespaces, prefixes
 from xml.sax.saxutils import escape
 

@@ -15,6 +15,7 @@ For more than you ever wanted to know about Beautiful Soup, see the
 documentation:
 http://www.crummy.com/software/BeautifulSoup/bs4/doc/
 """
+from __future__ import print_function
 
 __author__ = "Leonard Richardson (leonardr@segfault.org)"
 __version__ = "4.1.0"
@@ -23,7 +24,6 @@ __license__ = "MIT"
 
 __all__ = ['BeautifulSoup']
 
-import re
 import warnings
 
 from .builder import builder_registry
@@ -352,4 +352,4 @@ class StopParsing(Exception):
 if __name__ == '__main__':
     import sys
     soup = BeautifulSoup(sys.stdin)
-    print soup.prettify()
+    print(soup.prettify())

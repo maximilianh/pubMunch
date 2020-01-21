@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import datetime
 import re
 import os
@@ -6,7 +7,7 @@ import json
 import urllib
 import urlparse
 
-from config import config
+from .config import config
 
 logger = logging.getLogger('incapsula')
 

@@ -1,10 +1,11 @@
+from __future__ import absolute_import
 import random
 import time
 
 from scrapy import Request
 from BeautifulSoup import BeautifulSoup
 
-from methods import *
+from .methods import *
 
 
 class IncapsulaMiddleware(object):

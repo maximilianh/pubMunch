@@ -1,7 +1,7 @@
 "Module to store information about genome sequences"
 
-import os, glob
-from genbank.fileOps import prLine, prRow
+import glob
+from genbank.fileOps import prRow
 from genbank import procOps
 
 class GenomeSeq(object):
@@ -15,7 +15,7 @@ class GenomeSeq(object):
         self.unplaced = False  # unplaced seq, gaps not spanned if set.
         # regions without gaps, starts as whole chr, maybe rebuilt from lift
         self.regions = [(0, size)]
-    
+
 class GenomeSeqs(dict):
     "table of genome sequences and sizes for a database"
 
@@ -88,7 +88,7 @@ class GenomeSeqs(dict):
         lifts = self.__loadLift(liftFile)
         for id in lifts.iterkeys():
             self.__addSeqRegionsFromLifts(self[id], lifts[id])
-    
+
     def dump(self, fh):
         "print contents for debugging purposes"
         ids = self.keys()
@@ -100,4 +100,3 @@ class GenomeSeqs(dict):
                 for reg in seq.regions:
                     fh.write("\t")
                     prRow(fh, reg)
-

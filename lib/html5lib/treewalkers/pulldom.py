@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 from xml.dom.pulldom import START_ELEMENT, END_ELEMENT, \
     COMMENT, IGNORABLE_WHITESPACE, CHARACTERS
 
-import _base
+from . import _base
 
 from html5lib.constants import voidElements
 

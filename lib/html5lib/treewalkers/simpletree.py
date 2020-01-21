@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 import gettext
 _ = gettext.gettext
 
-import _base
+from . import _base
 
 class TreeWalker(_base.NonRecursiveTreeWalker):
     """Given that simpletree has no performant way of getting a node's

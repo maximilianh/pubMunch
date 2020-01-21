@@ -1,9 +1,8 @@
-import os, sys, logging, traceback, re
+import sys, logging, traceback, re
 
 # load lxml parser
 try:
     from lxml import etree # you can install this. Debian/Redhat package: python-lxml, see also: codespeak.net/lxml/installation.html
-    import lxml
     lxmlLoaded=True
 except ImportError:
     import xml.etree.cElementTree as etree # this is the slower, python2.5 default package
@@ -27,12 +26,12 @@ def treeToAsciiText(tree, _addtail=False, addNewlineTags=None):
 
 def recursiveToAscii(tree, _addtail=True, addNewlineTags=None):
     """ xml -> ascii tags: convert all text associated with all tags to a
-    space-sep. ASCII text string in utf8 
-    copied from http://code.activestate.com/recipes/498286/ 
+    space-sep. ASCII text string in utf8
+    copied from http://code.activestate.com/recipes/498286/
     Remove all tabstops.
     Returns a list of text strings contained within an element and its sub-elements.
     Helpful for extracting text from prose-oriented XML (such as XHTML or DocBook).
-    
+
     Add a \n whenever one of the tags in addNewlineTags is found.
     """
     result = []
@@ -50,9 +49,9 @@ def recursiveToAscii(tree, _addtail=True, addNewlineTags=None):
     return result
 
 def pmcCleanXmlStr(xmlStr):
-    """ 
-    substitute some common PMC-xml elements with normal html that makes more sense 
-    
+    """
+    substitute some common PMC-xml elements with normal html that makes more sense
+
     >>> pmcCleanXmlStr("<abstract namespace=nonsense>Hi there</abstract>")
     'Hi there'
 
@@ -72,8 +71,8 @@ def pmcCleanXmlStr(xmlStr):
     return xmlStr
 
 def pmcAbstractToHtml(element):
-    """ substitute some common PMC-xml elements with normal html that make sense 
-    
+    """ substitute some common PMC-xml elements with normal html that make sense
+
     """
     xmlStr = etree.tostring(element)
     return pmcCleanXmlStr(xmlStr)
@@ -81,21 +80,21 @@ def pmcAbstractToHtml(element):
 def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
     """ Takes a parsed ET structure and does an in-place removal of all namespaces,
         or removes a specific namespacem (by its URL).
-        
+
         Can make node searches simpler in structures with unpredictable namespaces
         and in content given to be non-mixed.
 
-        By default does so for node names as well as attribute names.       
+        By default does so for node names as well as attribute names.
         (doesn't remove the namespace definitions, but apparently
          ElementTree serialization omits any that are unused)
 
         Note that for attributes that are unique only because of namespace,
-        this may attributes to be overwritten. 
+        this may attributes to be overwritten.
         For example: <e p:at="bar" at="quu">   would become: <e at="bar">
 
         I don't think I've seen any XML where this matters, though.
     """
-    if namespace==None: # all namespaces                               
+    if namespace==None: # all namespaces
         for elem in etree.getiterator():
             tagname = elem.tag
             if not isinstance(elem.tag, basestring):
@@ -137,7 +136,7 @@ def strip_namespace_inplace(etree, namespace=None,remove_from_attr=True):
                 elem.attrib.update(to_set)
 
 def nxmlHasBody(inData):
-    """ try to find out if a PMC xml file has some text in it or if 
+    """ try to find out if a PMC xml file has some text in it or if
         it's just scanned pages """
     #xml  = codecs.open(nxmlName, encoding="utf8").read()
     try:
@@ -153,7 +152,7 @@ def nxmlHasBody(inData):
     except IOError:
         logging.error("IOError while searching for body tag in xml file")
         return False
-    
+
 def stripXmlTags(inData, isNxmlFormat=False, isElsevier=False):
     """ read inFile, strip all XML tags, and return as string"""
 

@@ -3,13 +3,17 @@ dna	sub	True	c.123T>A	{sep}c\.{pos}{origDna}{rightArrow}{mutDna}
 dna	sub	True	somename	substitution of {origDna} by {mutDna} at nucleotide position [^0-9]{{0,3}}{pos}
 dna	sub	True	859G>A	{sep}{pos}{origDna}{rightArrow}{mutDna}
 #dna	sub	True	2521del5insT	{pos}del{delLen}ins{mutDna}
-dna	del	True	c.123delT	{sep}c\.{pos}del{origDna}
+dna	del	True	c.123delT	{sep}c\.{pos}del{origDnas}
 dna	del	True	c.123_125delAT	{sep}c\.{fromPos}_{toPos}del{origDnas}
+dna	del	True	c.123-125delAT	{sep}c\.{fromPos}-{toPos}del{origDnas}
 dna	del	True	10083731	deletion of nt{pos}{origDnas}
-dna	del	True	6174delT	{sep}{pos}del{origDna}
+dna	del	True	6174delT	{sep}{pos}del{origDnas}
+dna	ins	True	5382insC	{sep}{pos}ins{origDnas}
 dna	ins	True	c.123_124insGC	{sep}c\.{fromPos}_{toPos}ins{dnas}
+dna	ins	True	c.123-124insGC	{sep}c\.{fromPos}-{toPos}ins{dnas}
 dna	dup	True	c.123dupA	{sep}c\.{pos}dup{origDna}
 dna	dup	True	c.123_125dupAT	{sep}c\.{fromPos}_{toPos}dup{origDnas}
+dna	dup	True	c.123-125dupAT	{sep}c\.{fromPos}-{toPos}dup{origDnas}
 dna	sub	False	c.123+2A>T	{sep}c\.{pos}{plusMinus}{offset}{origDna}{rightArrow}{mutDna}
 prot	sub	True	M1775R	{sep}{origAaShort}{pos}{mutAaShort}
 prot	sub	True	Met1775Arg	{sep}{origAaLong}{pos}{mutAaLong}
@@ -19,9 +23,13 @@ prot	sub	True	p.Met1775Arg	{sep}p\.\(?{origAaLong}{pos}{mutAaLong}{fs}
 prot	del	True	p.M1775del	{sep}p\.{origAaShort}{pos}del
 prot	del	True	p.Met1775del	{sep}p\.{origAaLong}{pos}del
 prot	del	True	p.1775_1776delM	{sep}p\.{fromPos}_{toPos}del{origAasShort}
+prot	del	True	p.1775-1776delM	{sep}p\.{fromPos}-{toPos}del{origAasShort}
 prot	del	True	p.1775_1776delMet	{sep}p\.{fromPos}_{toPos}del{origAasLong}
+prot	del	True	p.1775-1776delMet	{sep}p\.{fromPos}-{toPos}del{origAasLong}
 prot	ins	True	p.1775_1776dinsR	{sep}p\.{fromPos}_{toPos}ins{mutAasShort}
+prot	ins	True	p.1775-1776dinsR	{sep}p\.{fromPos}-{toPos}ins{mutAasShort}
 prot	ins	True	p.1775_1775insArg	{sep}p\.{fromPos}_{toPos}ins{mutAasLong}
+prot	ins	True	p.1775-1775insArg	{sep}p\.{fromPos}-{toPos}ins{mutAasLong}
 intron	sub	False	IVS5+3A>G	IVS{pos}{plusMinus}{offset}{origDna}{rightArrow}{mutDna}
 intron	del	False	IVS6-2delA	IVS{pos}{plusMinus}{offset}del{origDna}
 dbSnp	dbSnp	True	rs/SNP+number	{sep}(SNP|dbSNP|rs|Rs|RefSNP|refSNP)( |-| no.| no| No.| ID|ID:| #|#| number)?[ ]?(?P<rsId>[0-9]{{4,19}})

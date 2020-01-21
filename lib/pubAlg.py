@@ -1,3 +1,4 @@
+from __future__ import print_function
 # some algorithms to run over text files
 # -*- coding: iso-8859-15 -*-
 # coding=utf-8
@@ -7,16 +8,13 @@
 
 # module will call itself on the compute nodes if run on a cluster (->findFileSubmitJobs)
 
-import logging, sys, os, shutil, glob, optparse, copy, types, string, pipes, gzip, \
+import logging, sys, os, shutil, glob, optparse, copy, types, string, gzip, \
     doctest, marshal, random
 
 from os.path import *
 from maxCommon import *
 
 import pubGeneric, maxRun, pubConf, pubStore, maxCommon
-
-# make sure that sys.stdout uses utf8
-sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 
 # extension of map output files
 MAPREDUCEEXT = ".marshal.gz"
@@ -52,7 +50,7 @@ def loadPythonObject(moduleFilename, className, defClass=None):
     logging.debug("Loading python code from %s (class %s, default class %s)" % (moduleFilename, className, defClass))
     sys.path.append(modulePath)
 
-    # load algMod as a module, copied from 
+    # load algMod as a module, copied from
     # http://code.activestate.com/recipes/223972-import-package-modules-at-runtime/
     try:
         aMod = sys.modules[moduleName]
@@ -108,9 +106,9 @@ def writeParamDict(paramDict, paramDictName):
     for key, val in paramDict.iteritems():
         if val==None:
             logging.debug("parameter %s: None" % (key))
-        elif type(val)==types.BooleanType:
+        elif type(val)==bool:
             logging.debug("parameter %s: value %s" % (key, str(val)))
-        elif type(val)!=types.IntType:
+        elif type(val)!=int:
             logging.debug("parameter %s: %d values" % (key, len(val)))
         else:
             logging.debug("parameter %s: value %d" % (key, val))
@@ -122,7 +120,7 @@ def writeParamDict(paramDict, paramDictName):
     return paramDictName
 
 def findFiles(dataset):
-    """ return all basenames for .gz files in datasets. 
+    """ return all basenames for .gz files in datasets.
     inDir can be a list of datasetnames, a file or a directory with datasetnames """
 
     #assert(type(datasets)==types.ListType)
@@ -137,10 +135,10 @@ def findFiles(dataset):
     return fnames
 
 def findArticleBasenames(dataset, updateIds=None):
-    """ given a fulltext directory, return all basenames of *.{article,files}.gz files 
+    """ given a fulltext directory, return all basenames of *.{article,files}.gz files
         Basename means the part before the first "."
         Optionally filters on updateId
-    
+
     """
     zipNames = findFiles(dataset)
     logging.debug("Found article files: %d files" % len(zipNames))
@@ -168,7 +166,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, \
         If a list of updateIds is specified, run only on files with one of these updateIds
         Returns the list of baseNames, e.g. 0_00000,0_00001, etc that it ran on
     """
-    assert(algMethod in ["map", "annotate"]) 
+    assert(algMethod in ["map", "annotate"])
 
     #if isinstance(inDirs, basestring):
         #inDirs = [inDirs]
@@ -182,7 +180,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, \
     paramDict["addFields"] = addFields
     paramDir = None
 
-    # try to keep the parameter file somewhere where there is little 
+    # try to keep the parameter file somewhere where there is little
     # risk of being overwritten by a concurrent batch
     if batchDir!=".":
         paramDir = batchDir
@@ -214,7 +212,7 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, \
             for inFile in baseNames:
                 inBase = splitext(basename(inFile))[0]
                 inBase = basename(inDir)+"_"+inBase
-                print "XX inBase is", inBase
+                print("XX inBase is", inBase)
                 outNames.add(inBase)
                 outFullname = join(outDir, inBase)+outExt
                 #mustNotExist(outFullname) # should not hurt to avoid this check...
@@ -233,10 +231,10 @@ def findFilesSubmitJobs(algNames, algMethod, inDirs, outDirs, outExt, \
     if cleanUp:
         os.remove(paramFname)
     return list(outNames)
-    
+
 #def getDataIterator(alg, reader):
 #    """ depending on the field "runOn" return the right
-#     type of iterator of the reader 
+#     type of iterator of the reader
 #    """
 #    if "runOn" in dir(alg):
 #        if alg.runOn=="articles":
@@ -260,7 +258,7 @@ pointRe = re.compile(r'[.] (?=[A-Z]|$)')
 def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
     " get end or start pos of best snippet for (start, end) in range (minPos, maxPos)"
     textLen = len(text)
-        
+
     # make sure that (min,max) stays within string boundaries
     # and does not go into (start,end)
     if isLeft:
@@ -271,7 +269,7 @@ def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
        minPos = max(0, minPos)
        maxPos = min(maxPos, textLen)
        #dotPos = text.find(". ", minPos, maxPos)
-       # better: attempt to eliminate cases like E. coli 
+       # better: attempt to eliminate cases like E. coli
        subText = text[minPos:minPos+250]
        match = None
        for m in pointRe.finditer(subText):
@@ -299,7 +297,7 @@ def findBestSnippet(text, start, end, minPos, maxPos, isLeft=False):
     return dotPos
 
 def getSnippet(text, start, end, minContext=0, maxContext=150):
-    """ return contextLen characters around start:end from text string 
+    """ return contextLen characters around start:end from text string
     >>> textWithDot = 'cex XXX And'
     >>> Xpos = textWithDot.find("X")
     >>> getSnippet(textWithDot, Xpos, Xpos+3, minContext=5, maxContext=30)
@@ -343,7 +341,7 @@ def extendAnnotatorRow(annotId, articleData, headers, row, addFields, text):
     """ add some standard fields to the fields returned from the annotator:
     - prefix with identifiers of the document (internal & external)
     - add any other article-fields from the addFields list
-    - if the first two fields of "headers" are "start" and "end", append a text snippet 
+    - if the first two fields of "headers" are "start" and "end", append a text snippet
     """
     # check that we don't overflow the counter
     artId, fileId, annotSubId = pubGeneric.splitAnnotId(annotId)
@@ -374,11 +372,11 @@ def extendAnnotatorRow(annotId, articleData, headers, row, addFields, text):
         start, end = row[0:2]
         snippet = getSnippet(text, start, end)
         fields.append(snippet)
-            
+
     return fields
-            
+
 def iterAnnotRows(alg, articleData, fileData, annotId, addFields):
-    """ 
+    """
     Run the algorithm alg over the text data in fileData.
     Prefix with annotation and article IDs and postfix with a snippet
     Return next free annotation id.
@@ -404,7 +402,7 @@ def iterAnnotRows(alg, articleData, fileData, annotId, addFields):
         yield fields
 
 def getHeaders(alg, addFields):
-    """ get the headers variable from the algorithm object, possibly add addFields 
+    """ get the headers variable from the algorithm object, possibly add addFields
     add final field "snippet" if the first two fields are "start" and "end"
     """
     if "headers" not in dir(alg) and not "headers" in alg.__dict__:
@@ -412,7 +410,7 @@ def getHeaders(alg, addFields):
         logging.error("You need to define a variable 'headers' in your python file or class")
         sys.exit(1)
 
-    assert(type(alg.headers)==types.ListType)
+    assert(type(alg.headers)==list)
 
     headers = copy.copy(alg.headers)
     # if the algorithm is returning results in batch, it has to do IDs and snippets itself
@@ -430,7 +428,7 @@ def getHeaders(alg, addFields):
     return headers
 
 def writeHeaders(alg, outFh, addFields):
-    """ write headers from algorithm to outFh, 
+    """ write headers from algorithm to outFh,
     add fields from addFields list after the external id
     """
     headers = getHeaders(alg, addFields)
@@ -446,7 +444,7 @@ def getAlgName(algName):
     return algName
 
 def getAnnotIdStart(alg, paramDict):
-    """ return annotId configured by paramDict with parameter startAnnotId.<algName>, 
+    """ return annotId configured by paramDict with parameter startAnnotId.<algName>,
     remove parameter from paramDict
     """
     algName = alg.algName
@@ -484,7 +482,7 @@ def attributeTrue(obj, attrName):
 
 def openOutfiles(outName, outTypes):
     """ open one temporary file per outType. return dict type -> filehandle and
-        dict type -> final filename 
+        dict type -> final filename
     """
     chunkId = basename(outName).split(".")[0] # e.g. pmc_0_00000
     finalBase = join(dirname(outName), chunkId)
@@ -555,8 +553,8 @@ def getAlgPrefs(alg, paramDict):
     return ret
 
 def newTempOutFile(tmpFnames, outName, alg, addFields):
-    """ open a new temporary file on local disk and add it to the tmpFnames map 
-    Write headers. 
+    """ open a new temporary file on local disk and add it to the tmpFnames map
+    Write headers.
     Returns a tuple outFh, tmpFnames where tmpFnames is a list (tempFilename, finalFilename)
     """
     if outName=="stdout":
@@ -574,7 +572,7 @@ def newTempOutFile(tmpFnames, outName, alg, addFields):
 
 def moveManyTempToFinal(tmpFnames, outName):
     """
-    if tmpFnames is just one file, move to outName, otherwise move 
+    if tmpFnames is just one file, move to outName, otherwise move
       all tmpFnames to outName_<count>.tab.gz
     """
     if len(tmpFnames)==1:
@@ -601,7 +599,7 @@ def runAnnotate(reader, alg, paramDict, outName):
             outFh.close()
             outFh, tmpFnames = newTempOutFile(tmpFnames, outName, alg, addFields)
             continue
-            
+
         #row = [pubStore.removeTabNl(x) for x in row]
         writeRow(row, outFh)
         #line = "\t".join(row)
@@ -611,11 +609,11 @@ def runAnnotate(reader, alg, paramDict, outName):
     if "cleanup" in dir(alg):
         logging.info("Running cleanup")
         alg.cleanup()
-        
+
     if outName!="stdout":
         outFh.close()
         moveManyTempToFinal(tmpFnames, outName)
-        
+
 def getStartAnnotId(alg, paramDict, fileId):
     " get starting annotation ID for a given algorithm "
     annotDigits = int(pubConf.ANNOTDIGITS)
@@ -687,10 +685,10 @@ def runCombine(inFname, alg, paramDict, outName):
 
 def runMap(reader, alg, paramDict, outFname):
     """ run map part of alg over all files that reader has.
-        serialize results ('pickle') to outFname 
-        
+        serialize results ('pickle') to outFname
+
         input can be a reader or a directory
-        alg can be a string or an alg object 
+        alg can be a string or an alg object
     """
     logging.info("Running map step")
     tmpOutFname = makeLocalTempFile()
@@ -721,7 +719,7 @@ def runMap(reader, alg, paramDict, outFname):
     moveTempToFinal(tmpOutFname, outFname)
 
 def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None):
-    """ parse pickled dicts from path, run through reduce function of alg and 
+    """ parse pickled dicts from path, run through reduce function of alg and
     write output to one file """
 
     if outFilename!=None and isfile(outFilename):
@@ -747,7 +745,7 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
         infiles = [(dirname(path), path)]
     else:
         infiles = pubGeneric.findFiles(path, [MAPREDUCEEXT])
-    
+
     if len(infiles)==0:
         logging.error("Could not find any %s files in %s" % (MAPREDUCEEXT, path))
         sys.exit(1)
@@ -795,9 +793,9 @@ def runReduce(algName, paramDict, path, outFilename, quiet=False, inFnames=None)
             if tuple==None:
                 logging.debug("Got None, not writing anything")
                 continue
-            if type(tuple)==types.StringType: # make sure that returned value is a list
+            if type(tuple)==bytes: # make sure that returned value is a list
                 tuple = [tuple]
-            if type(tuple)==types.IntType: # make sure that it's a string
+            if type(tuple)==int: # make sure that it's a string
                 tuple = [str(tuple)]
             tuple = [unicode(x).encode("utf8") for x in tuple] # convert to utf8
             if ofh!=None:
@@ -835,7 +833,7 @@ def getLastOutType(alg, paramDict):
     if "setup" in dir(alg):
         logging.debug("Running setup")
         alg.setup(paramDict)
-    assert(type(alg.outTypes)==types.ListType)
+    assert(type(alg.outTypes)==list)
     assert(len(set(alg.outTypes))==len(alg.outTypes)) # no duplicate out type
     outExt = alg.outTypes[-1]
     return outExt
@@ -888,8 +886,8 @@ def submitCombine(runner, algName, mapReduceDir, outExt, paramDict, pieceCount):
     runner.finish()
 
 def submitAnnotateWrite(runner, algName, textDirs, paramDict, outDir, updateIds=None):
-    """ 
-    submit annotation writer jobs to batch system 
+    """
+    submit annotation writer jobs to batch system
 
     The only difference from anntation jobs is that annotation writers need to
     declare what types of data they return in the list "outTypes". Their
@@ -909,10 +907,10 @@ def submitAnnotateWrite(runner, algName, textDirs, paramDict, outDir, updateIds=
         logging.debug("input directory %s" % textDir)
         baseNames = findArticleBasenames(textDir, updateIds)
         for inFname in baseNames:
-            # outName: e.g pmc_0_0000 for sth like 0_00000.articles.gz 
+            # outName: e.g pmc_0_0000 for sth like 0_00000.articles.gz
             outName = basename(textDir)+"_"+splitext(basename(inFname))[0]
             outNames.append(outName)
-            # outFullName: e.g <path>/pmc_0_0000.svml 
+            # outFullName: e.g <path>/pmc_0_0000.svml
             outFullname = join(outDir, outName)+"."+outExt
             command = "%s %s %s %s %s {check out exists %s} %s" % \
                 (sys.executable, __file__ , algName, "annotateWrite", inFname, outFullname, paramFname)
@@ -934,13 +932,13 @@ def testAlg(algName, paramDict):
         sys.exit(1)
 
     if "startup" in dir(alg):
-        alg.startup(paramDict) # to check if at least the algorithm works 
+        alg.startup(paramDict) # to check if at least the algorithm works
 
 def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False, \
     updateIds=None, batchDir=".", runner=None, addFields=[], concat=False):
-    """ 
+    """
     submit jobs to batch system to run algorithm over text in textDir, write
-    annotations to outDir 
+    annotations to outDir
 
     algNames can be a comma-sep list of names
     outDirs can be a comma-sep list of directories
@@ -961,7 +959,7 @@ def annotate(algNames, textDirs, paramDict, outDirs, cleanUp=False, runNow=False
     baseNames = findFilesSubmitJobs(algNames, "annotate", textDirs, outDirs, \
         ".tab.gz", paramDict, runNow=runNow, cleanUp=cleanUp, updateIds=updateIds, \
         batchDir=batchDir, runner=runner, addFields=addFields)
-    
+
     if concat:
         for outDir in outDirs:
             outFname = outDir+".tab"
@@ -1029,14 +1027,14 @@ def runProcessRow(inName, alg, paramDict, outName):
     outFh.close()
 
     moveTempToFinal(tmpFnames[0], outName)
-    
+
 def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=False, \
         tmpDir=None, updateIds=None, runTest=True, batchDir=".", headNode=None, \
         runner=None, onlyTest=False, combineCount=50):
-    """ 
+    """
     submit jobs to batch system to:
     create tempDir, map textDir into this directory with alg,
-    then reduce from tmpDir to outFilename 
+    then reduce from tmpDir to outFilename
 
     will test the algorithm on a random input file first
     if updateIds is set, will only run on files like <updateId>_*, otherwise on all files
@@ -1092,13 +1090,13 @@ def mapReduce(algName, textDirs, paramDict, outFilename, skipMap=False, cleanUp=
     if "cleanup" in dir(alg):
         logging.info("Running cleanup")
         alg.cleanup()
-        
+
     if cleanUp and not skipMap:
         logging.info("Deleting directory %s" % tmpDir)
         shutil.rmtree(tmpDir)
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser("""this module is calling itself. 
+    parser = optparse.OptionParser("""this module is calling itself.
     syntax: pubAlg.py <algName> map|reduce <inFile> <outFile> <paramPickleFile>
     """)
     parser.add_option("-d", "--debug", dest="debug", action="store_true", help="show debug messages")
@@ -1144,4 +1142,3 @@ if __name__ == '__main__':
         elif algMethod=="annotateWrite":
             runAnnotateWrite(reader, alg, paramDict, outName)
         reader.close()
-    

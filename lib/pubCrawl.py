@@ -1,7 +1,8 @@
+from __future__ import print_function
 # library to crawl pdf and supplemental file from publisher websites using pubmed
 
 # load our own libraries
-import pubConf, pubGeneric, maxMysql, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
+import pubConf, pubGeneric, pubStore, tabfile, maxCommon, pubPubmed, maxTables, \
     pubCrossRef, html, maxCommon, pubCrawlConf
 import chardet # library for guessing encodings
 import unidecode
@@ -9,9 +10,9 @@ import unidecode
 from BeautifulSoup import BeautifulSoup, SoupStrainer, BeautifulStoneSoup # parsing of non-wellformed html
 from maxWeb import httpStartsWith
 
-import logging, optparse, os, shutil, glob, tempfile, sys, codecs, types, re, \
-    traceback, urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
-    sqlite3, doctest, urllib, copy, random
+import logging, optparse, os, shutil, tempfile, sys, codecs, types, re, \
+    urllib2, re, zipfile, collections, urlparse, time, atexit, socket, signal, \
+    sqlite3, doctest, urllib
 from os.path import *
 
 # ===== GLOBALS ======
@@ -538,7 +539,7 @@ def parseHtml(page, canBeOffsite=False, landingPage_ignoreUrlREs=[]):
     try:
         fulltextLinks = BeautifulSoup(htmlString, smartQuotesTo=None, \
             convertEntities=BeautifulSoup.ALL_ENTITIES, parseOnlyThese=linkStrainer)
-    except ValueError, e:
+    except ValueError as e:
         raise pubGetError("Exception during bs html parse", "htmlParseException", e.message)
     logging.log(5, "bs parsing finished")
 
@@ -752,9 +753,9 @@ def downloadPubmedMeta(pmid):
     try:
         wait(3, "eutils.ncbi.nlm.nih.gov")
         ret = pubPubmed.getOnePmid(pmid)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError as e:
         raise pubGetError("HTTP error %s on Pubmed" % str(e.code), "pubmedHttpError" , str(e.code))
-    except pubPubmed.PubmedError, e:
+    except pubPubmed.PubmedError as e:
         raise pubGetError(e.longMsg, e.logMsg)
 
     if ret==None:
@@ -1031,7 +1032,7 @@ def findPdfFileUrl(landingPage, crawlConfig):
 
     # some others can be derived by replacing strings in the landing url
     if "landingUrl_pdfUrl_replace" in crawlConfig:
-        print crawlConfig["landingUrl_pdfUrl_replace"]
+        print(crawlConfig["landingUrl_pdfUrl_replace"])
         pdfUrl = replaceUrl(landingPage["url"], crawlConfig["landingUrl_pdfUrl_replace"])
         logging.debug("Replacing strings in URL yields new URL %s" % (pdfUrl))
         return pdfUrl
@@ -1635,7 +1636,7 @@ def crawlFilesViaPubmed(outDir, testPmid, pause, tryHarder, restrictPublisher, \
                 crawlConfig = None
             okCount += 1
 
-        except pubGetError, e:
+        except pubGetError as e:
             if e.logMsg!="issnErrorExceed":
                 consecErrorCount += 1
             logging.error("PMID %s, error: %s, code: %s, details: %s" % (pmid, e.longMsg, e.logMsg, e.detailMsg))

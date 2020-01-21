@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import unittest
 
@@ -16,9 +17,9 @@ class TestCase(unittest.TestCase):
     def runTest(self, input, formdata, expected):
         try:
             output = list(SimpleFilter(input, formdata))
-        except NotImplementedError, nie:
+        except NotImplementedError as nie:
             # Amnesty for those that confess...
-            print >>sys.stderr, "Not implemented:", str(nie)
+            print("Not implemented:", str(nie), file=sys.stderr)
         else:
             errorMsg = "\n".join(["\n\nInput:", str(input),
                                   "\nForm data:", str(formdata),

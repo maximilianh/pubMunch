@@ -1,11 +1,12 @@
+from __future__ import absolute_import
 import random
 import time
 
 import requests
 from BeautifulSoup import BeautifulSoup
 
-from methods import *
-from config import endpoints
+from .methods import *
+from .config import endpoints
 
 logger = logging.getLogger('incapsula')
 

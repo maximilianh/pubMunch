@@ -1,5 +1,6 @@
 #!/cluster/software/bin/python2.7
 
+from __future__ import print_function
 import cgitb
 cgitb.enable()
 import cgi, sys
@@ -52,24 +53,24 @@ def getVars():
     return pmids, pmid, chunkId, imgId, fullSize
 
 def showForm():
-    print "Content-Type: text/html; charset=UTF-8\n"
-    print """
+    print("Content-Type: text/html; charset=UTF-8\n")
+    print("""
     <form method="get" action="pubImages">
     PMIDs to show:<p>
     <textarea name="pmids"  rows="30" cols="40"></textarea><p>
     <p>
     <input type="submit" name="submit" value="OK" />
     </form>
-    """
+    """)
 
 def showTable(pmids):
     " "
-    print "Content-Type: text/html; charset=UTF-8\n"
+    print("Content-Type: text/html; charset=UTF-8\n")
     artDbPath = join(imgDir, "articles.db")
     artDb = sqlite3.connect(artDbPath)
-    print "<ul>"
+    print("<ul>")
     for pmid in pmids:
-        print repr(pmid)
+        print(repr(pmid))
         chunkId = artDb.execute("SELECT max(chunkId) from articles where pmid=?", [pmid] ).fetchone()[0]
         if chunkId is None:
             continue
@@ -78,11 +79,11 @@ def showTable(pmids):
         row = chunkDb.execute("SELECT title, authors, journal, year from img where pmid=? limit 1", [pmid] ).fetchone()
 
         title, authors, journal, year = row
-        print "<li>", title.encode("utf8"), authors.encode("utf8"), journal, year, "<br>"
+        print("<li>", title.encode("utf8"), authors.encode("utf8"), journal, year, "<br>")
         for imgId in chunkDb.execute("SELECT imgId from img where pmid=? and isThumb=1", [pmid] ):
             args = "pubImages?chunkId=%s&pmid=%s&imgId=%s" % (chunkId, pmid, imgId[0])
-            print "<a href='%s&fullSize=1'><img src='%s'></a>" % (args, args)
-    print "</ul>"
+            print("<a href='%s&fullSize=1'><img src='%s'></a>" % (args, args))
+    print("</ul>")
 
 def showImage(chunkId, pmid, imgId, fullSize):
     " send image via http "
@@ -95,8 +96,8 @@ def showImage(chunkId, pmid, imgId, fullSize):
         [pmid, imgId] ).fetchone()
     data = row[0]
 
-    print "Content-Type: image/png\n"
-    print data
+    print("Content-Type: image/png\n")
+    print(data)
 
 def main():
     pmids, pmid, chunkId, imgId, fullSize = getVars()

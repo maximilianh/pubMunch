@@ -23,7 +23,7 @@ import warnings
 try:
     from bs4.builder import LXMLTreeBuilder, LXMLTreeBuilderForXML
     LXML_PRESENT = True
-except ImportError, e:
+except ImportError as e:
     LXML_PRESENT = False
 
 class TestDeprecatedConstructorArguments(SoupTest):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 # load default python packages
+from __future__ import print_function
 import logging, optparse, sys, glob, gzip, gdbm, marshal, zlib, copy, struct, operator
 from os.path import join, basename, isfile, dirname, abspath, splitext, isdir
 from collections import defaultdict, Counter, namedtuple
@@ -18,7 +19,7 @@ sys.path.insert(0, join(dirname(abspath(__file__)), "lib"))
 
 import pubGeneric, maxCommon, pubConf, maxbio, pubAlg, maxTables, pslMapBed, pubMap
 import pubDnaFind
-from pycbio.hgdata.Psl import Psl
+from pm_pycbio.hgdata.Psl import Psl
 import geneFinder
 import tabfile
 #import kent.psl, kent.pslTransMap
@@ -98,7 +99,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
     for geneId, score in geneScores:
         rank += 1
         mentionList = geneSupp[geneId]
-            
+
         for markerType, idStr, locs in mentionList:
             logging.debug("Found matches for type %s, gene %s, marker %s" % (markerType, geneId, idStr))
             logging.debug("Text: %s" % [text[start:end] for start, end in locs])
@@ -115,7 +116,7 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
                 # old rule, for invitae
                     #mType=="symbol" and (len(locs)>(wordCount/1200)) or \
                     #mType=="symbolMaybe" and (len(locs)>10):
-                    
+
                 # accept anythin with more than x mentions
                 #if mType not in ["symbolMaybe", "symbol"] or \
                     #mType in ["symbol", "symbolMaybe"] and support > minSupport:
@@ -172,13 +173,13 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
             annotLines.append( "reference annotation: entrezID %d symbol %s %s "% (entrez, sym, desc))
         if (not showOnlyErrors) or (not allFound):
 
-            print "PMID",pmid
+            print("PMID",pmid)
             meta = paperMetaData.get(str(pmid), None)
             year = "unknown"
             if meta!=None:
                 year = meta.year
 
-            print "Size: %d words, publYear %s" % (wordCount, year)
+            print("Size: %d words, publYear %s" % (wordCount, year))
 
             wc = Counter(text.split())
             wcParts = []
@@ -186,22 +187,22 @@ def findInLocalFile(inFname, refGenes, foundGenes, paperMetaData, minScore, maxR
             for w, count in wc.most_common(5):
                 wcParts.append("%s=%d" % (w, count))
                 topWords.append(w)
-            print "most common words: "+",".join(wcParts)
+            print("most common words: "+",".join(wcParts))
             if "the" not in topWords:
-                print "** %s PDF corrupted?" % pmid
+                print("** %s PDF corrupted?" % pmid)
             if "Novel human pathological mutations" in text:
-                print "** %s Not a real article" % pmid
-                
-            if pmid.isdigit() and int(pmid) in manualAnnots:
-                print "**", manualAnnots.get(int(pmid), "")
+                print("** %s Not a real article" % pmid)
 
-            print "\n".join(annotLines)
-            print "\n".join(foundLines)
-            print "-----"
+            if pmid.isdigit() and int(pmid) in manualAnnots:
+                print("**", manualAnnots.get(int(pmid), ""))
+
+            print("\n".join(annotLines))
+            print("\n".join(foundLines))
+            print("-----")
 
     else:
-        print "PMID %s NOT FOUND" % str(pmid)
-        
+        print("PMID %s NOT FOUND" % str(pmid))
+
 
 def parsePaperData(inDir):
     fname = join(inDir, "textData.tab")
@@ -232,13 +233,13 @@ def findInLocalDir(inDir, refGenes, minScore, maxRank):
         if len(genes)!=0:
             newRefGenes[pmid]=genes
     refGenes = newRefGenes
-        
-    print "----"
+
+    print("----")
     global pmids
-    print "total PMIDs searched: %d" % len(pmids)
+    print("total PMIDs searched: %d" % len(pmids))
     #refGenesDict = dict([(pmid, refGenes[pmid]) for pmid in pmids])
     pmidsWithRefs = pmids.intersection(refGenes)
-    print "total PMIDs searched with gene annotations: %d" % len(pmidsWithRefs)
+    print("total PMIDs searched with gene annotations: %d" % len(pmidsWithRefs))
     #print pmidsWithRefs
 
     refPairs = set()
@@ -246,16 +247,16 @@ def findInLocalDir(inDir, refGenes, minScore, maxRank):
         genes = refGenes[pmid]
         for gene in genes:
             refPairs.add( (str(pmid), gene) )
-    print "total (PMID, gene)-pairs to find (searched and with ref annotations): %d" % len(refPairs)
+    print("total (PMID, gene)-pairs to find (searched and with ref annotations): %d" % len(refPairs))
     #print refPairs
-    print "total (PMID, gene)-pairs found: %d" % len(foundGenes)
+    print("total (PMID, gene)-pairs found: %d" % len(foundGenes))
     #print foundGenes
     matchPairs = foundGenes.intersection(refPairs)
     #print matchPairs, refPairs
-    print "total (PMIDs, gene) matches: %d" % len(matchPairs)
-    print "recall: %f" % (float(len(matchPairs))/len(refPairs))
-    print "precision: %f" % (float(len(matchPairs))/len(foundGenes))
-    print "total PMIDs with at least one gene match: %d" % len(set([x for x,y in matchPairs]))
+    print("total (PMIDs, gene) matches: %d" % len(matchPairs))
+    print("recall: %f" % (float(len(matchPairs))/len(refPairs)))
+    print("precision: %f" % (float(len(matchPairs))/len(foundGenes)))
+    print("total PMIDs with at least one gene match: %d" % len(set([x for x,y in matchPairs])))
 
     # output how often identifiers were found
     global typePmids
@@ -265,7 +266,7 @@ def findInLocalDir(inDir, refGenes, minScore, maxRank):
         typeCounts.append ((mType, len(pmids)))
     typeCounts.sort(key=operator.itemgetter(1), reverse=True)
     for mType, pmidCount in typeCounts:
-        print "DocCount %s %d" % (mType, pmidCount)
+        print("DocCount %s %d" % (mType, pmidCount))
 
 def parseRefs(fname):
     data = defaultdict(list)

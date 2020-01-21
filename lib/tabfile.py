@@ -1,3 +1,4 @@
+from __future__ import print_function
 import re, codecs, glob, sys
 
 def openSpec(fname, mode="r", encoding=None):
@@ -297,8 +298,8 @@ def parseBlast(fname):
             continue
         fs = l.split("\t")
         if len(fs)!=12:
-            print l
-            print len(fs)
+            print(l)
+            print(len(fs))
             sys.stderr.write("error: blast output does not have 12 fields. Make sure that you ran blast with -m 9 or -D T (for bl2seq)\n")
             sys.exit(1)
         h = hit()

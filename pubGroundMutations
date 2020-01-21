@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # load default python packages
+from __future__ import print_function
 import logging, optparse, sys, glob, gzip
 from os.path import join, basename, isfile, dirname, abspath
 from collections import defaultdict, Counter
@@ -112,7 +113,7 @@ def main(args, options):
     mutCount = 0
     for fNames in iterCommonFiles([geneDir, mutDir]):
         logging.debug( fNames )
-        print fNames
+        print(fNames)
         for fileId, rows in maxCommon.iterTsvJoin(fNames, groupFieldNumber=0, useChars=13):
             articleId = str(fileId)[:10]
             geneAnnots = rows[0]
@@ -121,16 +122,16 @@ def main(args, options):
             extId2, upCounts, upToAnnots = indexGenes(geneAnnots)
             assert(extId1==extId2)
             extId = extId1
-            print
-            print "Article: %s PMID %s article %s file %s" % (extId, pmid, articleId, fileId)
+            print()
+            print("Article: %s PMID %s article %s file %s" % (extId, pmid, articleId, fileId))
 
             #print extId, mutCounts.most_common()
-            print "- genes:"
+            print("- genes:")
             geneDescs, geneNames = someSnippets(upCounts, upToAnnots, isGene=True)
-            print "\n".join(geneDescs)
-            print "- mutations:"
+            print("\n".join(geneDescs))
+            print("- mutations:")
             mutDescs, mutNames = someSnippets(mutCounts, mutToAnnots)
-            print "\n".join(mutDescs)
+            print("\n".join(mutDescs))
             mutCount += len(set(mutNames))
             #print extId, upCounts.most_common()
             #print mutAnnots
@@ -154,16 +155,16 @@ def main(args, options):
                     for uniprotId in matchSeqs:
                         outLines.append("\t".join([pmid, uniprotId+"/"+str(pos)]))
 
-            print "Resolved mutations:"
-            print "\n".join(["\t".join(row) for row in rows])
+            print("Resolved mutations:")
+            print("\n".join(["\t".join(row) for row in rows]))
             resolvCount += len(rows)
             if len(outLines)!=0:
                 ofh.write("\n".join(outLines)+"\n")
             #for row in r1:
                 #print row
             #print rows
-    print "Total mutation descriptions found: %d" % mutCount
-    print "Total resolved mutations found: %d" % resolvCount
+    print("Total mutation descriptions found: %d" % mutCount)
+    print("Total resolved mutations found: %d" % resolvCount)
 
 # === COMMAND LINE INTERFACE, OPTIONS AND HELP ===
 parser = optparse.OptionParser("""usage: %prog [options] annotDir - read geneSearcher and mutation_finderoutput, guess the gene for each mutation, and place onto uniprot sequences""")

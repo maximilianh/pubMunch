@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # default python packages
+from __future__ import print_function
 import sys, logging, optparse, os, collections, tarfile, mimetypes, csv, gzip, math, glob, tempfile, shutil, pickle
 from os.path import *
 from collections import namedtuple
@@ -699,11 +700,11 @@ def main(args, options):
         articleData = pubStore.createEmptyArticleDict()
         articleData, suppFileDict, refData = parsePmcXml(open(args[0]).read(), articleData)
         for key, val in articleData.iteritems():
-            print key, val
-        print suppFileDict
-        print "* references:"
+            print(key, val)
+        print(suppFileDict)
+        print("* references:")
         for row in refData:
-            print row
+            print(row)
         sys.exit(0)
 
     pubGeneric.setupLogging(progFile, options)

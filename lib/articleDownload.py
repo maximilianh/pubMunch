@@ -1,3 +1,4 @@
+from __future__ import print_function
 from optparse import OptionParser
 import util, maxXml
 import urllib2, cookielib, urllib, re, time, sgmllib, os, sys, glob, urlparse,\
@@ -566,4 +567,4 @@ if __name__ == "__main__":
     pmids = [2583107, 20419150, 17439641, 10022128, 18271954, 17032682, 15124226, 9808786]
     for pmid in pmids:
         ft = browser.downloadFulltext(pmid)
-        print ft.toString()
+        print(ft.toString())

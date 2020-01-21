@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import os
 import sys
 import StringIO
@@ -6,7 +7,7 @@ import warnings
 
 warnings.simplefilter("error")
 
-from support import html5lib_test_files, TestData, convertExpected
+from .support import html5lib_test_files, TestData, convertExpected
 
 from html5lib import html5parser, treewalkers, treebuilders, constants
 from html5lib.filters.lint import Filter as LintFilter, LintError
