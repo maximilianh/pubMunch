@@ -9,10 +9,9 @@ If you want to update these lists:
 
 * NLM Catalog:
 
-Go to http://www.ncbi.nlm.nih.gov/nlmcatalog, click "Limits", select "only Pubmed journals" or
-"currently indexed for Medline" (depending on your needs), click search, click "Send to", 
-"File", format: "XML". You can gzip the file and replace the file here or provide the file name
-to the pubPrepCrawl script.
+Go to https://www.nlm.nih.gov/databases/download/catalog.html. Download all four of the catplusbaseXof4.2020.xml files from XML Format -> All available data.
+
+Use pubResolvePublishers on the XML files.
 
 * Highwire:
 
@@ -22,6 +21,7 @@ Goto http://highwire.stanford.edu/cgi/journalinfo, check
 "Where is the publisher's home page"
 "What is the main URL of the journal site"
 "What is the print ISSN number"
+"Online ISSN number"
 
 Click "select all journals"
 
@@ -32,7 +32,7 @@ Enter your email address and wait until your receive an email.
 Import the tab-sep file into Excel, replace the first row with
 title	publisher	urls	eIssn	pIssn
 
-save to a tab-sep file and replace the file highwire.tsv here (version from 2012)
+save to a tab-sep file and call it highwire.tsv
 
 * Wiley:
 
@@ -51,11 +51,12 @@ Delete the other columns and all decorations
 
 Save as tab-sep to wiley.tab
 
-You can filter this to BioMed-articles with
+You can filter this if you like to BioMed-articles with
 cat wiley.tab | egrep 'Medical|Life|Agric|Chemistry|Environmental' > wileyFiltered.tab
 
 * Lippincott Williams = Wolters Kluwer
 
+# This did not work in 2020 anymore:
 # not using this anymore, see below
 #wget http://www.lww.com/opencms/opencms/web/PEMR/PDFs/docs/ratesheet.pdf
 #pdftotext ratesheet.pdf
@@ -67,9 +68,13 @@ got lww.biborosch.tab from "Biborosch, Richard" <Rich.Biborosch@wolterskluwer.co
 echo -e 'title\turls\tpIssn\teIssn' | cat - lww.biborosch.txt | grep -v ^Title | cut -f1,2,3,4 | grep ^$'\t' -v > lww.tab
 
 * Karger
-wget http://misc.karger.com/Services/pdf/PL2013_USD.pdf 
-pdftotext PL2013_USD.txt -enc ASCII7
-echo eIssn `cat PL2013_USD.txt | egrep 'e-ISSN' | cut -d' ' -f2` | tr ' ' '\n' > karger.tab
+# not working anymore as of 2020
+#wget http://misc.karger.com/Services/pdf/PL2013_USD.pdf 
+#pdftotext PL2013_USD.txt -enc ASCII7
+#echo eIssn `cat PL2013_USD.txt | egrep 'e-ISSN' | cut -d' ' -f2` | tr ' ' '\n' > karger.tab
+
+There is a file here:
+https://www.karger.com/WebMaterial/ShowFileCache/1214596?inline=true
 
 * Scopus
 Got title list from
