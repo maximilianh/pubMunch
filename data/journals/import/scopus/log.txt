@@ -1,0 +1,4 @@
+#mv ~/title_list.txt ~/asjc_codes.txt ./
+in2csv title_list.xlsx  -d '	' -q '' > title_list.csv
+csvconvert -i title_list.csv --dlm-output='	' --remove-line-char -o title_list.tab
+mac2unix *.tab *.txt
