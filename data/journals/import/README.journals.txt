@@ -82,13 +82,15 @@ http://www.elsevier.com/online-tools/scopus/content-overview
 
 Also wrote asjc_codes.txt, from one of the other sheets in this file
 
+see the subdirectory scopus/
+
 has newlines in header fields, so needs very special converter
 
 cd scopus
 in2csv title_list.xlsx  -d '\t' -q '' > title_list.csv
 csvconvert -i title_list.csv --dlm-output='	' --remove-line-char -o title_list.tab
 mac2unix *.tab *.txt
-python convert_scopus.py > ../scopus.tab
+python scopus/convert_scopus.py > scopus.tab
 
 * CrossRef
 
@@ -99,4 +101,4 @@ curl http://ftp.crossref.org/titlelist/titleFile.csv | csvToTab /dev/stdin > cro
 Got title list from http://www.tandfonline.com/page/title-lists
 "Current Content Access" -> tandf.txt
 
-cat tandf.txt | egrep -v ^publication_title | tawk 'BEGIN {print "eIssn\turls"; } {if ($3=="") {next;}; FS="\t"; OFS="\t"; print $3, "tandfonline.com"}' > tandf.tab
+cat tandf.txt | egrep -v ^publication_title | awk 'BEGIN {FS="\t"; OFS="\t"; print "eIssn\turls"; } {if ($3=="") {next;}; FS="\t"; OFS="\t"; print $3, "tandfonline.com"}' > tandf.tab
