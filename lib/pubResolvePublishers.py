@@ -1,17 +1,18 @@
 # routines to parse NLM Catalog and other journal lists (HIGHWIRE, wiley) and sort journals by publisher
 # output to tab sep tables
 # load default python packages
-import logging, os, sys, collections, gzip, re, codecs, operator, glob
+import logging, optparse, os, sys, collections, gzip, re, codecs, operator, glob, random
 from os.path import *
 
 # add <scriptDir>/lib/ to package search path
 sys.path.insert(0, join(dirname(abspath(__file__)),"lib"))
 
 # load our own libraries
-import pubGeneric, maxCommon, pubPubmed
+import pubConf, pubGeneric, tabfile, maxCommon, pubPubmed
 from urllib2 import urlparse
 
-import xml.etree.cElementTree as etree
+# import xml.etree.cElementTree as etree
+import lxml.etree
 
 headers = "source,pIssn,eIssn,linkIssn,title,publisher,correctPublisher,urls,uniqueId,medlineTA,majMeshList,author,language,country"
 Rec = collections.namedtuple("NLMRec", headers)
@@ -47,7 +48,8 @@ def urlStringToServers(urlString):
     return servers
 
 def recIter(tree):
-    for rec in tree.findall("NCBICatalogRecord/NLMCatalogRecord"):
+    # for rec in tree.findall("NCBICatalogRecord/NLMCatalogRecord"):
+    for rec in tree.findall("NLMCatalogRecord"):
         #print rec
         #serial = rec.find("Serial")
         data = {}
@@ -171,8 +173,138 @@ def recIter(tree):
         logging.log(5, "parsed XML as %s",  data)
         yield row
 
+def process_journals(xml_list):
+    for xml_name in xml_list:
+        context = lxml.etree.iterparse(xml_name, events=("start", "end"))
+        print("Processing %s" % xml_name)
+        for event, rec in context:
+            if rec.tag == "NLMCatalogRecord" and event == "end":
+                #print rec
+                #serial = rec.find("Serial")
+                data = {}
+                data["uniqueId"] = rec.find("NlmUniqueID").text
+                data["title"]    = rec.find("TitleMain").find("Title").text
+                medlineTa  = rec.find("MedlineTA")
+                if medlineTa==None:
+                    logging.debug("Skipping %s" % data)
+                    continue
+
+                data["medlineTA"]= medlineTa.text
+
+                data["author"] = ""
+                authorList = rec.find("AuthorList")
+                if authorList!=None:
+                    author = authorList.find("Author")
+                    if author!=None:
+                        collName = author.find("CollectiveName")
+                        if collName!=None:
+                            data["author"] = collName.text.strip(",. ;").replace("[etc.]","").strip(",. ;")
+
+                pubInfo = rec.find("PublicationInfo")
+                data["publisher"] = ""
+                data["country"] = ""
+                if pubInfo != None:
+                    # we assuem that the last publisher or imprint is the current one
+                    publishers = pubInfo.findall("Publisher")
+                    #print data["uniqueId"]
+                    #print publishers
+                    if publishers==None or len(publishers)==0:
+                        imprints = pubInfo.findall("Imprint")
+                        if len(imprints)==0 or imprints!=None:
+                            for imprintEl in imprints:
+                                publishers = imprintEl.findall("Entity")
+                            if publishers==None or len(publishers)==0:
+                                for imprintEl in imprints:
+                                    publishers = imprintEl.findall("ImprintFull")
+
+                    if publishers!=None and len(publishers)!=0:
+                        publisher = publishers[-1]
+                        pubStr = publisher.text.strip(",. ;").replace("[etc.]","").strip(",. ;")
+                        data["publisher"] = pubStr
+                    else:
+                        data["publisher"] = "unknown"
+
+                    if data["publisher"].lower() in \
+                        ["the association", "the society", "the institute", \
+                        "the college", "the federation", "the department"]:
+                        data["publisher"]=data["author"]
+                    country = pubInfo.find("Country")
+                    if country !=None:
+                        data["country"] = country.text
+
+                    # <Language LangType="Primary">fre</Language>
+                    lang = rec.find("Language")
+                    if lang!=None:
+                        type = lang.attrib.get("LangType", "")
+                        if type=="Primary":
+                            data["language"] = lang.text
+
+                eloc = rec.find("ELocationList")
+                urls = []
+                #servers = set()
+                if eloc!=None:
+                    elocs = eloc.findall("ELocation")
+                    for eloc in elocs:
+                        eid = eloc.find("ELocationID")
+                        if eid!=None and eid.attrib.get("EIdType", None)=="url":
+                            url = eid.text
+                            if "pubmedcentral" in url or "doi" in url:
+                                logging.debug("url is PMC or DOI")
+                            elif "nlm.nih.gov" in url:
+                                logging.debug("url goes to pubmed")
+                            elif "cdc.gov" in url:
+                                logging.debug("url goes to cdc")
+                            else:
+                                urls.append(eid.text)
+                                #parts = urlparse.urlsplit(url)
+                                #server = parts[1]
+                                #server = server.replace("www.", "")
+                                #if server!="":
+                                    #servers.add(server)
+                data["urls"] = "|".join(urls)
+                #data["servers"] = "|".join(servers)
+
+                majMeshes = []
+                meshList = rec.find("MeshHeadingList")
+                if meshList!=None:
+                    heads = meshList.findall("MeshHeading")
+                    for head in heads:
+                        desc = head.find("DescriptorName")
+                        if desc.attrib.get("MajorTopicYN", None)=="Y":
+                            majMeshes.append(desc.text)
+                majMesh = "|".join(majMeshes)
+                data["majMeshList"] = majMesh
+                        
+                issns = rec.findall("ISSN")
+                data["eIssn"] = ""
+                data["pIssn"] = ""
+                if issns!=None:
+                    for issn in issns:
+                        if issn.attrib.get("IssnType", None)=="Electronic":
+                            data["eIssn"]=issn.text
+                        if issn.attrib.get("IssnType", None)=="Print":
+                            data["pIssn"]=issn.text
+
+                if "E-only" in data["pIssn"]:
+                    data["pIssn"] = data["eIssn"]
+
+                data["linkIssn"] = ""
+                issnLink = rec.find("ISSNLinking")
+                if issnLink!=None:
+                    data["linkIssn"]=issnLink.text
+                else:
+                    #data["linkIssn"]=data["pIssn"]
+                    data["linkIssn"]=""
+                    
+                data["source"] = "NLM"
+                data["correctPublisher"] = ""
+                row = Rec(**data)
+                logging.log(5, "parsed XML as %s",  data)
+                yield row
+
+
 def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
-    """ write list of records to file. If headers is specified,
+    """ write list of records to file. If headers is specified, 
     reformat to fit into tab-sep headers. Optionally set the field source to some value."""
     logging.info("Exporting to tab-sep file %s" % outFname)
     openMode = "w"
@@ -193,7 +325,7 @@ def writeJournals(pubGroups, outFname, headers=None, append=False, source=None):
                 #continue
             if headers!=None:
                 recDict = rec._asdict()
-                # create a new dict with all defined fields and
+                # create a new dict with all defined fields and 
                 # all required fields set to "", drop all non-reqired fields
                 filtRecDict = {}
                 for d in recDict:
@@ -243,6 +375,7 @@ def writePubGroups(pubGroups, outFname, prefix=None, append=False):
                 titles.append(journal.title.replace("|"," "))
             else:
                 titles.append("UnknownTitle")
+                
             syns.append(journal.publisher)
             jServers = urlStringToServers(journal.urls)
             servers.extend(jServers)
@@ -300,7 +433,7 @@ def findBestGroupForServer(pubGroups):
     for server, bestGroup in serverToBestGroup.iteritems():
         logging.debug("%s --> %s" % (server, bestGroup))
     return serverToBestGroup
-
+        
 def regroupByServer(pubGroups, serverToBestGroup):
     " if a publisher has only one server, then assign it to the biggest group for this server "
     newGroups = {}
@@ -428,7 +561,7 @@ def groupPublishersByName(journals):
     "10.1007" : "springer",
     }
 
-    # some manual rules for grouping, to force to a given final publisher if a certain keyword is found
+    # some manual rules for grouping, to force to a given final publisher if a certain keyword is found 
     # if KEY is part of publisher name, publisher is grouped into VAL
     pubReplaceDict = {
         "Academic Press" : "Elsevier",
@@ -541,21 +674,23 @@ def groupPublishersByName(journals):
 
     return pubDict
 
+# fails on large NLM xml files
 def parseNlmCatalog(inFname):
     " convert NLM's XML format to a tab-sep file and return a list of records "
     if inFname.endswith(".gz"):
         data = gzip.open(inFname).read()
     else:
         data = open(inFname).read()
-
+        
     logging.info("Parsing XML file %s into memory" % inFname)
     #data = "<nlm>"+data+"</nlm>"
+    # this parsing step caused python to run out of memory
     tree = etree.fromstring(data)
     journals = list(recIter(tree))
     return journals
 
 def journalToBestWebserver(journals):
-    """ given a list of journal records create a mapping journal -> webserver
+    """ given a list of journal records create a mapping journal -> webserver 
     We will assign a journal to the biggest webserver, if there are several ones """
     # count journals per webserver
     serverCounts = collections.defaultdict(int)
@@ -588,13 +723,17 @@ def journalToBestWebserver(journals):
         journalToServer[journal.eIssn] = topServer
     return journalToServer
 
-def convertNlmAndTab(nlmCatalogFname, tabSepFnames, journalFname, pubFname):
-    """ init outDir by parsing journal list files. generate journal and publisher
+def convertNlmAndTab(nlmCatalogFname, tabSepFnames, journalFname, pubFname, base_file_dir=None):
+    """ init outDir by parsing journal list files. generate journal and publisher 
         tables from it.
     """
 
-    # process NLM xml file
-    journals = parseNlmCatalog(nlmCatalogFname)
+    # process NLM xml file(s)
+    if base_file_dir:
+        xml_names = ["%scatplusbase%sof4.2020.xml" % (base_file_dir, i) for i in range(1,5)]
+        journals = list(process_journals(xml_names))
+    else:
+        journals = list(process_journals([nlmCatalogFname]))
     pubGroups = groupPublishersByName(journals)
     serverToBestGroup = findBestGroupForServer(pubGroups)
     pubGroups = regroupByServer(pubGroups, serverToBestGroup)
@@ -610,17 +749,22 @@ def convertNlmAndTab(nlmCatalogFname, tabSepFnames, journalFname, pubFname):
                 prefix=datasetName, append=True)
         writeJournals(pubGroups, journalFname, headers, append=True, source=datasetName)
 
-def initJournalDir(journalInDir, nlmCatalogFname, journalFname, pubFname):
+def initJournalDir(journalInDir, nlmCatalogFname, journalFname, pubFname, use_base_files=False):
     " fill the journal data dir pubConf.journalData with two tab sep files "
     listDir = journalInDir
     logging.info("importing journal info from %s" % listDir)
 
     if nlmCatalogFname==None:
-        nlmCatalogFname = join(listDir, "nlmCatalog.English.xml.gz")
+        nlmCatalogFname = join(listDir, "nlmCatalog.English.xml")
 
     otherTabFnames = glob.glob(join(listDir, "*.tab"))
-    convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalFname, pubFname)
 
+    # base files are catplusbaseXofY.YEAR.xml from ftp://ftp.nlm.nih.gov/nlmdata/.catpluslease/ and should be placed in journalInDir
+    if use_base_files:
+        convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalFname, pubFname, journalInDir)
+    else:
+        convertNlmAndTab(nlmCatalogFname, otherTabFnames, journalFname, pubFname)
+    
 if __name__=="__main__":
     import doctest
     doctest.testmod()

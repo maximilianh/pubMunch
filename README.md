@@ -1,5 +1,8 @@
 # Overview
 
+NOTE: There is a Python3 version of this repo now - https://github.com/maximilianh/pubMunch3
+Ongoing dev work is happening over there.
+
 These are the tools that I wrote for the UCSC Genocoding project, see
 http://text.soe.ucsc.edu. They allow you to download fulltext research
 articles from the internet, convert them to text and run text mining algorithms
