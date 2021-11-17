@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # first load the standard libraries from python
 # we require at least python 2.5
 #from sys import *
 import sys
-import logging, optparse, os, glob, urllib2, tempfile, subprocess, shutil
+import logging, optparse, os, glob, tempfile, subprocess, shutil
 import ftplib
 from datetime import datetime
 from os.path import *
@@ -33,44 +33,50 @@ parser.add_option("", "--auto", dest="auto", action="store_true", \
 (options, args) = parser.parse_args()
 
 # ==== FUNCTIONs =====
+#def downloadSpringer(user, password, outDir):
+#    ftpUrl, ftpDir = "ftp.springer-dds.com", "data/in"
+#    logging.debug("Connecting to %s, dir %s, user %s, password %s" % (ftpUrl, ftpDir, user, password))
+#    ftp = ftplib.FTP("ftp.springer-dds.com", user, password)
+#    ftp.cwd("/data/in")
+#    fileNames = ftp.nlst()
+#    logging.debug("Files on server: %s" % ",".join(fileNames))
+#    
+#    i = 0
+#    size = 0
+#    startTime = datetime.now()
+#    logFname = join(outDir, "updates.log")
+#    logFh = open(logFname, "w")
+#    for fileName in fileNames:
+#        locFileName = join(outDir, fileName)
+#        locTmpFile, locTmpFname = pubGeneric.makeTempFile("pubGetSpringer", ".zip")
+#        maxCommon.delOnExit(locTmpFname)
+#
+#        logging.debug("Retrieving file %s to %s" % (fileName, locTmpFname))
+#        ftp.retrbinary('RETR %s' % fileName, locTmpFile.write)
+#        locTmpFile.flush()
+#        logging.debug("Moving file %s to %s" % (locTmpFname, locFileName))
+#        shutil.copy(locTmpFname, locFileName)
+#        locTmpFile.close()
+#        logging.debug("Deleting file %s on server" % (fileName))
+#        ftp.delete(fileName)
+#        logFh.write("\t".join([fileName, datetime.now().isoformat()]))
+#
+#        i+=1
+#        size += getsize(locFileName)
+#
+#    logFh.close()
+#    runtime = datetime.now() - startTime
+#    runSecs = runtime.seconds
+#    if i!=0:
+#        logging.info("Downloaded/removed %d files, total size %d, time %d seconds" % (i, size, runSecs))
+#    else:
+#        logging.info("No new springer updates to download.")
+
 def downloadSpringer(user, password, outDir):
-    ftpUrl, ftpDir = "ftp.springer-dds.com", "data/in"
-    logging.debug("Connecting to %s, dir %s, user %s, password %s" % (ftpUrl, ftpDir, user, password))
-    ftp = ftplib.FTP("ftp.springer-dds.com", user, password)
-    ftp.cwd("/data/in")
-    fileNames = ftp.nlst()
-    logging.debug("Files on server: %s" % ",".join(fileNames))
-    
-    i = 0
-    size = 0
-    startTime = datetime.now()
-    logFname = join(outDir, "updates.log")
-    logFh = open(logFname, "w")
-    for fileName in fileNames:
-        locFileName = join(outDir, fileName)
-        locTmpFile, locTmpFname = pubGeneric.makeTempFile("pubGetSpringer", ".zip")
-        maxCommon.delOnExit(locTmpFname)
-
-        logging.debug("Retrieving file %s to %s" % (fileName, locTmpFname))
-        ftp.retrbinary('RETR %s' % fileName, locTmpFile.write)
-        locTmpFile.flush()
-        logging.debug("Moving file %s to %s" % (locTmpFname, locFileName))
-        shutil.copy(locTmpFname, locFileName)
-        locTmpFile.close()
-        logging.debug("Deleting file %s on server" % (fileName))
-        ftp.delete(fileName)
-        logFh.write("\t".join([fileName, datetime.now().isoformat()]))
-
-        i+=1
-        size += getsize(locFileName)
-
-    logFh.close()
-    runtime = datetime.now() - startTime
-    runSecs = runtime.seconds
-    if i!=0:
-        logging.info("Downloaded/removed %d files, total size %d, time %d seconds" % (i, size, runSecs))
-    else:
-        logging.info("No new springer updates to download.")
+    ftpUrl = "sftp://ftp.springernature.com"
+    logging.debug("Connecting to %s, user %s, password %s" % (ftpUrl, user, password))
+    cmd = ["lftp", "-q", "-u", user+","+password, ftpUrl, "-e", "mirror . "+outDir]
+    subprocess.call(cmd)
 
 # ----------- MAIN --------------
 # only for debugging

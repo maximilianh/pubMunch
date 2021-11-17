@@ -4,7 +4,6 @@ from __future__ import division
 # ascii-conversion, section splitting etc
 
 from builtins import range
-from past.utils import old_div
 import os, logging, tempfile, sys, re, unicodedata, subprocess, time, types, traceback, \
     glob, operator, doctest, ftplib, random, shutil, atexit, pickle
 import pubConf, pubXml, maxCommon, pubStore, maxRun, maxTables, pubKeyVal
@@ -667,9 +666,9 @@ def splitAnnotId(annotId):
     articleDigits = pubConf.ARTICLEDIGITS
 
     annotIdInt = int(annotId)
-    articleId  = old_div(annotIdInt, 10**(fileDigits+annotDigits))
+    articleId  = int(annotIdInt / 10**(fileDigits+annotDigits))
     fileAnnotId= annotIdInt % 10**(fileDigits+annotDigits)
-    fileId     = old_div(fileAnnotId, 10**(annotDigits))
+    fileId     = int(fileAnnotId / 10**(annotDigits))
     annotId    = fileAnnotId % 10**(annotDigits)
     return articleId, fileId, annotId
 
